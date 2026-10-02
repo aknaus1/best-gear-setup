@@ -1,20 +1,22 @@
 # Best Gear Setup
 
-A RuneLite plugin that finds the best gear setup for any monster or boss, right inside the
-client. Monsters, equipment, spells, prayers and potions come from bundled
-[OSRS Wiki](https://oldschool.runescape.wiki/) snapshots, so the plugin makes no network requests.
-The plugin uses OSRS Wiki combat formulas and RuneLite item prices; see
+A [RuneLite](https://runelite.net/) plugin that finds the best gear setup for any monster or boss, right
+inside the client: from the items you own, within a budget, or best in slot. Monsters, equipment, spells,
+prayers and potions come from bundled [OSRS Wiki](https://oldschool.runescape.wiki/) snapshots, so the plugin
+makes no network requests. The plugin uses OSRS Wiki combat formulas and RuneLite item prices; see
 [source attribution](THIRD_PARTY_NOTICES.md).
 
-## Launch locally
+## Getting started
 
-Requires JDK 11.
+1. In RuneLite, open **Configuration** (the wrench icon), select **Plugin Hub**, search for *Best Gear Setup*
+   and install it.
+2. Log in and open your bank once, so the plugin knows which items you own.
+3. Open the **Best Gear Setup** panel in the sidebar, or right-click an attackable NPC and choose
+   **Best setup**.
+4. Search for a monster, pick its version, choose a mode (and budget), then **Find best setup**.
 
-1. Open this folder in IntelliJ IDEA (or another IDE with Gradle support) as a Gradle project.
-2. Run the `main` method of `src/test/java/com/bestgearsetup/BestGearSetupPluginTest.java`, adding `-ea`
-   to the VM options. This starts a RuneLite client with the plugin loaded.
-
-`./gradlew build` compiles the plugin and runs the tests.
+Results show the best melee, ranged and magic setups with their DPS and what you would need to buy.
+Right-click an item in a result to lock, exclude or mark it as owned.
 
 ## Features
 
@@ -73,15 +75,49 @@ Requires JDK 11.
   Quest, diary and creation levels are not wear gates. Black masks require 20 Strength and 40 combat
   as well as 10 Defence; owned items and armour locks cannot bypass wear requirements.
 
-## Advanced options
+## Side panel
 
 Mode, budget and slayer-task status are controlled in the main side panel. **Fight options**
 contains fighting distance, ammo quantity and pre-fight specials (vulnerability, dragon warhammer, elder maul,
-arclight, emberlight, Tonalztics, bandos godsword, seercull and Eye of Ayak).
+arclight, emberlight, Tonalztics, bandos godsword, seercull and Eye of Ayak). It also contains
+**Enable AoE**, **Grouped enemies**, **Require fire protection**, **Antifire potion** and **Protect from Magic**.
 The lookup controls do not repeat in RuneLite's settings; saved values are preserved.
 Raid scaling, path levels and dragonfire protection appear only for matching encounters; the
 **Boss phase** picker appears below the monster search, under the version, when the target has one. Attack effects and pre-fight specials have their own collapsed sections.
 Snapshot information and calculation assumptions are under **Search details**, below the gear.
+
+**Potions, locks & items**:
+
+- **Potions** per combat style: *Best available* (strongest potion usable anywhere; raid, NMZ and
+  Deadman potions and brews excluded), *None*, or any potion from the potion table (overloads,
+  smelling salts, ...). A potion picked by name is always used; it is named above the results, with a
+  warning when the target is outside its raid or minigame or (in owned / budget modes) you don't own it.
+- **Right-click any item in a result** to lock its slot to that item, keep the slot empty, always fill
+  it for defence / prayer, exclude the item, or mark it as owned. When an item has separately listed
+  variants (e.g. *Dragon hunter crossbow (b)*), the menu offers **Exclude all ... variants** as well as
+  **Exclude only** that entry, and a variant of an excluded item says so in its tooltip. Locks and
+  exclusions are listed with a remove button; the search re-runs automatically.
+- **Marked as owned**: search any item and mark it owned, for things the bank scan can't see (POH
+  costume room, items on another account...).
+
+## Plugin settings
+
+In RuneLite's settings for the plugin:
+- **Right-click option**: adds **Best setup** to attackable NPCs' right-click menu (on by default).
+- **Search options**: stab / slash / crush / ranged / magic / atlatl toggles (the eclipse atlatl gets its own
+  tab: ranged accuracy, Strength-based damage, Eclipse Moon burns), one- or two-handed weapons only,
+  optimise for DPS / accuracy / max hit / average hit, search depth (fast / normal / best).
+- **Experience**: forbid styles that give Attack, Strength or Defence XP (pures), or require a melee
+  style that gives a chosen XP type.
+- **Fill empty slots**: fill slots that add no damage with prayer or defence items (by defence type,
+  or weighted by the target's own attacks), optionally giving up a DPS margin.
+- **Equipment & access**: Members, DMM, Beta and BH equipment and allowed spellbooks.
+- **Boosts**: prayers, thrall DPS.
+
+## Encounter rules
+
+### Ammunition and fighting distance
+
 External ammunition is included in the ammo slot, including zero-bonus atlatl darts;
 blowpipe darts are shown separately as loaded ammo. Consumable ammo uses the configured quantity
 when pricing a setup, and so do thrown weapons used up as they are thrown (knives, darts, thrownaxes,
@@ -131,6 +167,8 @@ Encounter caps modify expected damage as well as displayed max hits, after playe
 before thralls. Multi-hit scythes are capped separately; fang uses its bounded damage rolls.
 The active rule is explained above the results and in the max-hit tooltip.
 
+### Damage caps, reductions and immunities
+
 - **Zulrah:** raw hits above 50 reroll uniformly to 45-50; this is not a simple max-hit clamp.
 - **Fragment of Seren:** each hit is limited by a random 22-24 cap.
 - **Verzik P1:** random 0-10 melee and 0-3 Ranged/Magic caps, for all raid difficulties.
@@ -157,10 +195,7 @@ and its [equipment exceptions](https://github.com/weirdgloop/osrs-dps-calc/blob/
 These rules do not simulate changing protection prayers, movement, invulnerability periods,
 damage-over-time caps, or every quest/raid-specific mechanic.
 
-In the side panel (**Potions, locks & items**):
-
-**Fight options** also contains **Enable AoE**, **Grouped enemies**, **Require fire protection**,
-**Antifire potion** and **Protect from Magic**. These lookup controls are hidden in the configuration page.
+### AoE and grouped enemies
 
 AoE defaults off. When enabled, the optimizer ranks total damage across identical enemies grouped in
 multicombat, subject to each attack's limit: Ancient burst/barrage up to nine; grey/red chinchompas up
@@ -183,6 +218,8 @@ enemy, including a returning venator bounce. KPH is damage-based throughput assu
 overkill, respawn times, movement, eating, banking and phase transitions are excluded. Thrall DPS is
 added once to the primary enemy, never multiplied by group size.
 
+### Dragonfire protection
+
 Fire protection defaults required, with super antifire and Protect from Magic assumed active. Regular
 chromatic/brutal dragons accept super antifire alone or regular antifire plus a fire shield/Protect
 from Magic. Metal dragons and drakes ignore that prayer. Vorkath and KBD require potion plus fire
@@ -193,6 +230,8 @@ fire requirement. Protective shields are retained as candidates even when anothe
 offensive stats; locks, ownership and slot filling cannot bypass the requirement. This is a gear
 constraint, not an incoming damage or food/downtime simulation. Disable it to model safespots or
 other strategies that avoid those attacks.
+
+### Slayer protection
 
 Slayer monsters with mandatory protective equipment always get it, on or off task, in every mode and in
 AoE; a slot lock that leaves it out is reported as unusable. Superior variants follow their base monster.
@@ -216,7 +255,9 @@ are a note rather than a requirement. Wall beasts need a spiny helmet only to st
 boots (killerwatts), slayer gloves (fever spiders) and witchwood icons (cave horrors) are recommended rather
 than required, so none of these restrict the setup.
 
-Mechanics follow [Scythe of vitur](https://oldschool.runescape.wiki/w/Scythe_of_vitur),
+### Sources and prayers
+
+AoE and dragonfire mechanics follow [Scythe of vitur](https://oldschool.runescape.wiki/w/Scythe_of_vitur),
 [Hallowfell](https://oldschool.runescape.wiki/w/Hallowfell),
 [Venator bow](https://oldschool.runescape.wiki/w/Venator_bow),
 [chinchompa fuses](https://oldschool.runescape.wiki/w/Chinchompa_(weapon)),
@@ -225,29 +266,6 @@ Mechanics follow [Scythe of vitur](https://oldschool.runescape.wiki/w/Scythe_of_
 [dragonfire protection](https://oldschool.runescape.wiki/w/Dragonfire).
 Offensive prayers are checked against RuneLite's actual prayer list, excluding the source-only Zeal
 entry. Piety retains its real 20% accuracy / 23% strength boosts.
-
-- **Potions** per combat style: *Best available* (strongest potion usable anywhere; raid, NMZ and
-  Deadman potions and brews excluded), *None*, or any potion from the potion table (overloads,
-  smelling salts, ...). A potion picked by name is always used; it is named above the results, with a
-  warning when the target is outside its raid or minigame or (in owned / budget modes) you don't own it.
-- **Right-click any item in a result** to lock its slot to that item, keep the slot empty, always fill
-  it for defence / prayer, exclude the item, or mark it as owned. When an item has separately listed
-  variants (e.g. *Dragon hunter crossbow (b)*), the menu offers **Exclude all ... variants** as well as
-  **Exclude only** that entry, and a variant of an excluded item says so in its tooltip. Locks and
-  exclusions are listed with a remove button; the search re-runs automatically.
-- **Marked as owned**: search any item and mark it owned, for things the bank scan can't see (POH
-  costume room, items on another account...).
-
-In RuneLite's settings for the plugin:
-- **Search options**: stab / slash / crush / ranged / magic / atlatl toggles (the eclipse atlatl gets its own
-  tab: ranged accuracy, Strength-based damage, Eclipse Moon burns), one- or two-handed weapons only,
-  optimise for DPS / accuracy / max hit / average hit, search depth (fast / normal / best).
-- **Experience**: forbid styles that give Attack, Strength or Defence XP (pures), or require a melee
-  style that gives a chosen XP type.
-- **Fill empty slots**: fill slots that add no damage with prayer or defence items (by defence type,
-  or weighted by the target's own attacks), optionally giving up a DPS margin.
-- **Equipment & access**: Members, DMM, Beta and BH equipment and allowed spellbooks.
-- **Boosts**: prayers, thrall DPS.
 
 ## How it works
 
@@ -346,17 +364,45 @@ certify every mechanic.
 ## Data and privacy
 
 The plugin makes no network requests: everything it needs is bundled, and the search runs locally.
-Your owned-item lists stay in RuneLite's profile configuration.
+Item prices come from RuneLite's own price data. Owned-item lists, remembered levels and unlocks are saved
+in RuneLite's configuration for each RuneScape profile; like other plugin settings, RuneLite syncs them only
+if you are signed in to a RuneLite account.
 
 The bundled `wiki-monsters.json.gz`, `wiki-gamedata.json.gz` and `status-immunities.json` derive from
 the [Old School RuneScape Wiki](https://oldschool.runescape.wiki/) contributors under
 [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/); the equipment snapshot also
-includes requirement parameters read from the game cache. Regenerate monsters with
-`python tools/wiki_monsters.py`, equipment and support tables with `python tools/wiki_equipment.py`,
-and status immunities with `python tools/wiki_status_immunities.py`. The curated requirements table retains a
-source link per rule and is generated with `python tools/equipment_requirements.py`.
-Downloads (`--refresh`) require `BGS_WIKI_CONTACT` (an email address or repository URL for the
-User-Agent) and follow the MediaWiki API etiquette via `tools/wiki_api.py`: serial requests, `maxlag`,
-server-directed retries, and API errors that fail the run instead of overwriting a cache or snapshot.
-Its offline tests run with `python -m unittest discover -s tools -p "test_*.py"`.
+includes requirement parameters read from the game cache. The curated requirements table
+(`equipment-requirements.json`) retains a source link per rule. The generators are in `tools/`; see
+[CONTRIBUTING.md](CONTRIBUTING.md#bundled-data) to regenerate the data.
 See [data attribution and licensing](THIRD_PARTY_NOTICES.md).
+
+## Support
+
+Report bugs and request features through the
+[issue tracker](https://github.com/aknaus1/best-gear-setup/issues). For a wrong result, include the monster,
+version, mode, budget and the text under **Search details**, which records the snapshot dates and assumptions
+behind the search. Please don't post your account name or full bank contents.
+
+## Development
+
+To run the plugin from source, run the tests, regenerate the bundled data or release a version, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Documentation
+
+- [COMBAT_AUDIT.md](COMBAT_AUDIT.md): calculation order, adjustments, sources, validation and known gaps.
+- [docs/equipment-requirements.md](docs/equipment-requirements.md): how the bundled snapshots and wear
+  requirements are built.
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): data sources, licences and the reference-code review.
+- [CHANGELOG.md](CHANGELOG.md): changes by version.
+- Dated test reports from 2 October 2026, kept as history:
+  [evaluation](docs/evaluation-2026-10-02.md), [fix verification](docs/fix-verification-2026-10-02.md) and
+  [retest](docs/fix-retest-2026-10-02.md). Each tested an earlier working tree; the findings listed as open
+  in the first two are resolved in the retest, and those fixes shipped in commit `a0df924`.
+
+## License
+
+The plugin code is licensed under the [BSD 2-Clause licence](LICENSE). The bundled OSRS Wiki data remains
+under [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/); see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Best Gear Setup is not affiliated with Jagex or the
+OSRS Wiki.

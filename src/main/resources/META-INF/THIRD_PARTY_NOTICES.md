@@ -1,6 +1,6 @@
 # Data attribution and distribution review
 
-The workspace's `LICENSE` describes the original plugin code as BSD-2-Clause. It does
+The repository's `LICENSE` describes the original plugin code as BSD-2-Clause. It does
 not relicense external datasets or settle the licence of adaptations of upstream code.
 
 Both `LICENSE` and this file are bundled in the plugin JAR as `META-INF/LICENSE` and

@@ -6,11 +6,15 @@ repositories {
 	mavenLocal()
 	maven {
 		url = 'https://repo.runelite.net'
+		content {
+			includeGroupByRegex("net\\.runelite.*")
+		}
 	}
 	mavenCentral()
 }
 
 def runeLiteVersion = 'latest.release'
+def pluginMainClass = 'com.bestgearsetup.BestGearSetupPluginTest'
 
 dependencies {
 	compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
@@ -24,6 +28,7 @@ dependencies {
 }
 
 group = 'com.bestgearsetup'
+// Keep in step with version= in runelite-plugin.properties, which is what the Plugin Hub shows.
 version = '1.0.0'
 
 java {
@@ -34,4 +39,12 @@ java {
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
 	options.release.set(11)
+}
+
+tasks.register('run', JavaExec) {
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = pluginMainClass
+
+	jvmArgs "-ea"
+	args "--developer-mode", "--debug"
 }

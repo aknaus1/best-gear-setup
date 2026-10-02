@@ -9,7 +9,7 @@ plugin makes no network requests. Sources and licences are listed in
 | Resource | Generator | Contents |
 | --- | --- | --- |
 | `wiki-monsters.json.gz` | `tools/wiki_monsters.py` | 3,110 monster variants from `infobox_monster` and `Category:Bosses` |
-| `wiki-gamedata.json.gz` | `tools/wiki_equipment.py` | 638 weapons and 1,304 other slot entries (darts appear as weapons and blowpipe ammunition), 48 combat spells, offensive prayers and potions |
+| `wiki-gamedata.json.gz` | `tools/wiki_equipment.py` | 638 weapons and 1,305 other slot entries (darts appear as weapons and blowpipe ammunition), 48 combat spells, offensive prayers and potions |
 | `status-immunities.json` | `tools/wiki_status_immunities.py` | Poison, venom, freeze and burn resistance by NPC id |
 | `equipment-requirements.json` | `tools/equipment_requirements.py` | 123 reviewed, source-linked wear rules |
 
@@ -73,13 +73,15 @@ provenance is written to the ignored `build/combat-reference/wiki-equipment-prov
 
 From the plugin directory, with Python 3 and `BGS_WIKI_CONTACT` set (see `tools/wiki_api.py`):
 
-```powershell
+```sh
 python tools/wiki_monsters.py --refresh
 python tools/wiki_equipment.py --refresh
 python tools/wiki_status_immunities.py --refresh
 python tools/equipment_requirements.py
-./gradlew.bat build
+./gradlew build
 ```
+
+On Windows, run `gradlew.bat build` instead of `./gradlew build`.
 
 Downloads are cached in the ignored `build/combat-reference` folder; without `--refresh` the generators
 reuse that cache. Wear levels from the game cache need `build/combat-reference/cache-reqs.json`, written

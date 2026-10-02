@@ -15,3 +15,4 @@ out
 *.iml
 __pycache__/
 *.pyc
+*.class

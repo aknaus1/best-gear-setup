@@ -9,7 +9,7 @@ gaps and the adjustments they require are recorded explicitly.
 ## Evidence
 
 Monsters, equipment, spells, prayers and potions come from bundled Wiki snapshots
-(`wiki-monsters.json.gz`, 3,110 variants; `wiki-gamedata.json.gz`, 638 weapons and 1,304 other slot
+(`wiki-monsters.json.gz`, 3,110 variants; `wiki-gamedata.json.gz`, 638 weapons and 1,305 other slot
 entries, 48 spells). The plugin makes no network requests. Wear requirements combine cache parameters,
 Wiki item text and the reviewed rules, and the live client cache can only raise them; see
 [the bundled data notes](docs/equipment-requirements.md). Sources and licences are listed in
