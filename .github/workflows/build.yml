@@ -59,11 +59,22 @@ jobs:
         with:
           distribution: temurin
           java-version: '11'
+      - name: Read the Plugin Hub's Gradle and RuneLite versions
+        id: hub
+        run: |
+          gradle="$(curl -fsSL "$HUB_TOOLING/bundle/build.gradle.kts" | grep -oP 'distributions/gradle-\K[0-9.]+(?=-bin\.zip)')"
+          runelite="$(curl -fsSL "$HUB/runelite.version" | tr -d '[:space:]')"
+          test -n "$gradle" && test -n "$runelite"
+          echo "Plugin Hub: Gradle $gradle, RuneLite $runelite"
+          echo "gradle=$gradle" >> "$GITHUB_OUTPUT"
+          echo "runelite=$runelite" >> "$GITHUB_OUTPUT"
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: ${{ steps.hub.outputs.gradle }}
       - name: Check runelite-plugin.properties
         run: python3 .github/scripts/check_plugin_manifest.py
       # build=standard discards build.gradle and settings.gradle and compiles src/main with the hub's own
-      # build file, pinned to the RuneLite version the hub currently builds against.
+      # build file, using the Gradle and RuneLite versions the hub currently builds with.
       - name: Compile as the Plugin Hub does
         run: |
           dir="$RUNNER_TEMP/standard"
@@ -74,8 +85,7 @@ jobs:
           cp -r src "$dir/src"
           rm -rf "$dir/src/test"
           if [ -f lombok.config ]; then cp lombok.config "$dir/"; fi
-          export RUNELITE_VERSION="$(curl -fsSL "$HUB/runelite.version" | tr -d '[:space:]')"
-          echo "Plugin Hub RuneLite version: $RUNELITE_VERSION"
+          export RUNELITE_VERSION="${{ steps.hub.outputs.runelite }}"
           cat > "$RUNNER_TEMP/pin-runelite.gradle" <<'EOF'
           allprojects {
               configurations.all {
@@ -88,4 +98,4 @@ jobs:
               }
           }
           EOF
-          ./gradlew -p "$dir" --init-script "$RUNNER_TEMP/pin-runelite.gradle" assemble
+          gradle -p "$dir" --init-script "$RUNNER_TEMP/pin-runelite.gradle" assemble

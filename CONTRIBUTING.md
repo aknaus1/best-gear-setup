@@ -39,6 +39,10 @@ plugin when RuneLite updates.
 - Don't add dependencies. The plugin uses the Plugin Hub's `build=standard`, which replaces `build.gradle` and
   provides only the RuneLite client, Lombok and JetBrains annotations; anything else needs a `build=gradle` submission with hash
   verification and a slower review.
+- Keep the Gradle wrapper on 8.x. The Plugin Hub builds with Gradle 8.10, and Gradle 9 needs JDK 17 to run,
+  while the hub and this guide use JDK 11. Update it with
+  `./gradlew wrapper --gradle-version <8.x> --distribution-type bin --gradle-distribution-sha256-sum <checksum>`,
+  taking the checksum from [Gradle's release checksums](https://gradle.org/release-checksums/).
 
 ## Bundled data
 
