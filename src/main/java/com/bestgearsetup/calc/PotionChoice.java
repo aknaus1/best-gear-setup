@@ -1,0 +1,105 @@
+package com.bestgearsetup.calc;
+
+import com.bestgearsetup.data.GameData;
+import com.bestgearsetup.data.Potion;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+/**
+ * Resolves the user's potion choice for a combat class into boosted levels.
+ * A choice is "best" (strongest potion usable anywhere, i.e. not raid / NMZ / Deadman only),
+ * "none", or a potion name from the potion table.
+ */
+public final class PotionChoice
+{
+	public static final String BEST = "best";
+	public static final String NONE = "none";
+
+	private PotionChoice()
+	{
+	}
+
+	/** Skills each combat class boosts. */
+	public static List<String> skillsFor(com.bestgearsetup.data.CombatClass cls)
+	{
+		switch (cls)
+		{
+			case RANGED:
+				return Arrays.asList("ranged");
+			case MAGIC:
+				return Arrays.asList("magic");
+			default:
+				return Arrays.asList("attack", "strength");
+		}
+	}
+
+	/** Potion names selectable for a combat class, in data order. */
+	public static List<String> namesFor(GameData data, com.bestgearsetup.data.CombatClass cls)
+	{
+		Set<String> names = new LinkedHashSet<>();
+		for (String skill : skillsFor(cls))
+		{
+			for (Potion p : data.getPotions(skill))
+			{
+				if (p.getPercentageIncrease() >= 0 && p.getBaseIncrease() >= 0)
+				{
+					names.add(p.getName());
+				}
+			}
+		}
+		return new ArrayList<>(names);
+	}
+
+	/** Boosted level for one skill under the given choice. */
+	public static int boostedLevel(GameData data, String skill, int level, String choice)
+	{
+		String c = choice == null ? BEST : choice.trim().toLowerCase(Locale.ROOT);
+		if (c.equals(NONE))
+		{
+			return level;
+		}
+		int best = level;
+		for (Potion p : data.getPotions(skill))
+		{
+			boolean match = c.equals(BEST) ? p.isUnrestricted() : p.getName().equalsIgnoreCase(c);
+			if (match)
+			{
+				best = Math.max(best, p.boost(level));
+			}
+		}
+		return best;
+	}
+
+	/** The potion a choice resolves to for a skill, or null for none / no boost. */
+	public static Potion resolve(GameData data, String skill, int level, String choice)
+	{
+		String c = choice == null ? BEST : choice.trim().toLowerCase(Locale.ROOT);
+		if (c.equals(NONE))
+		{
+			return null;
+		}
+		Potion best = null;
+		int bestLevel = level;
+		for (Potion p : data.getPotions(skill))
+		{
+			boolean match = c.equals(BEST) ? p.isUnrestricted() : p.getName().equalsIgnoreCase(c);
+			if (match && p.boost(level) > bestLevel)
+			{
+				best = p;
+				bestLevel = p.boost(level);
+			}
+		}
+		return best;
+	}
+
+	/** Display name of the potion a choice resolves to for a skill, or null. */
+	public static String describe(GameData data, String skill, int level, String choice)
+	{
+		Potion p = resolve(data, skill, level, choice);
+		return p == null ? null : GameData.titleCase(p.getName());
+	}
+}

@@ -1,0 +1,54 @@
+package com.bestgearsetup;
+
+import com.bestgearsetup.calc.AttackStyle;
+import com.bestgearsetup.calc.LockStatus;
+import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Monster;
+import com.bestgearsetup.data.OffensivePrayer;
+import com.bestgearsetup.data.Potion;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Value;
+
+/**
+ * Everything the results view shows for one search.
+ */
+@Value
+@AllArgsConstructor
+public class SearchResults
+{
+	/** The target after any pre-fight stat drains. */
+	Monster monster;
+	/** Effective starting HP used by the calculator, which may be below the target's maximum. */
+	int startingHitpoints;
+	/** Best setups per attack type (stab, slash, crush, ranged, magic), best first. */
+	Map<AttackStyle.Type, List<SetupResult>> byType;
+	List<String> notes;
+	Map<CombatClass, OffensivePrayer> prayers;
+	/** Potions used per combat class (melee may use one for Attack and another for Strength). */
+	Map<CombatClass, List<Potion>> potions;
+	boolean assumedLevels;
+	/** How each slot lock affected the search; empty when nothing is locked. */
+	List<LockStatus> locks;
+
+	public SearchResults(Monster monster, int startingHitpoints, Map<AttackStyle.Type, List<SetupResult>> byType,
+		List<String> notes, Map<CombatClass, OffensivePrayer> prayers, Map<CombatClass, List<Potion>> potions,
+		boolean assumedLevels)
+	{
+		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, Collections.emptyList());
+	}
+
+	/** Whether a lock could not be honoured. */
+	public boolean hasBlockingLock()
+	{
+		return locks.stream().anyMatch(LockStatus::isBlocking);
+	}
+
+	public boolean isEmpty()
+	{
+		return byType.isEmpty();
+	}
+}

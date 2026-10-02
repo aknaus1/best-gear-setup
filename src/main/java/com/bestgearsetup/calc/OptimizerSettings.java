@@ -1,0 +1,84 @@
+package com.bestgearsetup.calc;
+
+import com.bestgearsetup.data.Slot;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
+import lombok.Builder;
+import lombok.Value;
+
+@Value
+@Builder(toBuilder = true)
+public class OptimizerSettings
+{
+	SearchMode mode;
+	/** Maximum GP to spend on items not already owned (BUDGET mode only). */
+	long budget;
+	/** Allow untradeable items the player does not own; any tradable components still cost GP. */
+	boolean allowUntradeables;
+	/** Lower-case spellbook names the player may autocast from: standard, ancient, arceuus. */
+	Set<String> spellbooks;
+	/** How many setups to return per combat class. */
+	@Builder.Default
+	int resultsPerClass = 3;
+
+	/** Attack types that may be used. */
+	@Builder.Default
+	Set<AttackStyle.Type> styles = EnumSet.allOf(AttackStyle.Type.class);
+	@Builder.Default
+	WeaponHands weaponHands = WeaponHands.ANY;
+	@Builder.Default
+	CalcMode calcMode = CalcMode.DPS;
+	@Builder.Default
+	SearchDepth depth = SearchDepth.NORMAL;
+
+	/** Experience filter: styles granting a disallowed experience type are never used. */
+	@Builder.Default
+	boolean attackXp = true;
+	@Builder.Default
+	boolean strengthXp = true;
+	@Builder.Default
+	boolean defenceXp = true;
+	@Builder.Default
+	XpPreference xpPreference = XpPreference.ANY;
+
+	/** False restricts to free-to-play items. */
+	@Builder.Default
+	boolean membersItems = true;
+	/** Optional world-specific equipment is excluded unless explicitly enabled. */
+	@Builder.Default
+	boolean dmmItems = false;
+	@Builder.Default
+	boolean betaItems = false;
+	@Builder.Default
+	boolean bountyHunterItems = false;
+
+	@Builder.Default
+	FillMode fillMode = FillMode.NONE;
+	@Builder.Default
+	DefenceFocus defenceFocus = DefenceFocus.TARGET;
+	/** How much DPS (percent) may be given up to fit fill items. */
+	@Builder.Default
+	double fillMarginPercent = 0;
+
+	/** Number of arrows / bolts / darts to price in the budget; 0 ignores ammo cost. */
+	@Builder.Default
+	int ammoCount = 0;
+
+	/** Distance from the nearest monster tile; 0 uses the encounter's minimum reach. */
+	@Builder.Default
+	int targetDistance = 0;
+
+	@Builder.Default
+	boolean requireFireProtection = true;
+	@Builder.Default
+	Antifire antifire = Antifire.SUPER;
+	@Builder.Default
+	boolean protectMagic = true;
+
+	@Builder.Default
+	Map<Slot, SlotLock> locks = Collections.emptyMap();
+	@Builder.Default
+	Set<Integer> excluded = Collections.emptySet();
+}
