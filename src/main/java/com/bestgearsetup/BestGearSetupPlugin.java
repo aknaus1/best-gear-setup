@@ -94,8 +94,8 @@ import net.runelite.client.util.Text;
 @Slf4j
 @PluginDescriptor(
 	name = "Best Gear Setup",
-	description = "Find the best gear setup for any monster from your bank or a budget, using OSRS Wiki data",
-	tags = {"gear", "setup", "dps", "bis", "best", "calculator", "bank", "budget"}
+	description = "Find the best gear setup for any monster, using your owned items or a budget",
+	tags = {"gear", "setup", "dps", "bis", "best", "calculator", "bank", "budget", "boss", "slayer", "optimizer"}
 )
 public class BestGearSetupPlugin extends Plugin
 {
