@@ -37,7 +37,7 @@ public class AttackReachTest
 		OptimizerSettings.OptimizerSettingsBuilder builder, GearItem... weapons)
 	{
 		CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, piety());
-		OptimizerSettings settings = builder.mode(SearchMode.UNLIMITED).allowUntradeables(true)
+		OptimizerSettings settings = builder.mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard")).resultsPerClass(3).build();
 		return new Optimizer(TestData.gameData(Arrays.asList(weapons), Collections.emptyList()), ctx,
 			settings, id -> true, GearItem::getPrice).optimize(cls, () -> false);

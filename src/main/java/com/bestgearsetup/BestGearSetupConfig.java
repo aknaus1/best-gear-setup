@@ -24,6 +24,8 @@ public interface BestGearSetupConfig extends Config
 	String MODE_KEY = "mode";
 	String BUDGET_KEY = "budget";
 	String ON_TASK_KEY = "onSlayerTask";
+	String BOSSES_ONLY_KEY = "bossesOnly";
+	String PHASE_KEY = "encounterPhase";
 	String DISTANCE_KEY = "targetDistance";
 	String POTION_KEY_PREFIX = "potion";
 	String LOCKS_KEY = "locks";
@@ -35,7 +37,7 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigSection(
 		name = "Equipment & access",
-		description = "Equipment categories, untradeables and unlocked spellbooks",
+		description = "Equipment categories and unlocked spellbooks",
 		position = 0
 	)
 	String searchSection = "search";
@@ -113,13 +115,14 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "allowUntradeables",
-		name = "Unowned untradeables",
-		description = "Allow untradeable items you do not own yet; tradable base components still count toward the budget",
+		keyName = BOSSES_ONLY_KEY,
+		name = "Search bosses only",
+		hidden = true,
+		description = "Monster search lists only bosses",
 		section = searchSection,
-		position = 3
+		position = 4
 	)
-	default boolean allowUntradeables()
+	default boolean bossesOnly()
 	{
 		return false;
 	}
@@ -228,10 +231,11 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(keyName = "markOfDarkness", name = "Mark of Darkness", hidden = true,
-		description = "Enable demonbane spell accuracy and per-hit damage bonuses.", section = searchSection, position = 22)
+		description = "Assume Mark of Darkness is cast before demonbane spells (higher accuracy and damage against demons).",
+		section = searchSection, position = 22)
 	default boolean markOfDarkness()
 	{
-		return false;
+		return true;
 	}
 
 	@ConfigItem(keyName = "sunfireRunes", name = "Use sunfire runes", hidden = true,
@@ -323,7 +327,7 @@ public interface BestGearSetupConfig extends Config
 		return false;
 	}
 
-	@ConfigItem(keyName = "encounterPhase", name = "Boss phase", hidden = true,
+	@ConfigItem(keyName = PHASE_KEY, name = "Boss phase", hidden = true,
 		description = "Select a temporary boss state. Only the named boss is affected.",
 		section = searchSection, position = 31)
 	default EncounterPhase encounterPhase()
@@ -633,18 +637,6 @@ public interface BestGearSetupConfig extends Config
 		position = 50
 	)
 	default boolean usePrayers()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "unlockedPrayers",
-		name = "Unlocked prayers",
-		description = "Assume prayers that need a scroll or unlock (Rigour, Augury, Deadeye, Mystic Vigour...) are unlocked",
-		section = boostSection,
-		position = 51
-	)
-	default boolean unlockedPrayers()
 	{
 		return true;
 	}

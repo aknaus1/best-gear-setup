@@ -60,8 +60,8 @@ provenance is written to the ignored `build/combat-reference/wiki-equipment-prov
 ## Remaining limits
 
 - Prices: the plugin uses live GE prices and RuneLite's component mappings. Untradeable items
-  without tradeable components have no price estimate, so they cost nothing when "unowned untradeables"
-  is enabled.
+  without tradeable components have no price estimate, so they cost nothing in Best in slot searches
+  (budget searches use them only when owned).
 - In-game verification has not been done: confirm the live cache overlay in a logged-in client
   (debug log "Live cache raised wear levels") and the pegasian boots' gate.
 - Specials the Wiki DPS calculator leaves out now follow their Wiki pages; side effects such as binds,

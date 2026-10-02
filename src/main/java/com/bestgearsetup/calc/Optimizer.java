@@ -819,13 +819,15 @@ public class Optimizer
 		{
 			out.add(scored.get(i).getItem());
 		}
-		// Bare-weapon ranking cannot measure a full set, spell interaction or defence-derived strength.
+		// Bare-weapon ranking cannot measure a full set, spell interaction, defence-derived strength or
+		// Tumeken's shadow tripling the gear's magic bonuses.
 		for (Scored s : scored)
 		{
 			String n = s.getItem().getName().toLowerCase(Locale.ROOT);
 			if ((n.startsWith("dharok's") || n.startsWith("verac's") || n.startsWith("ahrim's")
 				|| n.startsWith("karil's") || n.equals("dual macuahuitl") || n.equals("eclipse atlatl")
-				|| n.contains("bulwark") || n.startsWith("twinflame staff")) && !out.contains(s.getItem()))
+				|| n.contains("bulwark") || n.startsWith("twinflame staff") || n.contains("tumeken's shadow"))
+				&& !out.contains(s.getItem()))
 			{
 				out.add(s.getItem());
 			}
@@ -1122,23 +1124,25 @@ public class Optimizer
 
 	boolean available(GearItem item)
 	{
-		if (isOwned(item))
+		// Best in slot has no limit: untradeables and every diary tier are assumed obtainable.
+		if (isOwned(item) || settings.getMode() == SearchMode.UNLIMITED)
 		{
 			return true;
 		}
-		if (DiaryRewards.isReward(item.getId()))
+		if (DiaryRewards.isReward(item.getId()) || settings.getMode() == SearchMode.OWNED_ONLY)
 		{
 			return false;
 		}
-		switch (settings.getMode())
-		{
-			case OWNED_ONLY:
-				return false;
-			case BUDGET:
-				return (item.isTradeable() || settings.isAllowUntradeables()) && withinBudget(item);
-			default:
-				return item.isTradeable() || settings.isAllowUntradeables();
-		}
+		return purchasable(item) && withinBudget(item);
+	}
+
+	/**
+	 * Tradeable, or bought through tradable components (a charged staff, a demonic weapon's synapse, an
+	 * imbued ring). Other untradeables (fire capes, quest gear) count in owned modes only when owned.
+	 */
+	private boolean purchasable(GearItem item)
+	{
+		return item.isTradeable() || ItemCosts.hasTradableComponents(item.getId());
 	}
 
 	private boolean meetsRequirements(GearItem i)
@@ -1188,22 +1192,17 @@ public class Optimizer
 		{
 			return "you don't own this diary tier";
 		}
-		boolean untradeable = !item.isTradeable() && !settings.isAllowUntradeables();
-		switch (settings.getMode())
+		if (settings.getMode() == SearchMode.OWNED_ONLY)
 		{
-			case OWNED_ONLY:
-				return "you don't own it and the search uses owned items only";
-			case BUDGET:
-				if (untradeable)
-				{
-					return "it's untradeable and you don't own it";
-				}
-				long price = price(item);
-				return !ItemCosts.isKnown(price) ? "it has no current Grand Exchange price"
-					: "it costs " + Budget.format(price) + ", over your " + Budget.format(settings.getBudget()) + " budget";
-			default:
-				return "it's untradeable and you don't own it";
+			return "you don't own it and the search uses owned items only";
 		}
+		if (!purchasable(item))
+		{
+			return "it's untradeable and you don't own it";
+		}
+		long price = price(item);
+		return !ItemCosts.isKnown(price) ? "it has no current Grand Exchange price"
+			: "it costs " + Budget.format(price) + ", over your " + Budget.format(settings.getBudget()) + " budget";
 	}
 
 	/** Why a locked weapon gives no setup at all in this search, in plain words, or null if it can be searched. */
@@ -1258,13 +1257,17 @@ public class Optimizer
 		return ItemCosts.isKnown(price) ? price : ItemCosts.UNKNOWN;
 	}
 
-	/** An unpriced purchase cannot be shown to fit a budget; uncounted ammunition needs no price. */
+	/**
+	 * An unpriced purchase cannot be shown to fit a budget; uncounted ammunition needs no price. Only
+	 * ammo-slot items (including blowpipe darts) are ammunition here: armour and weapons with ranged
+	 * bonuses are still bought once and need a price.
+	 */
 	private boolean withinBudget(GearItem item)
 	{
 		long price = price(item);
 		if (!ItemCosts.isKnown(price))
 		{
-			return settings.getAmmoCount() <= 0 && WeaponRules.isAmmunition(item);
+			return settings.getAmmoCount() <= 0 && item.getSlot() == Slot.AMMO && WeaponRules.isAmmunition(item);
 		}
 		return price <= settings.getBudget();
 	}

@@ -15,8 +15,6 @@ public class OptimizerSettings
 	SearchMode mode;
 	/** Maximum GP to spend on items not already owned (BUDGET mode only). */
 	long budget;
-	/** Allow untradeable items the player does not own; any tradable components still cost GP. */
-	boolean allowUntradeables;
 	/** Lower-case spellbook names the player may autocast from: standard, ancient, arceuus. */
 	Set<String> spellbooks;
 	/** How many setups to return per combat class. */

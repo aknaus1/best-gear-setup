@@ -34,7 +34,6 @@ import com.google.inject.Provides;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,7 +43,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -55,6 +53,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
@@ -71,6 +70,8 @@ import net.runelite.api.Skill;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuEntryAdded;
+import net.runelite.api.events.StatChanged;
+import net.runelite.api.events.VarbitChanged;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigItemDescriptor;
 import net.runelite.client.config.ConfigManager;
@@ -95,9 +96,6 @@ import net.runelite.client.util.Text;
 public class BestGearSetupPlugin extends Plugin
 {
 	private static final String MENU_OPTION = "Best setup";
-	/** Prayers that need a scroll or other unlock on top of the level requirement. */
-	private static final Set<String> UNLOCK_PRAYERS = new HashSet<>(Arrays.asList(
-		"rigour", "augury", "deadeye", "mystic vigour"));
 
 	@Inject
 	private Client client;
@@ -142,6 +140,8 @@ public class BestGearSetupPlugin extends Plugin
 	private volatile MonsterSummary lastSearched;
 	/** Equipment ids and their variants: the only ownership changes that can alter a result. */
 	private volatile Set<Integer> gearIds = Collections.emptySet();
+	/** Last levels written to the profile; client thread only. */
+	private String lastRememberedLevels;
 	/** Ownership the latest search was computed with; null when no results depend on it. */
 	private volatile Set<Integer> searchOwned;
 	/** Read and written on the client thread only. */
@@ -159,6 +159,12 @@ public class BestGearSetupPlugin extends Plugin
 	protected void startUp()
 	{
 		int life = lifecycle.incrementAndGet();
+		// "Yama tank on Magic" (+60 Magic defence) became the default phase; drop the retired value.
+		if ("YAMA_MAGIC_TANK".equals(configManager.getConfiguration(BestGearSetupConfig.GROUP,
+			BestGearSetupConfig.PHASE_KEY)))
+		{
+			configManager.unsetConfiguration(BestGearSetupConfig.GROUP, BestGearSetupConfig.PHASE_KEY);
+		}
 		executor = Executors.newSingleThreadExecutor(r ->
 		{
 			Thread t = new Thread(r, "best-gear-setup");
@@ -407,6 +413,7 @@ public class BestGearSetupPlugin extends Plugin
 		lastSearched = null;
 		searchOwned = null;
 		lookupTarget = null;
+		lastRememberedLevels = null;
 		ownedItems.load();
 		SwingUtilities.invokeLater(() ->
 		{
@@ -425,9 +432,10 @@ public class BestGearSetupPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		// Per-account keys (owned items) change with every bank update; they must not trigger a search.
+		// Per-account keys (owned items) change with every bank update; they must not trigger a search. The
+		// boss filter only changes search suggestions.
 		if (!BestGearSetupConfig.GROUP.equals(event.getGroup()) || panel == null || event.getProfile() != null
-			|| "showMenuOption".equals(event.getKey()))
+			|| "showMenuOption".equals(event.getKey()) || BestGearSetupConfig.BOSSES_ONLY_KEY.equals(event.getKey()))
 		{
 			return;
 		}
@@ -602,25 +610,37 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				return;
 			}
-			PlayerLevels levels = readLevels();
-			int mining = levels == null ? 99 : client.getRealSkillLevel(Skill.MINING);
+			// Logged out, use the levels last seen on this profile so results match the logged-in ones.
+			RememberedLevels live = readLevels();
+			RememberedLevels known = live != null ? live : RememberedLevels.parse(
+				configManager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, RememberedLevels.CONFIG_KEY));
+			if (live != null)
+			{
+				rememberLevels(live);
+			}
+			boolean rememberedLevels = live == null && known != null;
+			PlayerLevels levels = known == null ? null : known.getLevels();
+			int mining = known == null ? 99 : known.getMining();
+			Set<String> prayerUnlocks = readPrayerUnlocks();
 			// ItemManager prices must be read on the client thread; snapshot them for the search and UI.
 			Map<Integer, Long> quotes = snapshotPrices(data);
 			prices = quotes;
 			// Ownership is fixed for the whole search; later gear changes invalidate the results instead.
 			Set<Integer> owned = ownedItems.snapshot();
 			searchOwned = owned;
-			search = executor.submit(() -> runSearch(data, summary, levels, mining, quotes, owned, generation));
+			search = executor.submit(() -> runSearch(data, summary, levels, rememberedLevels, prayerUnlocks, mining,
+				quotes, owned, generation));
 		});
 	}
 
-	private PlayerLevels readLevels()
+	/** The logged-in account's base levels, or null when logged out. Client thread only. */
+	private RememberedLevels readLevels()
 	{
 		if (client.getGameState() != GameState.LOGGED_IN)
 		{
 			return null;
 		}
-		return new PlayerLevels(
+		return new RememberedLevels(new PlayerLevels(
 			client.getRealSkillLevel(Skill.ATTACK),
 			client.getRealSkillLevel(Skill.STRENGTH),
 			client.getRealSkillLevel(Skill.DEFENCE),
@@ -628,16 +648,68 @@ public class BestGearSetupPlugin extends Plugin
 			client.getRealSkillLevel(Skill.MAGIC),
 			client.getRealSkillLevel(Skill.PRAYER),
 			client.getRealSkillLevel(Skill.HITPOINTS),
-			client.getRealSkillLevel(Skill.SLAYER));
+			client.getRealSkillLevel(Skill.SLAYER)),
+			client.getRealSkillLevel(Skill.MINING));
 	}
 
-	private void runSearch(GameData data, MonsterSummary summary, PlayerLevels loggedInLevels, int mining,
-		Map<Integer, Long> quotes, Set<Integer> owned, int generation)
+	/** Persist the account's levels for logged-out searches, once they have all loaded and only when changed. */
+	private void rememberLevels(RememberedLevels levels)
+	{
+		if (!levels.complete())
+		{
+			return;
+		}
+		String value = levels.serialize();
+		if (!value.equals(lastRememberedLevels))
+		{
+			lastRememberedLevels = value;
+			configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, RememberedLevels.CONFIG_KEY, value);
+		}
+	}
+
+	@Subscribe
+	public void onVarbitChanged(VarbitChanged event)
+	{
+		if (PrayerUnlocks.isUnlockVarbit(event.getVarbitId()))
+		{
+			readPrayerUnlocks();
+		}
+	}
+
+	@Subscribe
+	public void onStatChanged(StatChanged event)
+	{
+		RememberedLevels live = readLevels();
+		if (live != null)
+		{
+			rememberLevels(live);
+		}
+	}
+
+	/**
+	 * Gated prayers the account has unlocked: read from the game while logged in and remembered for the
+	 * profile, so logged-out searches use the last known unlocks. Null if never seen. Client thread only.
+	 */
+	private Set<String> readPrayerUnlocks()
+	{
+		if (client.getGameState() == GameState.LOGGED_IN)
+		{
+			Set<String> unlocked = PrayerUnlocks.read(client);
+			configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, PrayerUnlocks.CONFIG_KEY,
+				PrayerUnlocks.serialize(unlocked));
+			return unlocked;
+		}
+		return PrayerUnlocks.parse(configManager.getRSProfileConfiguration(BestGearSetupConfig.GROUP,
+			PrayerUnlocks.CONFIG_KEY));
+	}
+
+	private void runSearch(GameData data, MonsterSummary summary, PlayerLevels knownLevels, boolean rememberedLevels,
+		Set<String> prayerUnlocks, int mining, Map<Integer, Long> quotes, Set<Integer> owned, int generation)
 	{
 		try
 		{
-			boolean assumedLevels = loggedInLevels == null;
-			PlayerLevels levels = assumedLevels ? PlayerLevels.maxed() : loggedInLevels;
+			boolean assumedLevels = knownLevels == null;
+			PlayerLevels levels = assumedLevels ? PlayerLevels.maxed() : knownLevels;
 			Monster baseMonster = api.getMonster(summary);
 			SpecialAttacks specials = specials();
 			// Wiki order: raid scaling, health-dependent stats, then pre-fight defence reductions.
@@ -651,20 +723,22 @@ public class BestGearSetupPlugin extends Plugin
 			Map<CombatClass, OffensivePrayer> prayers = new EnumMap<>(CombatClass.class);
 			if (config.usePrayers())
 			{
+				Predicate<String> available = PrayerUnlocks.available(prayerUnlocks);
 				for (CombatClass cls : CombatClass.values())
 				{
-					OffensivePrayer p = bestPrayer(data.getPrayers(cls), levels, config.unlockedPrayers());
+					OffensivePrayer p = PrayerUnlocks.best(data.getPrayers(cls), levels, available);
 					if (p != null)
 					{
 						prayers.put(cls, p);
 					}
 				}
 			}
+			Predicate<Potion> boosts = BoostAccess.allowed(settings.getMode(), owned);
 			CombatContext ctx = new CombatContext(monster, levels, config.onSlayerTask(),
-				PotionChoice.boostedLevel(data, "attack", levels.getAttack(), getPotionChoice(CombatClass.MELEE)),
-				PotionChoice.boostedLevel(data, "strength", levels.getStrength(), getPotionChoice(CombatClass.MELEE)),
-				PotionChoice.boostedLevel(data, "ranged", levels.getRanged(), getPotionChoice(CombatClass.RANGED)),
-				PotionChoice.boostedLevel(data, "magic", levels.getMagic(), getPotionChoice(CombatClass.MAGIC)),
+				PotionChoice.boostedLevel(data, "attack", levels.getAttack(), getPotionChoice(CombatClass.MELEE), boosts),
+				PotionChoice.boostedLevel(data, "strength", levels.getStrength(), getPotionChoice(CombatClass.MELEE), boosts),
+				PotionChoice.boostedLevel(data, "ranged", levels.getRanged(), getPotionChoice(CombatClass.RANGED), boosts),
+				PotionChoice.boostedLevel(data, "magic", levels.getMagic(), getPotionChoice(CombatClass.MAGIC), boosts),
 				prayers, config.thrall()).withFightOptions(config.aoe() ? config.aoeTargets() : 1, config.targetDistance())
 				.withModifiers(CombatModifiers.builder().currentHitpoints(config.currentHitpoints())
 					.monsterHitpoints(config.monsterHitpoints()).wilderness(config.wilderness())
@@ -701,6 +775,18 @@ public class BestGearSetupPlugin extends Plugin
 				return;
 			}
 			List<String> notes = describeSearch(data, levels, baseMonster, scaled, monster, specials, ctx, settings, raid);
+			if (config.usePrayers() && prayerUnlocks == null)
+			{
+				notes.add("Prayer unlocks are unknown until you log in; Piety, Rigour, Augury and similar are assumed unlocked.");
+			}
+			if (settings.getMode() == SearchMode.OWNED_ONLY && usesBestPotion())
+			{
+				notes.add("Boosts: \"Best\" potions use only potions and hearts you own (any dose; divine counts).");
+			}
+			else if (settings.getMode() == SearchMode.BUDGET && usesBestPotion())
+			{
+				notes.add("Boosts: \"Best\" potions may be bought (not counted in the budget); hearts must be owned.");
+			}
 			String unpricedNote = unpricedNote(data, quotes, settings);
 			if (unpricedNote != null)
 			{
@@ -709,7 +795,8 @@ public class BestGearSetupPlugin extends Plugin
 			List<LockStatus> locks = LockStatus.check(data,
 				new Optimizer(data, ctx, settings, owned::contains, item -> price(quotes, item)), settings.getLocks());
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
-				potionsUsed(data, levels), assumedLevels, locks);
+				potionsUsed(data, levels, boosts), assumedLevels, locks, config.markOfDarkness(),
+				rememberedLevels);
 			SwingUtilities.invokeLater(() ->
 			{
 				if (panel != null && generation == searchGeneration.get())
@@ -746,7 +833,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 	}
 
-	private Map<CombatClass, List<Potion>> potionsUsed(GameData data, PlayerLevels levels)
+	private Map<CombatClass, List<Potion>> potionsUsed(GameData data, PlayerLevels levels, Predicate<Potion> boosts)
 	{
 		Map<CombatClass, List<Potion>> out = new EnumMap<>(CombatClass.class);
 		String[] skills = {"attack", "strength", "ranged", "magic"};
@@ -754,7 +841,7 @@ public class BestGearSetupPlugin extends Plugin
 		int[] base = {levels.getAttack(), levels.getStrength(), levels.getRanged(), levels.getMagic()};
 		for (int i = 0; i < skills.length; i++)
 		{
-			Potion p = PotionChoice.resolve(data, skills[i], base[i], getPotionChoice(classes[i]));
+			Potion p = PotionChoice.resolve(data, skills[i], base[i], getPotionChoice(classes[i]), boosts);
 			if (p == null)
 			{
 				continue;
@@ -808,7 +895,6 @@ public class BestGearSetupPlugin extends Plugin
 		return OptimizerSettings.builder()
 			.mode(config.mode())
 			.budget(Math.max(0, Budget.parse(config.budget())))
-			.allowUntradeables(config.allowUntradeables())
 			.spellbooks(spellbooks)
 			.styles(styles)
 			.weaponHands(config.weaponHands())
@@ -914,10 +1000,15 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			notes.add("Elemental weakness: " + base.getWeaknessType() + " +" + base.getWeakness() + "% base accuracy and damage.");
 		}
-		if (config.wilderness() || config.forinthrySurge() || config.charge() || config.markOfDarkness()
+		if (config.wilderness() || config.forinthrySurge() || config.charge()
 			|| config.sunfireRunes() || config.kandarinDiary() || config.soulreaperStacks() > 0)
 		{
 			notes.add("Optional combat buffs selected in Fight options; bonuses apply only to compatible attacks.");
+		}
+		if (base.hasAttribute("demon") && config.arceuusSpellbook())
+		{
+			notes.add(config.markOfDarkness() ? "Demonbane spells assume Mark of Darkness is active (Fight options)."
+				: "Mark of Darkness is off, so demonbane spells get only their base demon accuracy bonus.");
 		}
 		if (ctx.getAoeTargets() > 1)
 		{
@@ -1045,6 +1136,18 @@ public class BestGearSetupPlugin extends Plugin
 		rerun();
 	}
 
+	private boolean usesBestPotion()
+	{
+		for (CombatClass cls : CombatClass.values())
+		{
+			if (PotionChoice.BEST.equalsIgnoreCase(getPotionChoice(cls)))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public String getPotionChoice(CombatClass cls)
 	{
 		String v = configManager.getConfiguration(BestGearSetupConfig.GROUP, BestGearSetupConfig.POTION_KEY_PREFIX + cls.name());
@@ -1077,30 +1180,6 @@ public class BestGearSetupPlugin extends Plugin
 				findBestSetup(last);
 			}
 		});
-	}
-
-	private static OffensivePrayer bestPrayer(List<OffensivePrayer> prayers, PlayerLevels levels, boolean unlocked)
-	{
-		OffensivePrayer best = null;
-		double bestScore = 1;
-		for (OffensivePrayer p : prayers)
-		{
-			if (p.getPrayerLevel() > levels.getPrayer() || p.getDefenceLevel() > levels.getDefence())
-			{
-				continue;
-			}
-			if (!unlocked && UNLOCK_PRAYERS.contains(p.getName().toLowerCase(Locale.ROOT)))
-			{
-				continue;
-			}
-			double score = (1 + p.getAccuracyPercent() / 100) * (1 + p.getDamagePercent() / 100);
-			if (score > bestScore)
-			{
-				bestScore = score;
-				best = p;
-			}
-		}
-		return best;
 	}
 
 	/** Client thread only. */

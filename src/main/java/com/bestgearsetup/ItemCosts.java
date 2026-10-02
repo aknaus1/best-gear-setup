@@ -108,6 +108,26 @@ public final class ItemCosts
 		return price >= 0;
 	}
 
+	/**
+	 * Whether an item is acquired by buying tradable components: RuneLite maps it to a tradable base
+	 * (charged Sanguinesti staff, Tumeken's shadow, trident of the swamp; a tormented synapse for the
+	 * demonic weapons; imbued rings) or it consumes a tradable upgrade. Earned-only untradeables
+	 * such as fire capes have neither.
+	 */
+	public static boolean hasTradableComponents(int itemId)
+	{
+		int base = ItemVariationMapping.map(itemId);
+		boolean mapped = mappings(itemId, base) != null;
+		for (int id : components(itemId).keySet())
+		{
+			if (mapped || id != base)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Variants with additional paid components must not be granted merely by owning the base. */
 	public static boolean equivalent(int first, int second)
 	{

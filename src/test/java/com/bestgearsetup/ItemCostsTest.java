@@ -191,6 +191,18 @@ public class ItemCostsTest
 	}
 
 	@Test
+	public void chargedAndDemonicWeaponsAreBoughtThroughTradableComponents()
+	{
+		for (int id : new int[]{ItemID.SANGUINESTI_STAFF, ItemID.TUMEKENS_SHADOW, ItemID.TOXIC_TOTS_CHARGED,
+			ItemID.PURGING_STAFF, ItemID.EMBERLIGHT, ItemID.SCORCHING_BOW, ItemID.BLOOD_AMULET})
+		{
+			assertTrue(String.valueOf(id), ItemCosts.hasTradableComponents(id));
+		}
+		assertFalse(ItemCosts.hasTradableComponents(ItemID.TZHAAR_CAPE_FIRE));
+		assertFalse(ItemCosts.hasTradableComponents(ItemID.HUNDRED_GAUNTLETS_LEVEL_10));
+	}
+
+	@Test
 	public void unmappedItemsUseTheGameCacheTradeability()
 	{
 		GearItem fireCape = bundled.findItem(ItemID.TZHAAR_CAPE_FIRE);

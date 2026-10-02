@@ -110,7 +110,7 @@ public class DragonfireProtectionTest
 		defender.setSlashDef(100);
 		defender.setPrice(0);
 		Monster dragon = target("iron dragon");
-		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED).allowUntradeables(true)
+		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.emptySet()).antifire(Antifire.REGULAR).protectMagic(true)
 			.fillMode(FillMode.DEFENCE).fillMarginPercent(100).build();
 		CombatContext ctx = new CombatContext(dragon, PlayerLevels.maxed(), false, true, TestData.piety());

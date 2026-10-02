@@ -1,6 +1,7 @@
 package com.bestgearsetup.data;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -35,6 +36,10 @@ public class GameData
 	private final List<Spell> spells;
 	private final Map<CombatClass, List<OffensivePrayer>> prayers = new EnumMap<>(CombatClass.class);
 	private final Map<Integer, MonsterSummary> monstersById = new HashMap<>();
+	/** Variants grouped by base name, in bundle order of each group's first variant. */
+	private final List<MonsterGroup> groups = new ArrayList<>();
+	/** The same groups holding only their boss variants. */
+	private final List<MonsterGroup> bossGroups = new ArrayList<>();
 	private final Map<String, List<Potion>> potions = new HashMap<>();
 
 	/**
@@ -103,6 +108,19 @@ public class GameData
 				monstersById.putIfAbsent(id, m);
 			}
 		}
+		Map<String, List<MonsterSummary>> byBase = new LinkedHashMap<>();
+		Map<String, List<MonsterSummary>> bossesByBase = new LinkedHashMap<>();
+		for (MonsterSummary m : this.monsters)
+		{
+			String base = MonsterGroup.baseName(m.getName());
+			byBase.computeIfAbsent(base, k -> new ArrayList<>()).add(m);
+			if (m.isBoss())
+			{
+				bossesByBase.computeIfAbsent(base, k -> new ArrayList<>()).add(m);
+			}
+		}
+		byBase.forEach((base, variants) -> groups.add(new MonsterGroup(base, variants)));
+		bossesByBase.forEach((base, variants) -> bossGroups.add(new MonsterGroup(base, variants)));
 	}
 
 	private GameData(GameData base, List<MonsterSummary> monsters)
@@ -356,38 +374,75 @@ public class GameData
 	}
 
 	/**
-	 * Case-insensitive substring search over monster names; exact and prefix matches rank first.
+	 * Case-insensitive substring search over monster groups, matching the base name or any variant's full
+	 * name; exact and prefix matches rank first.
+	 *
+	 * @param bossesOnly search only bosses, each group holding only its boss variants
 	 */
-	public List<MonsterSummary> searchMonsters(String query, int limit)
+	public List<MonsterGroup> searchMonsterGroups(String query, int limit, boolean bossesOnly)
 	{
 		String q = query == null ? "" : query.toLowerCase(Locale.ROOT).trim();
-		List<MonsterSummary> exact = new ArrayList<>();
-		List<MonsterSummary> prefix = new ArrayList<>();
-		List<MonsterSummary> contains = new ArrayList<>();
 		if (q.isEmpty())
 		{
-			return exact;
+			return new ArrayList<>();
 		}
-		for (MonsterSummary m : monsters)
+		// Exact, prefix and substring matches.
+		List<List<MonsterGroup>> ranked = Arrays.asList(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+		for (MonsterGroup group : bossesOnly ? bossGroups : groups)
 		{
-			String n = m.getName();
-			if (n.equals(q))
+			int rank = matchRank(group.getName(), q);
+			for (MonsterSummary variant : group.getVariants())
 			{
-				exact.add(m);
+				rank = Math.min(rank, matchRank(variant.getName(), q));
 			}
-			else if (n.startsWith(q))
+			if (rank < ranked.size())
 			{
-				prefix.add(m);
-			}
-			else if (n.contains(q))
-			{
-				contains.add(m);
+				ranked.get(rank).add(group);
 			}
 		}
-		List<MonsterSummary> out = new ArrayList<>(exact);
-		out.addAll(prefix);
-		out.addAll(contains);
+		List<MonsterGroup> out = new ArrayList<>();
+		ranked.forEach(out::addAll);
 		return out.size() > limit ? new ArrayList<>(out.subList(0, limit)) : out;
+	}
+
+	/** 0 for an exact match, 1 for a prefix, 2 for a substring, 3 for none. */
+	private static int matchRank(String name, String q)
+	{
+		if (name.equals(q))
+		{
+			return 0;
+		}
+		if (name.startsWith(q))
+		{
+			return 1;
+		}
+		return name.contains(q) ? 2 : 3;
+	}
+
+	/**
+	 * The group a variant belongs to, restricted to bosses when asked and the variant is one; a target outside
+	 * the bundled list forms a group of its own.
+	 */
+	public MonsterGroup groupOf(MonsterSummary monster, boolean bossesOnly)
+	{
+		if (bossesOnly)
+		{
+			for (MonsterGroup group : bossGroups)
+			{
+				if (group.contains(monster))
+				{
+					return group;
+				}
+			}
+		}
+		for (MonsterGroup group : groups)
+		{
+			if (group.contains(monster))
+			{
+				return group;
+			}
+		}
+		return MonsterGroup.single(monster);
 	}
 
 	public static String titleCase(String s)

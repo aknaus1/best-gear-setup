@@ -3,9 +3,13 @@ package com.bestgearsetup.ui;
 import com.bestgearsetup.Budget;
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
+import com.bestgearsetup.calc.EncounterPhases;
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.SearchResults;
+import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GameData;
+import com.bestgearsetup.data.Monster;
+import com.bestgearsetup.data.MonsterGroup;
 import com.bestgearsetup.data.MonsterSummary;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
@@ -23,12 +27,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.JToggleButton;
 import javax.swing.Scrollable;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -54,7 +62,13 @@ public class BestGearSetupPanel extends PluginPanel
 	private final ItemManager itemManager;
 
 	private final IconTextField searchField = new IconTextField();
+	private final JToggleButton bossesButton = new JToggleButton("Bosses");
+	private final JToggleButton allButton = new JToggleButton("All monsters");
 	private final JPanel suggestions = new JPanel();
+	private final JComboBox<MonsterSummary> versionBox = new JComboBox<>();
+	private final JPanel versionRow = new JPanel(new BorderLayout(0, 2));
+	private final JComboBox<EncounterPhase> phaseBox = new JComboBox<>();
+	private final JPanel phaseRow = new JPanel(new BorderLayout(0, 2));
 	private final JLabel monsterLabel = new JLabel();
 	private final JComboBox<SearchMode> modeBox = new JComboBox<>(SearchMode.values());
 	private final JTextField budgetField = new JTextField();
@@ -70,6 +84,8 @@ public class BestGearSetupPanel extends PluginPanel
 
 	private GameData data;
 	private MonsterSummary selected;
+	/** The searched group of {@link #selected}; its variants fill the version list. */
+	private MonsterGroup selectedGroup;
 	private boolean syncing;
 
 	public BestGearSetupPanel(BestGearSetupPlugin plugin, BestGearSetupConfig config, ItemManager itemManager,
@@ -97,6 +113,29 @@ public class BestGearSetupPanel extends PluginPanel
 		title.setForeground(Color.WHITE);
 		content.add(left(title));
 		content.add(spacer(6));
+
+		JPanel filter = new JPanel(new GridLayout(1, 2, 2, 0));
+		filter.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		ButtonGroup filterGroup = new ButtonGroup();
+		bossesButton.setToolTipText("Search bosses only");
+		allButton.setToolTipText("Search bosses and other monsters");
+		for (JToggleButton button : new JToggleButton[]{bossesButton, allButton})
+		{
+			button.setFont(FontManager.getRunescapeSmallFont());
+			button.setFocusable(false);
+			button.addActionListener(e ->
+			{
+				if (!syncing)
+				{
+					plugin.setConfig(BestGearSetupConfig.BOSSES_ONLY_KEY, bossesButton.isSelected());
+				}
+				updateSuggestions();
+			});
+			filterGroup.add(button);
+			filter.add(button);
+		}
+		content.add(left(filter));
+		content.add(spacer(4));
 
 		searchField.setIcon(IconTextField.Icon.SEARCH);
 		searchField.setPreferredSize(new Dimension(PANEL_WIDTH - 16, 30));
@@ -127,10 +166,10 @@ public class BestGearSetupPanel extends PluginPanel
 		{
 			if (data != null)
 			{
-				List<MonsterSummary> matches = data.searchMonsters(searchField.getText(), 1);
+				List<MonsterGroup> matches = data.searchMonsterGroups(searchField.getText(), 1, bossesButton.isSelected());
 				if (!matches.isEmpty())
 				{
-					selectMonster(matches.get(0), true);
+					select(matches.get(0), matches.get(0).getPrimary(), true);
 				}
 			}
 		});
@@ -139,6 +178,60 @@ public class BestGearSetupPanel extends PluginPanel
 		suggestions.setLayout(new BoxLayout(suggestions, BoxLayout.Y_AXIS));
 		suggestions.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		content.add(left(suggestions));
+		content.add(spacer(6));
+
+		versionRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		JLabel versionLabel = new JLabel("Version");
+		setSmall(versionLabel, Color.WHITE);
+		versionLabel.setLabelFor(versionBox);
+		versionBox.setFocusable(false);
+		versionBox.setToolTipText("Boss phase or monster variant to search against");
+		versionBox.setRenderer(new DefaultListCellRenderer()
+		{
+			@Override
+			public java.awt.Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index,
+				boolean isSelected, boolean cellHasFocus)
+			{
+				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				if (value instanceof MonsterSummary && selectedGroup != null)
+				{
+					MonsterSummary variant = (MonsterSummary) value;
+					setText(selectedGroup.versionLabel(variant) + " (lvl " + variant.getCombatLevel() + ")");
+				}
+				return this;
+			}
+		});
+		versionBox.addActionListener(e ->
+		{
+			MonsterSummary variant = (MonsterSummary) versionBox.getSelectedItem();
+			if (!syncing && variant != null && !variant.equals(selected))
+			{
+				select(selectedGroup, variant, true);
+			}
+		});
+		versionRow.add(versionLabel, BorderLayout.NORTH);
+		versionRow.add(versionBox, BorderLayout.CENTER);
+		versionRow.setVisible(false);
+		content.add(left(versionRow));
+
+		phaseRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		phaseRow.setBorder(new EmptyBorder(3, 0, 0, 0));
+		JLabel phaseLabel = new JLabel("Boss phase");
+		setSmall(phaseLabel, Color.WHITE);
+		phaseLabel.setLabelFor(phaseBox);
+		phaseBox.setFocusable(false);
+		phaseBox.setToolTipText("Select a temporary boss state. Only the named boss is affected.");
+		phaseBox.addActionListener(e ->
+		{
+			if (!syncing && phaseBox.getSelectedItem() != null)
+			{
+				plugin.setConfig(BestGearSetupConfig.PHASE_KEY, phaseBox.getSelectedItem());
+			}
+		});
+		phaseRow.add(phaseLabel, BorderLayout.NORTH);
+		phaseRow.add(phaseBox, BorderLayout.CENTER);
+		phaseRow.setVisible(false);
+		content.add(left(phaseRow));
 		content.add(spacer(6));
 
 		monsterLabel.setForeground(Color.WHITE);
@@ -300,6 +393,13 @@ public class BestGearSetupPanel extends PluginPanel
 
 	public void selectMonster(MonsterSummary monster, boolean run)
 	{
+		select(data == null ? null : data.groupOf(monster, bossesButton.isSelected()), monster, run);
+	}
+
+	/** Select one variant of a searched group; the group's other variants are offered as versions. */
+	private void select(MonsterGroup group, MonsterSummary monster, boolean run)
+	{
+		showVersions(group, monster);
 		selected = monster;
 		fightOptions.setTarget(monster);
 		suggestions.removeAll();
@@ -310,6 +410,62 @@ public class BestGearSetupPanel extends PluginPanel
 		if (run)
 		{
 			plugin.findBestSetup(monster);
+		}
+	}
+
+	private void showVersions(MonsterGroup group, MonsterSummary monster)
+	{
+		boolean previous = syncing;
+		syncing = true;
+		try
+		{
+			if (group != selectedGroup)
+			{
+				selectedGroup = group;
+				versionBox.setModel(group == null ? new DefaultComboBoxModel<>()
+					: new DefaultComboBoxModel<>(group.getVariants().toArray(new MonsterSummary[0])));
+			}
+			versionBox.setSelectedItem(monster);
+			versionRow.setVisible(group != null && group.getVariants().size() > 1);
+		}
+		finally
+		{
+			syncing = previous;
+		}
+		showPhases(monster);
+	}
+
+	/**
+	 * Offer the temporary boss states that apply to the target. The saved phase is shown when it applies;
+	 * otherwise Standard is shown and the saved choice is kept for the boss it names.
+	 */
+	private void showPhases(MonsterSummary monster)
+	{
+		boolean previous = syncing;
+		syncing = true;
+		try
+		{
+			DefaultComboBoxModel<EncounterPhase> phases = new DefaultComboBoxModel<>();
+			phases.addElement(EncounterPhase.STANDARD);
+			if (monster != null)
+			{
+				Monster target = FightOptionsPanel.targetOf(monster);
+				for (EncounterPhase phase : EncounterPhase.values())
+				{
+					if (phase != EncounterPhase.STANDARD && EncounterPhases.applies(target, phase))
+					{
+						phases.addElement(phase);
+					}
+				}
+			}
+			phaseBox.setModel(phases);
+			EncounterPhase saved = config.encounterPhase();
+			phaseBox.setSelectedItem(phases.getIndexOf(saved) >= 0 ? saved : EncounterPhase.STANDARD);
+			phaseRow.setVisible(phases.getSize() > 1);
+		}
+		finally
+		{
+			syncing = previous;
 		}
 	}
 
@@ -361,6 +517,10 @@ public class BestGearSetupPanel extends PluginPanel
 		if (found.isAssumedLevels())
 		{
 			status.append("<br>Not logged in: assuming 99 in all combat stats.");
+		}
+		else if (found.isRememberedLevels())
+		{
+			status.append("<br>Not logged in: using the levels last seen on this account.");
 		}
 		statusLabel.setText(html(status.toString()));
 
@@ -424,6 +584,8 @@ public class BestGearSetupPanel extends PluginPanel
 		try
 		{
 			modeBox.setSelectedItem(config.mode());
+			(config.bossesOnly() ? bossesButton : allButton).setSelected(true);
+			showPhases(selected);
 			budgetField.setText(config.budget());
 			onTaskBox.setSelected(config.onSlayerTask());
 			fightOptions.refresh();
@@ -463,24 +625,32 @@ public class BestGearSetupPanel extends PluginPanel
 		suggestions.removeAll();
 		if (data != null)
 		{
-			for (MonsterSummary m : data.searchMonsters(searchField.getText(), MAX_SUGGESTIONS))
+			for (MonsterGroup group : data.searchMonsterGroups(searchField.getText(), MAX_SUGGESTIONS,
+				bossesButton.isSelected()))
 			{
-				suggestions.add(suggestionRow(m));
+				suggestions.add(suggestionRow(group));
 			}
 		}
 		suggestions.revalidate();
 		suggestions.repaint();
 	}
 
-	private JPanel suggestionRow(MonsterSummary m)
+	private JPanel suggestionRow(MonsterGroup group)
 	{
 		JPanel row = new JPanel(new BorderLayout());
 		row.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		row.setBorder(new EmptyBorder(3, 6, 3, 6));
-		JLabel name = new JLabel(html(escape(m.getDisplayName())));
+		JLabel name = new JLabel(html(escape(group.getDisplayName())));
 		name.setFont(FontManager.getRunescapeSmallFont());
-		name.setForeground(m.isBoss() ? ColorScheme.BRAND_ORANGE : Color.WHITE);
-		JLabel level = new JLabel(String.valueOf(m.getCombatLevel()));
+		name.setForeground(group.isBoss() ? ColorScheme.BRAND_ORANGE : Color.WHITE);
+		int min = group.getMinCombatLevel();
+		int max = group.getMaxCombatLevel();
+		JLabel level = new JLabel(min == max ? String.valueOf(min) : min + "-" + max);
+		int versions = group.getVariants().size();
+		if (versions > 1)
+		{
+			row.setToolTipText(versions + " versions; pick one below the search after selecting");
+		}
 		level.setFont(FontManager.getRunescapeSmallFont());
 		level.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		row.add(name, BorderLayout.CENTER);
@@ -503,7 +673,7 @@ public class BestGearSetupPanel extends PluginPanel
 			@Override
 			public void mouseClicked(MouseEvent e)
 			{
-				selectMonster(m, true);
+				select(group, group.getPrimary(), true);
 			}
 		});
 		return row;

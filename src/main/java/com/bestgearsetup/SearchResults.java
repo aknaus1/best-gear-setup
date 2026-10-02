@@ -33,12 +33,16 @@ public class SearchResults
 	boolean assumedLevels;
 	/** How each slot lock affected the search; empty when nothing is locked. */
 	List<LockStatus> locks;
+	/** Mark of Darkness is assumed for demonbane spells. */
+	boolean markOfDarkness;
+	/** Logged out, using the levels last seen on this account. */
+	boolean rememberedLevels;
 
 	public SearchResults(Monster monster, int startingHitpoints, Map<AttackStyle.Type, List<SetupResult>> byType,
 		List<String> notes, Map<CombatClass, OffensivePrayer> prayers, Map<CombatClass, List<Potion>> potions,
 		boolean assumedLevels)
 	{
-		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, Collections.emptyList());
+		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, Collections.emptyList(), false, false);
 	}
 
 	/** Whether a lock could not be honoured. */

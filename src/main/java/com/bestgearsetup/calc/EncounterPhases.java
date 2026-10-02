@@ -16,14 +16,16 @@ public final class EncounterPhases
 	}
 
 	/**
-	 * Apply phase-dependent target stats. Yama's Magic defence is 60 while the tank attacks with Magic and
-	 * -30 otherwise (Wiki calculator phases), except in his enraged phase.
+	 * Apply phase-dependent target stats. Yama's Magic defence bonus is +60 while his primary target uses
+	 * Magic and -30 while they use Melee (Wiki), except in his enraged phase. Only magic attacks read it, so
+	 * when the player is his target a magic setup always faces +60; -30 applies only when a partner tanks
+	 * with Melee while the player casts.
 	 */
 	public static void applyStats(Monster monster)
 	{
 		if (CombatRules.yamaTankDependent(monster))
 		{
-			monster.setDefMagic(monster.getPhase() == EncounterPhase.YAMA_MAGIC_TANK ? 60 : -30);
+			monster.setDefMagic(monster.getPhase() == EncounterPhase.YAMA_MELEE_TANK ? -30 : 60);
 		}
 	}
 
@@ -33,7 +35,9 @@ public final class EncounterPhases
 		EncounterPhase phase = monster.getPhase();
 		if (phase == EncounterPhase.STANDARD)
 		{
-			return null;
+			return CombatRules.yamaTankDependent(monster)
+				? "Yama: you are his target, so magic setups face +60 Magic defence (\"Partner tanks with Melee\": -30)."
+				: null;
 		}
 		if (!applies(monster, phase))
 		{
@@ -55,8 +59,8 @@ public final class EncounterPhases
 				return "Tormented Demon unshielded: always hit, no fire-shield reduction, heavy-hitting attacks gain damage.";
 			case TD_DEFENCELESS:
 				return "Tormented Demon defenceless: attacks always hit but the fire shield still reduces damage.";
-			case YAMA_MAGIC_TANK:
-				return "Yama: Magic defence +60 while the tank uses Magic (-30 otherwise).";
+			case YAMA_MELEE_TANK:
+				return "Yama: your partner tanks with Melee, so his Magic defence is -30.";
 			default:
 				return null;
 		}

@@ -60,14 +60,16 @@ public class AmmunitionOwnershipTest
 	}
 
 	@Test
-	public void untradeableToggleDoesNotGrantAnUnownedDiaryTier()
+	public void onlyBestInSlotAssumesAnUnownedDiaryTier()
 	{
 		GearItem elite = data.getItem(Slot.AMMO, 22947);
 		for (SearchMode mode : SearchMode.values())
 		{
 			OptimizerSettings settings = OptimizerSettings.builder().mode(mode).budget(Long.MAX_VALUE)
-				.allowUntradeables(true).spellbooks(Collections.emptySet()).build();
-			assertFalse(new Optimizer(data, context, settings, id -> id == 22943, GearItem::getPrice).available(elite));
+				.spellbooks(Collections.emptySet()).build();
+			// Best in slot has no limit, so every diary tier is assumed.
+			assertEquals(mode == SearchMode.UNLIMITED,
+				new Optimizer(data, context, settings, id -> id == 22943, GearItem::getPrice).available(elite));
 			assertTrue(new Optimizer(data, context, settings, id -> id == 22947, GearItem::getPrice).available(elite));
 		}
 	}

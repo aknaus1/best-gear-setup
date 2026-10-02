@@ -49,7 +49,7 @@ final class CombatRules
 				// Variants whose names already fix the shield state ignore the phase option.
 				return EncounterDamage.tormented(m) && !m.getName().toLowerCase(java.util.Locale.ROOT).contains("shielded)")
 					&& !m.getName().toLowerCase(java.util.Locale.ROOT).contains("100% accuracy");
-			case YAMA_MAGIC_TANK:
+			case YAMA_MELEE_TANK:
 				return yamaTankDependent(m);
 			default:
 				return false;

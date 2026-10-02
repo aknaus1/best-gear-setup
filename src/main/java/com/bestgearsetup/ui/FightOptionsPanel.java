@@ -3,9 +3,7 @@ package com.bestgearsetup.ui;
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.calc.DragonfireProtection;
-import com.bestgearsetup.calc.EncounterPhases;
 import com.bestgearsetup.calc.RaidScaling;
-import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterSummary;
 import java.awt.BorderLayout;
@@ -19,7 +17,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.swing.BoxLayout;
-import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
@@ -66,7 +63,6 @@ class FightOptionsPanel extends JPanel
 		new Setting("toaRaidLevel", BestGearSetupConfig::toaRaidLevel),
 		new Setting("toaPathLevel", BestGearSetupConfig::toaPathLevel),
 		new Setting("coxChallengeMode", BestGearSetupConfig::coxChallengeMode),
-		new Setting("encounterPhase", BestGearSetupConfig::encounterPhase),
 		new Setting("specVulnerability", BestGearSetupConfig::specVulnerability),
 		new Setting("specTomeOfWater", BestGearSetupConfig::specTomeOfWater),
 		new Setting("specElderMaul", BestGearSetupConfig::specElderMaul),
@@ -243,7 +239,14 @@ class FightOptionsPanel extends JPanel
 	/** Match the encounter rules used by the calculation, without changing saved assumptions. */
 	void setTarget(MonsterSummary summary)
 	{
-		target = new Monster();
+		target = targetOf(summary);
+		refresh();
+	}
+
+	/** The id, name and tags the encounter rules read, without loading the variant's full stats. */
+	static Monster targetOf(MonsterSummary summary)
+	{
+		Monster target = new Monster();
 		target.setId(summary.getId());
 		target.setName(summary.getName());
 		target.setAttributes(summary.getAttributes().stream().map(name ->
@@ -252,10 +255,9 @@ class FightOptionsPanel extends JPanel
 			attribute.setName(name);
 			return attribute;
 		}).collect(Collectors.toList()));
-		refresh();
+		return target;
 	}
 
-	@SuppressWarnings("unchecked")
 	private void updateVisibility()
 	{
 		RaidScaling.Raid raid = RaidScaling.raid(target);
@@ -271,29 +273,6 @@ class FightOptionsPanel extends JPanel
 		rows.get("aoeTargets").setVisible(selected("aoe"));
 		rows.get("forinthrySurge").setVisible(target.getName().contains("revenant") && selected("wilderness"));
 		rows.get("markOfDarkness").setVisible(target.hasAttribute("demon"));
-		boolean previous = syncing;
-		syncing = true;
-		try
-		{
-			DefaultComboBoxModel<Object> phases = new DefaultComboBoxModel<>();
-			phases.addElement(EncounterPhase.STANDARD);
-			for (EncounterPhase phase : EncounterPhase.values())
-			{
-				if (phase != EncounterPhase.STANDARD && EncounterPhases.applies(target, phase))
-				{
-					phases.addElement(phase);
-				}
-			}
-			JComboBox<Object> choice = (JComboBox<Object>) control("encounterPhase");
-			choice.setModel(phases);
-			EncounterPhase saved = config.encounterPhase();
-			choice.setSelectedItem(phases.getIndexOf(saved) >= 0 ? saved : EncounterPhase.STANDARD);
-			rows.get("encounterPhase").setVisible(phases.getSize() > 1);
-		}
-		finally
-		{
-			syncing = previous;
-		}
 		revalidate();
 	}
 

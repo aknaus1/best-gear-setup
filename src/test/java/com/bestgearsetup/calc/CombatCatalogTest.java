@@ -104,7 +104,7 @@ public class CombatCatalogTest
 	private static OptimizerSettings budget(long gp, int results)
 	{
 		return OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(gp)
-			.allowUntradeables(true).depth(SearchDepth.FAST).resultsPerClass(results)
+			.depth(SearchDepth.FAST).resultsPerClass(results)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();
 	}
 

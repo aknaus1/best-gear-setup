@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.ToLongFunction;
+import net.runelite.api.gameval.ItemID;
 import org.junit.Test;
 
 public class OptimizerTest
@@ -53,12 +54,12 @@ public class OptimizerTest
 		}
 	}
 
-	private List<SetupResult> run(SearchMode mode, long budget, boolean untradeables, Set<Integer> owned, GearItem... items)
+	private List<SetupResult> run(SearchMode mode, long budget, Set<Integer> owned, GearItem... items)
 	{
-		return run(mode, budget, untradeables, owned, GearItem::getPrice, items);
+		return run(mode, budget, owned, GearItem::getPrice, items);
 	}
 
-	private List<SetupResult> run(SearchMode mode, long budget, boolean untradeables, Set<Integer> owned,
+	private List<SetupResult> run(SearchMode mode, long budget, Set<Integer> owned,
 		ToLongFunction<GearItem> prices, GearItem... items)
 	{
 		GameData data = TestData.gameData(Arrays.asList(items), Collections.emptyList());
@@ -66,7 +67,6 @@ public class OptimizerTest
 		OptimizerSettings settings = OptimizerSettings.builder()
 			.mode(mode)
 			.budget(budget)
-			.allowUntradeables(untradeables)
 			.spellbooks(new HashSet<>(Collections.singletonList("standard")))
 			.build();
 		return new Optimizer(data, ctx, settings, owned::contains, prices).optimize(CombatClass.MELEE, () -> false);
@@ -77,44 +77,73 @@ public class OptimizerTest
 	{
 		ToLongFunction<GearItem> noQuoteForPricyHelm = i -> i == pricyHelm ? ItemCosts.UNKNOWN : i.getPrice();
 		Set<Integer> owned = new HashSet<>(Collections.singletonList(100));
-		SetupResult budget = run(SearchMode.BUDGET, 2_000_000_000L, false, owned, noQuoteForPricyHelm,
+		SetupResult budget = run(SearchMode.BUDGET, 2_000_000_000L, owned, noQuoteForPricyHelm,
 			sword, cheapHelm, pricyHelm).get(0);
 		assertEquals(cheapHelm, budget.getLoadout().get(Slot.HEAD));
 		assertEquals(1_000, budget.getBuyCost());
 		assertEquals(0, budget.getUnpricedItems());
 
-		SetupResult unlimited = run(SearchMode.UNLIMITED, 0, false, owned, noQuoteForPricyHelm,
+		SetupResult unlimited = run(SearchMode.UNLIMITED, 0, owned, noQuoteForPricyHelm,
 			sword, cheapHelm, pricyHelm).get(0);
 		assertEquals(pricyHelm, unlimited.getLoadout().get(Slot.HEAD));
 		assertEquals(0, unlimited.getBuyCost());
 		assertEquals(1, unlimited.getUnpricedItems());
 
 		owned.add(pricyHelm.getId());
-		SetupResult alreadyOwned = run(SearchMode.BUDGET, 0, false, owned, noQuoteForPricyHelm,
+		SetupResult alreadyOwned = run(SearchMode.BUDGET, 0, owned, noQuoteForPricyHelm,
 			sword, cheapHelm, pricyHelm).get(0);
 		assertEquals(pricyHelm, alreadyOwned.getLoadout().get(Slot.HEAD));
 		assertEquals(0, alreadyOwned.getUnpricedItems());
 	}
 
 	@Test
+	public void unpricedGearWithRangedBonusesIsNotTreatedAsUncountedAmmo()
+	{
+		// Only ammo-slot ammunition may stay unpriced; a helm with a ranged bonus is still bought once.
+		pricyHelm.setRangedBonus(5);
+		ToLongFunction<GearItem> noQuoteForPricyHelm = i -> i == pricyHelm ? ItemCosts.UNKNOWN : i.getPrice();
+		Set<Integer> owned = new HashSet<>(Collections.singletonList(100));
+		SetupResult budget = run(SearchMode.BUDGET, 2_000_000_000L, owned, noQuoteForPricyHelm,
+			sword, cheapHelm, pricyHelm).get(0);
+		assertEquals(cheapHelm, budget.getLoadout().get(Slot.HEAD));
+		assertEquals(0, budget.getUnpricedItems());
+	}
+
+	@Test
+	public void untradeablesWithTradableComponentsCanBeBought()
+	{
+		GearItem chargedHelm = item(ItemID.SERPENTINE_HELM_CHARGED, "charged helm", Slot.HEAD);
+		chargedHelm.setTradeable(false);
+		chargedHelm.setMeleeStr(10);
+		chargedHelm.setPrice(5_000);
+		Set<Integer> owned = new HashSet<>(Collections.singletonList(100));
+		SetupResult r = run(SearchMode.BUDGET, 10_000, owned, sword, cheapHelm, chargedHelm).get(0);
+		assertEquals(chargedHelm, r.getLoadout().get(Slot.HEAD));
+		assertEquals(5_000, r.getBuyCost());
+
+		SetupResult tooDear = run(SearchMode.BUDGET, 4_000, owned, sword, cheapHelm, chargedHelm).get(0);
+		assertEquals(cheapHelm, tooDear.getLoadout().get(Slot.HEAD));
+	}
+
+	@Test
 	public void budgetLimitsPurchases()
 	{
 		Set<Integer> owned = new HashSet<>(Collections.singletonList(100));
-		SetupResult r = run(SearchMode.BUDGET, 10_000, false, owned, sword, cheapHelm, pricyHelm).get(0);
+		SetupResult r = run(SearchMode.BUDGET, 10_000, owned, sword, cheapHelm, pricyHelm).get(0);
 		assertEquals(cheapHelm, r.getLoadout().get(Slot.HEAD));
 		assertEquals(1_000, r.getBuyCost());
 
-		SetupResult unlimited = run(SearchMode.UNLIMITED, 0, false, owned, sword, cheapHelm, pricyHelm).get(0);
+		SetupResult unlimited = run(SearchMode.UNLIMITED, 0, owned, sword, cheapHelm, pricyHelm).get(0);
 		assertEquals(pricyHelm, unlimited.getLoadout().get(Slot.HEAD));
 	}
 
 	@Test
 	public void ownedOnlyUsesNothingElse()
 	{
-		assertTrue(run(SearchMode.OWNED_ONLY, 0, false, Collections.emptySet(), sword, cheapHelm).isEmpty());
+		assertTrue(run(SearchMode.OWNED_ONLY, 0, Collections.emptySet(), sword, cheapHelm).isEmpty());
 
 		Set<Integer> owned = new HashSet<>(Arrays.asList(100, 200));
-		SetupResult r = run(SearchMode.OWNED_ONLY, 0, false, owned, sword, cheapHelm, pricyHelm).get(0);
+		SetupResult r = run(SearchMode.OWNED_ONLY, 0, owned, sword, cheapHelm, pricyHelm).get(0);
 		assertEquals(cheapHelm, r.getLoadout().get(Slot.HEAD));
 		assertEquals(0, r.getBuyCost());
 	}
@@ -123,7 +152,7 @@ public class OptimizerTest
 	public void itemsThatAddNoDpsAreLeftOff()
 	{
 		Set<Integer> owned = new HashSet<>(Collections.singletonList(100));
-		SetupResult r = run(SearchMode.UNLIMITED, 0, false, owned, sword, uselessRing).get(0);
+		SetupResult r = run(SearchMode.UNLIMITED, 0, owned, sword, uselessRing).get(0);
 		assertNull(r.getLoadout().get(Slot.RING));
 	}
 
@@ -131,7 +160,7 @@ public class OptimizerTest
 	public void findsVoidSetBonusThatGreedySearchWouldMiss()
 	{
 		Set<Integer> owned = new HashSet<>(Arrays.asList(100, 11665, 8839, 8840, 8842, 400));
-		SetupResult r = run(SearchMode.OWNED_ONLY, 0, false, owned,
+		SetupResult r = run(SearchMode.OWNED_ONLY, 0, owned,
 			sword, voidHelm, voidTop, voidRobe, voidGloves, body).get(0);
 		assertEquals(voidHelm, r.getLoadout().get(Slot.HEAD));
 		assertEquals(voidTop, r.getLoadout().get(Slot.BODY));
@@ -139,33 +168,35 @@ public class OptimizerTest
 	}
 
 	@Test
-	public void unownedUntradeablesNeedOptIn()
+	public void unownedUntradeablesAreOnlyUsedInBestInSlot()
 	{
 		Set<Integer> owned = new HashSet<>(Arrays.asList(100, 400));
-		SetupResult without = run(SearchMode.BUDGET, 1_000_000, false, owned,
+		SetupResult budget = run(SearchMode.BUDGET, Long.MAX_VALUE, owned,
 			sword, voidHelm, voidTop, voidRobe, voidGloves, body).get(0);
-		assertEquals(body, without.getLoadout().get(Slot.BODY));
+		assertEquals(body, budget.getLoadout().get(Slot.BODY));
 
-		SetupResult with = run(SearchMode.BUDGET, 1_000_000, true, owned,
+		SetupResult bis = run(SearchMode.UNLIMITED, 0, owned,
 			sword, voidHelm, voidTop, voidRobe, voidGloves, body).get(0);
-		assertEquals(voidTop, with.getLoadout().get(Slot.BODY));
+		assertEquals(voidTop, bis.getLoadout().get(Slot.BODY));
 	}
 
 	@Test
 	public void untradeableComponentsRespectTheBudgetAndOwnership()
 	{
+		// A charged serpentine helm: untradeable, bought as its tradable uncharged base.
+		pricyHelm.setId(ItemID.SERPENTINE_HELM_CHARGED);
 		pricyHelm.setTradeable(false);
 		Set<Integer> owned = new HashSet<>(Collections.singletonList(100));
-		SetupResult cheap = run(SearchMode.BUDGET, 10_000, true, owned, sword, cheapHelm, pricyHelm).get(0);
+		SetupResult cheap = run(SearchMode.BUDGET, 10_000, owned, sword, cheapHelm, pricyHelm).get(0);
 		assertEquals(cheapHelm, cheap.getLoadout().get(Slot.HEAD));
 		assertEquals(1_000, cheap.getBuyCost());
 
-		SetupResult enough = run(SearchMode.BUDGET, 50_000_000, true, owned, sword, cheapHelm, pricyHelm).get(0);
+		SetupResult enough = run(SearchMode.BUDGET, 50_000_000, owned, sword, cheapHelm, pricyHelm).get(0);
 		assertEquals(pricyHelm, enough.getLoadout().get(Slot.HEAD));
 		assertEquals(50_000_000, enough.getBuyCost());
 
 		owned.add(pricyHelm.getId());
-		SetupResult alreadyOwned = run(SearchMode.BUDGET, 0, false, owned, sword, cheapHelm, pricyHelm).get(0);
+		SetupResult alreadyOwned = run(SearchMode.BUDGET, 0, owned, sword, cheapHelm, pricyHelm).get(0);
 		assertEquals(pricyHelm, alreadyOwned.getLoadout().get(Slot.HEAD));
 		assertEquals(0, alreadyOwned.getBuyCost());
 	}
@@ -173,10 +204,12 @@ public class OptimizerTest
 	@Test
 	public void untradeableComponentsCountTowardTheCombinedBudget()
 	{
+		cheapHelm.setId(ItemID.SERPENTINE_HELM_CHARGED);
 		cheapHelm.setTradeable(false);
+		body.setId(ItemID.SANGUINESTI_STAFF);
 		body.setTradeable(false);
 		Set<Integer> owned = new HashSet<>(Collections.singletonList(100));
-		SetupResult result = run(SearchMode.BUDGET, 10_000, true, owned, sword, cheapHelm, body).get(0);
+		SetupResult result = run(SearchMode.BUDGET, 10_000, owned, sword, cheapHelm, body).get(0);
 		assertTrue(result.getBuyCost() <= 10_000);
 		assertFalse(result.getLoadout().get(Slot.HEAD) != null && result.getLoadout().get(Slot.BODY) != null);
 	}

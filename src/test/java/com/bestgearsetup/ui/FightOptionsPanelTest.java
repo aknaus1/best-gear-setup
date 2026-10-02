@@ -45,7 +45,7 @@ public class FightOptionsPanelTest
 			@Override
 			public EncounterPhase encounterPhase()
 			{
-				return EncounterPhase.YAMA_MAGIC_TANK;
+				return EncounterPhase.YAMA_MELEE_TANK;
 			}
 		};
 		SwingUtilities.invokeAndWait(() ->
@@ -53,7 +53,7 @@ public class FightOptionsPanelTest
 			FightOptionsPanel panel = new FightOptionsPanel(plugin, config, com.bestgearsetup.ConfigItemsForTests.items());
 			panel.setTarget(target("wolf"));
 			for (String key : Arrays.asList("toaRaidLevel", "toaPathLevel", "raidPartySize", "coxChallengeMode",
-				"miningLevel", "requireFireProtection", "antifire", "protectMagic", "encounterPhase", "aoeTargets", "forinthrySurge"))
+				"miningLevel", "requireFireProtection", "antifire", "protectMagic", "aoeTargets", "forinthrySurge"))
 			{
 				assertFalse(key, control(panel, key + "Row").isVisible());
 			}
@@ -71,14 +71,8 @@ public class FightOptionsPanelTest
 			assertFalse(control(panel, "toaRaidLevelRow").isVisible());
 			panel.setTarget(target("vorkath", "dragon"));
 			assertTrue(control(panel, "antifireRow").isVisible());
-			panel.setTarget(target("yama", "demon"));
-			JComboBox<?> phases = (JComboBox<?>) control(panel, "encounterPhase");
-			assertTrue(control(panel, "encounterPhaseRow").isVisible());
-			assertEquals(2, phases.getItemCount());
-			assertEquals(EncounterPhase.YAMA_MAGIC_TANK, phases.getSelectedItem());
-			panel.setTarget(target("wolf"));
-			assertEquals(EncounterPhase.STANDARD, phases.getSelectedItem());
-			assertEquals(EncounterPhase.YAMA_MAGIC_TANK, config.encounterPhase());
+			// The boss phase is picked below the monster search instead.
+			assertTrue(control(panel, "encounterPhaseRow") == null);
 			assertTrue(writes.isEmpty());
 			((JCheckBox) control(panel, "aoe")).doClick();
 			assertTrue(control(panel, "aoeTargetsRow").isVisible());

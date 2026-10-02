@@ -19,7 +19,9 @@ Requires JDK 11.
 ## Features
 
 - **Right-click any attackable NPC → "Best setup"** to open the panel and search setups for it.
-- **Search** any monster or boss by name in the side panel.
+- **Search** any monster or boss by name in the side panel. Toggle between *Bosses* and *All
+  monsters*. Phases and variants of one monster (Abyssal Sire phases, Vorkath post-quest / Dragon
+  Slayer II, Verzik modes...) show as a single result; pick the version, and any temporary boss phase, below the search.
 - **Owned items**: the plugin remembers your bank (after you open it once), inventory and worn
   equipment, per account. Owned items cost nothing in a setup.
 - Decorated equipment also counts as its underlying base item, including Twisted ancestral.
@@ -28,7 +30,8 @@ Requires JDK 11.
 - **Three modes**
   - *Owned items only*: only gear you already have.
   - *Owned + budget*: your gear plus anything you can buy within the budget (e.g. `50m`).
-  - *Best in slot*: no limit.
+    Untradeables are used only if you own them, unless they are bought through tradable components.
+  - *Best in slot*: no limit, including unowned untradeables and every diary tier.
 - **Equipment & access** settings independently enable Members, DMM, Beta and
   BH equipment. Members is enabled by default; DMM, Beta and BH are disabled. These filters
   also apply to owned items and slot locks, and changing a setting reruns the search.
@@ -40,17 +43,30 @@ Requires JDK 11.
   defender includes its hilt. Owning base treads or an Elidinis' ward does not grant paid upgrades.
   RuneLite's component mappings supply current prices.
   Costs cover equipment and consumed upgrade components; crystal shards, corruption fees,
-  weapon charges and ongoing upkeep are excluded. Reward-only gear such as void and fire capes
-  has no GE acquisition cost. Unowned untradeables still require the setting to be enabled.
+  weapon charges and ongoing upkeep are excluded. Because they can be bought, budget searches may
+  buy this gear (including Tumeken's shadow, the Sanguinesti staff, tridents and the
+  tormented-synapse weapons). Reward-only gear such as void and fire capes has no GE acquisition
+  cost; budget searches use it only when owned, Best in slot always.
 - Tradable items (or tradable components) without a current GE price are never treated as free:
   budget searches only use them if you own them, and Best in slot results mark them as unpriced
   rather than adding a guessed cost.
 - Each search uses a snapshot of your items. Gaining or losing equipment afterwards (selling,
   dropping, buying) discards the results and searches again; consumables do not.
   Diary rewards require the exact tier to be tracked as owned or manually marked as owned;
-  owning a lower tier never unlocks a higher one, even with unowned untradeables enabled.
-- Uses your real combat levels and item requirements. The best prayer your levels allow and
-  potion boosts are assumed by default (configurable).
+  owning a lower tier never unlocks a higher one (Best in slot assumes every tier).
+- Uses your real combat levels and item requirements. Levels are remembered per account, so a
+  logged-out search uses the levels last seen in game (99s only before the account's first login).
+  The best prayer your levels and unlocks allow and potion boosts are assumed by default
+  (configurable). Piety/Chivalry (Knight Waves), Rigour, Augury, Deadeye and Mystic Vigour are read
+  from your account while logged in and remembered the same way; before the first login they are
+  assumed unlocked, like the 99s.
+- Potion boosts follow the search mode when the potion choice is *Best*: *Owned items only* uses only
+  potions and hearts you own (any dose; a divine potion counts as the ordinary one), *Owned + budget*
+  may buy potions (not counted in the budget) but needs an owned imbued/saturated heart, and *Best in
+  slot* assumes everything. A potion picked by name is always used.
+- Demonbane spells assume Mark of Darkness is active (Fight options), and its icon is shown beside the
+  prayer and potions when a setup uses it; with it off, elemental weaknesses such as Yama's water
+  weakness can outrank demonbane spells.
 - Monster variants match all their NPC IDs, and search notes give the snapshot dates.
 - Wear requirements combine the game cache's requirement parameters, levels stated in each item's
   Wiki text, and a reviewed rules table for legacy families; the live client cache can only raise them.
@@ -63,8 +79,8 @@ Mode, budget and slayer-task status are controlled in the main side panel. **Fig
 contains fighting distance, ammo quantity and pre-fight specials (vulnerability, dragon warhammer, elder maul,
 arclight, emberlight, Tonalztics, bandos godsword, seercull and Eye of Ayak).
 The lookup controls do not repeat in RuneLite's settings; saved values are preserved.
-Raid scaling, path levels, dragonfire protection and boss phases appear only for matching
-encounters. Attack effects and pre-fight specials have their own collapsed sections.
+Raid scaling, path levels and dragonfire protection appear only for matching encounters; the
+**Boss phase** picker appears below the monster search, under the version, when the target has one. Attack effects and pre-fight specials have their own collapsed sections.
 Snapshot information and calculation assumptions are under **Search details**, below the gear.
 External ammunition is included in the ammo slot, including zero-bonus atlatl darts;
 blowpipe darts are shown separately as loaded ammo. Consumable ammo uses the configured quantity
@@ -199,9 +215,8 @@ In RuneLite's settings for the plugin:
   style that gives a chosen XP type.
 - **Fill empty slots**: fill slots that add no damage with prayer or defence items (by defence type,
   or weighted by the target's own attacks), optionally giving up a DPS margin.
-- **Equipment & access**: Members, DMM, Beta and BH equipment, unowned untradeables and allowed
-  spellbooks.
-- **Boosts**: prayers, unlocked prayers, thrall DPS.
+- **Equipment & access**: Members, DMM, Beta and BH equipment and allowed spellbooks.
+- **Boosts**: prayers, thrall DPS.
 
 ## How it works
 
@@ -264,9 +279,10 @@ The abyssal bludgeon assumes full Prayer, and Ancient godsword's delayed blood s
 **Boss phase** selects a temporary state: Hueycoatl pillar buff (head and
 tail hits x1.3 after the tail caps), Royal Titans out of melee range (ranged attack roll x6), Abyssal
 Sire transition (hits halved), and Mokhaiotl shielded (demonbane only, always accurate) or burrowing
-(always accurate), Tormented Demon unshielded/defenceless, and Yama's tank using Magic (+60 Magic
-defence, otherwise −30). Other targets ignore the phase. Named Wiki variants, such as Araxxor
-enraged or the Maggot King's ranges, are selected in the lookup. Royal Titans elementals use the Magic attack bonus for accuracy with guaranteed
+(always accurate), Tormented Demon unshielded/defenceless, and Yama's partner tanking with Melee.
+Yama's Magic defence bonus is +60 while his target uses Magic and −30 while they use Melee; by default
+you are his target, so magic setups face +60, and *Partner tanks with Melee* applies −30. Other targets ignore the phase. Named Wiki variants, such as Araxxor
+enraged or the Maggot King's ranges, are selected with the **Version** picker. Royal Titans elementals use the Magic attack bonus for accuracy with guaranteed
 maximum hits.
 
 **Poison, venom and burns** are added as damage over time, following the OSRS Wiki's Poison, Venom

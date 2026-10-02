@@ -14,7 +14,7 @@ public enum EncounterPhase
 	MOKHAIOTL_BURROWING("Mokhaiotl burrowing"),
 	TD_UNSHIELDED("Tormented Demon unshielded"),
 	TD_DEFENCELESS("TD shield, defenceless"),
-	YAMA_MAGIC_TANK("Yama tank on Magic");
+	YAMA_MELEE_TANK("Partner tanks with Melee");
 
 	private final String label;
 

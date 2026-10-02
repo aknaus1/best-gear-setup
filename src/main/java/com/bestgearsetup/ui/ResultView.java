@@ -414,6 +414,11 @@ class ResultView extends JPanel
 				? textChip(GameData.titleCase(prayer.getName()))
 				: new SpriteIcon(spriteId, GameData.titleCase(prayer.getName())));
 		}
+		if (usesMarkOfDarkness(l))
+		{
+			boosts.add(new SpriteIcon(SpriteID.MagicNecroOn.MARK_OF_DARKNESS,
+				"Mark of Darkness (boosts demonbane spells against demons)"));
+		}
 		List<Potion> potions = new ArrayList<>(results.getPotions().getOrDefault(cls, Collections.emptyList()));
 		if (selectedType == AttackStyle.Type.ATLATL)
 		{
@@ -435,6 +440,14 @@ class ResultView extends JPanel
 		}
 		row.add(boosts, BorderLayout.CENTER);
 		return row;
+	}
+
+	/** Mark of Darkness only affects demonbane spells cast at demons. */
+	private boolean usesMarkOfDarkness(Loadout l)
+	{
+		return results.isMarkOfDarkness() && l.getSpell() != null
+			&& l.getSpell().getName().toLowerCase(Locale.ROOT).contains("demonbane")
+			&& results.getMonster().hasAttribute("demon");
 	}
 
 	private JPanel alternativeRow(SetupResult r, boolean current)

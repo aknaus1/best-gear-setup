@@ -8,11 +8,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Resolves the user's potion choice for a combat class into boosted levels.
  * A choice is "best" (strongest potion usable anywhere, i.e. not raid / NMZ / Deadman only),
- * "none", or a potion name from the potion table.
+ * "none", or a potion name from the potion table. "Best" can be narrowed further, e.g. to owned
+ * boosts; a potion chosen by name is always used.
  */
 public final class PotionChoice
 {
@@ -57,25 +59,24 @@ public final class PotionChoice
 	/** Boosted level for one skill under the given choice. */
 	public static int boostedLevel(GameData data, String skill, int level, String choice)
 	{
-		String c = choice == null ? BEST : choice.trim().toLowerCase(Locale.ROOT);
-		if (c.equals(NONE))
-		{
-			return level;
-		}
-		int best = level;
-		for (Potion p : data.getPotions(skill))
-		{
-			boolean match = c.equals(BEST) ? p.isUnrestricted() : p.getName().equalsIgnoreCase(c);
-			if (match)
-			{
-				best = Math.max(best, p.boost(level));
-			}
-		}
-		return best;
+		return boostedLevel(data, skill, level, choice, p -> true);
+	}
+
+	/** Boosted level for one skill; "best" only considers potions {@code available} accepts. */
+	public static int boostedLevel(GameData data, String skill, int level, String choice, Predicate<Potion> available)
+	{
+		Potion p = resolve(data, skill, level, choice, available);
+		return p == null ? level : p.boost(level);
 	}
 
 	/** The potion a choice resolves to for a skill, or null for none / no boost. */
 	public static Potion resolve(GameData data, String skill, int level, String choice)
+	{
+		return resolve(data, skill, level, choice, p -> true);
+	}
+
+	/** As {@link #resolve(GameData, String, int, String)}; "best" only considers potions {@code available} accepts. */
+	public static Potion resolve(GameData data, String skill, int level, String choice, Predicate<Potion> available)
 	{
 		String c = choice == null ? BEST : choice.trim().toLowerCase(Locale.ROOT);
 		if (c.equals(NONE))
@@ -86,7 +87,7 @@ public final class PotionChoice
 		int bestLevel = level;
 		for (Potion p : data.getPotions(skill))
 		{
-			boolean match = c.equals(BEST) ? p.isUnrestricted() : p.getName().equalsIgnoreCase(c);
+			boolean match = c.equals(BEST) ? p.isUnrestricted() && available.test(p) : p.getName().equalsIgnoreCase(c);
 			if (match && p.boost(level) > bestLevel)
 			{
 				best = p;

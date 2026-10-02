@@ -34,7 +34,7 @@ public class EquipmentFiltersTest
 	{
 		GameData data = TestData.gameData(Arrays.asList(gear), Collections.emptyList());
 		CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
-		OptimizerSettings settings = builder.mode(SearchMode.UNLIMITED).allowUntradeables(true)
+		OptimizerSettings settings = builder.mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard")).resultsPerClass(1).build();
 		// Even owned equipment must obey category filters.
 		return new Optimizer(data, ctx, settings, id -> true, GearItem::getPrice)
@@ -140,8 +140,11 @@ public class EquipmentFiltersTest
 		assertTrue(new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.BUDGET).budget(999).build(),
 			id -> false, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false).isEmpty());
 		sword.setTradeable(false);
-		assertTrue(new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.UNLIMITED).build(),
+		assertTrue(new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.BUDGET).budget(Long.MAX_VALUE).build(),
 			id -> false, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false).isEmpty());
+		// Best in slot has no limit: an unowned untradeable is still used.
+		assertEquals(sword, new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.UNLIMITED).build(),
+			id -> false, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false).get(0).getLoadout().getWeapon());
 	}
 
 	@Test
@@ -169,7 +172,10 @@ public class EquipmentFiltersTest
 		assertTrue(new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.BUDGET).budget(999).build(),
 			id -> id == bow.getId(), GearItem::getPrice).optimize(CombatClass.RANGED, () -> false).isEmpty());
 		arrow.setTradeable(false);
-		assertTrue(new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.UNLIMITED).build(),
+		assertTrue(new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.BUDGET).budget(Long.MAX_VALUE).build(),
 			id -> id == bow.getId(), GearItem::getPrice).optimize(CombatClass.RANGED, () -> false).isEmpty());
+		assertEquals(arrow, new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.UNLIMITED).build(),
+			id -> id == bow.getId(), GearItem::getPrice).optimize(CombatClass.RANGED, () -> false).get(0)
+			.getLoadout().get(Slot.AMMO));
 	}
 }
