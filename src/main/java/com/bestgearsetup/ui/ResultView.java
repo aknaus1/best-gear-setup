@@ -321,12 +321,12 @@ class ResultView extends JPanel
 		int unpriced = 0;
 		for (Slot slot : Slot.values())
 		{
-			long[] v = value(l.get(slot), slot == Slot.AMMO);
+			long[] v = value(l.get(slot));
 			total += v[0];
 			ownedValue += v[1];
 			unpriced += (int) v[2];
 		}
-		long[] darts = value(l.getLoadedAmmo(), true);
+		long[] darts = value(l.getLoadedAmmo());
 		total += darts[0];
 		ownedValue += darts[1];
 		unpriced += (int) darts[2];
@@ -351,22 +351,26 @@ class ResultView extends JPanel
 		return box;
 	}
 
-	/** {total, owned, unpriced to buy} for one item; ammo is priced x ammo count. */
-	private long[] value(GearItem item, boolean ammoSlot)
+	/**
+	 * {total, owned, unpriced to buy} for one item; ammunition and thrown weapons are priced x ammo count and
+	 * owned up to the stack held.
+	 */
+	private long[] value(GearItem item)
 	{
 		if (item == null)
 		{
 			return new long[]{0, 0, 0};
 		}
-		boolean ammo = ammoSlot && WeaponRules.isAmmunition(item);
+		boolean ammo = WeaponRules.consumedPerAttack(item);
 		long price = plugin.price(item);
 		boolean owned = plugin.owns(item);
+		long units = ammo ? Math.max(0, ammoCount) : 1;
+		long ownedUnits = !owned ? 0 : ammo ? Math.min(units, plugin.heldQuantity(item)) : 1;
 		if (!ItemCosts.isKnown(price))
 		{
-			return new long[]{0, 0, owned || (ammo && ammoCount <= 0) ? 0 : 1};
+			return new long[]{0, 0, ownedUnits < units ? 1 : 0};
 		}
-		long v = price * (ammo ? ammoCount : 1);
-		return new long[]{v, owned ? v : 0, 0};
+		return new long[]{price * units, price * ownedUnits, 0};
 	}
 
 	private JPanel styleRow(Loadout l)

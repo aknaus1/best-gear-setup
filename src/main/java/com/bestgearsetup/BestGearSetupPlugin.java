@@ -15,9 +15,11 @@ import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.SlayerEquipment;
 import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.calc.SpecialAttacks;
 import com.bestgearsetup.calc.WeaponPoison;
+import com.bestgearsetup.calc.WeaponRules;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.EquipmentRequirements;
 import com.bestgearsetup.data.GameData;
@@ -72,6 +74,8 @@ import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.gameval.ItemID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigItemDescriptor;
 import net.runelite.client.config.ConfigManager;
@@ -96,6 +100,8 @@ import net.runelite.client.util.Text;
 public class BestGearSetupPlugin extends Plugin
 {
 	private static final String MENU_OPTION = "Best setup";
+	/** RuneScape-profile key remembering whether the Elite Kourend & Kebos Diary is complete. */
+	private static final String KOUREND_ELITE_KEY = "kourendEliteDiary";
 
 	@Inject
 	private Client client;
@@ -144,6 +150,20 @@ public class BestGearSetupPlugin extends Plugin
 	private String lastRememberedLevels;
 	/** Ownership the latest search was computed with; null when no results depend on it. */
 	private volatile Set<Integer> searchOwned;
+	/** Stack sizes and ammo quantity the latest search was computed with. */
+	private volatile Map<Integer, Long> searchQuantities;
+	private volatile int searchAmmoCount;
+	/**
+	 * Stack sizes at the last relevant supply change since the search, or null if none; only a further change
+	 * restarts the settle timer.
+	 */
+	private volatile Map<Integer, Long> observedQuantities;
+	/** Ammunition and thrown weapons (and their variants): the stacks whose size can alter a result. */
+	private volatile Set<Integer> consumableIds = Collections.emptySet();
+	/** Swing thread only: waits for a changing stack to settle (e.g. while firing) before searching again. */
+	private javax.swing.Timer supplyRefresh;
+	/** How long a stack must stay unchanged before a quantity-only change reruns the search. */
+	int supplySettleMillis = 5000;
 	/** Read and written on the client thread only. */
 	private NPC lookupTarget;
 	/** Swing thread only: whether this run has started loading the bundled data. */
@@ -203,9 +223,16 @@ public class BestGearSetupPlugin extends Plugin
 		navButton = null;
 		gameData = null;
 		gearIds = Collections.emptySet();
+		consumableIds = Collections.emptySet();
 		searchOwned = null;
+		searchQuantities = null;
+		observedQuantities = null;
 		lastSearched = null;
 		lookupTarget = null;
+		if (supplyRefresh != null)
+		{
+			supplyRefresh.stop();
+		}
 	}
 
 	private boolean cacheReady()
@@ -243,12 +270,14 @@ public class BestGearSetupPlugin extends Plugin
 				return;
 			}
 			Set<Integer> gear = gearIds(data);
+			Set<Integer> consumables = consumableIds(data);
 			SwingUtilities.invokeLater(() ->
 			{
 				if (life == lifecycle.get())
 				{
 					gameData = data;
 					gearIds = gear;
+					consumableIds = consumables;
 					target.onDataLoaded(data);
 				}
 			});
@@ -279,6 +308,23 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				ids.add(item.getId());
 				ids.addAll(item.getVariants());
+			}
+		}
+		return Collections.unmodifiableSet(ids);
+	}
+
+	static Set<Integer> consumableIds(GameData data)
+	{
+		Set<Integer> ids = new HashSet<>();
+		for (Slot slot : Slot.values())
+		{
+			for (GearItem item : data.getItems(slot))
+			{
+				if (WeaponRules.consumedPerAttack(item))
+				{
+					ids.add(item.getId());
+					ids.addAll(item.getVariants());
+				}
 			}
 		}
 		return Collections.unmodifiableSet(ids);
@@ -376,18 +422,78 @@ public class BestGearSetupPlugin extends Plugin
 
 	/**
 	 * Results are valid only for the items owned when they were computed: if equipment was gained or lost since,
-	 * discard them and search again with the new ownership. Consumables and other non-gear changes are ignored.
+	 * discard them and search again with the new ownership. A changed ammunition or thrown-weapon stack that
+	 * affects the requested ammo quantity searches again once the stack stops changing, so firing doesn't restart
+	 * the search every attack. Food, potions and other non-gear changes are ignored.
 	 */
 	private void invalidateIfOwnershipChanged()
 	{
 		Set<Integer> before = searchOwned;
-		Set<Integer> now = ownedItems.snapshot();
-		if (before == null || before == now || lastSearched == null || !gearOwnershipDiffers(before, now, gearIds))
+		if (before == null || lastSearched == null)
 		{
 			return;
 		}
-		searchOwned = now;
-		rerun();
+		Set<Integer> now = ownedItems.snapshot();
+		if (before != now && gearOwnershipDiffers(before, now, gearIds))
+		{
+			searchOwned = now;
+			rerun();
+			return;
+		}
+		// Compare with the last observed supply, not the search's: unrelated container events (food, potions)
+		// must not keep pushing back the refresh of a stack that has already settled.
+		Map<Integer, Long> quantities = ownedItems.quantitySnapshot();
+		Map<Integer, Long> observed = observedQuantities;
+		if (supplyDiffers(observed != null ? observed : searchQuantities, quantities, consumableIds, searchAmmoCount))
+		{
+			observedQuantities = quantities;
+			SwingUtilities.invokeLater(this::scheduleSupplyRefresh);
+		}
+	}
+
+	/** Swing thread: (re)start the settle timer; each further relevant stack change pushes the refresh back. */
+	private void scheduleSupplyRefresh()
+	{
+		if (supplyRefresh == null)
+		{
+			supplyRefresh = new javax.swing.Timer(supplySettleMillis, e -> refreshSupply());
+			supplyRefresh.setRepeats(false);
+		}
+		supplyRefresh.setInitialDelay(supplySettleMillis);
+		supplyRefresh.restart();
+	}
+
+	/** Swing thread: the stack has settled; search again if it still differs from the one the results used. */
+	private void refreshSupply()
+	{
+		Map<Integer, Long> now = ownedItems.quantitySnapshot();
+		if (searchOwned != null && supplyDiffers(searchQuantities, now, consumableIds, searchAmmoCount))
+		{
+			searchQuantities = now;
+			observedQuantities = null;
+			rerun();
+		}
+	}
+
+	/**
+	 * Whether a held stack changed in a way the search could see: only the part of each stack up to the requested
+	 * ammo quantity matters, so a large stack shrinking above that quantity changes nothing.
+	 */
+	static boolean supplyDiffers(Map<Integer, Long> before, Map<Integer, Long> now, Set<Integer> consumables,
+		long ammoCount)
+	{
+		if (before == null || ammoCount <= 0)
+		{
+			return false;
+		}
+		for (int id : consumables)
+		{
+			if (Math.min(before.getOrDefault(id, 0L), ammoCount) != Math.min(now.getOrDefault(id, 0L), ammoCount))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	static boolean gearOwnershipDiffers(Set<Integer> before, Set<Integer> now, Set<Integer> gear)
@@ -412,6 +518,8 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		lastSearched = null;
 		searchOwned = null;
+		searchQuantities = null;
+		observedQuantities = null;
 		lookupTarget = null;
 		lastRememberedLevels = null;
 		ownedItems.load();
@@ -538,6 +646,11 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				target = lookupTarget;
 			}
+			if (client.getGameState() != GameState.LOGGED_IN)
+			{
+				showDistanceError("Not logged in: log in to measure your distance, or set Distance by hand.");
+				return;
+			}
 			if (player == null || !matchesDistanceTarget(target) || player.getWorldView() != target.getWorldView())
 			{
 				showDistanceError("Select a nearby NPC with Best setup, or attack the selected monster first.");
@@ -622,14 +735,19 @@ public class BestGearSetupPlugin extends Plugin
 			PlayerLevels levels = known == null ? null : known.getLevels();
 			int mining = known == null ? 99 : known.getMining();
 			Set<String> prayerUnlocks = readPrayerUnlocks();
+			Boolean kourendElite = readKourendEliteDiary();
 			// ItemManager prices must be read on the client thread; snapshot them for the search and UI.
 			Map<Integer, Long> quotes = snapshotPrices(data);
 			prices = quotes;
 			// Ownership is fixed for the whole search; later gear changes invalidate the results instead.
 			Set<Integer> owned = ownedItems.snapshot();
+			Map<Integer, Long> quantities = ownedItems.quantitySnapshot();
 			searchOwned = owned;
-			search = executor.submit(() -> runSearch(data, summary, levels, rememberedLevels, prayerUnlocks, mining,
-				quotes, owned, generation));
+			searchQuantities = quantities;
+			observedQuantities = null;
+			searchAmmoCount = config.ammoCount();
+			search = executor.submit(() -> runSearch(data, summary, levels, rememberedLevels, prayerUnlocks,
+				kourendElite, mining, quotes, owned, quantities, generation));
 		});
 	}
 
@@ -674,6 +792,26 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			readPrayerUnlocks();
 		}
+		if (event.getVarbitId() == VarbitID.KOUREND_DIARY_ELITE_COMPLETE)
+		{
+			readKourendEliteDiary();
+		}
+	}
+
+	/**
+	 * Whether the Elite Kourend & Kebos Diary is complete (it waives the Karuulm heat-protection boots): read while
+	 * logged in and remembered for the profile. Null if never seen. Client thread only.
+	 */
+	private Boolean readKourendEliteDiary()
+	{
+		if (client.getGameState() == GameState.LOGGED_IN)
+		{
+			boolean complete = client.getVarbitValue(VarbitID.KOUREND_DIARY_ELITE_COMPLETE) == 1;
+			configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, KOUREND_ELITE_KEY, complete);
+			return complete;
+		}
+		String remembered = configManager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, KOUREND_ELITE_KEY);
+		return remembered == null ? null : Boolean.valueOf(remembered);
 	}
 
 	@Subscribe
@@ -704,7 +842,8 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	private void runSearch(GameData data, MonsterSummary summary, PlayerLevels knownLevels, boolean rememberedLevels,
-		Set<String> prayerUnlocks, int mining, Map<Integer, Long> quotes, Set<Integer> owned, int generation)
+		Set<String> prayerUnlocks, Boolean kourendElite, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
+		Map<Integer, Long> quantities, int generation)
 	{
 		try
 		{
@@ -719,7 +858,9 @@ public class BestGearSetupPlugin extends Plugin
 			EncounterPhases.applyStats(scaled);
 			Monster monster = specials.apply(MonsterStates.atHealth(scaled, config.monsterHitpoints()));
 
-			OptimizerSettings settings = buildSettings();
+			// Rada's blessing 4 is an Elite diary reward, so owning it proves completion before the varbit is seen.
+			boolean eliteDiary = kourendElite != null ? kourendElite : owned.contains(ItemID.ZEAH_BLESSING_ELITE);
+			OptimizerSettings settings = buildSettings().toBuilder().kourendEliteDiary(eliteDiary).build();
 			Map<CombatClass, OffensivePrayer> prayers = new EnumMap<>(CombatClass.class);
 			if (config.usePrayers())
 			{
@@ -762,7 +903,8 @@ public class BestGearSetupPlugin extends Plugin
 					continue;
 				}
 				OptimizerSettings typeSettings = settings.toBuilder().styles(EnumSet.of(type)).build();
-				Optimizer optimizer = new Optimizer(data, ctx, typeSettings, owned::contains, item -> price(quotes, item));
+				Optimizer optimizer = new Optimizer(data, ctx, typeSettings, owned::contains,
+					id -> quantities.getOrDefault(id, 0L), item -> price(quotes, item));
 				List<SetupResult> results = optimizer.optimize(classOf(type),
 					() -> Thread.currentThread().isInterrupted() || generation != searchGeneration.get());
 				if (!results.isEmpty())
@@ -779,6 +921,10 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				notes.add("Prayer unlocks are unknown until you log in; Piety, Rigour, Augury and similar are assumed unlocked.");
 			}
+			if (kourendElite == null && !eliteDiary && SlayerEquipment.inKaruulm(baseMonster))
+			{
+				notes.add("Elite Kourend & Kebos Diary status is unknown until you log in, so Karuulm boots are required.");
+			}
 			if (settings.getMode() == SearchMode.OWNED_ONLY && usesBestPotion())
 			{
 				notes.add("Boosts: \"Best\" potions use only potions and hearts you own (any dose; divine counts).");
@@ -793,10 +939,11 @@ public class BestGearSetupPlugin extends Plugin
 				notes.add(0, unpricedNote);
 			}
 			List<LockStatus> locks = LockStatus.check(data,
-				new Optimizer(data, ctx, settings, owned::contains, item -> price(quotes, item)), settings.getLocks());
+				new Optimizer(data, ctx, settings, owned::contains, id -> quantities.getOrDefault(id, 0L),
+					item -> price(quotes, item)), settings.getLocks());
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
 				potionsUsed(data, levels, boosts), assumedLevels, locks, config.markOfDarkness(),
-				rememberedLevels);
+				rememberedLevels, assumptionWarnings(data, levels, monster, settings.getMode(), boosts));
 			SwingUtilities.invokeLater(() ->
 			{
 				if (panel != null && generation == searchGeneration.get())
@@ -831,6 +978,48 @@ public class BestGearSetupPlugin extends Plugin
 			default:
 				return CombatClass.MELEE;
 		}
+	}
+
+	/**
+	 * Assumptions shown beside the results rather than in the collapsed details: potions picked by name (used
+	 * even where they can't be, or aren't owned) and the special-attack-only mode.
+	 */
+	private List<String> assumptionWarnings(GameData data, PlayerLevels levels, Monster target, SearchMode mode,
+		Predicate<Potion> boosts)
+	{
+		List<String> warnings = new ArrayList<>();
+		String[] skills = {"attack", "strength", "ranged", "magic"};
+		CombatClass[] classes = {CombatClass.MELEE, CombatClass.MELEE, CombatClass.RANGED, CombatClass.MAGIC};
+		int[] base = {levels.getAttack(), levels.getStrength(), levels.getRanged(), levels.getMagic()};
+		Set<String> seen = new HashSet<>();
+		for (int i = 0; i < skills.length; i++)
+		{
+			String choice = getPotionChoice(classes[i]);
+			Potion p = PotionChoice.isExplicit(choice) ? PotionChoice.resolve(data, skills[i], base[i], choice) : null;
+			if (p == null || !seen.add(classes[i] + "/" + p.getName()))
+			{
+				continue;
+			}
+			List<String> problems = new ArrayList<>();
+			String restriction = PotionChoice.restriction(p, target);
+			if (restriction != null)
+			{
+				problems.add(restriction);
+			}
+			if (mode != SearchMode.UNLIMITED && !boosts.test(p))
+			{
+				problems.add(mode == SearchMode.OWNED_ONLY ? "not owned" : "not owned and can't be bought");
+			}
+			warnings.add(GameData.titleCase(classes[i].name().toLowerCase(java.util.Locale.ROOT)) + " potion picked by name: "
+				+ GameData.titleCase(p.getName()) + (problems.isEmpty() ? "."
+				: " - " + String.join(", ", problems) + ". The estimates assume it anyway; choose Best available for a practical setup."));
+		}
+		if (config.specialAttacks())
+		{
+			warnings.add("Special attacks only: DPS, TTK and kills/hour assume back-to-back specials with no energy"
+				+ " regeneration limit.");
+		}
+		return warnings;
 	}
 
 	private Map<CombatClass, List<Potion>> potionsUsed(GameData data, PlayerLevels levels, Predicate<Potion> boosts)
@@ -1020,6 +1209,7 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			notes.add(fireNote);
 		}
+		notes.addAll(SlayerEquipment.notes(base, settings));
 		int distance = AttackReach.distance(base, settings.getTargetDistance());
 		notes.add("Fighting distance: " + distance + " tile(s)"
 			+ (settings.getTargetDistance() == 0 ? " (Auto)" : " (selected; encounter limits apply)"));
@@ -1109,8 +1299,14 @@ public class BestGearSetupPlugin extends Plugin
 
 	public void setExcluded(int itemId, boolean excluded)
 	{
+		setExcluded(Collections.singleton(itemId), excluded);
+	}
+
+	/** Exclude or restore several items at once, e.g. every variant of a weapon. */
+	public void setExcluded(Collection<Integer> itemIds, boolean excluded)
+	{
 		Set<Integer> ids = getExcluded();
-		if (excluded ? ids.add(itemId) : ids.remove(itemId))
+		if (excluded ? ids.addAll(itemIds) : ids.removeAll(itemIds))
 		{
 			setConfig(BestGearSetupConfig.EXCLUDED_KEY, ids.stream().map(String::valueOf).collect(Collectors.joining(",")));
 		}
@@ -1215,6 +1411,22 @@ public class BestGearSetupPlugin extends Plugin
 			}
 		}
 		return false;
+	}
+
+	/** Units held of the item and its catalogued variants; {@link OwnedItems#UNLIMITED} if marked owned by hand. */
+	public long heldQuantity(GearItem item)
+	{
+		Map<Integer, Long> quantities = ownedItems.quantitySnapshot();
+		long held = quantities.getOrDefault(item.getId(), 0L);
+		for (int variant : item.getVariants())
+		{
+			if (variant != item.getId())
+			{
+				long more = quantities.getOrDefault(variant, 0L);
+				held = held > OwnedItems.UNLIMITED - more ? OwnedItems.UNLIMITED : held + more;
+			}
+		}
+		return held;
 	}
 
 	/**

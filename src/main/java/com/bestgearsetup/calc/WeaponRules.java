@@ -2,6 +2,7 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Slot;
 import java.util.Locale;
 
 /**
@@ -49,6 +50,30 @@ public final class WeaponRules
 		String name = EncounterDamage.lower(item);
 		return item.getRangedStr() > 0 || item.getRangedBonus() > 0 || name.equals("atlatl dart")
 			|| name.endsWith(" tar");
+	}
+
+	/**
+	 * Used up as it is fired, so priced and owned by the configured ammo quantity: ammo-slot ammunition (including
+	 * blowpipe darts) and stackable thrown weapons such as knives, darts, thrownaxes and chinchompas. Blowpipes,
+	 * Tonalztics of Ralos and the Hunter's spear are thrown-style weapons that are not consumed.
+	 */
+	public static boolean consumedPerAttack(GearItem item)
+	{
+		if (item == null)
+		{
+			return false;
+		}
+		if (item.getSlot() == Slot.AMMO)
+		{
+			return isAmmunition(item);
+		}
+		if (item.getSlot() != Slot.WEAPON)
+		{
+			return false;
+		}
+		String name = EncounterDamage.lower(item);
+		return item.getSubcategory().equals("chinchompa") || item.getSubcategory().equals("thrown")
+			&& !name.contains("blowpipe") && !name.startsWith("tonalztics of ralos") && !name.equals("hunter's spear");
 	}
 
 	public static boolean isPoweredStaff(GearItem weapon)

@@ -56,6 +56,8 @@ public class BestGearSetupPanel extends PluginPanel
 	/** CSS width for wrapped labels; the RuneScape font renders wider than Swing's CSS px estimate. */
 	private static final int HTML_WIDTH = 160;
 	private static final String WIKI_URL = "https://oldschool.runescape.wiki/";
+	private static final Color ERROR_COLOR = new Color(0xFF6B6B);
+	private static final Color WARNING_COLOR = new Color(0xFFD24D);
 
 	private final BestGearSetupPlugin plugin;
 	private final BestGearSetupConfig config;
@@ -72,6 +74,8 @@ public class BestGearSetupPanel extends PluginPanel
 	private final JLabel monsterLabel = new JLabel();
 	private final JComboBox<SearchMode> modeBox = new JComboBox<>(SearchMode.values());
 	private final JTextField budgetField = new JTextField();
+	private final JLabel budgetError = new JLabel();
+	private final JLabel noMatches = new JLabel();
 	private final JCheckBox onTaskBox = new JCheckBox("On slayer task");
 	private final JButton findButton = new JButton("Find best setup");
 	private final JLabel statusLabel = new JLabel();
@@ -178,6 +182,24 @@ public class BestGearSetupPanel extends PluginPanel
 		suggestions.setLayout(new BoxLayout(suggestions, BoxLayout.Y_AXIS));
 		suggestions.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		content.add(left(suggestions));
+		noMatches.setName("noMatches");
+		setSmall(noMatches, ERROR_COLOR);
+		noMatches.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		noMatches.addMouseListener(new MouseAdapter()
+		{
+			@Override
+			public void mouseClicked(MouseEvent e)
+			{
+				// The hint offers All monsters when only the Bosses filter hides the matches.
+				if (bossesButton.isSelected() && data != null
+					&& !data.searchMonsterGroups(searchField.getText(), 1, false).isEmpty())
+				{
+					allButton.doClick();
+				}
+			}
+		});
+		noMatches.setVisible(false);
+		content.add(left(noMatches));
 		content.add(spacer(6));
 
 		versionRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -281,6 +303,10 @@ public class BestGearSetupPanel extends PluginPanel
 		});
 		settings.add(onTaskBox);
 		content.add(left(settings));
+		budgetError.setName("budgetError");
+		setSmall(budgetError, ERROR_COLOR);
+		budgetError.setVisible(false);
+		content.add(left(budgetError));
 		content.add(spacer(6));
 
 		findButton.setEnabled(false);
@@ -404,6 +430,7 @@ public class BestGearSetupPanel extends PluginPanel
 		fightOptions.setTarget(monster);
 		suggestions.removeAll();
 		suggestions.revalidate();
+		noMatches.setVisible(false);
 		monsterLabel.setText(html("<b>" + escape(monster.getDisplayName()) + "</b> (level " + monster.getCombatLevel() + ")"
 			+ (monster.getAttributes().isEmpty() ? "" : "<br>" + escape(String.join(", ", monster.getAttributes())))));
 		findButton.setEnabled(true);
@@ -529,6 +556,15 @@ public class BestGearSetupPanel extends PluginPanel
 			resultsPanel.add(left(new LocksView(found.getLocks(), plugin, itemManager)));
 			resultsPanel.add(spacer(4));
 		}
+		if (!found.getWarnings().isEmpty())
+		{
+			JLabel warnings = new JLabel(html(found.getWarnings().stream().map(BestGearSetupPanel::escape)
+				.collect(Collectors.joining("<br>"))));
+			warnings.setName("assumptionWarnings");
+			setSmall(warnings, WARNING_COLOR);
+			resultsPanel.add(left(warnings));
+			resultsPanel.add(spacer(4));
+		}
 		if (!found.isEmpty())
 		{
 			ResultView resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount());
@@ -574,7 +610,9 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 		else
 		{
-			ownedLabel.setText(html(plugin.getOwnedItems().count() + " owned items tracked."));
+			int manual = plugin.getOwnedItems().getManual().size();
+			ownedLabel.setText(html(plugin.getOwnedItems().count() + " items tracked in your bank, inventory and equipment"
+				+ (manual == 0 ? "." : ", plus " + manual + " marked owned by hand.")));
 		}
 	}
 
@@ -610,7 +648,16 @@ public class BestGearSetupPanel extends PluginPanel
 		if (gp < 0)
 		{
 			budgetField.setText(config.budget());
+			budgetError.setText(html("\"" + escape(text.trim()) + "\" isn't an amount. Use gp, or k / m / b such as"
+				+ " 750k, 50m or 1.2b. Kept " + escape(config.budget()) + "."));
+			budgetError.setVisible(true);
+			revalidate();
 			return;
+		}
+		if (budgetError.isVisible())
+		{
+			budgetError.setVisible(false);
+			revalidate();
 		}
 		String normalised = Budget.format(gp);
 		budgetField.setText(normalised);
@@ -623,16 +670,34 @@ public class BestGearSetupPanel extends PluginPanel
 	private void updateSuggestions()
 	{
 		suggestions.removeAll();
+		String query = searchField.getText();
+		boolean none = false;
 		if (data != null)
 		{
-			for (MonsterGroup group : data.searchMonsterGroups(searchField.getText(), MAX_SUGGESTIONS,
-				bossesButton.isSelected()))
+			List<MonsterGroup> matches = data.searchMonsterGroups(query, MAX_SUGGESTIONS, bossesButton.isSelected());
+			for (MonsterGroup group : matches)
 			{
 				suggestions.add(suggestionRow(group));
 			}
+			none = matches.isEmpty() && !query.trim().isEmpty();
 		}
+		if (none)
+		{
+			boolean hiddenByFilter = bossesButton.isSelected() && !data.searchMonsterGroups(query, 1, false).isEmpty();
+			noMatches.setText(html(noMatchesMessage(hiddenByFilter, selected == null ? null : selected.getDisplayName())));
+			noMatches.setToolTipText(hiddenByFilter ? "Click to search all monsters" : null);
+		}
+		noMatches.setVisible(none);
 		suggestions.revalidate();
 		suggestions.repaint();
+		revalidate();
+	}
+
+	static String noMatchesMessage(boolean hiddenByFilter, String target)
+	{
+		String message = hiddenByFilter ? "No bosses match. <u>Search all monsters</u> instead."
+			: "No matching monsters.";
+		return target == null ? message : message + " Still targeting <b>" + escape(target) + "</b>.";
 	}
 
 	private JPanel suggestionRow(MonsterGroup group)

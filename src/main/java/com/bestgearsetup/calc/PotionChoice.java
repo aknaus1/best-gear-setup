@@ -1,6 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GameData;
+import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Potion;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -95,6 +96,46 @@ public final class PotionChoice
 			}
 		}
 		return best;
+	}
+
+	/** Whether the choice names a potion rather than "best" or "none". */
+	public static boolean isExplicit(String choice)
+	{
+		String c = choice == null ? BEST : choice.trim().toLowerCase(Locale.ROOT);
+		return !c.equals(BEST) && !c.equals(NONE);
+	}
+
+	/**
+	 * Where a restricted potion can be used, if the target isn't there (e.g. smelling salts outside the Tombs of
+	 * Amascut), or null when it applies to this fight.
+	 */
+	public static String restriction(Potion potion, Monster target)
+	{
+		for (String attribute : potion.getAttributes())
+		{
+			switch (attribute.toLowerCase(Locale.ROOT))
+			{
+				case "tombs of amascut":
+					if (!CombatRules.toa(target))
+					{
+						return "only usable in the Tombs of Amascut";
+					}
+					break;
+				case "xerician":
+					if (!target.hasAttribute("xerician"))
+					{
+						return "only usable in the Chambers of Xeric";
+					}
+					break;
+				case "nmz":
+					return "only usable in Nightmare Zone";
+				case "deadman":
+					return "only usable in Deadman mode";
+				default:
+					return "restricted (" + attribute + ")";
+			}
+		}
+		return null;
 	}
 
 	/** Display name of the potion a choice resolves to for a skill, or null. */

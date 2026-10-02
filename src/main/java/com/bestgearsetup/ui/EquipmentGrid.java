@@ -3,6 +3,7 @@ package com.bestgearsetup.ui;
 import com.bestgearsetup.Budget;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.ItemCosts;
+import com.bestgearsetup.OwnedItems;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.SetupResult;
@@ -178,9 +179,18 @@ class EquipmentGrid extends JPanel
 					tip.append(" (loaded in blowpipe)");
 				}
 				tip.append("<br>");
-				if (owned)
+				boolean countedAmmo = WeaponRules.consumedPerAttack(item) && ammoCount > 0;
+				long held = countedAmmo && owned ? plugin.heldQuantity(item) : 0;
+				if (owned && countedAmmo && held < ammoCount)
 				{
-					tip.append("Owned");
+					long cost = plugin.price(item);
+					tip.append("Owned: ").append(held).append(" of ").append(ammoCount).append("<br>Buy ")
+						.append(ammoCount - held).append(": ")
+						.append(ItemCosts.isKnown(cost) ? Budget.format(cost * (ammoCount - held)) + " gp" : "no current price");
+				}
+				else if (owned)
+				{
+					tip.append(countedAmmo && held != OwnedItems.UNLIMITED ? "Owned: " + held : "Owned");
 				}
 				else if (!item.isTradeable())
 				{
@@ -197,7 +207,7 @@ class EquipmentGrid extends JPanel
 				}
 				else
 				{
-					boolean ammo = slot == Slot.AMMO && WeaponRules.isAmmunition(item);
+					boolean ammo = WeaponRules.consumedPerAttack(item);
 					long cost = plugin.price(item);
 					tip.append("Buy: ").append(ItemCosts.isKnown(cost) ? Budget.format(cost) + " gp" : "no current price");
 					if (ammo && ItemCosts.isKnown(cost))
@@ -209,6 +219,10 @@ class EquipmentGrid extends JPanel
 				{
 					tip.append("<br>Filled for defence / prayer (no DPS)");
 				}
+				if (variantOfExcluded(item, plugin))
+				{
+					tip.append("<br>A variant of an item you excluded; right-click to exclude all variants");
+				}
 				if (locked)
 				{
 					tip.append("<br>").append(BestGearSetupPanel.escape(lockDescription(lock)));
@@ -217,6 +231,14 @@ class EquipmentGrid extends JPanel
 				setToolTipText(tip.toString());
 			}
 			setComponentPopupMenu(ItemMenus.create(item, darts ? null : slot, locked, plugin));
+		}
+
+		private static boolean variantOfExcluded(GearItem item, BestGearSetupPlugin plugin)
+		{
+			GameData data = plugin.getGameData();
+			Set<Integer> excluded = plugin.getExcluded();
+			return data != null && !excluded.isEmpty() && !excluded.contains(item.getId())
+				&& data.variantFamily(item).stream().anyMatch(v -> excluded.contains(v.getId()));
 		}
 
 		private static String lockDescription(LockStatus lock)

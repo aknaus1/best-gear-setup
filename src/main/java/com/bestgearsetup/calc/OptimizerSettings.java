@@ -74,6 +74,9 @@ public class OptimizerSettings
 	Antifire antifire = Antifire.SUPER;
 	@Builder.Default
 	boolean protectMagic = true;
+	/** The Elite Kourend & Kebos Diary removes the Karuulm Slayer Dungeon's heat-protection boots requirement. */
+	@Builder.Default
+	boolean kourendEliteDiary = false;
 
 	@Builder.Default
 	Map<Slot, SlotLock> locks = Collections.emptyMap();

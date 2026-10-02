@@ -84,7 +84,13 @@ Raid scaling, path levels and dragonfire protection appear only for matching enc
 Snapshot information and calculation assumptions are under **Search details**, below the gear.
 External ammunition is included in the ammo slot, including zero-bonus atlatl darts;
 blowpipe darts are shown separately as loaded ammo. Consumable ammo uses the configured quantity
-when pricing a setup.
+when pricing a setup, and so do thrown weapons used up as they are thrown (knives, darts, thrownaxes,
+javelins, chinchompas; not blowpipes, Tonalztics of Ralos or the Hunter's spear): stacks you hold in the
+bank, inventory and equipment cover part of it and only the shortfall is bought (and counted against the
+budget). *Owned items only* uses them only when you hold the whole quantity. Ammunition marked owned by hand
+has no known stack size and is assumed to cover any quantity. When a held stack changes in a way that
+matters for the requested quantity, the search runs again once the stack has stayed unchanged for five
+seconds, so firing doesn't restart it on every attack.
 
 **Distance (0 = Auto)** applies encounter reach restrictions: Zulrah requires at least two tiles,
 so melee setups need a halberd. Olm's head also requires halberd reach for melee; its hands are separate targets.
@@ -188,6 +194,28 @@ offensive stats; locks, ownership and slot filling cannot bypass the requirement
 constraint, not an incoming damage or food/downtime simulation. Disable it to model safespots or
 other strategies that avoid those attacks.
 
+Slayer monsters with mandatory protective equipment always get it, on or off task, in every mode and in
+AoE; a slot lock that leaves it out is reported as unusable. Superior variants follow their base monster.
+
+| Monsters | Required (any one) | Slot |
+| --- | --- | --- |
+| Dust, choke, smoke, nuclear and thermonuclear smoke devils | Facemask or slayer helmet | Head |
+| Banshees, twisted and screaming banshees | Earmuffs or slayer helmet | Head |
+| Aberrant, deviant, abhorrent and repugnant spectres | Nose peg or slayer helmet | Head |
+| Sourhogs | Reinforced goggles or slayer helmet | Head |
+| The sourhog fought during A Porcine of Interest | Reinforced goggles (slayer helmets gain this protection only once the quest is complete) | Head |
+| Basilisks, basilisk knights and sentinels, monstrous basilisks, cockatrices, cockathrices | Mirror shield or V's shield | Shield |
+| Basilisk younglings | Mirror shield | Shield |
+| Harpie bug swarms | Lit bug lantern | Shield |
+| Hydras, Alchemical Hydra, drakes, sulphur lizards (Karuulm Slayer Dungeon) | Boots of stone, boots of brimstone or granite boots | Feet |
+
+Shield requirements exclude two-handed weapons. The Karuulm boots are waived once the Elite Kourend & Kebos
+Diary is complete; this is read from your account (or inferred from owning Rada's blessing 4) and remembered
+per profile, and is assumed incomplete before the first login. Wyrms also live in Wyrmscraig, so their boots
+are a note rather than a requirement. Wall beasts need a spiny helmet only to start the fight, and insulated
+boots (killerwatts), slayer gloves (fever spiders) and witchwood icons (cave horrors) are recommended rather
+than required, so none of these restrict the setup.
+
 Mechanics follow [Scythe of vitur](https://oldschool.runescape.wiki/w/Scythe_of_vitur),
 [Hallowfell](https://oldschool.runescape.wiki/w/Hallowfell),
 [Venator bow](https://oldschool.runescape.wiki/w/Venator_bow),
@@ -200,10 +228,13 @@ entry. Piety retains its real 20% accuracy / 23% strength boosts.
 
 - **Potions** per combat style: *Best available* (strongest potion usable anywhere; raid, NMZ and
   Deadman potions and brews excluded), *None*, or any potion from the potion table (overloads,
-  smelling salts, ...).
+  smelling salts, ...). A potion picked by name is always used; it is named above the results, with a
+  warning when the target is outside its raid or minigame or (in owned / budget modes) you don't own it.
 - **Right-click any item in a result** to lock its slot to that item, keep the slot empty, always fill
-  it for defence / prayer, exclude the item, or mark it as owned. Locks and exclusions are listed with
-  a remove button; the search re-runs automatically.
+  it for defence / prayer, exclude the item, or mark it as owned. When an item has separately listed
+  variants (e.g. *Dragon hunter crossbow (b)*), the menu offers **Exclude all ... variants** as well as
+  **Exclude only** that entry, and a variant of an excluded item says so in its tooltip. Locks and
+  exclusions are listed with a remove button; the search re-runs automatically.
 - **Marked as owned**: search any item and mark it owned, for things the bank scan can't see (POH
   costume room, items on another account...).
 
@@ -263,7 +294,8 @@ an unscaled defence roll and puzzle-room NPCs keep their listed stats, as in the
 
 **Only special attacks** (first item in Fight options) scores each weapon by its special attack
 instead of its ordinary attack, and weapons without a damaging special are
-excluded. About 45 specials use the Wiki calculator's exact formulas: accuracy and max-hit multipliers,
+excluded. While it is on, a note above the results reminds you that DPS, TTK and kills/hour assume
+back-to-back specials without an energy limit. About 45 specials use the Wiki calculator's exact formulas: accuracy and max-hit multipliers,
 the defence style each spec rolls against, multi-hit structures (dragon/burning claws cascades, dragon
 dagger, abyssal dagger, Crimson kisten, halberds on large targets, Saradomin sword's magic hit, dark bow
 minimums and 48 cap, magic shortbow, Webweaver, Tonalztics), guaranteed hits (Voidwaker, magic

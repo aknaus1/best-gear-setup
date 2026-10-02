@@ -41,6 +41,12 @@ public class LockStatus
 	private static LockStatus check(GameData data, Optimizer optimizer, Slot slot, SlotLock lock)
 	{
 		String slotName = slot.getDisplayName().toLowerCase(Locale.ROOT);
+		GearItem locked = lock.getKind() == SlotLock.Kind.ITEM ? data.getItem(slot, lock.getItemId()) : null;
+		String unprotected = optimizer.protectionLockReason(slot, locked);
+		if (unprotected != null)
+		{
+			return new LockStatus(slot, lock, locked, unprotected, "No setup can be found while this lock is set.");
+		}
 		switch (lock.getKind())
 		{
 			case EMPTY:
@@ -52,7 +58,7 @@ public class LockStatus
 			default:
 				break;
 		}
-		GearItem item = data.getItem(slot, lock.getItemId());
+		GearItem item = locked;
 		String blocked = slot == Slot.WEAPON ? "No setup can be found while this lock is set."
 			: slot == Slot.AMMO ? "The ammo slot is left empty, so weapons that fire ammunition are excluded."
 			: "The " + slotName + " slot is left empty.";

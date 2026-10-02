@@ -1,10 +1,13 @@
 package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Prayer;
@@ -72,5 +75,27 @@ public class PotionChoiceTest
 		assertEquals(SlotLock.fill(), locks.get(Slot.BODY));
 		assertEquals(3, locks.size());
 		assertEquals(locks, SlotLock.parse(SlotLock.format(locks)));
+	}
+
+	@Test
+	public void namedRaidPotionsReportWhereTheyApply()
+	{
+		Monster vorkath = TestData.monster(214, 26);
+		vorkath.setName("vorkath (post-quest)");
+		Monster zebak = TestData.monster(70, 0, "tombs of amascut");
+		zebak.setName("zebak");
+		Monster olm = TestData.monster(150, 0, "xerician");
+		Potion salts = potion("smelling salts", 11, 16, "tombs of amascut");
+		Potion overload = potion("overload (+)", 6, 16, "xerician");
+		assertEquals("only usable in the Tombs of Amascut", PotionChoice.restriction(salts, vorkath));
+		assertNull(PotionChoice.restriction(salts, zebak));
+		assertEquals("only usable in the Chambers of Xeric", PotionChoice.restriction(overload, vorkath));
+		assertNull(PotionChoice.restriction(overload, olm));
+		assertNull(PotionChoice.restriction(potion("ranging potion", 4, 10), vorkath));
+		assertEquals("only usable in Nightmare Zone", PotionChoice.restriction(potion("super ranging", 5, 15, "nmz"), olm));
+		assertTrue(PotionChoice.isExplicit("smelling salts"));
+		assertFalse(PotionChoice.isExplicit(PotionChoice.BEST));
+		assertFalse(PotionChoice.isExplicit(PotionChoice.NONE));
+		assertFalse(PotionChoice.isExplicit(null));
 	}
 }

@@ -1,10 +1,12 @@
 package com.bestgearsetup;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import net.runelite.api.gameval.ItemID;
 import org.junit.Test;
@@ -88,5 +90,27 @@ public class OwnedItemsTest
 	{
 		assertTrue(OwnedItems.expand(Collections.singleton(ItemID.ANCESTRAL_HAT_TWISTED)).contains(ItemID.ANCESTRAL_HAT));
 		assertFalse(OwnedItems.expand(Collections.emptySet()).contains(ItemID.ANCESTRAL_HAT));
+	}
+
+	@Test
+	public void stackSizesSurvivePersistenceAndOldEntriesCountAsOne()
+	{
+		Map<Integer, Long> bank = OwnedItems.parseQuantities("9242:159,11865:1");
+		assertEquals(Long.valueOf(159), bank.get(9242));
+		assertEquals(bank, OwnedItems.parseQuantities(OwnedItems.serialize(bank)));
+		// Caches written before quantities were tracked hold bare ids: owned, but only one unit is assumed.
+		assertEquals(Long.valueOf(1), OwnedItems.parseQuantities("9242,oops,4164").get(9242));
+		assertEquals(2, OwnedItems.parseQuantities("9242,oops,4164").size());
+		assertTrue(OwnedItems.parseQuantities("9242:0").isEmpty());
+	}
+
+	@Test
+	public void containersAddUpAndManualEntriesCoverAnyQuantity()
+	{
+		Map<Integer, Long> total = OwnedItems.combine(Arrays.asList(
+			Collections.singletonMap(9242, 159L), Collections.singletonMap(9242, 41L), Collections.<Integer, Long>emptyMap()),
+			Collections.singleton(4164));
+		assertEquals(Long.valueOf(200), total.get(9242));
+		assertEquals(Long.valueOf(OwnedItems.UNLIMITED), total.get(4164));
 	}
 }

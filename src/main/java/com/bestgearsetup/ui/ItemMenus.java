@@ -5,7 +5,10 @@ import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Slot;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 
@@ -46,7 +49,20 @@ final class ItemMenus
 		if (item != null)
 		{
 			String name = GameData.titleCase(item.getName());
-			add(menu, "Exclude " + name, () -> plugin.setExcluded(item.getId(), true));
+			GameData data = plugin.getGameData();
+			List<Integer> family = data == null ? Collections.emptyList() : data.variantFamily(item).stream()
+				.map(GearItem::getId).collect(Collectors.toList());
+			if (family.size() > 1)
+			{
+				// Variants are separate entries ("(b)", "(e)"); offer the whole family so it can't simply reappear.
+				add(menu, "Exclude all " + GameData.titleCase(GameData.familyName(item.getName())) + " variants ("
+					+ family.size() + ")", () -> plugin.setExcluded(family, true));
+				add(menu, "Exclude only " + name, () -> plugin.setExcluded(item.getId(), true));
+			}
+			else
+			{
+				add(menu, "Exclude " + name, () -> plugin.setExcluded(item.getId(), true));
+			}
 			if (plugin.getOwnedItems().isManual(item.getId()))
 			{
 				add(menu, "Unmark as owned", () -> plugin.setManualOwned(item.getId(), false));

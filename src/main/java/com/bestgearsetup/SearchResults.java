@@ -37,12 +37,15 @@ public class SearchResults
 	boolean markOfDarkness;
 	/** Logged out, using the levels last seen on this account. */
 	boolean rememberedLevels;
+	/** Assumptions that change the headline estimates and must stay visible beside them (potion overrides...). */
+	List<String> warnings;
 
 	public SearchResults(Monster monster, int startingHitpoints, Map<AttackStyle.Type, List<SetupResult>> byType,
 		List<String> notes, Map<CombatClass, OffensivePrayer> prayers, Map<CombatClass, List<Potion>> potions,
 		boolean assumedLevels)
 	{
-		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, Collections.emptyList(), false, false);
+		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, Collections.emptyList(), false, false,
+			Collections.emptyList());
 	}
 
 	/** Whether a lock could not be honoured. */

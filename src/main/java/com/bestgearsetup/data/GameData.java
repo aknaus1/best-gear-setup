@@ -287,6 +287,31 @@ public class GameData
 		return null;
 	}
 
+	/**
+	 * Entries in the item's slot that share its name once trailing parenthesised suffixes are removed, e.g.
+	 * "dragon hunter crossbow" and "dragon hunter crossbow (b)". Includes the item itself. Members can differ
+	 * in stats or effects ("ruby bolts (e)"), so excluding the family is offered as a separate choice.
+	 */
+	public List<GearItem> variantFamily(GearItem item)
+	{
+		String family = familyName(item.getName());
+		List<GearItem> out = new ArrayList<>();
+		for (GearItem other : getItems(item.getSlot()))
+		{
+			if (other.getId() == item.getId() || familyName(other.getName()).equals(family))
+			{
+				out.add(other);
+			}
+		}
+		return out;
+	}
+
+	/** The name without trailing parenthesised suffixes: "dragon hunter crossbow (b)" -> "dragon hunter crossbow". */
+	public static String familyName(String name)
+	{
+		return name.toLowerCase(Locale.ROOT).replaceFirst("(\\s*\\([^()]*\\))+$", "").trim();
+	}
+
 	/** Case-insensitive substring search over all equipment names, one entry per item id. */
 	public List<GearItem> searchItems(String query, int limit)
 	{

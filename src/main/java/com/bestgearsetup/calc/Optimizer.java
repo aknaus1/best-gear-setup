@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntPredicate;
+import java.util.function.IntToLongFunction;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 import java.util.function.ToLongFunction;
@@ -62,23 +63,33 @@ public class Optimizer
 	private final CombatContext ctx;
 	private final OptimizerSettings settings;
 	private final IntPredicate owned;
+	private final IntToLongFunction ownedQuantity;
 	private final ToLongFunction<GearItem> priceFn;
 	private final PlayerLevels levels;
 	private final Monster monster;
 	private final int maxPasses;
 	private final int maxWeapons;
 
-	/**
-	 * @param owned   whether the player owns an item id (bank, inventory, worn or marked owned)
-	 * @param priceFn acquisition cost of an item, including tradable components of untradeables
-	 */
+	/** As the full constructor, with every owned item held in any quantity. */
 	public Optimizer(GameData data, CombatContext ctx, OptimizerSettings settings, IntPredicate owned,
 		ToLongFunction<GearItem> priceFn)
+	{
+		this(data, ctx, settings, owned, id -> owned.test(id) ? Long.MAX_VALUE : 0, priceFn);
+	}
+
+	/**
+	 * @param owned         whether the player owns an item id (bank, inventory, worn or marked owned)
+	 * @param ownedQuantity units of an item id held; ammunition beyond this is bought for the ammo quantity
+	 * @param priceFn       acquisition cost of an item, including tradable components of untradeables
+	 */
+	public Optimizer(GameData data, CombatContext ctx, OptimizerSettings settings, IntPredicate owned,
+		IntToLongFunction ownedQuantity, ToLongFunction<GearItem> priceFn)
 	{
 		this.data = data;
 		this.ctx = ctx.withFightOptions(ctx.getAoeTargets(), settings.getTargetDistance());
 		this.settings = settings;
 		this.owned = owned;
+		this.ownedQuantity = ownedQuantity;
 		this.priceFn = priceFn;
 		this.levels = ctx.getLevels();
 		this.monster = ctx.getMonster();
@@ -371,7 +382,7 @@ public class Optimizer
 				GearItem bestItem = orig;
 				double bestD = cur;
 				long bestC = curCost;
-				long base = curCost - itemCost(slot, orig);
+				long base = curCost - itemCost(orig);
 				for (int i = -1; i < list.size(); i++)
 				{
 					GearItem cand = i < 0 ? null : list.get(i);
@@ -379,7 +390,7 @@ public class Optimizer
 					{
 						continue;
 					}
-					long c = base + itemCost(slot, cand);
+					long c = base + itemCost(cand);
 					if (!withinBudget(c))
 					{
 						continue;
@@ -417,7 +428,13 @@ public class Optimizer
 
 	private DpsResult calculate(Loadout l)
 	{
-		return DragonfireProtection.allowed(monster, l, settings, levels) ? DpsCalculator.calculate(l, ctx) : DpsResult.ZERO;
+		return protectedSetup(l) ? DpsCalculator.calculate(l, ctx) : DpsResult.ZERO;
+	}
+
+	/** Mandatory protection (dragonfire, Slayer equipment) is part of a usable setup, not just a warning. */
+	private boolean protectedSetup(Loadout l)
+	{
+		return DragonfireProtection.allowed(monster, l, settings, levels) && SlayerEquipment.allowed(monster, settings, l);
 	}
 
 	private double metric(DpsResult r)
@@ -486,7 +503,7 @@ public class Optimizer
 			GearItem bestItem = orig;
 			double bestMetric = orig == null ? 0 : metric.applyAsDouble(orig);
 			long bestCost = curCost;
-			long baseCost = curCost - itemCost(slot, orig);
+			long baseCost = curCost - itemCost(orig);
 			for (GearItem cand : data.getItems(slot))
 			{
 				if (cand == orig || !usable(cand))
@@ -494,7 +511,7 @@ public class Optimizer
 					continue;
 				}
 				double m = metric.applyAsDouble(cand);
-				long c = baseCost + itemCost(slot, cand);
+				long c = baseCost + itemCost(cand);
 				if (m < bestMetric - EPS || (Math.abs(m - bestMetric) <= EPS && c >= bestCost) || !withinBudget(c))
 				{
 					continue;
@@ -503,7 +520,7 @@ public class Optimizer
 				DpsResult r = DpsCalculator.calculate(l, ctx);
 				boolean acceptable = forced || (r.getDps() >= minDps
 					&& (settings.getCalcMode() == CalcMode.DPS || primary(r) >= basePrimary - EPS));
-				if (acceptable && DragonfireProtection.allowed(monster, l, settings, levels))
+				if (acceptable && protectedSetup(l))
 				{
 					bestItem = cand;
 					bestMetric = m;
@@ -619,7 +636,8 @@ public class Optimizer
 			}
 			for (GearItem item : pool)
 			{
-				if (isSpecial(item) || DragonfireProtection.isProtectiveShield(item))
+				if (isSpecial(item) || DragonfireProtection.isProtectiveShield(item)
+					|| SlayerEquipment.isRequired(monster, settings, item))
 				{
 					keep.add(item);
 				}
@@ -687,7 +705,7 @@ public class Optimizer
 				sorted.add(i);
 			}
 		}
-		sorted.sort(Comparator.comparingLong((GearItem i) -> itemCost(i.getSlot(), i))
+		sorted.sort(Comparator.comparingLong((GearItem i) -> itemCost(i))
 			.thenComparingDouble(i -> -metric.applyAsDouble(i)));
 		List<GearItem> front = new ArrayList<>();
 		double best = 0;
@@ -1125,7 +1143,7 @@ public class Optimizer
 	boolean available(GearItem item)
 	{
 		// Best in slot has no limit: untradeables and every diary tier are assumed obtainable.
-		if (isOwned(item) || settings.getMode() == SearchMode.UNLIMITED)
+		if (settings.getMode() == SearchMode.UNLIMITED || isOwned(item) && ammoShortfall(item) == 0)
 		{
 			return true;
 		}
@@ -1194,7 +1212,9 @@ public class Optimizer
 		}
 		if (settings.getMode() == SearchMode.OWNED_ONLY)
 		{
-			return "you don't own it and the search uses owned items only";
+			return isOwned(item) ? "you have " + heldQuantity(item) + " of the " + settings.getAmmoCount()
+				+ " requested (Ammo quantity) and the search uses owned items only"
+				: "you don't own it and the search uses owned items only";
 		}
 		if (!purchasable(item))
 		{
@@ -1250,6 +1270,16 @@ public class Optimizer
 			: "none of its attack styles are allowed by your style, experience or distance settings";
 	}
 
+	/**
+	 * Why a lock leaves the slot without mandatory protection, or null if it doesn't.
+	 *
+	 * @param item the locked item, or null for an empty / fill lock
+	 */
+	public String protectionLockReason(Slot slot, GearItem item)
+	{
+		return SlayerEquipment.lockConflict(monster, settings, slot, item);
+	}
+
 	/** Acquisition price, or {@link ItemCosts#UNKNOWN} if a tradable component has no current quote. */
 	private long price(GearItem item)
 	{
@@ -1258,30 +1288,32 @@ public class Optimizer
 	}
 
 	/**
-	 * An unpriced purchase cannot be shown to fit a budget; uncounted ammunition needs no price. Only
-	 * ammo-slot items (including blowpipe darts) are ammunition here: armour and weapons with ranged
-	 * bonuses are still bought once and need a price.
+	 * An unpriced purchase cannot be shown to fit a budget; uncounted ammunition needs no price. Only items
+	 * used up per attack (ammo-slot ammunition, blowpipe darts, thrown weapons) are ammunition here: armour and
+	 * reusable weapons with ranged bonuses are still bought once and need a price.
 	 */
 	private boolean withinBudget(GearItem item)
 	{
 		long price = price(item);
 		if (!ItemCosts.isKnown(price))
 		{
-			return settings.getAmmoCount() <= 0 && item.getSlot() == Slot.AMMO && WeaponRules.isAmmunition(item);
+			return settings.getAmmoCount() <= 0 && WeaponRules.consumedPerAttack(item);
 		}
 		return price <= settings.getBudget();
 	}
 
-	/** @param slot the equipment slot, or null for darts loaded in a blowpipe */
-	private boolean unpriced(Slot slot, GearItem item)
+	private boolean unpriced(GearItem item)
 	{
-		if (item == null || isOwned(item) || ItemCosts.isKnown(price(item)))
+		if (item == null || ItemCosts.isKnown(price(item)))
 		{
 			return false;
 		}
-		boolean uncountedAmmo = (slot == null || slot == Slot.AMMO) && WeaponRules.isAmmunition(item)
-			&& settings.getAmmoCount() <= 0;
-		return !uncountedAmmo;
+		if (WeaponRules.consumedPerAttack(item))
+		{
+			// Only the units still to buy need a price; none are needed when the quantity isn't counted.
+			return ammoShortfall(item) > 0;
+		}
+		return !isOwned(item);
 	}
 
 	/** Items in the setup that must be bought but have no current price, so its cost is incomplete. */
@@ -1290,18 +1322,18 @@ public class Optimizer
 		int count = 0;
 		for (Slot s : Slot.values())
 		{
-			count += unpriced(s, l.get(s)) ? 1 : 0;
+			count += unpriced(l.get(s)) ? 1 : 0;
 		}
-		return count + (unpriced(null, l.getLoadedAmmo()) ? 1 : 0);
+		return count + (unpriced(l.getLoadedAmmo()) ? 1 : 0);
 	}
 
 	/**
-	 * GP to acquire the item. Consumable ammunition costs
-	 * price x configured ammo count; blessings and similar are bought once.
+	 * GP to acquire the item. Ammunition and thrown weapons cost price x the configured ammo count, less the
+	 * stack held; blessings and reusable weapons are bought once.
 	 */
-	private long itemCost(Slot slot, GearItem item)
+	private long itemCost(GearItem item)
 	{
-		if (slot == Slot.AMMO && WeaponRules.isAmmunition(item))
+		if (WeaponRules.consumedPerAttack(item))
 		{
 			return ammoCost(item);
 		}
@@ -1318,9 +1350,37 @@ public class Optimizer
 		return Math.max(0, price(item));
 	}
 
+	/** Price of the ammunition still to buy: the configured quantity minus the stack already held. */
 	private long ammoCost(GearItem item)
 	{
-		return plainCost(item) * Math.max(0, settings.getAmmoCount());
+		long shortfall = ammoShortfall(item);
+		return shortfall == 0 ? 0 : Math.max(0, price(item)) * shortfall;
+	}
+
+	/** Units of the configured ammo quantity not covered by what the player holds; 0 if not counted. */
+	private long ammoShortfall(GearItem item)
+	{
+		long count = settings.getAmmoCount();
+		if (count <= 0 || !WeaponRules.consumedPerAttack(item))
+		{
+			return 0;
+		}
+		return Math.max(0, count - heldQuantity(item));
+	}
+
+	/** Units held of the item and its catalogued variants. */
+	private long heldQuantity(GearItem item)
+	{
+		long held = Math.max(0, ownedQuantity.applyAsLong(item.getId()));
+		for (int variant : item.getVariants())
+		{
+			if (variant != item.getId())
+			{
+				long more = Math.max(0, ownedQuantity.applyAsLong(variant));
+				held = held > Long.MAX_VALUE - more ? Long.MAX_VALUE : held + more;
+			}
+		}
+		return held;
 	}
 
 	/** Total GP for everything in the setup the player does not own. */
@@ -1329,7 +1389,7 @@ public class Optimizer
 		long total = 0;
 		for (Slot s : Slot.values())
 		{
-			total += itemCost(s, l.get(s));
+			total += itemCost(l.get(s));
 		}
 		total += ammoCost(l.getLoadedAmmo());
 		return total;
