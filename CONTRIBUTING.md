@@ -18,6 +18,12 @@ recommends Eclipse Temurin 11).
 
 ## Checks before a pull request
 
+The [Build workflow](.github/workflows/build.yml) runs the first two checks below on every pull request,
+together with `python .github/scripts/check_plugin_manifest.py` (the Plugin Hub's checks on
+`runelite-plugin.properties` and `icon.png`) and a compile of `src/main` with the Plugin Hub's own standard
+build file. It also runs weekly against the newest RuneLite release, because the Plugin Hub rebuilds every
+plugin when RuneLite updates.
+
 - `./gradlew build` compiles the plugin and runs the Java tests.
 - `python -m unittest discover -s tools -p "test_*.py"` runs the data tools' offline tests (Python 3).
 - If you change `LICENSE` or `THIRD_PARTY_NOTICES.md`, copy it to `src/main/resources/META-INF/` as well.
@@ -33,6 +39,10 @@ recommends Eclipse Temurin 11).
 - Don't add dependencies. The plugin uses the Plugin Hub's `build=standard`, which replaces `build.gradle` and
   provides only the RuneLite client, Lombok and JetBrains annotations; anything else needs a `build=gradle` submission with hash
   verification and a slower review.
+- Keep the Gradle wrapper on 8.x. The Plugin Hub builds with Gradle 8.10, and Gradle 9 needs JDK 17 to run,
+  while the hub and this guide use JDK 11. Update it with
+  `./gradlew wrapper --gradle-version <8.x> --distribution-type bin --gradle-distribution-sha256-sum <checksum>`,
+  taking the checksum from [Gradle's release checksums](https://gradle.org/release-checksums/).
 
 ## Bundled data
 
@@ -48,7 +58,7 @@ retrieval dates and counts in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (
 ## Releasing
 
 1. Set the same version in `runelite-plugin.properties` (`version=`, shown on the Plugin Hub) and
-   `build.gradle`, and date the release in `CHANGELOG.md`.
+   `build.gradle` (the Build workflow fails if they differ), and date the release in `CHANGELOG.md`.
 2. Push, then update `commit=` in this plugin's file in a fork of
    [runelite/plugin-hub](https://github.com/runelite/plugin-hub#updating-a-plugin) and open a pull request.
 

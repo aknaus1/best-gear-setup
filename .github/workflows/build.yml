@@ -1,0 +1,101 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Weekly, against the newest RuneLite release: the Plugin Hub rebuilds every plugin when RuneLite
+  # updates and disables plugins that no longer compile.
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test (latest RuneLite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '11'
+      # Also validates the Gradle wrapper's checksum.
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew build
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report
+          path: build/reports/tests/test
+
+  tools:
+    name: Data tool tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tools -p "test_*.py"
+
+  plugin-hub:
+    name: Plugin Hub standard build
+    runs-on: ubuntu-latest
+    env:
+      HUB_TOOLING: https://raw.githubusercontent.com/runelite/plugin-hub-tooling/master
+      HUB: https://raw.githubusercontent.com/runelite/plugin-hub/master
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '11'
+      - name: Read the Plugin Hub's Gradle and RuneLite versions
+        id: hub
+        run: |
+          gradle="$(curl -fsSL "$HUB_TOOLING/bundle/build.gradle.kts" | grep -oP 'distributions/gradle-\K[0-9.]+(?=-bin\.zip)')"
+          runelite="$(curl -fsSL "$HUB/runelite.version" | tr -d '[:space:]')"
+          test -n "$gradle" && test -n "$runelite"
+          echo "Plugin Hub: Gradle $gradle, RuneLite $runelite"
+          echo "gradle=$gradle" >> "$GITHUB_OUTPUT"
+          echo "runelite=$runelite" >> "$GITHUB_OUTPUT"
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: ${{ steps.hub.outputs.gradle }}
+      - name: Check runelite-plugin.properties
+        run: python3 .github/scripts/check_plugin_manifest.py
+      # build=standard discards build.gradle and settings.gradle and compiles src/main with the hub's own
+      # build file, using the Gradle and RuneLite versions the hub currently builds with.
+      - name: Compile as the Plugin Hub does
+        run: |
+          dir="$RUNNER_TEMP/standard"
+          mkdir -p "$dir"
+          packager="$HUB_TOOLING/package/src/main/resources/net/runelite/pluginhub/packager"
+          curl -fsSL "$packager/standard-build.gradle" -o "$dir/build.gradle"
+          curl -fsSL "$packager/standard-settings.gradle" -o "$dir/settings.gradle"
+          cp -r src "$dir/src"
+          rm -rf "$dir/src/test"
+          if [ -f lombok.config ]; then cp lombok.config "$dir/"; fi
+          export RUNELITE_VERSION="${{ steps.hub.outputs.runelite }}"
+          cat > "$RUNNER_TEMP/pin-runelite.gradle" <<'EOF'
+          allprojects {
+              configurations.all {
+                  resolutionStrategy.eachDependency { details ->
+                      if (details.requested.group == 'net.runelite'
+                          && details.requested.name in ['client', 'runelite-api', 'http-api']) {
+                          details.useVersion System.getenv('RUNELITE_VERSION')
+                      }
+                  }
+              }
+          }
+          EOF
+          gradle -p "$dir" --init-script "$RUNNER_TEMP/pin-runelite.gradle" assemble
