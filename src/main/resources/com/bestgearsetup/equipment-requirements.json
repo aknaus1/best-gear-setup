@@ -1,0 +1,2049 @@
+{
+  "schema": 1,
+  "scope": "Eight combat skills plus combat level; quest, diary and noncombat skill gates are not resolved.",
+  "rules": [
+    {
+      "label": "bronze armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield",
+        "feet"
+      ],
+      "pattern": "bronze (?:chainbody|platebody|platelegs|plateskirt|full helm|med helm|helm|kiteshield|sq shield|shield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Bronze_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "bronze melee weapons",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "bronze (?:2h sword|axe|felling axe|battleaxe|cane|claws|dagger|hasta|longsword|mace|pickaxe|scimitar|spear|sword)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Bronze_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "bronze thrown weapons",
+      "slots": [
+        "weapon",
+        "ammunition"
+      ],
+      "pattern": "bronze (?:dart|knife|thrownaxe)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Bronze_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "bronze warhammer",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "bronze warhammer(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "strength": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Warhammer",
+      "note": "Metal warhammers use Strength, not Attack, after the 2021 rebalance.",
+      "reviewRequired": false
+    },
+    {
+      "label": "bronze defender",
+      "slots": [
+        "shield"
+      ],
+      "pattern": "bronze defender(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 1,
+        "defence": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Defender",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "bronze halberd",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "bronze halberd(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 1,
+        "strength": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Bronze_halberd",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "iron armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield",
+        "feet"
+      ],
+      "pattern": "iron (?:chainbody|platebody|platelegs|plateskirt|full helm|med helm|helm|kiteshield|sq shield|shield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Iron_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "iron melee weapons",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "iron (?:2h sword|axe|felling axe|battleaxe|cane|claws|dagger|hasta|longsword|mace|pickaxe|scimitar|spear|sword)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Iron_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "iron thrown weapons",
+      "slots": [
+        "weapon",
+        "ammunition"
+      ],
+      "pattern": "iron (?:dart|knife|thrownaxe)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Iron_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "iron warhammer",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "iron warhammer(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "strength": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Warhammer",
+      "note": "Metal warhammers use Strength, not Attack, after the 2021 rebalance.",
+      "reviewRequired": false
+    },
+    {
+      "label": "iron defender",
+      "slots": [
+        "shield"
+      ],
+      "pattern": "iron defender(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 1,
+        "defence": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Defender",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "iron halberd",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "iron halberd(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 1,
+        "strength": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Iron_halberd",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "steel armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield",
+        "feet"
+      ],
+      "pattern": "steel (?:chainbody|platebody|platelegs|plateskirt|full helm|med helm|helm|kiteshield|sq shield|shield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 5
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Steel_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "steel melee weapons",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "steel (?:2h sword|axe|felling axe|battleaxe|cane|claws|dagger|hasta|longsword|mace|pickaxe|scimitar|spear|sword)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 5
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Steel_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "steel thrown weapons",
+      "slots": [
+        "weapon",
+        "ammunition"
+      ],
+      "pattern": "steel (?:dart|knife|thrownaxe)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 5
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Steel_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "steel warhammer",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "steel warhammer(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "strength": 5
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Warhammer",
+      "note": "Metal warhammers use Strength, not Attack, after the 2021 rebalance.",
+      "reviewRequired": false
+    },
+    {
+      "label": "steel defender",
+      "slots": [
+        "shield"
+      ],
+      "pattern": "steel defender(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 5,
+        "defence": 5
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Defender",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "steel halberd",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "steel halberd(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 5,
+        "strength": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Steel_halberd",
+      "note": "Steel Strength requirement needs direct confirmation.",
+      "reviewRequired": true
+    },
+    {
+      "label": "black armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield",
+        "feet"
+      ],
+      "pattern": "black (?:chainbody|platebody|platelegs|plateskirt|full helm|med helm|helm|kiteshield|sq shield|shield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Black_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "black melee weapons",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "black (?:2h sword|axe|felling axe|battleaxe|cane|claws|dagger|hasta|longsword|mace|pickaxe|scimitar|spear|sword)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Black_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "black thrown weapons",
+      "slots": [
+        "weapon",
+        "ammunition"
+      ],
+      "pattern": "black (?:dart|knife|thrownaxe)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Black_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "black warhammer",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "black warhammer(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "strength": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Warhammer",
+      "note": "Metal warhammers use Strength, not Attack, after the 2021 rebalance.",
+      "reviewRequired": false
+    },
+    {
+      "label": "black defender",
+      "slots": [
+        "shield"
+      ],
+      "pattern": "black defender(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 10,
+        "defence": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Defender",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "black halberd",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "black halberd(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 10,
+        "strength": 5
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Black_halberd",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "white armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield",
+        "feet"
+      ],
+      "pattern": "white (?:chainbody|platebody|platelegs|plateskirt|full helm|med helm|helm|kiteshield|sq shield|shield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/White_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "white melee weapons",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "white (?:2h sword|axe|felling axe|battleaxe|cane|claws|dagger|hasta|longsword|mace|pickaxe|scimitar|spear|sword)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/White_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "white thrown weapons",
+      "slots": [
+        "weapon",
+        "ammunition"
+      ],
+      "pattern": "white (?:dart|knife|thrownaxe)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/White_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "white warhammer",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "white warhammer(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "strength": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Warhammer",
+      "note": "Metal warhammers use Strength, not Attack, after the 2021 rebalance.",
+      "reviewRequired": false
+    },
+    {
+      "label": "white defender",
+      "slots": [
+        "shield"
+      ],
+      "pattern": "white defender(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 10,
+        "defence": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Defender",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "white halberd",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "white halberd(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 10,
+        "strength": 5
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/White_halberd",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "mithril armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield",
+        "feet"
+      ],
+      "pattern": "mithril (?:chainbody|platebody|platelegs|plateskirt|full helm|med helm|helm|kiteshield|sq shield|shield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Mithril_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "mithril melee weapons",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "mithril (?:2h sword|axe|felling axe|battleaxe|cane|claws|dagger|hasta|longsword|mace|pickaxe|scimitar|spear|sword)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Mithril_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "mithril thrown weapons",
+      "slots": [
+        "weapon",
+        "ammunition"
+      ],
+      "pattern": "mithril (?:dart|knife|thrownaxe)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Mithril_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "mithril warhammer",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "mithril warhammer(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "strength": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Warhammer",
+      "note": "Metal warhammers use Strength, not Attack, after the 2021 rebalance.",
+      "reviewRequired": false
+    },
+    {
+      "label": "mithril defender",
+      "slots": [
+        "shield"
+      ],
+      "pattern": "mithril defender(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 20,
+        "defence": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Defender",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "mithril halberd",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "mithril halberd(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 20,
+        "strength": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Mithril_halberd",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "adamant armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield",
+        "feet"
+      ],
+      "pattern": "adamant (?:chainbody|platebody|platelegs|plateskirt|full helm|med helm|helm|kiteshield|sq shield|shield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 30
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Adamant_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "adamant melee weapons",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "adamant (?:2h sword|axe|felling axe|battleaxe|cane|claws|dagger|hasta|longsword|mace|pickaxe|scimitar|spear|sword)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 30
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Adamant_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "adamant thrown weapons",
+      "slots": [
+        "weapon",
+        "ammunition"
+      ],
+      "pattern": "adamant (?:dart|knife|thrownaxe)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 30
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Adamant_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "adamant warhammer",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "adamant warhammer(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "strength": 30
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Warhammer",
+      "note": "Metal warhammers use Strength, not Attack, after the 2021 rebalance.",
+      "reviewRequired": false
+    },
+    {
+      "label": "adamant defender",
+      "slots": [
+        "shield"
+      ],
+      "pattern": "adamant defender(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 30,
+        "defence": 30
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Defender",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "adamant halberd",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "adamant halberd(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 30,
+        "strength": 15
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Adamant_halberd",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "rune armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield",
+        "feet"
+      ],
+      "pattern": "rune (?:chainbody|platebody|platelegs|plateskirt|full helm|med helm|helm|kiteshield|sq shield|shield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Rune_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "rune melee weapons",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "rune (?:2h sword|axe|felling axe|battleaxe|cane|claws|dagger|hasta|longsword|mace|pickaxe|scimitar|spear|sword)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Rune_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "rune thrown weapons",
+      "slots": [
+        "weapon",
+        "ammunition"
+      ],
+      "pattern": "rune (?:dart|knife|thrownaxe)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Rune_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "rune warhammer",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "rune warhammer(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "strength": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Warhammer",
+      "note": "Metal warhammers use Strength, not Attack, after the 2021 rebalance.",
+      "reviewRequired": false
+    },
+    {
+      "label": "rune defender",
+      "slots": [
+        "shield"
+      ],
+      "pattern": "rune defender(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 40,
+        "defence": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Defender",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "rune halberd",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "rune halberd(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 40,
+        "strength": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Rune_halberd",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "dragon armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield",
+        "feet"
+      ],
+      "pattern": "dragon (?:chainbody|platebody|platelegs|plateskirt|full helm|med helm|helm|kiteshield|sq shield|shield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 60
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Dragon_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "dragon melee weapons",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "dragon (?:2h sword|axe|felling axe|battleaxe|cane|claws|dagger|hasta|longsword|mace|pickaxe|scimitar|spear|sword)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 60
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Dragon_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "dragon thrown weapons",
+      "slots": [
+        "weapon",
+        "ammunition"
+      ],
+      "pattern": "dragon (?:dart|knife)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 60
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Dragon_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "dragon warhammer",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "dragon warhammer(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "strength": 60
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Warhammer",
+      "note": "Metal warhammers use Strength, not Attack, after the 2021 rebalance.",
+      "reviewRequired": false
+    },
+    {
+      "label": "dragon halberd",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "dragon halberd(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 60,
+        "strength": 30
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Dragon_halberd",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "dragon thrownaxe",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "dragon thrownaxe(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 61
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Dragon_thrownaxe",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "white gloves",
+      "slots": [
+        "hands"
+      ],
+      "pattern": "white gloves(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/White_gloves",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "rune god armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield"
+      ],
+      "pattern": "(?:ancient|armadyl|bandos|guthix|saradomin|zamorak) (?:full helm|platebody|platelegs|plateskirt|kiteshield)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Rune_god_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "gilded melee armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "shield",
+        "feet"
+      ],
+      "pattern": "gilded (?:full helm|platebody|platelegs|plateskirt|kiteshield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Gilded_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "dragonstone armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet"
+      ],
+      "pattern": "dragonstone (?:chainbody|platebody|platelegs|plateskirt|full helm|med helm|helm|kiteshield|sq shield|shield|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Dragonstone_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "blessed d'hide upper armour",
+      "slots": [
+        "head",
+        "body",
+        "feet",
+        "shield"
+      ],
+      "pattern": "(?:ancient|armadyl|bandos|guthix|saradomin|zamorak) (?:coif|d'hide (?:body|boots|shield))(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40,
+        "ranged": 70
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Blessed_dragonhide_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "blessed d'hide lower armour",
+      "slots": [
+        "legs",
+        "hands"
+      ],
+      "pattern": "(?:ancient|armadyl|bandos|guthix|saradomin|zamorak) (?:chaps|bracers)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 70
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Blessed_dragonhide_armour",
+      "note": "Chaps and bracers lost their Defence requirement in September 2021.",
+      "reviewRequired": false
+    },
+    {
+      "label": "green d'hide body/shield",
+      "slots": [
+        "body",
+        "shield"
+      ],
+      "pattern": "green d'hide (?:body|shield)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40,
+        "ranged": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Green_dragonhide_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "green d'hide chaps/vambraces",
+      "slots": [
+        "legs",
+        "hands"
+      ],
+      "pattern": "green (?:d'hide (?:chaps|vambraces)|spiky vambraces)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Green_dragonhide_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "blue d'hide body/shield",
+      "slots": [
+        "body",
+        "shield"
+      ],
+      "pattern": "blue d'hide (?:body|shield)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40,
+        "ranged": 50
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Blue_dragonhide_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "blue d'hide chaps/vambraces",
+      "slots": [
+        "legs",
+        "hands"
+      ],
+      "pattern": "blue (?:d'hide (?:chaps|vambraces)|spiky vambraces)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 50
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Blue_dragonhide_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "red d'hide body/shield",
+      "slots": [
+        "body",
+        "shield"
+      ],
+      "pattern": "red d'hide (?:body|shield)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40,
+        "ranged": 60
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Red_dragonhide_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "red d'hide chaps/vambraces",
+      "slots": [
+        "legs",
+        "hands"
+      ],
+      "pattern": "red (?:d'hide (?:chaps|vambraces)|spiky vambraces)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 60
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Red_dragonhide_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "black d'hide body/shield",
+      "slots": [
+        "body",
+        "shield"
+      ],
+      "pattern": "black d'hide (?:body|shield)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40,
+        "ranged": 70
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Black_dragonhide_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "black d'hide chaps/vambraces",
+      "slots": [
+        "legs",
+        "hands"
+      ],
+      "pattern": "black (?:d'hide (?:chaps|vambraces)|spiky vambraces)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 70
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Black_dragonhide_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "god vestment robes",
+      "slots": [
+        "body",
+        "legs"
+      ],
+      "pattern": "(?:ancient|armadyl|bandos|guthix|saradomin|zamorak) robe (?:top|legs)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "prayer": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Vestment_set",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "god vestment mitres",
+      "slots": [
+        "head"
+      ],
+      "pattern": "(?:ancient|armadyl|bandos|guthix|saradomin|zamorak) mitre(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "prayer": 40,
+        "magic": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Vestment_set",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "god vestment cloaks",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "(?:ancient|armadyl|bandos|guthix|saradomin|zamorak) cloak(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "prayer": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Vestment_set",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "god vestment stoles/croziers",
+      "slots": [
+        "neck",
+        "weapon"
+      ],
+      "pattern": "(?:ancient|armadyl|bandos|guthix|saradomin|zamorak) (?:stole|crozier)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "prayer": 60
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Vestment_set",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "mystic armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet",
+        "cape",
+        "neck",
+        "ring"
+      ],
+      "pattern": "mystic (?:hat|hood|helm|robe top|robe bottom|top|bottom|body|legs|torso|gloves|gauntlets|boots|cape|amulet|ring)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 20,
+        "magic": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Armour/Magic_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "enchanted armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet",
+        "cape",
+        "neck",
+        "ring"
+      ],
+      "pattern": "enchanted (?:hat|hood|helm|robe top|robe bottom|top|bottom|body|legs|torso|gloves|gauntlets|boots|cape|amulet|ring)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 20,
+        "magic": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Armour/Magic_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "splitbark armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet",
+        "cape",
+        "neck",
+        "ring"
+      ],
+      "pattern": "splitbark (?:hat|hood|helm|robe top|robe bottom|top|bottom|body|legs|torso|gloves|gauntlets|boots|cape|amulet|ring)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40,
+        "magic": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Armour/Magic_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "swampbark armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet",
+        "cape",
+        "neck",
+        "ring"
+      ],
+      "pattern": "swampbark (?:hat|hood|helm|robe top|robe bottom|top|bottom|body|legs|torso|gloves|gauntlets|boots|cape|amulet|ring)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 50,
+        "magic": 50
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Armour/Magic_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "bloodbark armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet",
+        "cape",
+        "neck",
+        "ring"
+      ],
+      "pattern": "bloodbark (?:hat|hood|helm|robe top|robe bottom|top|bottom|body|legs|torso|gloves|gauntlets|boots|cape|amulet|ring)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 60,
+        "magic": 60
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Armour/Magic_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "infinity armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet",
+        "cape",
+        "neck",
+        "ring"
+      ],
+      "pattern": "infinity (?:hat|hood|helm|robe top|robe bottom|top|bottom|body|legs|torso|gloves|gauntlets|boots|cape|amulet|ring)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 25,
+        "magic": 50
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Armour/Magic_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "dagon'hai armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet",
+        "cape",
+        "neck",
+        "ring"
+      ],
+      "pattern": "dagon'hai (?:hat|hood|helm|robe top|robe bottom|top|bottom|body|legs|torso|gloves|gauntlets|boots|cape|amulet|ring)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40,
+        "magic": 70
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Armour/Magic_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "lunar armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet",
+        "cape",
+        "neck",
+        "ring"
+      ],
+      "pattern": "lunar (?:hat|hood|helm|robe top|robe bottom|top|bottom|body|legs|torso|gloves|gauntlets|boots|cape|amulet|ring)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40,
+        "magic": 65
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Armour/Magic_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "robes of darkness",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet"
+      ],
+      "pattern": "(?:hood|robe top|robe bottom|gloves|boots) of darkness(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 20,
+        "magic": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Robes_of_darkness",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "skeletal armour",
+      "slots": [
+        "head",
+        "body",
+        "legs"
+      ],
+      "pattern": "skeletal (?:helm|top|bottoms)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40,
+        "magic": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Skeletal_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "spined armour",
+      "slots": [
+        "head",
+        "body",
+        "legs"
+      ],
+      "pattern": "spined (?:helm|body|chaps)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40,
+        "ranged": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Spined_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "rock-shell armour",
+      "slots": [
+        "head",
+        "body",
+        "legs"
+      ],
+      "pattern": "rock-shell (?:helm|plate|legs)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Rock-shell_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "granite armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "feet",
+        "shield"
+      ],
+      "pattern": "granite (?:helm|body|legs|boots|shield)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 50,
+        "strength": 50
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Granite_equipment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "samurai armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet"
+      ],
+      "pattern": "samurai (?:kasa|shirt|greaves|gloves|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 35
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Samurai_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "shayzien armour",
+      "slots": [
+        "head",
+        "body",
+        "legs",
+        "hands",
+        "feet"
+      ],
+      "pattern": "shayzien (?:helm|body|platebody|greaves|gloves|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Shayzien_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "frog-leather armour",
+      "slots": [
+        "body",
+        "legs",
+        "feet"
+      ],
+      "pattern": "frog-leather (?:body|chaps|boots)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 25,
+        "ranged": 25
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Frog-leather_armour",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "studded body",
+      "slots": [
+        "body"
+      ],
+      "pattern": "studded body(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 20,
+        "ranged": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Studded_body",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "studded chaps",
+      "slots": [
+        "legs"
+      ],
+      "pattern": "studded chaps(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Studded_chaps",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "hardleather body",
+      "slots": [
+        "body"
+      ],
+      "pattern": "hardleather body(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 10
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Hardleather_body",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "oak bows",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "oak (?:shortbow|longbow|comp bow)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 5
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Oak_shortbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "willow bows",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "willow (?:shortbow|longbow|comp bow)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 20
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Willow_shortbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "maple bows",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "maple (?:shortbow|longbow|comp bow)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 30
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Maple_shortbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "yew bows",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "yew (?:shortbow|longbow|comp bow)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Yew_shortbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "magic bows",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "magic (?:shortbow|longbow|comp bow)(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 50
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Magic_shortbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "bronze crossbow",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "bronze crossbow(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 1
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Bronze_crossbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "blurite crossbow",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "blurite crossbow(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 16
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Blurite_crossbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "iron crossbow",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "iron crossbow(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 26
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Iron_crossbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "steel crossbow",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "steel crossbow(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 31
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Steel_crossbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "mithril crossbow",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "mithril crossbow(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 36
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Mithril_crossbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "adamant crossbow",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "adamant crossbow(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 46
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Adamant_crossbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "rune crossbow",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "rune crossbow(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 61
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Rune_crossbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "dragon crossbow",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "dragon crossbow(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 64
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Dragon_crossbow",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "elemental battlestaves",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "(?:(?:air|water|earth|fire|lava|mud|steam|smoke|mist|dust) )?battlestaff(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 30,
+        "magic": 30
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Battlestaff",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "elemental mystic staves",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "mystic (?:air|water|earth|fire|lava|mud|steam|smoke|mist|dust) staff(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 40,
+        "magic": 40
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Mystic_staff",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "beginner wand",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "beginner wand(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "magic": 45
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Beginner_Wand",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "apprentice wand",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "apprentice wand(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "magic": 50
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Apprentice_Wand",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "teacher wand",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "teacher wand(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "magic": 55
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Teacher_Wand",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "master wand",
+      "slots": [
+        "weapon"
+      ],
+      "pattern": "master wand(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "magic": 60
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Master_Wand",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "attack skillcape",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "attack cape(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 99
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Cape_of_Accomplishment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "strength skillcape",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "strength cape(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "strength": 99
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Cape_of_Accomplishment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "defence skillcape",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "defence cape(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 99
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Cape_of_Accomplishment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "ranging skillcape",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "ranging cape(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 99
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Cape_of_Accomplishment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "magic skillcape",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "magic cape(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "magic": 99
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Cape_of_Accomplishment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "prayer skillcape",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "prayer cape(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "prayer": 99
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Cape_of_Accomplishment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "hitpoints skillcape",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "hitpoints cape(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "hitpoints": 99
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Cape_of_Accomplishment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "slayer skillcape",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "slayer cape(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "slayer": 99
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Cape_of_Accomplishment",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "max capes",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "(?:[a-z']+ )*max cape(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "attack": 99,
+        "defence": 99,
+        "strength": 99,
+        "hitpoints": 99,
+        "ranged": 99,
+        "prayer": 99,
+        "magic": 99,
+        "slayer": 99
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Max_cape",
+      "note": "Noncombat skills and total level are not modelled; the combat subset is still enforced.",
+      "reviewRequired": false
+    },
+    {
+      "label": "ava's accumulator",
+      "slots": [
+        "cape"
+      ],
+      "pattern": "ava's accumulator(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "ranged": 50
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Ava%27s_accumulator",
+      "note": "Awarded or upgraded only at 50 Ranged; an acquisition gate rather than a wear check.",
+      "reviewRequired": false
+    },
+    {
+      "label": "black masks",
+      "slots": [
+        "head"
+      ],
+      "pattern": "black mask(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {
+        "defence": 10,
+        "strength": 20
+      },
+      "combat": 40,
+      "source": "https://oldschool.runescape.wiki/w/Black_mask",
+      "note": "",
+      "reviewRequired": false
+    },
+    {
+      "label": "pegasian boots exception",
+      "slots": [
+        "feet"
+      ],
+      "pattern": "pegasian boots(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [
+        13237
+      ],
+      "requirements": {
+        "defence": 75,
+        "ranged": 75
+      },
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Pegasian_boots",
+      "note": "Replace the cache's spurious Attack 75 pair; runtime equip check still pending.",
+      "reviewRequired": true
+    },
+    {
+      "label": "salve amulets",
+      "slots": [
+        "neck"
+      ],
+      "pattern": "salve amulet(?:\\s*\\((?:t|g|h[1-5]|i|e|ei|or|p(?:\\+{1,2})?|dark|light|dusk|shattered|\\d+)\\))*",
+      "ids": [],
+      "requirements": {},
+      "combat": 0,
+      "source": "https://oldschool.runescape.wiki/w/Salve_amulet",
+      "note": "Haunted Mine/Tarn unlocks are separate; their quest/creation levels are not wear levels.",
+      "reviewRequired": false
+    }
+  ]
+}

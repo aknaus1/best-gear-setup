@@ -1,0 +1,615 @@
+{
+  "aberrant spectres": [
+    "aberrant spectre",
+    "Spectre"
+  ],
+  "abyssal demons": [
+    "abyssal demon",
+    "Abyssal Sire"
+  ],
+  "abyssal sire": [
+    "abyssal sire"
+  ],
+  "alchemical hydra": [
+    "alchemical hydra"
+  ],
+  "ankou": [
+    "ankou"
+  ],
+  "aquanites": [
+    "aquanite"
+  ],
+  "araxxor": [
+    "araxxor"
+  ],
+  "araxytes": [
+    "araxyte",
+    "Araxxor"
+  ],
+  "aviansies": [
+    "aviansie",
+    "Kree'arra",
+    "Flight Kilisa",
+    "Flockleader Geerin",
+    "Wingman Skree"
+  ],
+  "bandits": [
+    "bandit",
+    "Bandit",
+    "Black Heather",
+    "Donny the Lad",
+    "Speedy Keith"
+  ],
+  "banshees": [
+    "banshee"
+  ],
+  "barrows brothers": [
+    "ahrim",
+    "dharok",
+    "guthan",
+    "karil",
+    "torag",
+    "verac"
+  ],
+  "basilisks": [
+    "basilisk"
+  ],
+  "bats": [
+    "bat",
+    "Death wing"
+  ],
+  "bears": [
+    "bear",
+    "Callisto",
+    "Artio"
+  ],
+  "birds": [
+    "bird",
+    "Chicken",
+    "Rooster",
+    "Terrorbird",
+    "Seagull",
+    "Vulture",
+    "Duck",
+    "Penguin",
+    "Baby Roc"
+  ],
+  "black demons": [
+    "black demon",
+    "Demonic gorilla",
+    "Balfrug Kreeyath",
+    "Skotizo",
+    "Porazdir"
+  ],
+  "black dragons": [
+    "black dragon"
+  ],
+  "black knights": [
+    "black knight",
+    "Black Knight"
+  ],
+  "bloodveld": [
+    "bloodveld"
+  ],
+  "blue dragons": [
+    "blue dragon",
+    "Vorkath"
+  ],
+  "brine rats": [
+    "brine rat"
+  ],
+  "callisto": [
+    "callisto"
+  ],
+  "catablepon": [
+    "catablepon"
+  ],
+  "cave bugs": [
+    "cave bug"
+  ],
+  "cave crawlers": [
+    "cave crawler",
+    "Chasm crawler"
+  ],
+  "cave horrors": [
+    "cave horror",
+    "Cave abomination"
+  ],
+  "cave kraken": [
+    "cave kraken",
+    "Kraken"
+  ],
+  "cave slimes": [
+    "cave slime"
+  ],
+  "cerberus": [
+    "cerberu"
+  ],
+  "chaos druids": [
+    "chaos druid"
+  ],
+  "chaos elemental": [
+    "chaos elemental"
+  ],
+  "chaos fanatic": [
+    "chaos fanatic"
+  ],
+  "cockatrice": [
+    "cockatrice",
+    "Cockathrice"
+  ],
+  "cows": [
+    "cow",
+    "Buffalo",
+    "Brutus"
+  ],
+  "crabs": [
+    "crab",
+    "Ammonite Crab",
+    "Frost Crab",
+    "King Sand Crab",
+    "Rock Crab",
+    "Giant Rock Crab",
+    "Sand Crab",
+    "Swamp Crab"
+  ],
+  "crawling hands": [
+    "crawling hand",
+    "Crushing hand"
+  ],
+  "crazy archaeologists": [
+    "crazy archaeologist"
+  ],
+  "crocodiles": [
+    "crocodile"
+  ],
+  "custodian stalkers": [
+    "custodian stalker",
+    "Ancient Custodian"
+  ],
+  "dagannoth": [
+    "dagannoth"
+  ],
+  "dagannoth kings": [
+    "dagannoth rex",
+    "dagannoth prime",
+    "dagannoth supreme"
+  ],
+  "dark beasts": [
+    "dark beast",
+    "Night beast"
+  ],
+  "dark warriors": [
+    "dark warrior",
+    "Dark warrior"
+  ],
+  "deranged archaeologist": [
+    "deranged archaeologist"
+  ],
+  "dogs": [
+    "dog",
+    "Jackal",
+    "Temple Guardian"
+  ],
+  "drakes": [
+    "drake"
+  ],
+  "duke sucellus": [
+    "duke sucellu"
+  ],
+  "dust devils": [
+    "dust devil",
+    "Choke devil"
+  ],
+  "dwarves": [
+    "dwarve",
+    "Dwarf",
+    "Black Guard"
+  ],
+  "earth warriors": [
+    "earth warrior"
+  ],
+  "elves": [
+    "elve",
+    "Elf",
+    "Iorwerth Warrior",
+    "Iorwerth Archer"
+  ],
+  "ents": [
+    "ent"
+  ],
+  "fever spiders": [
+    "fever spider"
+  ],
+  "fire giants": [
+    "fire giant",
+    "Branda the Fire Queen"
+  ],
+  "fleshcrawlers": [
+    "fleshcrawler",
+    "Flesh crawler"
+  ],
+  "fossil island wyverns": [
+    "fossil island wyvern",
+    "Ancient wyvern",
+    "Long-tailed wyvern",
+    "Spitting wyvern",
+    "Taloned wyvern"
+  ],
+  "frost dragons": [
+    "frost dragon"
+  ],
+  "gargoyles": [
+    "gargoyle",
+    "Dusk",
+    "Dawn"
+  ],
+  "general graardor": [
+    "general graardor"
+  ],
+  "ghosts": [
+    "ghost",
+    "Death wing",
+    "Tortured soul",
+    "Forgotten Soul",
+    "Revenant"
+  ],
+  "ghouls": [
+    "ghoul"
+  ],
+  "giant mole": [
+    "giant mole"
+  ],
+  "goblins": [
+    "goblin",
+    "Sergeant Strongstack",
+    "Sergeant Grimspike",
+    "Sergeant Steelwill"
+  ],
+  "greater demons": [
+    "greater demon",
+    "K'ril Tsutsaroth",
+    "Tstanon Karlak",
+    "Skotizo",
+    "Tormented Demon"
+  ],
+  "green dragons": [
+    "green dragon",
+    "Elvarg"
+  ],
+  "grotesque guardians": [
+    "grotesque guardian",
+    "Dusk",
+    "Dawn"
+  ],
+  "gryphons": [
+    "gryphon"
+  ],
+  "harpie bug swarms": [
+    "harpie bug swarm"
+  ],
+  "hellhounds": [
+    "hellhound",
+    "Cerberus"
+  ],
+  "hill giants": [
+    "hill giant",
+    "Cyclops",
+    "Reanimated giant",
+    "Obor"
+  ],
+  "hobgoblins": [
+    "hobgoblin"
+  ],
+  "hydras": [
+    "hydra"
+  ],
+  "icefiends": [
+    "icefiend"
+  ],
+  "ice giants": [
+    "ice giant",
+    "Eldric the Ice King"
+  ],
+  "ice warriors": [
+    "ice warrior",
+    "Icelord"
+  ],
+  "infernal mages": [
+    "infernal mage",
+    "Malevolent mage"
+  ],
+  "tztok-jad": [
+    "tztok-jad"
+  ],
+  "jellies": [
+    "jellie",
+    "Jelly"
+  ],
+  "jungle horrors": [
+    "jungle horror"
+  ],
+  "kalphites": [
+    "kalphite"
+  ],
+  "kalphite queen": [
+    "kalphite queen"
+  ],
+  "killerwatts": [
+    "killerwatt"
+  ],
+  "king black dragon": [
+    "king black dragon"
+  ],
+  "cave kraken boss": [
+    "cave kraken bos",
+    "Kraken"
+  ],
+  "kree'arra": [
+    "kree'arra"
+  ],
+  "k'ril tsutsaroth": [
+    "k'ril tsutsaroth"
+  ],
+  "kurask": [
+    "kurask"
+  ],
+  "lava dragons": [
+    "lava dragon",
+    "Lava dragon"
+  ],
+  "lesser demons": [
+    "lesser demon",
+    "Zakl'n Gritch"
+  ],
+  "lesser nagua": [
+    "lesser nagua",
+    "Sulphur Nagua",
+    "Frost Nagua",
+    "Amoxliatl"
+  ],
+  "lizardmen": [
+    "lizardmen",
+    "Lizardman"
+  ],
+  "lizards": [
+    "lizard"
+  ],
+  "magic axes": [
+    "magic axe"
+  ],
+  "mammoths": [
+    "mammoth"
+  ],
+  "metal dragons": [
+    "metal dragon",
+    "Bronze dragon",
+    "Iron Dragon",
+    "Steel dragon",
+    "Mithril dragon",
+    "Adamant dragon",
+    "Rune dragon"
+  ],
+  "minotaurs": [
+    "minotaur"
+  ],
+  "mogres": [
+    "mogre"
+  ],
+  "molanisks": [
+    "molanisk"
+  ],
+  "monkeys": [
+    "monkey",
+    "Tortured gorilla",
+    "Demonic gorilla",
+    "Padulah"
+  ],
+  "moss giants": [
+    "moss giant",
+    "Bryophyta"
+  ],
+  "mutated zygomites": [
+    "mutated zygomite",
+    "Zygomite",
+    "Fungi"
+  ],
+  "nechryael": [
+    "nechryael",
+    "Nechryarch"
+  ],
+  "ogres": [
+    "ogre",
+    "Enclave guard",
+    "Mogre",
+    "Ogress",
+    "Skogre",
+    "Zogre"
+  ],
+  "otherworldly beings": [
+    "otherworldly being"
+  ],
+  "phantom muspah": [
+    "phantom muspah"
+  ],
+  "pirates": [
+    "pirate",
+    "Pirate"
+  ],
+  "pyrefiends": [
+    "pyrefiend",
+    "Flaming pyrelord"
+  ],
+  "rats": [
+    "rat"
+  ],
+  "red dragons": [
+    "red dragon"
+  ],
+  "revenants": [
+    "revenant"
+  ],
+  "rockslugs": [
+    "rockslug"
+  ],
+  "rogues": [
+    "rogue"
+  ],
+  "sarachnis": [
+    "sarachni"
+  ],
+  "scabarites": [
+    "scabarite",
+    "Scarab swarm",
+    "Locust rider",
+    "Scarab mage",
+    "Small Scarab"
+  ],
+  "scorpia": [
+    "scorpia"
+  ],
+  "scorpions": [
+    "scorpion",
+    "Scorpia",
+    "Lobstrosity"
+  ],
+  "sea snakes": [
+    "sea snake"
+  ],
+  "shades": [
+    "shade",
+    "Loar",
+    "Phrin",
+    "Riyl",
+    "Asyn",
+    "Fiyr",
+    "Urium"
+  ],
+  "shadow warriors": [
+    "shadow warrior"
+  ],
+  "shellbane gryphon": [
+    "shellbane gryphon"
+  ],
+  "skeletal wyverns": [
+    "skeletal wyvern"
+  ],
+  "skeletons": [
+    "skeleton",
+    "Vet'ion",
+    "Calvar'ion",
+    "Skeletal Mystic"
+  ],
+  "smoke devils": [
+    "smoke devil"
+  ],
+  "sourhogs": [
+    "sourhog"
+  ],
+  "spiders": [
+    "spider",
+    "Kalrag",
+    "Sarachnis",
+    "Venenatis",
+    "Spindel",
+    "Araxxor",
+    "Araxyte"
+  ],
+  "spiritual creatures": [
+    "spiritual creature",
+    "Spiritual ranger",
+    "Spiritual mage",
+    "Spiritual warrior"
+  ],
+  "suqahs": [
+    "suqah"
+  ],
+  "terror dogs": [
+    "terror dog"
+  ],
+  "leviathan": [
+    "leviathan"
+  ],
+  "whisperer": [
+    "whisperer"
+  ],
+  "thermonuclear smoke devil": [
+    "thermonuclear smoke devil"
+  ],
+  "trolls": [
+    "troll",
+    "Dad",
+    "Arrg",
+    "Stick",
+    "Kraka",
+    "Pee Hat",
+    "Rock",
+    "Twig",
+    "Berry"
+  ],
+  "turoth": [
+    "turoth"
+  ],
+  "tzhaar": [
+    "tzhaar",
+    "TzTok-Jad",
+    "TzKal-Zuk"
+  ],
+  "vampyres": [
+    "vampyre",
+    "Vyrewatch"
+  ],
+  "vardorvis": [
+    "vardorvi"
+  ],
+  "venenatis": [
+    "venenati"
+  ],
+  "vet'ion": [
+    "vet'ion"
+  ],
+  "vorkath": [
+    "vorkath"
+  ],
+  "wall beasts": [
+    "wall beast"
+  ],
+  "warped creatures": [
+    "warped creature",
+    "Warped terrorbird",
+    "Warped tortoise",
+    "Mutated terrorbird",
+    "Mutated tortoise"
+  ],
+  "waterfiends": [
+    "waterfiend"
+  ],
+  "werewolves": [
+    "werewolve",
+    "Werewolf"
+  ],
+  "wolves": [
+    "wolve",
+    "Wolf"
+  ],
+  "wyrms": [
+    "wyrm",
+    "Wyrmling",
+    "Strykewyrm"
+  ],
+  "commander zilyana": [
+    "commander zilyana"
+  ],
+  "zombies": [
+    "zombie",
+    "Undead",
+    "Vorkath",
+    "Zogre"
+  ],
+  "tzkal-zuk": [
+    "tzkal-zuk"
+  ],
+  "zulrah": [
+    "zulrah"
+  ]
+}
