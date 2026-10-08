@@ -39,6 +39,11 @@ public class OwnedItems
 	private volatile Map<Integer, Long> bank = Collections.emptyMap();
 	private volatile Map<Integer, Long> inventory = Collections.emptyMap();
 	private volatile Map<Integer, Long> worn = Collections.emptyMap();
+	/**
+	 * Canonical ids equipped right now: set from the live worn container and cleared on logout. Unlike
+	 * {@link #worn} it is never persisted, so remembered equipment doesn't show as equipped while logged out.
+	 */
+	private volatile Set<Integer> equipped = Collections.emptySet();
 	/** Items the player marked as owned by hand (e.g. stored in the POH costume room); no quantity is known. */
 	private volatile Set<Integer> manual = Collections.emptySet();
 	/** Owned ids and reviewed equivalent charge states. */
@@ -98,6 +103,11 @@ public class OwnedItems
 			}
 		}
 
+		if (containerId == InventoryID.WORN)
+		{
+			equipped = Collections.unmodifiableSet(new HashSet<>(ids.keySet()));
+		}
+
 		Map<Integer, Long> previous = containerId == InventoryID.BANK ? bank : containerId == InventoryID.INV ? inventory : worn;
 		boolean changed = !ids.equals(previous) || (containerId == InventoryID.BANK && !bankKnown);
 		if (!changed)
@@ -152,10 +162,16 @@ public class OwnedItems
 		return expanded.contains(itemId);
 	}
 
-	/** Whether the item (canonical id) is in the last seen worn equipment. */
+	/** Whether the item (canonical id) is equipped right now; always false while logged out. */
 	public boolean isWorn(int itemId)
 	{
-		return worn.containsKey(itemId);
+		return equipped.contains(itemId);
+	}
+
+	/** Logged out: nothing is equipped until the worn container is seen again. */
+	public void clearEquipped()
+	{
+		equipped = Collections.emptySet();
 	}
 
 	/** Immutable view of the owned ids at this moment, unaffected by later container changes. */

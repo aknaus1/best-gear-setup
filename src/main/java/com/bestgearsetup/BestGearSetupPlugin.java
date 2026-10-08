@@ -73,6 +73,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.MenuAction;
+import net.runelite.api.ItemContainer;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
@@ -87,6 +88,7 @@ import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.gameval.VarPlayerID;
@@ -267,6 +269,8 @@ public class BestGearSetupPlugin extends Plugin
 
 		ownedItems.load();
 		panel.updateOwnedStatus();
+		// Enabled while logged in: no container event fires until something changes, so read them now.
+		clientThread.invokeLater(this::readLiveContainers);
 		// Loading waits for the game cache (login screen), so live wear levels can be read; see onGameStateChanged.
 		dataRequested = false;
 		if (cacheReady())
@@ -492,6 +496,41 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			SwingUtilities.invokeLater(this::requestGameData);
 		}
+		if (event.getGameState().getState() < GameState.LOGGING_IN.getState())
+		{
+			ownedItems.clearEquipped();
+			SwingUtilities.invokeLater(() ->
+			{
+				if (panel != null)
+				{
+					panel.updateOwnedStatus();
+				}
+			});
+		}
+	}
+
+	/** Client thread: take the current inventory and equipment, as if their containers had just changed. */
+	private void readLiveContainers()
+	{
+		if (client.getGameState() != GameState.LOGGED_IN)
+		{
+			return;
+		}
+		for (int containerId : new int[]{InventoryID.INV, InventoryID.WORN})
+		{
+			ItemContainer container = client.getItemContainer(containerId);
+			if (container != null)
+			{
+				ownedItems.onContainerChanged(containerId, container);
+			}
+		}
+		SwingUtilities.invokeLater(() ->
+		{
+			if (panel != null)
+			{
+				panel.updateOwnedStatus();
+			}
+		});
 	}
 
 	@Subscribe
@@ -805,7 +844,9 @@ public class BestGearSetupPlugin extends Plugin
 			AccountFacts.TaskRecord assignment = AccountFacts.task(client, configManager, gson);
 			WorldPoint taskLocation = npc != null ? npc.getWorldLocation()
 				: AccountFacts.ready(client) && client.getLocalPlayer() != null ? client.getLocalPlayer().getWorldLocation() : null;
-			Boolean matched = AccountFacts.matches(assignment, summary.getName(), taskLocation);
+			// A live target is checked where it stands; otherwise the search plans the assigned fight.
+			Boolean matched = npc != null ? AccountFacts.matches(assignment, summary.getName(), taskLocation)
+				: AccountFacts.matchesAssignment(assignment, summary.getName());
 			boolean karuulmDungeon = AccountFacts.karuulmSearch(assignment, summary.getName(),
 				npc == null ? null : npc.getWorldLocation(), taskLocation);
 			boolean onTask = config.taskMode().resolve(matched, false);
@@ -816,8 +857,10 @@ public class BestGearSetupPlugin extends Plugin
 			taskNote += " " + AccountFacts.describe(assignment);
 			if (matched == null && assignment != null && assignment.locationRestricted)
 			{ taskNote += " The assigned location could not be verified for this search."; }
-			if (taskLocation != null && assignment != null && assignment.locationRestricted)
-			{ taskNote += " Checked current region " + taskLocation.getRegionID() + ", floor " + taskLocation.getPlane() + "."; }
+			if (npc != null && assignment != null && assignment.locationRestricted)
+			{ taskNote += " Checked the target's region " + taskLocation.getRegionID() + ", floor " + taskLocation.getPlane() + "."; }
+			else if (Boolean.TRUE.equals(matched) && assignment.locationRestricted)
+			{ taskNote += " Assumes you fight it at the assigned location; right-click the monster there to check."; }
 			detectedNotes.add(taskNote);
 			if (WildernessTargets.only(summary.getName()))
 			{

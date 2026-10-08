@@ -162,9 +162,12 @@ how many are set.
 Completion of the Kandarin hard diary is detected and remembered per RuneScape profile, with no manual
 override. With the Slayer
 task set to **Auto**, the selected monster is matched against your current or remembered assignment,
-including boss tasks and alternative names. Tasks tied to a location also need your current location to be
-confirmed, and the Fremennik Slayer Dungeon is supported. Locations the plugin can't map or read stay
-unknown and don't give the task bonus automatically. **On** and **Off** are available as planning
+including boss tasks and alternative names. For a task tied to a location (Konar's), a search from the
+panel plans the assigned fight, so a matching monster counts as on task wherever you are, even logged
+out. When the search has a live target (a right-clicked NPC or the one you're fighting), the target's own
+location is checked instead; the Fremennik Slayer Dungeon and the Karuulm Slayer Dungeon are supported.
+Other locations can't be mapped yet, so for a live target they stay unknown and don't give the task bonus
+automatically. **On** and **Off** are available as planning
 overrides. Search details show the assumptions actually used and anything that couldn't be read.
 By default, account details are read automatically and raid scaling
 follows the raid you're in.

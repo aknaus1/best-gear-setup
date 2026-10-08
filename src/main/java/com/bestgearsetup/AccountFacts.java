@@ -149,6 +149,15 @@ final class AccountFacts
 		return atAssignedLocation(record.location, location);
 	}
 
+	/**
+	 * A search without a live target plans the assigned fight, so a location-restricted assignment counts as
+	 * being at its location; only the assigned name has to match.
+	 */
+	static Boolean matchesAssignment(TaskRecord record, String target)
+	{
+		return record == null ? null : matches(new TaskRecord(record.name, record.remaining, false), target);
+	}
+
 	/** Unknown areas remain unknown rather than granting a location-restricted task bonus. */
 	static Boolean atAssignedLocation(String assigned, WorldPoint location)
 	{
@@ -186,7 +195,7 @@ final class AccountFacts
 	{
 		if (liveTarget != null) { return inKaruulm(liveTarget); }
 		if (record != null && record.locationRestricted && isKaruulmAssignment(record.location)
-			&& Boolean.TRUE.equals(matches(new TaskRecord(record.name, record.remaining, false), target)))
+			&& Boolean.TRUE.equals(matchesAssignment(record, target)))
 		{
 			return true;
 		}

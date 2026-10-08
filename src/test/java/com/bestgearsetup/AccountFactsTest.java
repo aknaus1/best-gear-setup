@@ -83,4 +83,16 @@ public class AccountFactsTest
 		assertEquals(true, AccountFacts.karuulmSearch(null, "Wyrm", null, inside));
 		assertEquals(false, AccountFacts.karuulmSearch(null, "Wyrm", null, outside));
 	}
+
+	/** A panel search plans the Konar fight, wherever the player is standing or when logged out. */
+	@Test public void searchesWithoutALiveTargetPlanTheAssignedLocation()
+	{
+		AccountFacts.TaskRecord task = new AccountFacts.TaskRecord("Wyrms", 35, true, "Karuulm Slayer Dungeon");
+		assertEquals(true, AccountFacts.matchesAssignment(task, "Wyrm"));
+		assertEquals(true, AccountFacts.matchesAssignment(task, "Shadow wyrm"));
+		assertEquals(false, AccountFacts.matchesAssignment(task, "Drake"));
+		assertEquals(false, AccountFacts.matchesAssignment(new AccountFacts.TaskRecord("Wyrms", 0, true,
+			"Karuulm Slayer Dungeon"), "Wyrm"));
+		assertNull(AccountFacts.matchesAssignment(null, "Wyrm"));
+	}
 }
