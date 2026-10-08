@@ -159,7 +159,38 @@ final class AccountFacts
 			int region = location.getRegionID();
 			return location.getPlane() == 0 && (region == 10907 || region == 10908 || region == 11164);
 		}
+		if (isKaruulmAssignment(assigned)) { return inKaruulm(location); }
 		return null;
+	}
+
+	private static boolean isKaruulmAssignment(String assigned)
+	{
+		return assigned != null && normalize(assigned).equals("karuulm slayer dungeon");
+	}
+
+	/** Dungeon regions from RuneLite's Discord area catalog; all dungeon floors are included. */
+	static boolean inKaruulm(WorldPoint location)
+	{
+		if (location == null) { return false; }
+		switch (location.getRegionID())
+		{
+			case 5280: case 5279: case 5023: case 5535: case 5022: case 4766:
+			case 4510: case 4511: case 4767: case 4768: case 4512:
+				return true;
+			default: return false;
+		}
+	}
+
+	/** A visible target determines its location; otherwise a matching Konar assignment guides planning. */
+	static boolean karuulmSearch(TaskRecord record, String target, WorldPoint liveTarget, WorldPoint player)
+	{
+		if (liveTarget != null) { return inKaruulm(liveTarget); }
+		if (record != null && record.locationRestricted && isKaruulmAssignment(record.location)
+			&& Boolean.TRUE.equals(matches(new TaskRecord(record.name, record.remaining, false), target)))
+		{
+			return true;
+		}
+		return inKaruulm(player);
 	}
 
 	static String describe(TaskRecord record)

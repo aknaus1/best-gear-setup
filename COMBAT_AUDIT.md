@@ -24,6 +24,8 @@ historical equipment was also checked against the
 [Raging Echoes equipment list](https://oldschool.runescape.wiki/w/Raging_Echoes_League/Guide/Magic)
 and [Drygore blowpipe](https://oldschool.runescape.wiki/w/Drygore_blowpipe).
 Matching another calculator is good evidence, but it isn't independent proof from the game itself.
+The [source-provenance review](docs/source-provenance.md) records the manual comparison with the GPL
+reference, the retained reference-derived mechanics, and the limits of that comparison.
 
 ## Calculation order
 
@@ -222,8 +224,9 @@ These limits can noticeably change results:
   whole-fight, raid-scaled and damage-over-time searches. These check that results are finite,
   non-negative and bounded, and that budget and access rules hold; they **don't independently verify
   every formula**.
-- `python tools/reference_similarity.py` compares the calculator code with the GPL-3.0 reference, to make
-  sure none of it is a translation; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- `python tools/reference_similarity.py` flags short normalized-token and comment-vocabulary matches
+  against the GPL-3.0 reference for manual inspection. It cannot prove that code is not a translation;
+  see the [source-provenance review](docs/source-provenance.md) and [notices](THIRD_PARTY_NOTICES.md).
 - The build only applies the Java plugin, so there are **no Checkstyle or PMD tasks**. The tests don't
   cover the UI or in-game combat.
 

@@ -33,7 +33,10 @@ plugin whenever RuneLite updates.
   `python tools/reference_similarity.py` and look over anything it flags. The calculator uses the GPL-3.0
   [OSRS Wiki DPS calculator](https://github.com/weirdgloop/osrs-dps-calc) as a formula reference, but this
   plugin is BSD-2-Clause, so implement mechanics from the game's rules and the Wiki pages rather than
-  translating the reference's code. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+  translating the reference's code. Record any rule known only from the reference as reference-derived;
+  attribution alone does not authorize copying its implementation. The checker can merge unrelated
+  short matches and cannot prove independence. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
+  the [source-provenance review](docs/source-provenance.md).
 - Note calculation changes and their sources in [COMBAT_AUDIT.md](COMBAT_AUDIT.md), and add a line to
   [CHANGELOG.md](CHANGELOG.md).
 - Please don't add dependencies. The plugin uses the Plugin Hub's `build=standard`, which replaces

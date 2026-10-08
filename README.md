@@ -35,6 +35,9 @@ Right-click an item in a result to lock it, exclude it or mark it as owned.
   a **bank gear layout** with the setup's gear, runes, potions and spec weapon, ready to withdraw.
 - **Encounter rules are enforced**, including reach restrictions, damage caps, immunities, dragonfire
   protection and mandatory Slayer gear.
+- **Optional atlatl ammo recovery.** In Settings → Equipment, enable **Require Ava's / quiver for atlatl**
+  to require an Ava's device, an assembler cape or Dizana's quiver in atlatl setups. It is off by default;
+  ownership, budget, exclusions and cape locks still apply.
 
 ## Using the panel
 

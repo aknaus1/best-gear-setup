@@ -793,6 +793,8 @@ public class BestGearSetupPanel extends PluginPanel
 			ownedLabel.setText(plugin.getOwnedItems().count() + " items tracked" + (manual == 0 ? "" : " + " + manual + " extra"));
 			ownedLabel.setToolTipText("Bank, inventory and equipment; extra items are marked owned by hand in Gear rules.");
 		}
+		// Equipped markers are read when painted, so equipping an item updates the shown setup.
+		resultsPanel.repaint();
 	}
 
 	public void syncFromConfig()

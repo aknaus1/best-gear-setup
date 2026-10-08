@@ -806,6 +806,8 @@ public class BestGearSetupPlugin extends Plugin
 			WorldPoint taskLocation = npc != null ? npc.getWorldLocation()
 				: AccountFacts.ready(client) && client.getLocalPlayer() != null ? client.getLocalPlayer().getWorldLocation() : null;
 			Boolean matched = AccountFacts.matches(assignment, summary.getName(), taskLocation);
+			boolean karuulmDungeon = AccountFacts.karuulmSearch(assignment, summary.getName(),
+				npc == null ? null : npc.getWorldLocation(), taskLocation);
 			boolean onTask = config.taskMode().resolve(matched, false);
 			detected.put("onSlayerTask", onTask);
 			String taskNote = config.taskMode() == AutoState.AUTO
@@ -853,7 +855,7 @@ public class BestGearSetupPlugin extends Plugin
 			observedQuantities = null;
 			searchAmmoCount = config.ammoCount();
 			search = executor.submit(() -> runSearch(data, summary, levels, rememberedLevels, prayerUnlocks,
-				kourendElite, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes));
+				kourendElite, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes));
 		});
 	}
 
@@ -976,7 +978,7 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	private void runSearch(GameData data, MonsterSummary summary, PlayerLevels knownLevels, boolean rememberedLevels,
-		Set<String> prayerUnlocks, Boolean kourendElite, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
+		Set<String> prayerUnlocks, Boolean kourendElite, boolean karuulmDungeon, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
 		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid, List<String> detectedNotes)
 	{
 		try
@@ -995,7 +997,8 @@ public class BestGearSetupPlugin extends Plugin
 
 			// Rada's blessing 4 is an Elite diary reward, so owning it proves completion before the varbit is seen.
 			boolean eliteDiary = kourendElite != null ? kourendElite : owned.contains(ItemID.ZEAH_BLESSING_ELITE);
-			OptimizerSettings settings = buildSettings(config).toBuilder().kourendEliteDiary(eliteDiary).build();
+			OptimizerSettings settings = buildSettings(config).toBuilder().kourendEliteDiary(eliteDiary)
+				.karuulmDungeon(karuulmDungeon).build();
 			Map<CombatClass, OffensivePrayer> prayers = new EnumMap<>(CombatClass.class);
 			if (config.usePrayers())
 			{
@@ -1080,7 +1083,7 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				notes.add("Prayer unlocks are unknown until you log in; Piety, Rigour, Augury and similar are assumed unlocked.");
 			}
-			if (kourendElite == null && !eliteDiary && SlayerEquipment.inKaruulm(baseMonster))
+			if (kourendElite == null && !eliteDiary && SlayerEquipment.inKaruulm(baseMonster, settings))
 			{
 				notes.add("Elite Kourend & Kebos Diary status is unknown until you log in, so Karuulm boots are required.");
 			}
@@ -1349,6 +1352,7 @@ public class BestGearSetupPlugin extends Plugin
 			.dmmItems(config.dmmItems())
 			.betaItems(config.betaItems())
 			.bountyHunterItems(config.bountyHunterItems())
+			.requireAtlatlAmmoRecovery(config.requireAtlatlAmmoRecovery())
 			.fillMode(config.fillMode())
 			.defenceFocus(config.defenceFocus())
 			.fillMarginPercent(config.fillMargin())
@@ -1456,6 +1460,11 @@ public class BestGearSetupPlugin extends Plugin
 			}
 		}
 		notes.add("Wear requirements: bundled Wiki text, cache parameters and reviewed local rules; live cache levels can only raise them.");
+		if (settings.isRequireAtlatlAmmoRecovery())
+		{
+			notes.add("Eclipse atlatl setups require an Ava's device, an assembler cape, or Dizana's quiver. "
+				+ "Ownership, budget, exclusions and cape locks still apply; without a usable cape, no atlatl setup is returned.");
+		}
 		notes.add(statusNote(base));
 		String raidNote = RaidScaling.describe(unscaled, base, raid);
 		if (raidNote != null)
@@ -1715,6 +1724,23 @@ public class BestGearSetupPlugin extends Plugin
 		for (int variant : item.getOwnershipVariants())
 		{
 			if (ownedItems.owns(variant))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Worn directly or as a reviewed equivalent charge state. */
+	public boolean wears(GearItem item)
+	{
+		if (ownedItems.isWorn(item.getId()))
+		{
+			return true;
+		}
+		for (int variant : item.getOwnershipVariants())
+		{
+			if (ownedItems.isWorn(variant))
 			{
 				return true;
 			}

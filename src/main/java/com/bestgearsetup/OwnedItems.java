@@ -152,6 +152,12 @@ public class OwnedItems
 		return expanded.contains(itemId);
 	}
 
+	/** Whether the item (canonical id) is in the last seen worn equipment. */
+	public boolean isWorn(int itemId)
+	{
+		return worn.containsKey(itemId);
+	}
+
 	/** Immutable view of the owned ids at this moment, unaffected by later container changes. */
 	public Set<Integer> snapshot()
 	{

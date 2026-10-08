@@ -146,6 +146,20 @@ public final class WeaponRules
 		return weapon != null && weapon.getLowerCombatName().startsWith("eclipse atlatl");
 	}
 
+	/** Ava's devices and their assembler cape variants, plus charged or uncharged Dizana's quivers. */
+	public static boolean isAmmoRecoveryCape(GearItem item)
+	{
+		if (item == null || item.getSlot() != Slot.CAPE)
+		{
+			return false;
+		}
+		String name = item.getLowerCombatName();
+		return name.startsWith("ava's attractor") || name.startsWith("ava's accumulator")
+			|| name.startsWith("ava's assembler") || name.startsWith("assembler max cape")
+			|| name.startsWith("masori assembler") || name.startsWith("dizana's quiver")
+			|| name.startsWith("blessed dizana's quiver");
+	}
+
 	/**
 	 * Ranged weapons whose damage uses visible Strength, melee strength bonus and melee slayer/salve
 	 * damage branches: the eclipse atlatl and Hunter's spear. Accuracy remains ordinary ranged accuracy.

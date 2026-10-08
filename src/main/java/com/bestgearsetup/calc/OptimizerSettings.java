@@ -57,6 +57,9 @@ public class OptimizerSettings
 	boolean betaItems = false;
 	@Builder.Default
 	boolean bountyHunterItems = false;
+	/** Eclipse atlatl setups must wear an Ava's device or quiver to recover ammunition. */
+	@Builder.Default
+	boolean requireAtlatlAmmoRecovery = false;
 
 	@Builder.Default
 	FillMode fillMode = FillMode.NONE;
@@ -92,6 +95,9 @@ public class OptimizerSettings
 	/** The Elite Kourend & Kebos Diary removes the Karuulm Slayer Dungeon's heat-protection boots requirement. */
 	@Builder.Default
 	boolean kourendEliteDiary = false;
+	/** The selected target is in Karuulm, or the search plans a matching Karuulm assignment. */
+	@Builder.Default
+	boolean karuulmDungeon = false;
 
 	@Builder.Default
 	Map<Slot, SlotLock> locks = Collections.emptyMap();

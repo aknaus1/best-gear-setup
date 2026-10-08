@@ -471,6 +471,15 @@ public interface BestGearSetupConfig extends Config
 		return false;
 	}
 
+	@ConfigItem(keyName = "requireAtlatlAmmoRecovery", name = "Require Ava's / quiver for atlatl",
+		description = "Eclipse atlatl setups must equip an Ava's device, an assembler cape, or Dizana's quiver. "
+			+ "Ownership, budget, exclusions and cape locks still apply; without a usable cape, no atlatl setup is returned.",
+		section = equipmentSection, position = 4)
+	default boolean requireAtlatlAmmoRecovery()
+	{
+		return false;
+	}
+
 	// ------------------------------------------------------------ options
 
 	@ConfigItem(keyName = "styleStab", name = "Stab", description = "Allow stab attacks", section = optionsSection, position = 0)

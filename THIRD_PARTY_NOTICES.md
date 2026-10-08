@@ -35,17 +35,24 @@ The combat formulas are checked against the
 `89c3e25b344aea90d0189746e4b5f73dde0f0383`. [COMBAT_AUDIT.md](COMBAT_AUDIT.md) lists where each formula
 comes from.
 
-Game formulas and values are facts, so the plugin can use the same ones as the calculator, but its code is
-written from the game's rules and the Wiki pages rather than translated from the calculator's source. The
-one exception is the Chambers of Xeric scaling values in `RaidScaling.cox`: the Wiki doesn't publish them,
-so they come from the calculator and are credited to it in the source.
+The reference supplies or corroborates game-mechanic formulas, numeric values and target classifications.
+Reference-derived details include Chambers of Xeric scaling, Theatre of Blood entry-mode HP fractions and
+fallback NPC IDs, some Tombs of Amascut scaling details, encounter classifications, and the burning-claw
+burn-overlap observation credited to the reference authors. These sources are recorded in the code and
+combat audit; they have not all been independently verified through game measurements.
 
-`tools/reference_similarity.py` compares the plugin's calculator code (`src/main/java/com/bestgearsetup/calc`)
-with the calculator's library files, matching code structure after normalising names and syntax and also
-comparing comments, to catch anything that reads like a translation. The plugin follows the same game
-mechanics, constants and modifier order as the calculator, but it's built differently: it works with
-expected values rather than hit distributions, combines the accuracy and damage steps, and uses rule
-tables.
+The plugin implements these rules in Java. The reference library is not a runtime dependency and its
+source files are not bundled in the plugin JAR. A scoped comparison of the flagged passages and selected
+mechanics found no confirmed copied routine or substantial copied comment; see the
+[source-provenance review](https://github.com/aknaus1/best-gear-setup/blob/main/docs/source-provenance.md)
+for its exact scope and limitations. That comparison cannot establish the original development history.
+
+`tools/reference_similarity.py` is a review aid, not proof of independent authorship. It matches short
+token windows after discarding names and much syntax, and compares comment vocabulary. Its regions can
+combine unrelated matches from different reference positions; its reported token counts are not lengths
+of contiguous copied code. Every flag requires manual inspection, and a clean report cannot exclude a
+refactored translation. Attribution does not grant permission to redistribute protected reference code
+under the plugin's BSD licence.
 
 ## RuneLite Slayer target aliases
 

@@ -19,6 +19,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.RenderingHints;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.Map;
 import java.util.Set;
@@ -39,7 +40,9 @@ import net.runelite.client.util.AsyncBufferedImage;
  * </pre>
  * Slots filled for defence / prayer are highlighted blue, locked slots get an orange frame and padlock
  * (red when the lock could not be applied, with the locked item shown faded), and a corner marker shows
- * whether the item is owned (green), to buy (yellow) or untradeable (orange).
+ * whether the item is owned (green), to buy (yellow) or untradeable (orange). A tick in the top-right corner
+ * marks items currently worn, so a missing piece stands out; it is read when painted and follows the worn
+ * equipment live.
  */
 class EquipmentGrid extends JPanel
 {
@@ -52,6 +55,8 @@ class EquipmentGrid extends JPanel
 	private static final Color OWNED = new Color(0x6B, 0xD5, 0x6B);
 	private static final Color BUY = new Color(0xFF, 0xD2, 0x4D);
 	private static final Color UNTRADEABLE = new Color(0xFF, 0x9F, 0x40);
+	private static final Color WORN = new Color(0x7C, 0xF0, 0x7C);
+	private static final String TIP_FOOTER = "<br><i>Right-click for options</i></html>";
 
 	private static final Slot[] LAYOUT = {
 		null, Slot.HEAD, null,
@@ -132,6 +137,11 @@ class EquipmentGrid extends JPanel
 		/** The locked item that could not be used, drawn faded in its empty slot. */
 		private final AsyncBufferedImage ghost;
 		private final Color marker;
+		private final BestGearSetupPlugin plugin;
+		/** False for blowpipe darts, which are loaded rather than worn. */
+		private final boolean wearable;
+		/** The item tooltip without its footer; the worn status is added when it is shown. */
+		private String itemTip;
 
 		SlotBox(Slot slot, GearItem item, boolean darts, boolean filled, LockStatus lock, BestGearSetupPlugin plugin,
 			ItemManager itemManager, SpriteCache sprites, int ammoCount)
@@ -141,6 +151,8 @@ class EquipmentGrid extends JPanel
 			this.filled = filled;
 			this.lock = lock;
 			this.sprites = sprites;
+			this.plugin = plugin;
+			this.wearable = item != null && !darts;
 			setPreferredSize(new Dimension(SLOT_SIZE, SLOT_SIZE));
 			boolean locked = lock != null;
 			GearItem lockedItem = locked ? lock.getItem() : null;
@@ -227,10 +239,25 @@ class EquipmentGrid extends JPanel
 				{
 					tip.append("<br>").append(BestGearSetupPanel.escape(lockDescription(lock)));
 				}
-				tip.append("<br><i>Right-click for options</i></html>");
-				setToolTipText(tip.toString());
+				itemTip = tip.toString();
+				setToolTipText(itemTip + TIP_FOOTER);
 			}
 			setComponentPopupMenu(ItemMenus.create(item, darts ? null : slot, locked, plugin));
+		}
+
+		private boolean worn()
+		{
+			return wearable && plugin.wears(item);
+		}
+
+		@Override
+		public String getToolTipText(MouseEvent event)
+		{
+			if (itemTip == null)
+			{
+				return super.getToolTipText(event);
+			}
+			return itemTip + (wearable ? (worn() ? "<br>Equipped" : "<br>Not equipped") : "") + TIP_FOOTER;
 		}
 
 		private static boolean variantOfExcluded(GearItem item, BestGearSetupPlugin plugin)
@@ -312,6 +339,18 @@ class EquipmentGrid extends JPanel
 			{
 				g2.setColor(marker);
 				g2.fillPolygon(new int[]{w - 9, w - 2, w - 2}, new int[]{h - 2, h - 2, h - 9}, 3);
+			}
+			if (worn())
+			{
+				// Tick in the top-right corner, outlined so it reads over the item icon.
+				int[] xs = {w - 12, w - 9, w - 4};
+				int[] ys = {7, 10, 3};
+				g2.setStroke(new BasicStroke(3.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.setColor(Color.BLACK);
+				g2.drawPolyline(xs, ys, 3);
+				g2.setStroke(new BasicStroke(1.75f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.setColor(WORN);
+				g2.drawPolyline(xs, ys, 3);
 			}
 			if (lock != null)
 			{

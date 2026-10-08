@@ -44,4 +44,43 @@ public class AccountFactsTest
 		assertNull(AccountFacts.matches(task, "Turoth", null));
 		assertNull(AccountFacts.matches(new AccountFacts.TaskRecord("Turoth", 5, true, "Unmapped dungeon"), "Turoth", new WorldPoint(2800, 9998, 0)));
 	}
+
+	private static WorldPoint region(int region, int plane)
+	{
+		return new WorldPoint((region >> 8) * 64 + 20, (region & 255) * 64 + 20, plane);
+	}
+
+	@Test public void konarWyrmsMatchKaruulmAcrossFloorsAndRejectOutsideTargets()
+	{
+		AccountFacts.TaskRecord task = new AccountFacts.TaskRecord("Wyrms", 35, true, "the Karuulm Slayer Dungeon");
+		for (int id : new int[]{5280, 5279, 5023, 5535, 5022, 4766, 4510, 4511, 4767, 4768, 4512})
+		{
+			for (int plane : new int[]{0, 1, 2})
+			{
+				assertEquals(true, AccountFacts.matches(task, "Wyrm (Attacking)", region(id, plane)));
+				assertEquals(true, AccountFacts.matches(task, "Shadow wyrm", region(id, plane)));
+				assertEquals(false, AccountFacts.matches(task, "Drake", region(id, plane)));
+			}
+		}
+		assertEquals(false, AccountFacts.matches(task, "Wyrm", region(5179, 0))); // Mount Karuulm surface
+		assertEquals(false, AccountFacts.matches(task, "Wyrm", new WorldPoint(3200, 3200, 0)));
+		assertNull(AccountFacts.matches(task, "Wyrm", null));
+	}
+
+	@Test public void bootsUseTheVisibleTargetOrMatchingAssignmentForPlanning()
+	{
+		AccountFacts.TaskRecord task = new AccountFacts.TaskRecord("Wyrms", 35, true, "Karuulm Slayer Dungeon");
+		WorldPoint inside = region(5279, 0);
+		WorldPoint outside = new WorldPoint(3200, 3200, 0);
+		assertEquals(true, AccountFacts.karuulmSearch(task, "Wyrm (Attacking)", inside, outside));
+		assertEquals(false, AccountFacts.karuulmSearch(task, "Wyrm (Attacking)", outside, inside));
+		assertEquals(true, AccountFacts.karuulmSearch(task, "Wyrm (Attacking)", null, outside));
+		assertEquals(true, AccountFacts.karuulmSearch(task, "Shadow wyrm", null, null));
+		assertEquals(false, AccountFacts.karuulmSearch(task, "Dust devil", null, outside));
+		assertEquals(false, AccountFacts.karuulmSearch(new AccountFacts.TaskRecord("Wyrms", 0, true,
+			"Karuulm Slayer Dungeon"), "Wyrm", null, outside));
+		assertEquals(true, AccountFacts.karuulmSearch(null, "Wyrm", inside, outside));
+		assertEquals(true, AccountFacts.karuulmSearch(null, "Wyrm", null, inside));
+		assertEquals(false, AccountFacts.karuulmSearch(null, "Wyrm", null, outside));
+	}
 }

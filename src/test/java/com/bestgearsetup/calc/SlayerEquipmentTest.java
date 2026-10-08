@@ -147,6 +147,73 @@ public class SlayerEquipmentTest
 	}
 
 	@Test
+	public void karuulmWyrmsRequireBootsUnlessEliteDiaryIsComplete()
+	{
+		OptimizerSettings karuulm = DEFAULTS.toBuilder().karuulmDungeon(true).build();
+		OptimizerSettings elite = karuulm.toBuilder().kourendEliteDiary(true).build();
+		for (String name : new String[]{"wyrm (attacking)", "wyrm (idle)", "shadow wyrm"})
+		{
+			Monster wyrm = named(name);
+			assertTrue(SlayerEquipment.inKaruulm(wyrm, karuulm));
+			assertTrue(SlayerEquipment.applies(wyrm, karuulm));
+			assertFalse(SlayerEquipment.allowed(wyrm, karuulm, wearing()));
+			GearItem ordinaryBoots = item(Slot.FEET, "primordial boots");
+			assertFalse(SlayerEquipment.allowed(wyrm, karuulm, wearing(ordinaryBoots)));
+			assertNotNull(SlayerEquipment.lockConflict(wyrm, karuulm, Slot.FEET, ordinaryBoots));
+			for (String boots : new String[]{"boots of stone", "boots of brimstone", "granite boots"})
+			{
+				GearItem protection = item(Slot.FEET, boots);
+				assertTrue(SlayerEquipment.isRequired(wyrm, karuulm, protection));
+				assertTrue(SlayerEquipment.allowed(wyrm, karuulm, wearing(protection)));
+			}
+			assertTrue(SlayerEquipment.notes(wyrm, karuulm).get(0).contains("Required equipment"));
+			assertFalse(SlayerEquipment.notes(wyrm, karuulm).stream().anyMatch(n -> n.contains("not enforced")));
+			assertFalse(SlayerEquipment.applies(wyrm, elite));
+			assertTrue(SlayerEquipment.allowed(wyrm, elite, wearing(ordinaryBoots)));
+			assertTrue(SlayerEquipment.notes(wyrm, elite).get(0).contains("Diary complete"));
+			assertFalse(SlayerEquipment.applies(wyrm, DEFAULTS));
+			assertTrue(SlayerEquipment.allowed(wyrm, DEFAULTS, wearing(ordinaryBoots)));
+		}
+		assertFalse(SlayerEquipment.applies(named("wyrmling"), karuulm));
+	}
+
+	@Test
+	public void karuulmWyrmSearchesEnforceBootsForEveryModeAndCombatStyle()
+	{
+		Monster wyrm = bundled("wyrm (attacking)");
+		Set<Integer> owned = new HashSet<>(Arrays.asList(4587, 1704, 23037));
+		for (SearchMode mode : SearchMode.values())
+		{
+			OptimizerSettings settings = OptimizerSettings.builder().mode(mode).budget(10_000_000L)
+				.depth(SearchDepth.FAST).resultsPerClass(2).karuulmDungeon(true)
+				.spellbooks(Collections.singleton("standard")).build();
+			for (boolean onTask : new boolean[]{false, true})
+			{
+				CombatContext ctx = new CombatContext(wyrm, PlayerLevels.maxed(), onTask, true, TestData.piety());
+				Optimizer optimizer = new Optimizer(data, ctx, settings, owned::contains, PRICE);
+				int found = 0;
+				for (CombatClass cls : CombatClass.values())
+				{
+					List<SetupResult> results = optimizer.optimize(cls, () -> false);
+					if (mode != SearchMode.OWNED_ONLY) { assertFalse(mode + " " + cls, results.isEmpty()); }
+					for (SetupResult result : results)
+					{
+						found++;
+						assertTrue(mode + " " + cls + " task=" + onTask,
+							SlayerEquipment.allowed(wyrm, settings, result.getLoadout()));
+					}
+				}
+				assertTrue(mode + " task=" + onTask, found > 0);
+			}
+		}
+		OptimizerSettings noBoots = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
+			.depth(SearchDepth.FAST).karuulmDungeon(true).spellbooks(Collections.singleton("standard")).build();
+		CombatContext ctx = new CombatContext(wyrm, PlayerLevels.maxed(), false, true, TestData.piety());
+		assertTrue(new Optimizer(data, ctx, noBoots, id -> id == 4587 || id == 1704, PRICE)
+			.optimize(CombatClass.MELEE, () -> false).isEmpty());
+	}
+
+	@Test
 	public void twoHandedWeaponsCannotHoldARequiredShield()
 	{
 		Monster knight = bundled("basilisk knight");

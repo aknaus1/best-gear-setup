@@ -19,6 +19,9 @@ import java.util.function.Predicate;
 public final class SlayerEquipment
 {
 	private static final Predicate<String> SLAYER_HELMET = n -> n.contains("slayer helmet");
+	private static final Predicate<String> KARUULM_ONLY = names(
+		"hydra", "colossal hydra", "alchemical hydra", "drake", "guardian drake", "sulphur lizard");
+	private static final Predicate<String> WYRMS = names("wyrm", "shadow wyrm");
 	private static final List<Rule> RULES = Collections.unmodifiableList(Arrays.asList(
 		new Rule(Slot.HEAD, "a facemask or slayer helmet", false,
 			names("dust devil", "choke devil", "smoke devil", "nuclear smoke devil", "thermonuclear smoke devil"),
@@ -41,9 +44,9 @@ public final class SlayerEquipment
 		// The Wiki names only the mirror shield for younglings.
 		new Rule(Slot.SHIELD, "a mirror shield", false, names("basilisk youngling"), n -> n.equals("mirror shield")),
 		new Rule(Slot.SHIELD, "a lit bug lantern", false, names("harpie bug swarm"), n -> n.equals("lit bug lantern")),
-		// Monsters found only inside the Karuulm Slayer Dungeon; wyrms also live in Wyrmscraig, so they are a note.
+		// Wyrms share this rule only when the search location is Karuulm.
 		new Rule(Slot.FEET, "boots of stone, boots of brimstone or granite boots", true,
-			names("hydra", "colossal hydra", "alchemical hydra", "drake", "guardian drake", "sulphur lizard"),
+			KARUULM_ONLY.or(WYRMS),
 			n -> n.equals("boots of stone") || n.equals("boots of brimstone") || n.equals("granite boots"))));
 
 	private SlayerEquipment()
@@ -73,7 +76,8 @@ public final class SlayerEquipment
 		List<Rule> out = new ArrayList<>();
 		for (Rule rule : RULES)
 		{
-			if (rule.monster.test(name) && !(rule.karuulm && settings.isKourendEliteDiary()))
+			if (rule.monster.test(name)
+				&& !(rule.karuulm && (settings.isKourendEliteDiary() || !inKaruulm(monster, settings))))
 			{
 				out.add(rule);
 			}
@@ -85,7 +89,13 @@ public final class SlayerEquipment
 	public static boolean inKaruulm(Monster monster)
 	{
 		String name = monster.getLowerName();
-		return RULES.stream().anyMatch(r -> r.karuulm && r.monster.test(name));
+		return KARUULM_ONLY.test(name);
+	}
+
+	/** Whether heat-protection boots apply at this search's target location, before the diary exemption. */
+	public static boolean inKaruulm(Monster monster, OptimizerSettings settings)
+	{
+		return inKaruulm(monster) || settings.isKaruulmDungeon() && WYRMS.test(monster.getLowerName());
 	}
 
 	/** Whether the target requires protective equipment in any slot. */
@@ -154,11 +164,11 @@ public final class SlayerEquipment
 				+ (rule.slot == Slot.SHIELD ? ", so two-handed weapons are excluded." : ".")
 				+ (rule.karuulm ? " The Elite Kourend & Kebos Diary removes the boots requirement." : ""));
 		}
-		if (inKaruulm(monster) && settings.isKourendEliteDiary())
+		if (inKaruulm(monster, settings) && settings.isKourendEliteDiary())
 		{
 			notes.add("Karuulm Slayer Dungeon: no heat-protection boots needed (Elite Kourend & Kebos Diary complete).");
 		}
-		if (names("wyrm", "shadow wyrm").test(name))
+		if (WYRMS.test(name) && !inKaruulm(monster, settings))
 		{
 			notes.add("Wyrms in the Karuulm Slayer Dungeon need boots of stone, boots of brimstone or granite boots"
 				+ " (unless the Elite Kourend & Kebos Diary is complete); Wyrmscraig wyrms don't, so boots are not enforced.");

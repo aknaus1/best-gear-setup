@@ -2,9 +2,12 @@
 
 Downloads the audited reference revision's library sources into the ignored build/combat-reference/dps-calc
 folder (read only; nothing is copied into the plugin), then reports:
-  * structural overlaps: runs of matching 8-token windows after names, strings and syntax noise are
-    normalised away, keeping only regions with real logic;
-  * comment overlaps: plugin comments sharing most of their words with a reference comment.
+  * aggregated token-window flags: runs of matching 8-token windows after names, strings and syntax
+    noise are normalised away, filtered for arithmetic/control tokens;
+  * comment-vocabulary flags: plugin comments sharing words with a reference comment.
+Adjacent windows can match unrelated positions or files and are merged into a single plugin region.
+The token count is not a contiguous reference-match length; its displayed reference location identifies
+only one contributing window. Comment flags compare unordered vocabulary, not copied sentences.
 A flagged region is a prompt for manual review, not a finding; an empty report is not proof of independence,
 because a refactored translation can escape token matching.
 
@@ -116,11 +119,11 @@ def main():
     ref_files = fetch()
     print(f"Reference {REPO}@{REVISION[:7]}: {len(ref_files)} files")
     regions = structural(ref_files)
-    print(f"\nStructural overlaps to review ({len(regions)}):")
+    print(f"\nAggregated token-window flags to review ({len(regions)}; not contiguous code matches):")
     for size, ours, theirs in regions:
         print(f"  {size:4d} tokens  {ours}  ~  {theirs}")
     overlaps = comment_overlaps(ref_files)
-    print(f"\nComment overlaps ({len(overlaps)}):")
+    print(f"\nComment-vocabulary flags ({len(overlaps)}; not sentence matches):")
     for ours, theirs in overlaps:
         print(f"  {ours}  ~  {theirs}")
 

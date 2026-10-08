@@ -400,6 +400,21 @@ public class Optimizer
 		{
 			return null;
 		}
+		if (settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon))
+		{
+			// Seed every usable recovery cape, including zero-damage devices that ascent would otherwise drop.
+			List<Seed> recoverySeeds = new ArrayList<>();
+			for (GearItem cape : atlatlRecoveryCapes())
+			{
+				for (Seed seed : seeds)
+				{
+					Loadout loadout = seed.getLoadout().copy();
+					loadout.set(Slot.CAPE, cape);
+					recoverySeeds.add(new Seed(loadout, seed.getFilter(), seed.getDamage(), seed.isSet()));
+				}
+			}
+			seeds = recoverySeeds;
+		}
 
 		Loadout best = null;
 		double bestScore = -1;
@@ -420,6 +435,13 @@ public class Optimizer
 			l.setSpell(options.get(0).getSpell());
 			l.set(Slot.AMMO, null);
 			applyLocks(l, weapon, firesAmmo);
+			SlotLock capeLock = settings.getLocks().get(Slot.CAPE);
+			if (settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon)
+				&& capeLock != null && capeLock.getKind() == SlotLock.Kind.FILL)
+			{
+				// A fill lock may choose a different recovery cape later, but must start with usable equipment.
+				l.set(Slot.CAPE, seed.getLoadout().get(Slot.CAPE));
+			}
 			// Start from the strongest ammo that fits the budget (ammo can be priced per 1000 arrows).
 			boolean fits = false;
 			for (GearItem a : firesAmmo || loadsAmmo ? ammo : Collections.<GearItem>singletonList(null))
@@ -997,11 +1019,13 @@ public class Optimizer
 		return protectedSetup(l) && withinWildernessRisk(l) ? DpsCalculator.calculate(l, ctx) : DpsResult.ZERO;
 	}
 
-	/** Mandatory protection (dragonfire, Slayer equipment) is part of a usable setup, not just a warning. */
+	/** Mandatory protection and the optional atlatl cape requirement are enforced throughout the search. */
 	private boolean protectedSetup(Loadout l)
 	{
 		return (!fireProtectionRequired || DragonfireProtection.protects(monster, l, settings, levels))
-			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l));
+			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l))
+			&& (!settings.isRequireAtlatlAmmoRecovery() || !WeaponRules.isAtlatl(l.getWeapon())
+				|| WeaponRules.isAmmoRecoveryCape(l.get(Slot.CAPE)));
 	}
 
 	private double metric(DpsResult r)
@@ -1471,7 +1495,8 @@ public class Optimizer
 			for (GearItem item : pool)
 			{
 				if (isSpecial(item) || DragonfireProtection.isProtectiveShield(item)
-					|| SlayerEquipment.isRequired(monster, settings, item))
+					|| SlayerEquipment.isRequired(monster, settings, item)
+					|| settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAmmoRecoveryCape(item))
 				{
 					keep.add(item);
 				}
@@ -1695,6 +1720,23 @@ public class Optimizer
 			out.add(w);
 		}
 		return out;
+	}
+
+	/** Recovery capes that satisfy availability and the cape lock, before combined setup costs are checked. */
+	private List<GearItem> atlatlRecoveryCapes()
+	{
+		SlotLock lock = settings.getLocks().get(Slot.CAPE);
+		List<GearItem> capes = new ArrayList<>();
+		for (GearItem cape : data.getItems(Slot.CAPE))
+		{
+			if (WeaponRules.isAmmoRecoveryCape(cape) && usable(cape)
+				&& (lock == null || lock.getKind() == SlotLock.Kind.FILL
+					|| lock.getKind() == SlotLock.Kind.ITEM && lock.getItemId() == cape.getId()))
+			{
+				capes.add(cape);
+			}
+		}
+		return capes;
 	}
 
 	/** Whether any of the weapon's styles in this class has a damaging special attack. */
@@ -2168,6 +2210,11 @@ public class Optimizer
 		if (reason != null)
 		{
 			return reason;
+		}
+		if (settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon) && atlatlRecoveryCapes().isEmpty())
+		{
+			return "it requires an Ava's device or Dizana's quiver, but none is usable with your cape lock, "
+				+ "exclusions and availability settings";
 		}
 		SlotLock shieldLock = settings.getLocks().get(Slot.SHIELD);
 		if (weapon.isTwoHanded() && shieldLock != null && shieldLock.getKind() != SlotLock.Kind.EMPTY)
