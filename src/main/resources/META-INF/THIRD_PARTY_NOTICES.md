@@ -32,7 +32,7 @@ redistribute the data, keep its metadata and the per-rule source links with it.
 The combat formulas are checked against the
 [OSRS Wiki DPS calculator](https://github.com/weirdgloop/osrs-dps-calc), which is licensed under
 [GPL-3.0](https://github.com/weirdgloop/osrs-dps-calc/blob/main/LICENSE), at revision
-`89c3e25b344aea90d0189746e4b5f73dde0f0383`. [COMBAT_AUDIT.md](COMBAT_AUDIT.md) lists where each formula
+`89c3e25b344aea90d0189746e4b5f73dde0f0383`. [COMBAT_AUDIT.md](https://github.com/aknaus1/best-gear-setup/blob/main/COMBAT_AUDIT.md) lists where each formula
 comes from.
 
 The reference supplies or corroborates game-mechanic formulas, numeric values and target classifications.
