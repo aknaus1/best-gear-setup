@@ -95,6 +95,7 @@ final class SearchAssumptions implements BestGearSetupConfig
 	private final boolean raidPotions;
 	private final AutoState taskMode;
 	private final boolean autoRaid;
+	private final boolean autoSpecs;
 	private final PotionOptions.Melee meleePotion;
 	private final PotionOptions.Ranged rangedPotion;
 	private final PotionOptions.Magic magicPotion;
@@ -179,6 +180,7 @@ final class SearchAssumptions implements BestGearSetupConfig
 		raidPotions = o.get("raidPotions", source.raidPotions());
 		taskMode = o.get("taskMode", source.taskMode());
 		autoRaid = o.get("autoRaid", source.autoRaid());
+		autoSpecs = o.get("autoSpecs", source.autoSpecs());
 		meleePotion = o.get("meleePotion", source.meleePotion());
 		rangedPotion = o.get("rangedPotion", source.rangedPotion());
 		magicPotion = o.get("magicPotion", source.magicPotion());
@@ -270,6 +272,7 @@ final class SearchAssumptions implements BestGearSetupConfig
 	@Override public boolean raidPotions() { return raidPotions; }
 	@Override public AutoState taskMode() { return taskMode; }
 	@Override public boolean autoRaid() { return autoRaid; }
+	@Override public boolean autoSpecs() { return autoSpecs; }
 	@Override public PotionOptions.Melee meleePotion() { return meleePotion; }
 	@Override public PotionOptions.Ranged rangedPotion() { return rangedPotion; }
 	@Override public PotionOptions.Magic magicPotion() { return magicPotion; }

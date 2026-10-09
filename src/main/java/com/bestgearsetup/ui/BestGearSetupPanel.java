@@ -26,6 +26,7 @@ import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -719,7 +720,7 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 		else
 		{
-			status.append("Best setups vs <b>").append(escape(found.getMonster().getDisplayName())).append("</b>");
+			status.append(targetSummary(found));
 			if (found.hasBlockingLock())
 			{
 				status.append("<br><font color='#FFD24D'>").append(blockedLocks(found)).append("</font>");
@@ -749,13 +750,19 @@ public class BestGearSetupPanel extends PluginPanel
 			ResultView resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount());
 			resultsPanel.add(left(resultView));
 		}
-		if (!found.getNotes().isEmpty())
+		List<String> detailLines = new ArrayList<>();
+		if (plugin.getOwnedItems().isBankKnown())
+		{
+			detailLines.add(ownedSummary());
+		}
+		detailLines.addAll(found.getNotes());
+		if (!detailLines.isEmpty())
 		{
 			JPanel details = new JPanel(new BorderLayout());
 			details.setBackground(ColorScheme.DARK_GRAY_COLOR);
 			JButton toggle = new JButton("+ Search details");
 			toggle.setFocusable(false);
-			JLabel notes = new JLabel(html(found.getNotes().stream().map(BestGearSetupPanel::escape)
+			JLabel notes = new JLabel(html(detailLines.stream().map(BestGearSetupPanel::escape)
 				.collect(Collectors.joining("<br>"))));
 			notes.setName("searchDetails");
 			setSmall(notes, ColorScheme.LIGHT_GRAY_COLOR);
@@ -774,6 +781,22 @@ public class BestGearSetupPanel extends PluginPanel
 		resultsPanel.repaint();
 	}
 
+	/** Raid party scaling, when the target has any, and the Defence the setups were ranked against. */
+	private static String targetSummary(SearchResults found)
+	{
+		int defence = found.getMonster().getDefenceLevel();
+		String line = "Defence: <b>" + defence + "</b>"
+			+ (defence == found.getBaseDefence() ? "" : " (" + found.getBaseDefence() + " before drains)");
+		return found.getRaidScaling() == null ? line : escape(found.getRaidScaling()) + "<br>" + line;
+	}
+
+	private String ownedSummary()
+	{
+		int manual = plugin.getOwnedItems().getManual().size();
+		return "Owned items: " + plugin.getOwnedItems().count() + " tracked from bank, inventory and equipment"
+			+ (manual == 0 ? "" : " + " + manual + " marked by hand") + ".";
+	}
+
 	/** An item was marked or unmarked as owned by hand. */
 	public void onManualOwnedChanged()
 	{
@@ -783,16 +806,10 @@ public class BestGearSetupPanel extends PluginPanel
 
 	public void updateOwnedStatus()
 	{
-		if (!plugin.getOwnedItems().isBankKnown())
-		{
-			ownedLabel.setText(html("Open your bank once to use your owned items."));
-		}
-		else
-		{
-			int manual = plugin.getOwnedItems().getManual().size();
-			ownedLabel.setText(plugin.getOwnedItems().count() + " items tracked" + (manual == 0 ? "" : " + " + manual + " extra"));
-			ownedLabel.setToolTipText("Bank, inventory and equipment; extra items are marked owned by hand in Gear rules.");
-		}
+		// The tracked count is listed under Search details; only the missing bank needs a standing prompt.
+		boolean known = plugin.getOwnedItems().isBankKnown();
+		ownedLabel.setText(known ? "" : html("Open your bank once to use your owned items."));
+		ownedLabel.setVisible(!known);
 		// Equipped markers are read when painted, so equipping an item updates the shown setup.
 		resultsPanel.repaint();
 	}

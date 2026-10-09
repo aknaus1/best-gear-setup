@@ -621,6 +621,15 @@ public interface BestGearSetupConfig extends Config
 
 	// ------------------------------------------------------------ specials
 
+	@ConfigItem(keyName = "autoSpecs", name = "Use active defence",
+		description = "Read Defence drains from the specs landed on the target you are fighting (yours, and RuneLite "
+			+ "party members' when everyone runs the Special Attack Counter); otherwise use the values below",
+		hidden = true)
+	default boolean autoSpecs()
+	{
+		return true;
+	}
+
 	@ConfigItem(keyName = "specVulnerability", name = "Vulnerability", description = "Target is under Vulnerability (-10% Defence)",
 		hidden = true)
 	default boolean specVulnerability()

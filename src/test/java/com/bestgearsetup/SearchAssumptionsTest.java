@@ -111,6 +111,7 @@ public class SearchAssumptionsTest
 		GETTERS.put("raidPotions", BestGearSetupConfig::raidPotions);
 		GETTERS.put("taskMode", BestGearSetupConfig::taskMode);
 		GETTERS.put("autoRaid", BestGearSetupConfig::autoRaid);
+		GETTERS.put("autoSpecs", BestGearSetupConfig::autoSpecs);
 		GETTERS.put("meleePotion", BestGearSetupConfig::meleePotion);
 		GETTERS.put("rangedPotion", BestGearSetupConfig::rangedPotion);
 		GETTERS.put("magicPotion", BestGearSetupConfig::magicPotion);

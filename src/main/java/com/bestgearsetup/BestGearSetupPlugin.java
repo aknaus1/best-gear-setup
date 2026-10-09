@@ -5,7 +5,6 @@ import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.CombatContext;
 import com.bestgearsetup.calc.CombatModifiers;
 import com.bestgearsetup.calc.DragonfireProtection;
-import com.bestgearsetup.calc.DrainSpecs;
 import com.bestgearsetup.calc.EncounterPhases;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.MonsterStates;
@@ -18,10 +17,7 @@ import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SlayerEquipment;
 import com.bestgearsetup.calc.SlotLock;
-import com.bestgearsetup.calc.SpecEnergy;
 import com.bestgearsetup.calc.SpecialAttacks;
-import com.bestgearsetup.calc.Thrall;
-import com.bestgearsetup.calc.WeaponPoison;
 import com.bestgearsetup.calc.WeaponRules;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.CombatClass;
@@ -102,6 +98,7 @@ import net.runelite.client.events.RuneScapeProfileChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.game.SpriteManager;
+import net.runelite.client.party.PartyService;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -170,6 +167,11 @@ public class BestGearSetupPlugin extends Plugin
 	private BestGearSetupBankView bankView;
 
 	private BestGearSetupBankButton bankButton;
+
+	@Inject
+	private PartyService partyService;
+
+	private LiveSpecs liveSpecs;
 
 	@Inject
 	private EventBus eventBus;
@@ -260,6 +262,8 @@ public class BestGearSetupPlugin extends Plugin
 		bankButton = new BestGearSetupBankButton(client, clientThread, bankView);
 		eventBus.register(bankButton);
 		bankButton.start();
+		liveSpecs = new LiveSpecs(client, clientThread, partyService, config, this::liveSpecsChanged);
+		eventBus.register(liveSpecs);
 
 		ownedItems.load();
 		panel.updateOwnedStatus();
@@ -284,6 +288,8 @@ public class BestGearSetupPlugin extends Plugin
 		eventBus.unregister(bankButton);
 		bankButton.stop();
 		bankButton = null;
+		eventBus.unregister(liveSpecs);
+		liveSpecs = null;
 		setBankHighlightedSetup(null);
 		// The lifecycle guard skips the usual refresh: release the layout and restore dragging unconditionally.
 		clientThread.invokeLater(bankView::clear);
@@ -847,7 +853,6 @@ public class BestGearSetupPlugin extends Plugin
 			{ taskNote += " Checked the target's region " + taskLocation.getRegionID() + ", floor " + taskLocation.getPlane() + "."; }
 			else if (Boolean.TRUE.equals(matched) && assignment.locationRestricted)
 			{ taskNote += " Assumes you fight it at the assigned location; right-click the monster there to check."; }
-			detectedNotes.add(taskNote);
 			if (WildernessTargets.only(summary.getName()))
 			{
 				detected.put("wilderness", true);
@@ -855,13 +860,13 @@ public class BestGearSetupPlugin extends Plugin
 			}
 			Boolean diary = AccountFacts.diary(client, configManager);
 			detected.put("kandarinDiary", Boolean.TRUE.equals(diary));
-			detectedNotes.add("Kandarin hard diary: " + (diary == null ? "unknown; bolt bonus not assumed."
-				: diary ? "complete (account detected)." : "not complete (account detected)."));
+			if (diary == null) { detectedNotes.add("Kandarin hard diary: unknown, so the enchanted bolt bonus isn't assumed."); }
 			LiveRaid liveRaid = npc == null || !config.autoRaid() ? new LiveRaid() : LiveRaid.read(client, summary);
 			detected.putAll(liveRaid.values);
-			if (liveRaid.raidDetected) { detectedNotes.add("Raid scaling: detected from the matching active raid. CoX party HP/Mining assumptions remain selected values."); }
-			else if (config.autoRaid() && RaidScaling.raid(LiveRaid.target(summary)) != RaidScaling.Raid.NONE)
-			{ detectedNotes.add("Raid scaling: active raid unavailable; saved planning values used."); }
+			Map<String, Object> landed = liveSpecs == null ? Collections.emptyMap() : liveSpecs.overrides(summary.getName());
+			detected.putAll(landed);
+			if (!landed.isEmpty())
+			{ detectedNotes.add("Pre-fight preparation: specs landed on this target so far, in place of the Fight settings."); }
 			detected.put("potionMelee", getPotionChoice(CombatClass.MELEE));
 			detected.put("potionRanged", getPotionChoice(CombatClass.RANGED));
 			detected.put("potionMagic", getPotionChoice(CombatClass.MAGIC));
@@ -886,6 +891,16 @@ public class BestGearSetupPlugin extends Plugin
 			search = executor.submit(() -> runSearch(data, summary, levels, rememberedLevels, prayerUnlocks,
 				kourendElite, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes));
 		});
+	}
+
+	/** Specs landed on a live target: refresh the open result if it is that target. */
+	private void liveSpecsChanged(String target)
+	{
+		MonsterSummary last = lastSearched;
+		if (last != null && LiveSpecs.sameTarget(target, last.getName()))
+		{
+			rerun();
+		}
 	}
 
 	/** The logged-in account's base levels, or null when logged out. Client thread only. */
@@ -1111,16 +1126,6 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				notes.add("Elite Kourend & Kebos Diary status is unknown until you log in, so Karuulm boots are required.");
 			}
-			if (settings.getMode() == SearchMode.OWNED_ONLY && usesBestPotion(config))
-			{
-				notes.add("Boosts: \"Best\" potions use only potions and hearts you own (any dose; divine counts);"
-					+ raidPotionNote(config));
-			}
-			else if (settings.getMode() == SearchMode.BUDGET && usesBestPotion(config))
-			{
-				notes.add("Boosts: \"Best\" potions may be bought (not counted in the budget); hearts must be owned;"
-					+ raidPotionNote(config));
-			}
 			String unpricedNote = unpricedNote(data, quotes, settings);
 			if (unpricedNote != null)
 			{
@@ -1132,7 +1137,8 @@ public class BestGearSetupPlugin extends Plugin
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
 				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
 				rememberedLevels, assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config),
-				monster.isImmuneThrall() ? null : ctx.getThrall());
+				monster.isImmuneThrall() ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
+				scaled.getDefenceLevel());
 			SwingUtilities.invokeLater(() ->
 			{
 				if (panel != null && generation == searchGeneration.get())
@@ -1415,76 +1421,77 @@ public class BestGearSetupPlugin extends Plugin
 			.build();
 	}
 
-	/** Which damage-over-time effects the target takes, and the assumed weapon poison. */
-	private String statusNote(Monster target)
+	/** The party scaling a raid target was searched with, such as "ToB party: 3 (live)"; null outside raids. */
+	static String raidScaling(Monster target, RaidScaling.Settings raid, boolean live)
 	{
-		StatusImmunities.Immunity im = StatusImmunities.of(target);
-		String venom = im.isVenomBecomesPoison() ? "venom becomes poison" : im.isVenomImmune() ? "venom immune" : "venom";
-		String poison = im.isPoisonImmune() ? "poison immune" : "poison";
-		String burn = im.getBurnImmunity() >= StatusImmunities.BURN_STRONG ? "burn immune"
-			: im.getBurnImmunity() == StatusImmunities.BURN_NORMAL ? "strong burns only" : "burns";
-		return "Damage over time: " + poison + ", " + venom + ", " + burn
-			+ (im.isKnown() ? "" : " (target flags; no Wiki immunity data)")
-			+ (config.weaponPoison() == WeaponPoison.NONE ? "" : "; " + config.weaponPoison() + " on poisonable weapons")
-			+ ". Poison, venom and burns are averaged over the kill.";
+		String scaling;
+		switch (RaidScaling.raid(target))
+		{
+			case COX:
+				scaling = "CoX party: " + raid.getPartySize() + (raid.isCoxChallengeMode() ? ", Challenge Mode" : "");
+				break;
+			case TOB:
+				scaling = "ToB party: " + raid.getPartySize();
+				break;
+			case TOB_ENTRY:
+				scaling = "ToB entry party: " + raid.getPartySize();
+				break;
+			case TOA:
+				scaling = "ToA party: " + raid.getPartySize() + ", raid level " + raid.getToaRaidLevel();
+				break;
+			default:
+				return null;
+		}
+		return scaling + (live ? " (live)" : " (Fight settings)");
 	}
 
-	/** Human-readable summary of the assumptions behind the results. */
-	private static String drainNote(DrainSpecs drains)
+	/** The damage-over-time effects this target resists, or null when it takes them all. */
+	private static String statusNote(Monster target)
 	{
-		switch (drains)
+		StatusImmunities.Immunity im = StatusImmunities.of(target);
+		List<String> resisted = new ArrayList<>();
+		if (im.isPoisonImmune())
 		{
-			case DAMAGE_ONLY:
-				return "Draining specs (dragon warhammer, elder maul, Bandos godsword...) count only their damage.";
-			case ALL_MISS:
-				return "Draining specs are ranked as if every one misses, so they are used only when they pay regardless.";
-			default:
-				return "Draining specs (dragon warhammer, elder maul, Bandos godsword...) open the kill; DPS is the"
-					+ " average over hits and misses, so single kills vary.";
+			resisted.add("poison immune");
 		}
+		if (im.isVenomBecomesPoison() || im.isVenomImmune())
+		{
+			resisted.add(im.isVenomBecomesPoison() ? "venom becomes poison" : "venom immune");
+		}
+		if (im.getBurnImmunity() >= StatusImmunities.BURN_NORMAL)
+		{
+			resisted.add(im.getBurnImmunity() >= StatusImmunities.BURN_STRONG ? "burn immune" : "strong burns only");
+		}
+		return resisted.isEmpty() ? null : "Damage over time: " + String.join(", ", resisted) + ".";
 	}
 
 	private List<String> describeSearch(GameData data, PlayerLevels levels, Monster unscaled, Monster base, Monster drained,
 		SpecialAttacks specials, CombatContext ctx, OptimizerSettings settings, RaidScaling.Settings raid, BestGearSetupConfig config)
 	{
+		// Only what changed this result or needs the player's attention; the header shows party scaling and Defence.
 		List<String> notes = new ArrayList<>();
-		notes.add("Combat snapshot: your HP " + (config.currentHitpoints() == 0 ? levels.getHitpoints()
-			: Math.min(levels.getHitpoints(), config.currentHitpoints()))
-			+ ". Target HP effects (ruby bolts, the Sun keris in ToA, Vardorvis) are averaged over a full kill.");
-		if (config.killSpecials())
+		if (specials.isAny() && config.killSpecials())
 		{
-			notes.add("Special attacks: mixed into each kill with "
-				+ (config.specEnergy() == SpecEnergy.FULL_BAR ? "a full bar at the start of each kill"
-				: "the energy one kill regenerates (10% every 30 seconds; lightbearer doubles it)")
-				+ ". " + drainNote(config.drainSpecs()) + " The spec weapon keeps the setup's armour, plus an off-hand when the"
-				+ " main weapon is two-handed; switch timing is not modelled.");
-			if (specials.isAny())
-			{
-				notes.add("Pre-fight preparation drains are applied before the drains landed during each kill;"
-					+ " clear them if they describe the same specs.");
-			}
+			notes.add("Pre-fight preparation is applied before the specs planned into each kill; clear it if it describes the same specs.");
 		}
-		notes.add(api.describeSource());
 		if (settings.isWildernessRiskLimited())
 		{
 			notes.add("Wilderness limit: at most " + settings.getMaxExpensiveItems() + " equipped items worth "
-				+ Budget.format(settings.getExpensiveItemThreshold()) + " GP or more each, including owned gear. "
-				+ "Unknown prices count as expensive. Uses acquisition value plus the repair fee of untradeables that "
-				+ "break on a PvP death (fire capes, defenders, void); protected items aren't subtracted; "
-				+ "inventory, loaded ammo and charges are excluded; equipped ammo uses its per-item price. "
-				+ "Conflicting locks can leave no matching setup.");
+				+ Budget.format(settings.getExpensiveItemThreshold()) + " GP or more each.");
 			if (Budget.parse(config.expensiveItemThreshold()) < 0)
 			{
 				notes.add(0, "Invalid expensive-item threshold: using 0 GP, so every equipped item counts as expensive. Enter an amount such as 500k or 1m in Fight.");
 			}
 		}
-		notes.add("Wear requirements: bundled Wiki text, cache parameters and reviewed local rules; live cache levels can only raise them.");
 		if (settings.isRequireAtlatlAmmoRecovery())
 		{
-			notes.add("Eclipse atlatl setups require an Ava's device, an assembler cape, or Dizana's quiver. "
-				+ "Ownership, budget, exclusions and cape locks still apply; without a usable cape, no atlatl setup is returned.");
+			notes.add("Eclipse atlatl needs an Ava's device, an assembler cape or Dizana's quiver.");
 		}
-		notes.add(statusNote(base));
+		String statusNote = statusNote(base);
+		if (statusNote != null)
+		{
+			notes.add(statusNote);
+		}
 		String raidNote = RaidScaling.describe(unscaled, base, raid);
 		if (raidNote != null)
 		{
@@ -1503,20 +1510,14 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			notes.add("Elemental weakness: " + base.getWeaknessType() + " +" + base.getWeakness() + "% base accuracy and damage.");
 		}
-		if (config.wilderness() || config.forinthrySurge() || config.charge()
-			|| config.sunfireRunes() || config.soulreaperStacks() > 0)
-		{
-			notes.add("Optional combat assumptions selected in plugin settings or Fight; bonuses apply only to compatible attacks.");
-		}
 		if (base.hasAttribute("demon") && config.arceuusSpellbook())
 		{
-			notes.add(config.markOfDarkness() ? "Demonbane spells assume Mark of Darkness is active (plugin settings)."
+			notes.add(config.markOfDarkness() ? "Demonbane spells assume Mark of Darkness is active."
 				: "Mark of Darkness is off, so demonbane spells get only their base demon accuracy bonus.");
 		}
 		if (ctx.getAoeTargets() > 1)
 		{
-			notes.add("AoE: " + ctx.getAoeTargets() + " identical grouped enemies in multicombat; attack limits apply. "
-				+ "Ranking uses total DPS. Requires valid splash/bounce positions and identical task/gear bonuses.");
+			notes.add("AoE: " + ctx.getAoeTargets() + " grouped enemies; ranked by total DPS.");
 		}
 		String fireNote = DragonfireProtection.note(base, settings);
 		if (fireNote != null)
@@ -1525,42 +1526,27 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		notes.addAll(SlayerEquipment.notes(base, settings));
 		int distance = AttackReach.distance(base, settings.getTargetDistance());
-		notes.add("Fighting distance: " + distance + " tile(s), from encounter positioning.");
 		if (distance > 1)
 		{
-			notes.add("Unreachable attacks and weapons with unknown range are excluded.");
+			notes.add("Fighting distance: " + distance + " tiles; attacks that can't reach are excluded.");
 		}
 		String reachNote = AttackReach.restrictionNote(base);
 		if (reachNote != null)
 		{
 			notes.add(reachNote);
 		}
-		// Prayers and potions are shown as icons next to each setup; only list what has no icon.
-		List<String> extras = new ArrayList<>();
-		if (ctx.isOnTask())
+		if (base.isImmuneThrall() && ctx.getThrall() != null)
 		{
-			extras.add("on slayer task");
+			notes.add("Thralls: this target is immune, so none are added.");
 		}
-		if (!extras.isEmpty())
-		{
-			notes.add(GameData.titleCase(String.join(", ", extras)));
-		}
-		Thrall thrall = ctx.getThrall();
-		if (thrall != null)
-		{
-			notes.add(base.isImmuneThrall() ? "Thralls: this target is immune, so none are added."
-				: String.format(Locale.ROOT, "Thralls: %s (+%.3f DPS) added to setups that aren't autocasting a "
-				+ "non-Arceuus spell.", thrall, thrall.getDps()));
-		}
-		else if (ctx.isThrall())
+		else if (ctx.getThrall() == null && ctx.isThrall())
 		{
 			notes.add("Thralls: none added, because they need 38 Magic.");
 		}
-		if (specials.isAny())
+		if (drained.getMagicLevel() != base.getMagicLevel() || drained.getDefMagic() != base.getDefMagic())
 		{
-			notes.add(String.format("After specials: Defence %d -> %d, Magic %d -> %d, magic def %d -> %d",
-				base.getDefenceLevel(), drained.getDefenceLevel(), base.getMagicLevel(), drained.getMagicLevel(),
-				base.getDefMagic(), drained.getDefMagic()));
+			notes.add(String.format("After specials: Magic %d -> %d, magic defence %d -> %d.",
+				base.getMagicLevel(), drained.getMagicLevel(), base.getDefMagic(), drained.getDefMagic()));
 		}
 		int locks = getLocks().size();
 		int excluded = getExcluded().size();
@@ -1666,24 +1652,6 @@ public class BestGearSetupPlugin extends Plugin
 			}
 		});
 		rerun();
-	}
-
-	private static String raidPotionNote(BestGearSetupConfig config)
-	{
-		return config.raidPotions() ? " raid supplies like overloads and smelling salts are assumed inside their raid."
-			: " raid supplies like overloads and smelling salts are left out (Include raid potions is off).";
-	}
-
-	private boolean usesBestPotion(BestGearSetupConfig config)
-	{
-		for (CombatClass cls : CombatClass.values())
-		{
-			if (PotionChoice.BEST.equalsIgnoreCase(potionChoice(config, cls)))
-			{
-				return true;
-			}
-		}
-		return false;
 	}
 
 	public String getPotionChoice(CombatClass cls)

@@ -57,6 +57,7 @@ class FightOptionsPanel extends JPanel
 		new Setting("toaRaidLevel", BestGearSetupConfig::toaRaidLevel),
 		new Setting("toaPathLevel", BestGearSetupConfig::toaPathLevel),
 		new Setting("coxChallengeMode", BestGearSetupConfig::coxChallengeMode),
+		new Setting("autoSpecs", BestGearSetupConfig::autoSpecs),
 		new Setting("specVulnerability", BestGearSetupConfig::specVulnerability),
 		new Setting("specTomeOfWater", BestGearSetupConfig::specTomeOfWater),
 		new Setting("specElderMaul", BestGearSetupConfig::specElderMaul),
@@ -224,6 +225,7 @@ class FightOptionsPanel extends JPanel
 		// Collapsed by default: most searches start from the target's full stats.
 		preparationSection = accordion.create("preparation", "Pre-fight preparation");
 		preparationSection.setToolTipText("Successful specials and defence reductions landed before the fight starts");
+		addRows(preparationSection, "autoSpecs");
 		addRows(preparationSection, PREPARATION);
 		add(BestGearSetupPanel.left(preparationSection));
 		refresh();

@@ -42,6 +42,10 @@ public class SearchResults
 	List<String> warnings;
 	/** The thrall added to setups that can cast one, or null when none is. */
 	Thrall thrall;
+	/** The raid scaling applied, such as "ToB party: 3 (live raid)", or null outside raids. */
+	String raidScaling;
+	/** The target's Defence level before pre-fight drains. */
+	int baseDefence;
 
 	public SearchResults(Monster monster, int startingHitpoints, Map<AttackStyle.Type, List<SetupResult>> byType,
 		List<String> notes, Map<CombatClass, OffensivePrayer> prayers, Map<CombatClass, List<Potion>> potions,
@@ -56,7 +60,7 @@ public class SearchResults
 		boolean assumedLevels, List<LockStatus> locks, boolean markOfDarkness, boolean rememberedLevels, List<String> warnings)
 	{
 		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks, markOfDarkness,
-			rememberedLevels, warnings, null);
+			rememberedLevels, warnings, null, null, monster == null ? 0 : monster.getDefenceLevel());
 	}
 
 	/** Whether a lock could not be honoured. */
