@@ -172,6 +172,8 @@ public class BestGearSetupPlugin extends Plugin
 	private PartyService partyService;
 
 	private LiveSpecs liveSpecs;
+	/** A {@link PartySpecs}, held as Object so this class never loads the Special Attack Counter's classes. */
+	private Object partySpecs;
 
 	@Inject
 	private EventBus eventBus;
@@ -262,8 +264,19 @@ public class BestGearSetupPlugin extends Plugin
 		bankButton = new BestGearSetupBankButton(client, clientThread, bankView);
 		eventBus.register(bankButton);
 		bankButton.start();
-		liveSpecs = new LiveSpecs(client, clientThread, partyService, config, this::liveSpecsChanged);
+		liveSpecs = new LiveSpecs(client, clientThread, config, this::liveSpecsChanged);
 		eventBus.register(liveSpecs);
+		try
+		{
+			Object bridge = new PartySpecs(client, clientThread, partyService, liveSpecs);
+			eventBus.register(bridge);
+			partySpecs = bridge;
+		}
+		catch (LinkageError e)
+		{
+			// The Special Attack Counter's classes are missing or changed: only own specials are tracked.
+			log.warn("Party specs unavailable; tracking own specs only", e);
+		}
 
 		ownedItems.load();
 		panel.updateOwnedStatus();
@@ -290,6 +303,11 @@ public class BestGearSetupPlugin extends Plugin
 		bankButton = null;
 		eventBus.unregister(liveSpecs);
 		liveSpecs = null;
+		if (partySpecs != null)
+		{
+			eventBus.unregister(partySpecs);
+			partySpecs = null;
+		}
 		setBankHighlightedSetup(null);
 		// The lifecycle guard skips the usual refresh: release the layout and restore dragging unconditionally.
 		clientThread.invokeLater(bankView::clear);

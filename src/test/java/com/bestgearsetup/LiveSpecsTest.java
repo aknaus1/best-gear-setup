@@ -1,14 +1,17 @@
 package com.bestgearsetup;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import net.runelite.api.Client;
@@ -16,6 +19,7 @@ import net.runelite.api.IndexedObjectSet;
 import net.runelite.api.NPC;
 import net.runelite.api.WorldView;
 import net.runelite.api.events.NpcDespawned;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.party.PartyMember;
 import net.runelite.client.party.PartyService;
@@ -25,16 +29,32 @@ import org.junit.Test;
 
 public class LiveSpecsTest
 {
-	@Test public void weaponsMapToTheirPreparationSetting()
+	@Test public void weaponTableMatchesTheSpecialAttackCounter()
 	{
-		assertEquals("specDwh", LiveSpecs.key(SpecialWeapon.DRAGON_WARHAMMER));
-		assertEquals("specBgsDamage", LiveSpecs.key(SpecialWeapon.BANDOS_GODSWORD));
-		assertEquals("specTonalztics", LiveSpecs.key(SpecialWeapon.TONALZTICS_OF_RALOS));
-		assertNull(LiveSpecs.key(SpecialWeapon.DARKLIGHT));
-		assertEquals(1, LiveSpecs.amount(SpecialWeapon.DRAGON_WARHAMMER, 45));
-		assertEquals(0, LiveSpecs.amount(SpecialWeapon.DRAGON_WARHAMMER, 0));
-		assertEquals(37, LiveSpecs.amount(SpecialWeapon.BANDOS_GODSWORD, 37));
-		assertEquals(2, LiveSpecs.amount(SpecialWeapon.TONALZTICS_OF_RALOS, 2));
+		// Party updates map by name, and own specs by item: both must stay in step with the Special Attack Counter.
+		for (SpecWeapon weapon : SpecWeapon.values())
+		{
+			SpecialWeapon counter = SpecialWeapon.valueOf(weapon.name());
+			for (int item : counter.getItemID())
+			{
+				assertSame(weapon, SpecWeapon.byItem(item));
+			}
+			for (int distance = 1; distance <= 10; distance++)
+			{
+				assertEquals(weapon.name(), counter.getHitDelay(distance), weapon.hitDelay(distance));
+			}
+			assertEquals(weapon.name(), counter.isDamage(), weapon.damage);
+		}
+		assertArrayEquals(new int[]{ItemID.BGS, ItemID.BGSG}, SpecialWeapon.BANDOS_GODSWORD.getItemID());
+		assertNull(SpecWeapon.byName("DARKLIGHT"));
+	}
+
+	@Test public void landedAmountsFollowEachSetting()
+	{
+		assertEquals(1, SpecWeapon.DRAGON_WARHAMMER.amount(45, null));
+		assertEquals(0, SpecWeapon.DRAGON_WARHAMMER.amount(0, null));
+		assertEquals(37, SpecWeapon.BANDOS_GODSWORD.amount(37, null));
+		assertEquals(2, SpecWeapon.TONALZTICS_OF_RALOS.amount(2, null));
 	}
 
 	@Test public void catalogueVariantsMatchTheLiveNpcName()
@@ -65,28 +85,32 @@ public class LiveSpecsTest
 		when(config.autoSpecs()).thenReturn(true);
 		List<String> changes = new ArrayList<>();
 
-		LiveSpecs specs = new LiveSpecs(client, thread, party, config, changes::add);
-		specs.onSpecialCounterUpdate(update(SpecialWeapon.BANDOS_GODSWORD, 40));
-		specs.onSpecialCounterUpdate(update(SpecialWeapon.DRAGON_WARHAMMER, 31));
-		specs.onSpecialCounterUpdate(update(SpecialWeapon.DRAGON_WARHAMMER, 0));
+		LiveSpecs specs = new LiveSpecs(client, thread, config, changes::add);
+		PartySpecs bridge = new PartySpecs(client, thread, party, specs);
+		bridge.onSpecialCounterUpdate(update(SpecialWeapon.BANDOS_GODSWORD, 40, 2));
+		bridge.onSpecialCounterUpdate(update(SpecialWeapon.DRAGON_WARHAMMER, 31, 2));
+		bridge.onSpecialCounterUpdate(update(SpecialWeapon.DRAGON_WARHAMMER, 0, 2));
+		// Unmodelled weapons and the player's own echoed updates are ignored.
+		bridge.onSpecialCounterUpdate(update(SpecialWeapon.DARKLIGHT, 1, 2));
+		bridge.onSpecialCounterUpdate(update(SpecialWeapon.DRAGON_WARHAMMER, 31, 1));
 		Map<String, Object> values = specs.overrides("verzik vitur (phase 2)");
 		assertEquals(1, values.get("specDwh"));
 		assertEquals(40, values.get("specBgsDamage"));
 		assertEquals(0, values.get("specElderMaul"));
 		assertTrue(specs.overrides("xarpus").isEmpty());
-		assertEquals(3, changes.size());
+		assertEquals(Arrays.asList("verzik vitur", "verzik vitur", "verzik vitur"), changes);
 
 		NpcDespawned died = mock(NpcDespawned.class);
 		when(died.getNpc()).thenReturn(boss);
 		specs.onNpcDespawned(died);
 		assertTrue(specs.overrides("verzik vitur (phase 2)").isEmpty());
-		assertEquals("verzik vitur", changes.get(3));
+		assertEquals(4, changes.size());
 	}
 
-	private static SpecialCounterUpdate update(SpecialWeapon weapon, int hit)
+	private static SpecialCounterUpdate update(SpecialWeapon weapon, int hit, long member)
 	{
 		SpecialCounterUpdate update = new SpecialCounterUpdate(7, weapon, hit, 330, 99);
-		update.setMemberId(2);
+		update.setMemberId(member);
 		return update;
 	}
 }

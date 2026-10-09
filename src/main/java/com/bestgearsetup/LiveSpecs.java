@@ -28,17 +28,13 @@ import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
-import net.runelite.client.party.PartyMember;
-import net.runelite.client.party.PartyService;
-import net.runelite.client.plugins.specialcounter.SpecialCounterUpdate;
-import net.runelite.client.plugins.specialcounter.SpecialWeapon;
 import net.runelite.client.util.Text;
 
 /**
- * Specials that landed on the target being fought, from the local player and from RuneLite party members running
- * the Special Attack Counter. A search of that target uses them in place of the planned pre-fight preparation;
- * saved settings are never changed. Own specials are matched to their hitsplat the way the Special Attack Counter
- * does. Client thread only, except {@link #overrides}.
+ * Specials that landed on the target being fought. A search of that target uses them in place of the planned
+ * pre-fight preparation; saved settings are never changed. Own specials are matched to their hitsplat the way
+ * RuneLite's Special Attack Counter does, using only the game API, so they keep working whatever that plugin does;
+ * party members' arrive through {@link PartySpecs} when it is available. Client thread only, except {@link #overrides}.
  */
 final class LiveSpecs
 {
@@ -60,7 +56,6 @@ final class LiveSpecs
 
 	private final Client client;
 	private final ClientThread clientThread;
-	private final PartyService party;
 	private final BestGearSetupConfig config;
 	/** Called with the tracked target's name whenever what landed on it changes. */
 	private final Consumer<String> changed;
@@ -74,18 +69,16 @@ final class LiveSpecs
 	private int energy = -1;
 	private long hitpointsXp = -1;
 	private int hitpointsXpCycle = -1;
-	private SpecialWeapon weapon;
+	private SpecWeapon weapon;
 	private NPC specTarget;
 	private boolean specXp;
 	private int hitsplatTick;
 	private final List<Hitsplat> hitsplats = new ArrayList<>();
 
-	LiveSpecs(Client client, ClientThread clientThread, PartyService party, BestGearSetupConfig config,
-		Consumer<String> changed)
+	LiveSpecs(Client client, ClientThread clientThread, BestGearSetupConfig config, Consumer<String> changed)
 	{
 		this.client = client;
 		this.clientThread = clientThread;
-		this.party = party;
 		this.config = config;
 		this.changed = changed;
 	}
@@ -107,32 +100,6 @@ final class LiveSpecs
 		return monster.equals(npcName) || monster.startsWith(npcName + " (");
 	}
 
-	/** The preparation key a weapon's special fills, or null when it isn't modelled. */
-	static String key(SpecialWeapon weapon)
-	{
-		switch (weapon)
-		{
-			case ELDER_MAUL: return "specElderMaul";
-			case DRAGON_WARHAMMER: return "specDwh";
-			case EMBERLIGHT: return "specEmberlight";
-			case ARCLIGHT: return "specArclight";
-			case TONALZTICS_OF_RALOS: return "specTonalztics";
-			case BANDOS_GODSWORD: return "specBgsDamage";
-			case SEERCULL: return "specSeercullDamage";
-			case EYE_OF_AYAK: return "specAyakDamage";
-			default: return null;
-		}
-	}
-
-	/**
-	 * What one special adds to its setting: damage for draining-by-damage weapons, landed hits for Tonalztics
-	 * (already counted by the Special Attack Counter), otherwise one per successful hit.
-	 */
-	static int amount(SpecialWeapon weapon, int hit)
-	{
-		return weapon.isDamage() ? Math.max(0, hit) : hit > 0 ? 1 : 0;
-	}
-
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{
@@ -151,7 +118,7 @@ final class LiveSpecs
 		clientThread.invokeLater(() ->
 		{
 			Player player = client.getLocalPlayer();
-			SpecialWeapon used = usedWeapon();
+			SpecWeapon used = usedWeapon();
 			if (player == null || used == null || !(player.getInteracting() instanceof NPC))
 			{
 				return;
@@ -161,7 +128,7 @@ final class LiveSpecs
 			specXp = hitpointsXpCycle == client.getGameCycle();
 			hitsplats.clear();
 			WorldArea area = specTarget.getWorldArea();
-			hitsplatTick = serverTick + (area == null ? 1 : used.getHitDelay(area.distanceTo(player.getWorldLocation())));
+			hitsplatTick = serverTick + (area == null ? 1 : used.hitDelay(area.distanceTo(player.getWorldLocation())));
 		});
 	}
 
@@ -197,14 +164,14 @@ final class LiveSpecs
 			return;
 		}
 		int tick = client.getTickCount();
-		if (weapon == SpecialWeapon.ELDER_MAUL)
+		if (weapon == SpecWeapon.ELDER_MAUL)
 		{
 			// Its hitsplat comes late; the Hitpoints experience of the spec tick shows whether it landed.
 			land(weapon, specXp ? 1 : 0, specTarget);
 		}
 		else if (tick == hitsplatTick)
 		{
-			if (weapon == SpecialWeapon.TONALZTICS_OF_RALOS)
+			if (weapon == SpecWeapon.TONALZTICS_OF_RALOS)
 			{
 				if (hitsplats.size() < 2)
 				{
@@ -233,23 +200,15 @@ final class LiveSpecs
 		hitsplats.clear();
 	}
 
-	@Subscribe
-	public void onSpecialCounterUpdate(SpecialCounterUpdate event)
+	/** A party member's special, reported by its Special Attack Counter weapon name. */
+	void partySpec(int npcIndex, String weaponName, int hit)
 	{
-		PartyMember local = party.getLocalMember();
-		// Own specials are tracked directly.
-		if (local == null || local.getMemberId() == event.getMemberId() || event.getWorld() != client.getWorld())
+		SpecWeapon used = SpecWeapon.byName(weaponName);
+		NPC target = used == null ? null : client.getTopLevelWorldView().npcs().byIndex(npcIndex);
+		if (target != null)
 		{
-			return;
+			land(used, hit, target);
 		}
-		clientThread.invoke(() ->
-		{
-			NPC target = client.getTopLevelWorldView().npcs().byIndex(event.getNpcIndex());
-			if (target != null)
-			{
-				land(event.getWeapon(), event.getHit(), target);
-			}
-		});
 	}
 
 	@Subscribe
@@ -279,10 +238,9 @@ final class LiveSpecs
 		}
 	}
 
-	private void land(SpecialWeapon used, int hit, NPC target)
+	private void land(SpecWeapon used, int hit, NPC target)
 	{
-		String key = key(used);
-		if (key == null || !config.autoSpecs() || target.getName() == null)
+		if (!config.autoSpecs() || target.getName() == null)
 		{
 			return;
 		}
@@ -292,7 +250,7 @@ final class LiveSpecs
 			targetIndex = target.getIndex();
 			targetName = Text.removeTags(target.getName()).toLowerCase(Locale.ROOT).trim();
 		}
-		landed.merge(key, amount(used, used.computeHit(hit, target)), Integer::sum);
+		landed.merge(used.key, used.amount(hit, target), Integer::sum);
 		Map<String, Object> values = new HashMap<>();
 		LIMITS.forEach((k, limit) -> values.put(k, Math.min(limit, landed.getOrDefault(k, 0))));
 		snapshot = values;
@@ -316,24 +274,10 @@ final class LiveSpecs
 		}
 	}
 
-	private SpecialWeapon usedWeapon()
+	private SpecWeapon usedWeapon()
 	{
 		ItemContainer worn = client.getItemContainer(InventoryID.WORN);
 		Item item = worn == null ? null : worn.getItem(EquipmentInventorySlot.WEAPON.getSlotIdx());
-		if (item == null)
-		{
-			return null;
-		}
-		for (SpecialWeapon candidate : SpecialWeapon.values())
-		{
-			for (int id : candidate.getItemID())
-			{
-				if (id == item.getId())
-				{
-					return candidate;
-				}
-			}
-		}
-		return null;
+		return item == null ? null : SpecWeapon.byItem(item.getId());
 	}
 }
