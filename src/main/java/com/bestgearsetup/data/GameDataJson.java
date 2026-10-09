@@ -3,7 +3,6 @@ package com.bestgearsetup.data;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 
@@ -20,31 +19,31 @@ public final class GameDataJson
 	static GameData parse(Gson gson, JsonObject monsters, JsonObject equipment, JsonObject weapons,
 		JsonObject spells, JsonObject prayers, JsonObject potions)
 	{
-		Type monsterList = new TypeToken<List<MonsterSummary>>()
+		TypeToken<List<MonsterSummary>> monsterList = new TypeToken<List<MonsterSummary>>()
 		{
-		}.getType();
-		Type equipmentMap = new TypeToken<Map<String, List<GearItem>>>()
+		};
+		TypeToken<Map<String, List<GearItem>>> equipmentMap = new TypeToken<Map<String, List<GearItem>>>()
 		{
-		}.getType();
-		Type gearList = new TypeToken<List<GearItem>>()
+		};
+		TypeToken<List<GearItem>> gearList = new TypeToken<List<GearItem>>()
 		{
-		}.getType();
-		Type spellList = new TypeToken<List<Spell>>()
+		};
+		TypeToken<List<Spell>> spellList = new TypeToken<List<Spell>>()
 		{
-		}.getType();
-		Type prayerMap = new TypeToken<Map<String, List<Prayer>>>()
+		};
+		TypeToken<Map<String, List<Prayer>>> prayerMap = new TypeToken<Map<String, List<Prayer>>>()
 		{
-		}.getType();
-		Type potionMap = new TypeToken<Map<String, List<Potion>>>()
+		};
+		TypeToken<Map<String, List<Potion>>> potionMap = new TypeToken<Map<String, List<Potion>>>()
 		{
-		}.getType();
+		};
 
 		return new GameData(
-			gson.fromJson(monsters.get("monsters"), monsterList),
-			gson.fromJson(equipment.get("equipment"), equipmentMap),
-			gson.fromJson(weapons.get("weapons"), gearList),
-			gson.fromJson(spells.get("spells"), spellList),
-			gson.fromJson(prayers.get("prayers"), prayerMap),
-			potions == null ? null : gson.fromJson(potions.get("potions"), potionMap));
+			gson.fromJson(monsters.get("monsters"), monsterList.getType()),
+			gson.fromJson(equipment.get("equipment"), equipmentMap.getType()),
+			gson.fromJson(weapons.get("weapons"), gearList.getType()),
+			gson.fromJson(spells.get("spells"), spellList.getType()),
+			gson.fromJson(prayers.get("prayers"), prayerMap.getType()),
+			potions == null ? null : gson.fromJson(potions.get("potions"), potionMap.getType()));
 	}
 }
