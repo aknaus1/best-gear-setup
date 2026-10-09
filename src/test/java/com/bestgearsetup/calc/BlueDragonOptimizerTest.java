@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ public class BlueDragonOptimizerTest
 	@BeforeClass
 	public static void load() throws Exception
 	{
-		Gson gson = new Gson();
+		Gson gson = RuneLiteAPI.GSON;
 		data = WikiGameData.get(gson).gameData(gson);
 		Monster monster = WikiMonsters.get(gson).monster(data.matchNpc(265, null, 0).getName());
 		ctx = new CombatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 67), true, false, null);

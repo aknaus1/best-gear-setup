@@ -9,7 +9,6 @@ import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
-import com.google.gson.Gson;
 import java.awt.Component;
 import java.awt.Container;
 import java.io.IOException;
@@ -28,6 +27,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import net.runelite.client.ui.components.IconTextField;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 public class LockSearchTest
@@ -38,7 +38,7 @@ public class LockSearchTest
 	{
 		try
 		{
-			return WikiGameData.get(new Gson()).gameData(new Gson());
+			return WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 		}
 		catch (IOException e)
 		{

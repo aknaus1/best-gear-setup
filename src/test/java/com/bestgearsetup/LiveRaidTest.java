@@ -3,8 +3,10 @@ package com.bestgearsetup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import com.bestgearsetup.data.MonsterSummary;
-import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 import net.runelite.api.Client;
@@ -13,17 +15,11 @@ import org.junit.Test;
 
 public class LiveRaidTest
 {
-	private static <T> T proxy(Class<T> type, java.lang.reflect.InvocationHandler handler)
-	{ return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, handler)); }
-
 	private Client client(Map<Integer, Integer> bits)
 	{
-		return proxy(Client.class, (p,m,a) -> {
-			switch (m.getName()) {
-				case "getVarbitValue": return bits.getOrDefault((Integer) a[0],0);
-				default: return null;
-			}
-		});
+		Client client = mock(Client.class);
+		when(client.getVarbitValue(anyInt())).thenAnswer(i -> bits.getOrDefault(i.<Integer>getArgument(0), 0));
+		return client;
 	}
 
 	@Test public void nonRaidTargetsReadNothing()

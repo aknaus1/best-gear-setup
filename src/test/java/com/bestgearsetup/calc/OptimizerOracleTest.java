@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -101,7 +102,7 @@ public class OptimizerOracleTest
 	@BeforeClass
 	public static void load() throws Exception
 	{
-		Gson gson = new Gson();
+		Gson gson = RuneLiteAPI.GSON;
 		OwnershipRules.init(gson);
 		catalogue = WikiGameData.get(gson).gameData(gson);
 		catalogue.addVariantItems(gson, id ->
@@ -123,11 +124,10 @@ public class OptimizerOracleTest
 	@Test
 	public void bestDepthMatchesExhaustiveSearch()
 	{
-		String env = System.getenv("BGS_ORACLE_CASES");
-		int cases = env == null ? 1500 : Integer.parseInt(env);
-		String from = System.getenv("BGS_ORACLE_FROM");
-		int first = from == null ? 1 : Integer.parseInt(from);
-		boolean verbose = System.getenv("BGS_ORACLE_VERBOSE") != null;
+		// Optional: ./gradlew test -Dbgs.oracle.cases=N -Dbgs.oracle.from=SEED -Dbgs.oracle.verbose=true
+		int cases = Integer.getInteger("bgs.oracle.cases", 1500);
+		int first = Integer.getInteger("bgs.oracle.from", 1);
+		boolean verbose = Boolean.getBoolean("bgs.oracle.verbose");
 		List<String> errors = new ArrayList<>();
 		List<String> misses = new ArrayList<>();
 		Set<Integer> missedBanks = new HashSet<>();

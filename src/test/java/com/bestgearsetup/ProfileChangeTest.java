@@ -13,7 +13,7 @@ import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.ui.BestGearSetupPanel;
-import java.lang.reflect.Field;
+import com.bestgearsetup.ui.PanelInternals;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,20 +32,6 @@ import org.junit.Test;
 
 public class ProfileChangeTest
 {
-	private static Object field(Object target, Class<?> type, String name) throws Exception
-	{
-		Field field = type.getDeclaredField(name);
-		field.setAccessible(true);
-		return field.get(target);
-	}
-
-	private static void inject(BestGearSetupPlugin plugin, String name, Object value) throws Exception
-	{
-		Field field = BestGearSetupPlugin.class.getDeclaredField(name);
-		field.setAccessible(true);
-		field.set(plugin, value);
-	}
-
 	@Test
 	public void clearSearchCancelsActiveAndQueuedWorkAndPreventsReruns() throws Exception
 	{
@@ -59,31 +45,31 @@ public class ProfileChangeTest
 		};
 		GameData data = new GameData(Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
-		inject(plugin, "gameData", data);
+		plugin.gameData = data;
 		ExecutorService executor = Executors.newSingleThreadExecutor();
-		inject(plugin, "executor", executor);
+		plugin.executor = executor;
 		List<Runnable> queued = new ArrayList<>();
-		inject(plugin, "clientThread", new ClientThread()
+		plugin.clientThread = new ClientThread()
 		{
 			@Override
 			public void invokeLater(Runnable runnable)
 			{
 				queued.add(runnable);
 			}
-		});
-		inject(plugin, "ownedItems", new OwnedItems(null, null));
+		};
+		plugin.ownedItems = new OwnedItems(null, null);
 		BestGearSetupPanel[] panels = new BestGearSetupPanel[1];
 		SwingUtilities.invokeAndWait(() -> panels[0] = new BestGearSetupPanel(plugin,
 			new BestGearSetupConfig() {}, null, null, null));
-		inject(plugin, "panel", panels[0]);
+		plugin.panel = panels[0];
 		try
 		{
 			MonsterSummary target = new MonsterSummary();
 			target.setName("test target");
 			SwingUtilities.invokeAndWait(() -> plugin.findBestSetup(target));
 			FutureTask<Void> active = new FutureTask<>(() -> null);
-			inject(plugin, "search", active);
-			inject(plugin, "searchOwned", Collections.singleton(4151));
+			plugin.search = active;
+			plugin.searchOwned = Collections.singleton(4151);
 			Loadout loadout = new Loadout();
 			GearItem weapon = new GearItem();
 			weapon.setId(4151);
@@ -93,16 +79,16 @@ public class ProfileChangeTest
 			SwingUtilities.invokeAndWait(() -> {});
 			assertTrue(active.isCancelled());
 			assertTrue(plugin.getBankHighlightIds().isEmpty());
-			assertNull(field(plugin, BestGearSetupPlugin.class, "lastSearched"));
-			assertNull(field(plugin, BestGearSetupPlugin.class, "searchOwned"));
+			assertNull(plugin.lastSearched);
+			assertNull(plugin.searchOwned);
 			assertEquals(1, queued.size());
 			// Stale work must return before touching the absent Client or ItemManager.
 			queued.get(0).run();
-			assertEquals(2, ((AtomicInteger) field(plugin, BestGearSetupPlugin.class, "searchGeneration")).get());
+			assertEquals(2, (plugin.searchGeneration).get());
 		}
 		finally
 		{
-			executor.shutdownNow();
+			executor.shutdown();
 		}
 	}
 
@@ -135,7 +121,7 @@ public class ProfileChangeTest
 				return PotionChoice.BEST;
 			}
 		};
-		AtomicInteger generation = (AtomicInteger) field(plugin, BestGearSetupPlugin.class, "searchGeneration");
+		AtomicInteger generation = plugin.searchGeneration;
 		AtomicInteger loads = new AtomicInteger();
 		FutureTask<Void> active = new FutureTask<>(() -> null);
 		OwnedItems owned = new OwnedItems(null, null)
@@ -149,21 +135,21 @@ public class ProfileChangeTest
 				loads.incrementAndGet();
 			}
 		};
-		inject(plugin, "ownedItems", owned);
+		plugin.ownedItems = owned;
 		List<Runnable> queued = new ArrayList<>();
-		inject(plugin, "clientThread", new ClientThread()
+		plugin.clientThread = new ClientThread()
 		{
 			@Override
 			public void invokeLater(Runnable runnable)
 			{
 				queued.add(runnable);
 			}
-		});
+		};
 		GameData data = new GameData(Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
-		inject(plugin, "gameData", data);
+		plugin.gameData = data;
 		ExecutorService executor = Executors.newSingleThreadExecutor();
-		inject(plugin, "executor", executor);
+		plugin.executor = executor;
 		try
 		{
 			BestGearSetupPanel[] panels = new BestGearSetupPanel[1];
@@ -175,32 +161,32 @@ public class ProfileChangeTest
 				panels[0].onDataLoaded(data);
 			});
 			BestGearSetupPanel panel = panels[0];
-			inject(plugin, "panel", panel);
+			plugin.panel = panel;
 			SwingUtilities.invokeAndWait(() -> panel.selectMonster(summary, true));
 			assertEquals(1, queued.size());
 			assertEquals(1, generation.get());
-			inject(plugin, "search", active);
+			plugin.search = active;
 			Loadout previous = new Loadout();
 			GearItem weapon = new GearItem();
 			weapon.setId(4151);
 			previous.set(Slot.WEAPON, weapon);
 			plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, previous, null, 0));
 			assertTrue(plugin.getBankHighlightIds().contains(4151));
-			JPanel results = (JPanel) field(panel, BestGearSetupPanel.class, "resultsPanel");
+			JPanel results = PanelInternals.resultsPanel(panel);
 			SwingUtilities.invokeAndWait(() -> results.add(new JLabel("Old account's recommendation")));
 			plugin.onRuneScapeProfileChanged(new RuneScapeProfileChanged("old", "new"));
 			assertTrue(plugin.getBankHighlightIds().isEmpty());
 			// No Client or ItemManager is installed: stale callbacks must stop before reading either.
 			queued.get(0).run();
 			assertEquals(1, loads.get());
-			assertNull(field(plugin, BestGearSetupPlugin.class, "lastSearched"));
+			assertNull(plugin.lastSearched);
 			SwingUtilities.invokeAndWait(() -> assertEquals(0, results.getComponentCount()));
-			JLabel status = (JLabel) field(panel, BestGearSetupPanel.class, "statusLabel");
+			JLabel status = PanelInternals.statusLabel(panel);
 			SwingUtilities.invokeAndWait(() -> assertTrue(status.getText().contains("Account changed")));
 		}
 		finally
 		{
-			executor.shutdownNow();
+			executor.shutdown();
 		}
 	}
 }

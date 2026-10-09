@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.runelite.api.gameval.ItemID;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 public class SpellRunesTest
@@ -27,7 +28,7 @@ public class SpellRunesTest
 	@Test
 	public void everyBundledSpellHasItsRunes() throws Exception
 	{
-		Gson gson = new Gson();
+		Gson gson = RuneLiteAPI.GSON;
 		for (Spell spell : WikiGameData.get(gson).gameData(gson).getSpells())
 		{
 			Loadout loadout = new Loadout();

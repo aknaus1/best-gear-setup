@@ -297,7 +297,7 @@ class ResultView extends JPanel
 		return locks;
 	}
 
-	private JPanel statsBox(DpsResult d, Thrall thrall)
+	JPanel statsBox(DpsResult d, Thrall thrall)
 	{
 		JPanel box = new JPanel(new GridLayout(0, 1, 0, 2));
 		box.setBackground(BOX_BG);

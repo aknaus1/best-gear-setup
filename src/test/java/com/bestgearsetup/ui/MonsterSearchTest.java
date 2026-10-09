@@ -14,8 +14,6 @@ import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.Slot;
 import java.awt.event.MouseEvent;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,16 +46,7 @@ public class MonsterSearchTest
 		@Override
 		public OwnedItems getOwnedItems()
 		{
-			try
-			{
-				Constructor<OwnedItems> constructor = OwnedItems.class.getDeclaredConstructor(ConfigManager.class, ItemManager.class);
-				constructor.setAccessible(true);
-				return constructor.newInstance(null, null);
-			}
-			catch (ReflectiveOperationException e)
-			{
-				throw new AssertionError(e);
-			}
+			return com.bestgearsetup.ConfigItemsForTests.emptyOwnedItems();
 		}
 
 		@Override
@@ -100,13 +89,6 @@ public class MonsterSearchTest
 		return m;
 	}
 
-	@SuppressWarnings("unchecked")
-	private static <T> T field(BestGearSetupPanel panel, String name) throws ReflectiveOperationException
-	{
-		Field field = BestGearSetupPanel.class.getDeclaredField(name);
-		field.setAccessible(true);
-		return (T) field.get(panel);
-	}
 
 	private static void click(java.awt.Component row)
 	{
@@ -121,28 +103,21 @@ public class MonsterSearchTest
 			Collections.emptyList(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
 		SwingUtilities.invokeAndWait(() ->
 		{
-			try
-			{
-				BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, null, null, null);
-				panel.onDataLoaded(data);
-				panel.selectMonster(target, false);
-				JPanel results = field(panel, "resultsPanel");
-				results.add(new javax.swing.JLabel("Previous setup"));
-				panel.clearSearch();
-				assertEquals("", ((IconTextField) field(panel, "searchField")).getText());
-				assertEquals(0, results.getComponentCount());
-				assertEquals(0, ((JPanel) field(panel, "suggestions")).getComponentCount());
-				assertEquals(null, field(panel, "selected"));
-				assertFalse(((javax.swing.JButton) field(panel, "findButton")).isEnabled());
-				assertFalse(((javax.swing.JButton) field(panel, "wikiButton")).isEnabled());
-				panel.selectMonster(target, true);
-				assertTrue(((javax.swing.JButton) field(panel, "findButton")).isEnabled());
-				assertEquals(Collections.singletonList(target), searched);
-			}
-			catch (ReflectiveOperationException e)
-			{
-				throw new AssertionError(e);
-			}
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, null, null, null);
+			panel.onDataLoaded(data);
+			panel.selectMonster(target, false);
+			JPanel results = panel.resultsPanel;
+			results.add(new javax.swing.JLabel("Previous setup"));
+			panel.clearSearch();
+			assertEquals("", ((IconTextField) panel.searchField).getText());
+			assertEquals(0, results.getComponentCount());
+			assertEquals(0, ((JPanel) panel.suggestions).getComponentCount());
+			assertEquals(null, panel.selected);
+			assertFalse(((javax.swing.JButton) panel.findButton).isEnabled());
+			assertFalse(((javax.swing.JButton) panel.wikiButton).isEnabled());
+			panel.selectMonster(target, true);
+			assertTrue(((javax.swing.JButton) panel.findButton).isEnabled());
+			assertEquals(Collections.singletonList(target), searched);
 		});
 	}
 
@@ -157,50 +132,43 @@ public class MonsterSearchTest
 			Collections.emptyList(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
 		SwingUtilities.invokeAndWait(() ->
 		{
-			try
-			{
-				BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, null, null, null);
-				panel.onDataLoaded(data);
-				IconTextField search = field(panel, "searchField");
-				JPanel suggestions = field(panel, "suggestions");
-				JPanel versionRow = field(panel, "versionRow");
-				JComboBox<MonsterSummary> versions = field(panel, "versionBox");
-				JToggleButton bosses = field(panel, "bossesButton");
-				JToggleButton all = field(panel, "allButton");
-				assertTrue("All monsters is the default", all.isSelected());
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, null, null, null);
+			panel.onDataLoaded(data);
+			IconTextField search = panel.searchField;
+			JPanel suggestions = panel.suggestions;
+			JPanel versionRow = panel.versionRow;
+			JComboBox<MonsterSummary> versions = panel.versionBox;
+			JToggleButton bosses = panel.bossesButton;
+			JToggleButton all = panel.allButton;
+			assertTrue("All monsters is the default", all.isSelected());
 
-				search.setText("abyssal sire");
-				assertEquals(1, suggestions.getComponentCount());
-				click(suggestions.getComponent(0));
-				assertEquals(Collections.singletonList(phase1), searched);
-				assertEquals("Abyssal Sire", search.getText());
-				assertTrue(versionRow.isVisible());
-				assertEquals(2, versions.getItemCount());
-				assertEquals(phase1, versions.getSelectedItem());
+			search.setText("abyssal sire");
+			assertEquals(1, suggestions.getComponentCount());
+			click(suggestions.getComponent(0));
+			assertEquals(Collections.singletonList(phase1), searched);
+			assertEquals("Abyssal Sire", search.getText());
+			assertTrue(versionRow.isVisible());
+			assertEquals(2, versions.getItemCount());
+			assertEquals(phase1, versions.getSelectedItem());
 
-				versions.setSelectedItem(phase2);
-				assertEquals(Arrays.asList(phase1, phase2), searched);
-				assertEquals("Abyssal Sire", search.getText());
+			versions.setSelectedItem(phase2);
+			assertEquals(Arrays.asList(phase1, phase2), searched);
+			assertEquals("Abyssal Sire", search.getText());
 
-				// Single-version monsters have nothing to pick.
-				search.setText("goblin");
-				click(suggestions.getComponent(0));
-				assertFalse(versionRow.isVisible());
-				assertEquals("Goblin", search.getText());
+			// Single-version monsters have nothing to pick.
+			search.setText("goblin");
+			click(suggestions.getComponent(0));
+			assertFalse(versionRow.isVisible());
+			assertEquals("Goblin", search.getText());
 
-				search.setText("r");
-				assertEquals(2, suggestions.getComponentCount());
-				bosses.doClick();
-				assertEquals(true, saved.get(BestGearSetupConfig.BOSSES_ONLY_KEY));
-				assertEquals("Only the boss matches", 1, suggestions.getComponentCount());
-				all.doClick();
-				assertEquals(false, saved.get(BestGearSetupConfig.BOSSES_ONLY_KEY));
-				assertEquals(2, suggestions.getComponentCount());
-			}
-			catch (ReflectiveOperationException e)
-			{
-				throw new AssertionError(e);
-			}
+			search.setText("r");
+			assertEquals(2, suggestions.getComponentCount());
+			bosses.doClick();
+			assertEquals(true, saved.get(BestGearSetupConfig.BOSSES_ONLY_KEY));
+			assertEquals("Only the boss matches", 1, suggestions.getComponentCount());
+			all.doClick();
+			assertEquals(false, saved.get(BestGearSetupConfig.BOSSES_ONLY_KEY));
+			assertEquals(2, suggestions.getComponentCount());
 		});
 	}
 
@@ -213,39 +181,32 @@ public class MonsterSearchTest
 			Collections.emptyList(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
 		SwingUtilities.invokeAndWait(() ->
 		{
-			try
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig()
 			{
-				BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig()
+				@Override
+				public boolean bossesOnly()
 				{
-					@Override
-					public boolean bossesOnly()
-					{
-						return true;
-					}
-				}, null, null, null);
-				panel.onDataLoaded(data);
-				JToggleButton bosses = field(panel, "bossesButton");
-				assertTrue(bosses.isSelected());
-				IconTextField search = field(panel, "searchField");
-				search.setText("previous target");
-				panel.selectMonster(phase2, false);
-				JComboBox<MonsterSummary> versions = field(panel, "versionBox");
-				assertTrue(((JPanel) field(panel, "versionRow")).isVisible());
-				assertEquals(phase2, versions.getSelectedItem());
-				assertEquals("Abyssal Sire", search.getText());
-				assertEquals(0, ((JPanel) field(panel, "suggestions")).getComponentCount());
-				assertTrue("Selecting without running must not search", searched.isEmpty());
+					return true;
+				}
+			}, null, null, null);
+			panel.onDataLoaded(data);
+			JToggleButton bosses = panel.bossesButton;
+			assertTrue(bosses.isSelected());
+			IconTextField search = panel.searchField;
+			search.setText("previous target");
+			panel.selectMonster(phase2, false);
+			JComboBox<MonsterSummary> versions = panel.versionBox;
+			assertTrue(((JPanel) panel.versionRow).isVisible());
+			assertEquals(phase2, versions.getSelectedItem());
+			assertEquals("Abyssal Sire", search.getText());
+			assertEquals(0, ((JPanel) panel.suggestions).getComponentCount());
+			assertTrue("Selecting without running must not search", searched.isEmpty());
 
-				search.setText("another target");
-				panel.selectMonster(phase1, true);
-				assertEquals("Abyssal Sire", search.getText());
-				assertEquals(phase1, versions.getSelectedItem());
-				assertEquals(Collections.singletonList(phase1), searched);
-			}
-			catch (ReflectiveOperationException e)
-			{
-				throw new AssertionError(e);
-			}
+			search.setText("another target");
+			panel.selectMonster(phase1, true);
+			assertEquals("Abyssal Sire", search.getText());
+			assertEquals(phase1, versions.getSelectedItem());
+			assertEquals(Collections.singletonList(phase1), searched);
 		});
 	}
 
@@ -268,37 +229,30 @@ public class MonsterSearchTest
 		};
 		SwingUtilities.invokeAndWait(() ->
 		{
-			try
-			{
-				BestGearSetupPanel panel = new BestGearSetupPanel(plugin, config, null, null, null);
-				panel.onDataLoaded(data);
-				JPanel phaseRow = field(panel, "phaseRow");
-				JComboBox<EncounterPhase> phases = field(panel, "phaseBox");
-				assertFalse(phaseRow.isVisible());
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, config, null, null, null);
+			panel.onDataLoaded(data);
+			JPanel phaseRow = panel.phaseRow;
+			JComboBox<EncounterPhase> phases = panel.phaseBox;
+			assertFalse(phaseRow.isVisible());
 
-				panel.selectMonster(yama, false);
-				assertTrue(phaseRow.isVisible());
-				assertEquals(2, phases.getItemCount());
-				assertEquals(EncounterPhase.YAMA_MELEE_TANK, phases.getSelectedItem());
+			panel.selectMonster(yama, false);
+			assertTrue(phaseRow.isVisible());
+			assertEquals(2, phases.getItemCount());
+			assertEquals(EncounterPhase.YAMA_MELEE_TANK, phases.getSelectedItem());
 
-				// Yama's enraged phase ignores the tank's style, so there is nothing to pick.
-				JComboBox<MonsterSummary> versions = field(panel, "versionBox");
-				versions.setSelectedItem(enraged);
-				assertFalse(phaseRow.isVisible());
+			// Yama's enraged phase ignores the tank's style, so there is nothing to pick.
+			JComboBox<MonsterSummary> versions = panel.versionBox;
+			versions.setSelectedItem(enraged);
+			assertFalse(phaseRow.isVisible());
 
-				panel.selectMonster(wolf, false);
-				assertFalse(phaseRow.isVisible());
-				assertEquals(EncounterPhase.STANDARD, phases.getSelectedItem());
-				assertFalse("Showing another target keeps the saved phase", saved.containsKey(BestGearSetupConfig.PHASE_KEY));
+			panel.selectMonster(wolf, false);
+			assertFalse(phaseRow.isVisible());
+			assertEquals(EncounterPhase.STANDARD, phases.getSelectedItem());
+			assertFalse("Showing another target keeps the saved phase", saved.containsKey(BestGearSetupConfig.PHASE_KEY));
 
-				panel.selectMonster(yama, false);
-				phases.setSelectedItem(EncounterPhase.STANDARD);
-				assertEquals(EncounterPhase.STANDARD, saved.get(BestGearSetupConfig.PHASE_KEY));
-			}
-			catch (ReflectiveOperationException e)
-			{
-				throw new AssertionError(e);
-			}
+			panel.selectMonster(yama, false);
+			phases.setSelectedItem(EncounterPhase.STANDARD);
+			assertEquals(EncounterPhase.STANDARD, saved.get(BestGearSetupConfig.PHASE_KEY));
 		});
 	}
 }

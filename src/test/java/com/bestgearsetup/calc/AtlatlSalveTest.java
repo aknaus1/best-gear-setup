@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -30,7 +31,7 @@ public class AtlatlSalveTest
 	@BeforeClass
 	public static void load() throws Exception
 	{
-		Gson gson = new Gson();
+		Gson gson = RuneLiteAPI.GSON;
 		data = WikiGameData.get(gson).gameData(gson);
 	}
 

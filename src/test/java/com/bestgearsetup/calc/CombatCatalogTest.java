@@ -17,13 +17,14 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.ToLongFunction;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 /** Sweeps over the bundled Wiki catalogue; these supplement, rather than replace, exact mechanic vectors. */
 public class CombatCatalogTest
 {
-	private static final Gson GSON = new Gson();
+	private static final Gson GSON = RuneLiteAPI.GSON;
 	/** Offline stand-in for live prices: every tradeable item costs 1m. */
 	private static final ToLongFunction<GearItem> PRICE = item -> item.isTradeable() ? 1_000_000L : 0;
 	private static GameData data;

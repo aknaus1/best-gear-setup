@@ -16,13 +16,14 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.ToLongFunction;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 /** Magic against Yama with the bundled catalogue: demonic weapons and Arceuus spells must be searched. */
 public class DemonMagicTest
 {
-	private static final Gson GSON = new Gson();
+	private static final Gson GSON = RuneLiteAPI.GSON;
 	/** Offline stand-in for live prices: every item costs 1m. */
 	private static final ToLongFunction<GearItem> PRICE = item -> 1_000_000L;
 	private static GameData data;

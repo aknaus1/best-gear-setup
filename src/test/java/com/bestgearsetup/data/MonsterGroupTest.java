@@ -3,11 +3,11 @@ package com.bestgearsetup.data;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 public class MonsterGroupTest
@@ -98,7 +98,7 @@ public class MonsterGroupTest
 	@Test
 	public void bundledBossesCollapseIntoOneEntryEach() throws Exception
 	{
-		GameData data = new GameDataLoader(new Gson()).loadGameData();
+		GameData data = new GameDataLoader(RuneLiteAPI.GSON).loadGameData();
 		List<MonsterGroup> sire = data.searchMonsterGroups("abyssal sire", 10, true);
 		assertEquals(1, sire.size());
 		assertEquals(4, sire.get(0).getVariants().size());

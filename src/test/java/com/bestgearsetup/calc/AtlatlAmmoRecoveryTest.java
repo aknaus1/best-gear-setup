@@ -13,12 +13,12 @@ import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Slot;
-import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.function.IntPredicate;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,7 +35,7 @@ public class AtlatlAmmoRecoveryTest
 	@BeforeClass
 	public static void ownershipRules()
 	{
-		OwnershipRules.init(new Gson());
+		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
 	@Before

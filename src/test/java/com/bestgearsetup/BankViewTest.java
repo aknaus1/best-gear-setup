@@ -3,6 +3,15 @@ package com.bestgearsetup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.data.CombatClass;
@@ -11,8 +20,6 @@ import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
 import com.google.gson.Gson;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,16 +50,18 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.bank.BankSearch;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 public class BankViewTest
 {
-	/** Main code gets the client's Gson in startUp; tests supply their own. */
+	/** Main code gets the client's Gson in startUp; tests use the same instance. */
 	@BeforeClass
 	public static void ownershipRules()
 	{
-		OwnershipRules.init(new Gson());
+		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
 	@Test
@@ -145,7 +154,7 @@ public class BankViewTest
 		assertTrue(bank.universe.children.get(0).widget.isSelfHidden());
 		assertTrue(bank.universe.children.get(1).widget.isSelfHidden());
 		bank.view.setSelection(setup(Slot.WEAPON, item(12926)));
-		oldClick.run(proxy(ScriptEvent.class, (p, m, a) -> m.getName().equals("getOp") ? 1 : null));
+		oldClick.run(scriptEvent(1));
 		assertEquals("", bank.search);
 	}
 
@@ -331,8 +340,9 @@ public class BankViewTest
 		bank.rebuild();
 		assertTrue(bank.view.isActive());
 		assertEquals(72, bank.items[0].value("OriginalY"));
-		bank.view.onMenuOptionClicked(new MenuOptionClicked(proxy(MenuEntry.class,
-			(p, m, a) -> m.getName().equals("getOption") ? "View tag tab" : null)));
+		MenuEntry viewTagTab = mock(MenuEntry.class);
+		when(viewTagTab.getOption()).thenReturn("View tag tab");
+		bank.view.onMenuOptionClicked(new MenuOptionClicked(viewTagTab));
 		assertFalse(bank.view.isActive());
 		assertEquals(5, bank.items[0].value("DragDeadTime"));
 		assertEquals(0, bank.callback("bankBuildTab"));
@@ -420,9 +430,11 @@ public class BankViewTest
 		return item;
 	}
 
-	private static <T> T proxy(Class<T> type, java.lang.reflect.InvocationHandler handler)
+	private static ScriptEvent scriptEvent(int op)
 	{
-		return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, handler));
+		ScriptEvent event = mock(ScriptEvent.class);
+		when(event.getOp()).thenReturn(op);
+		return event;
 	}
 
 	/** Minimal game-script fixture: native tab/search mode, filtering, and rebuilt bank widgets. */
@@ -440,6 +452,7 @@ public class BankViewTest
 		private String search = "";
 		private int tab;
 		private final List<Object> posted = new ArrayList<>();
+		private final Map<Integer, ItemComposition> compositions = new HashMap<>();
 		private final BestGearSetupBankView view;
 		private final Client client;
 		private final ClientThread thread;
@@ -467,41 +480,45 @@ public class BankViewTest
 			container.values.put("ScrollHeight", 36);
 			container.values.put("Children", children);
 			container.values.put("OnInvTransmitListener", new Object[]{ScriptID.BANKMAIN_BUILD});
-			client = proxy(Client.class, (p, method, args) ->
+			client = mock(Client.class);
+			when(client.getWidget(anyInt())).thenAnswer(i -> !open ? null
+				: i.<Integer>getArgument(0) == InterfaceID.Bankmain.UNIVERSE ? universe.widget : container.widget);
+			when(client.getVarcIntValue(anyInt())).thenAnswer(i ->
+				i.<Integer>getArgument(0) == VarClientID.MESLAYERMODE ? mode : 0);
+			when(client.getVarcStrValue(anyInt())).thenAnswer(i -> search);
+			when(client.getVarbitValue(anyInt())).thenAnswer(i -> tab);
+			doAnswer(i -> tab = i.getArgument(1)).when(client).setVarbit(anyInt(), anyInt());
+			doThrow(new AssertionError("Plugin Hub plugins may not call menuAction")).when(client)
+				.menuAction(anyInt(), anyInt(), any(), anyInt(), anyInt(), any(), any());
+			doAnswer(i ->
 			{
-				switch (method.getName())
+				if (i.<Integer>getArgument(0) == VarClientID.MESLAYERMODE)
 				{
-					case "getWidget": return !open ? null
-						: (int) args[0] == InterfaceID.Bankmain.UNIVERSE ? universe.widget : container.widget;
-					case "getVarcIntValue": return (int) args[0] == VarClientID.MESLAYERMODE ? mode : 0;
-					case "getVarcStrValue": return search;
-					case "getVarbitValue": return tab;
-					case "setVarbit": tab = (int) args[1]; return null;
-					case "menuAction": throw new AssertionError("Plugin Hub plugins may not call menuAction");
-					case "setVarcIntValue":
-						if ((int) args[0] == VarClientID.MESLAYERMODE) { mode = (int) args[1]; }
-						return null;
-					case "setVarcStrValue": search = (String) args[1]; return null;
-					case "getIntStack": return ints;
-					case "getObjectStack": return objects;
-					case "getIntStackSize": return stackSize;
-					case "getObjectStackSize": return 1;
-					case "getItemDefinition": return composition((int) args[0]);
-					case "runScript":
-						Object[] script = (Object[]) args[0];
-						if ((int) script[0] == ScriptID.MESSAGE_LAYER_CLOSE)
-						{
-							mode = InputType.NONE.getType(); search = "";
-						}
-						else if ((int) script[0] == ScriptID.BANKMAIN_SEARCH_TOGGLE)
-						{
-							mode = InputType.SEARCH.getType();
-						}
-						rebuild();
-						return null;
-					default: return null;
+					mode = i.getArgument(1);
 				}
-			});
+				return null;
+			}).when(client).setVarcIntValue(anyInt(), anyInt());
+			doAnswer(i -> search = i.getArgument(1)).when(client).setVarcStrValue(anyInt(), any());
+			when(client.getIntStack()).thenReturn(ints);
+			when(client.getObjectStack()).thenReturn(objects);
+			when(client.getIntStackSize()).thenAnswer(i -> stackSize);
+			when(client.getObjectStackSize()).thenReturn(1);
+			when(client.getItemDefinition(anyInt())).thenAnswer(i -> composition(i.getArgument(0)));
+			doAnswer(i ->
+			{
+				Object[] script = (Object[]) i.getRawArguments()[0];
+				if ((int) script[0] == ScriptID.MESSAGE_LAYER_CLOSE)
+				{
+					mode = InputType.NONE.getType();
+					search = "";
+				}
+				else if ((int) script[0] == ScriptID.BANKMAIN_SEARCH_TOGGLE)
+				{
+					mode = InputType.SEARCH.getType();
+				}
+				rebuild();
+				return null;
+			}).when(client).runScript(any(Object[].class));
 			thread = new ClientThread()
 			{
 				@Override
@@ -509,14 +526,13 @@ public class BankViewTest
 				@Override
 				public void invokeLater(Runnable action) { action.run(); }
 			};
-			Constructor<BankSearch> constructor = BankSearch.class.getDeclaredConstructor(Client.class, ClientThread.class);
-			constructor.setAccessible(true);
-			BankSearch bankSearch = constructor.newInstance(client, thread);
+			// The real BankSearch and ItemManager, built through their injected constructors.
+			BankSearch bankSearch = mock(BankSearch.class, withSettings().useConstructor(client, thread)
+				.defaultAnswer(CALLS_REAL_METHODS));
 			// ItemManager only reads item definitions in these tests; its background tasks stay dormant.
-			Constructor<?> managerConstructor = ItemManager.class.getDeclaredConstructors()[0];
-			managerConstructor.setAccessible(true);
-			ScheduledExecutorService executor = proxy(ScheduledExecutorService.class, (p, m, a) -> null);
-			ItemManager manager = (ItemManager) managerConstructor.newInstance(client, executor, thread, new EventBus(), null, null);
+			ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
+			ItemManager manager = mock(ItemManager.class, withSettings()
+				.useConstructor(client, executor, thread, new EventBus(), null, null).defaultAnswer(CALLS_REAL_METHODS));
 			EventBus eventBus = new EventBus()
 			{
 				@Override
@@ -527,15 +543,13 @@ public class BankViewTest
 
 		private ItemComposition composition(int id)
 		{
-			return proxy(ItemComposition.class, (p, method, args) ->
+			return compositions.computeIfAbsent(id, key ->
 			{
-				switch (method.getName())
-				{
-					case "getNote": return -1;
-					case "getPlaceholderTemplateId": return id == 4153 ? 14401 : -1;
-					case "getPlaceholderId": return id == 4153 ? 12926 : -1;
-					default: return null;
-				}
+				ItemComposition composition = mock(ItemComposition.class);
+				when(composition.getNote()).thenReturn(-1);
+				when(composition.getPlaceholderTemplateId()).thenReturn(key == 4153 ? 14401 : -1);
+				when(composition.getPlaceholderId()).thenReturn(key == 4153 ? 12926 : -1);
+				return composition;
 			});
 		}
 
@@ -562,7 +576,7 @@ public class BankViewTest
 		void click(WidgetState widget, int op)
 		{
 			JavaScriptCallback action = (JavaScriptCallback) ((Object[]) widget.values.get("OnOpListener"))[0];
-			action.run(proxy(ScriptEvent.class, (p, m, a) -> m.getName().equals("getOp") ? op : null));
+			action.run(scriptEvent(op));
 		}
 
 		void rebuild()
@@ -590,39 +604,7 @@ public class BankViewTest
 	{
 		private final Map<String, Object> values = new HashMap<>();
 		private final List<WidgetState> children = new ArrayList<>();
-		private final Widget widget = proxy(Widget.class, (p, method, args) ->
-		{
-			String name = method.getName();
-			if (name.equals("createChild"))
-			{
-				WidgetState child = new WidgetState(-1, 0, children.size());
-				children.add(child);
-				values.put("Children", children.stream().map(c -> c.widget).toArray(Widget[]::new));
-				return child.widget;
-			}
-			if (name.equals("setAction"))
-			{
-				values.put("Action" + args[0], args[1]);
-				return null;
-			}
-			if (name.equals("clearActions"))
-			{
-				values.keySet().removeIf(key -> key.startsWith("Action"));
-				return null;
-			}
-			if (name.startsWith("set"))
-			{
-				values.put(name.equals("setHidden") ? "SelfHidden" : name.substring(3), args[0]);
-				return method.getReturnType() == Widget.class ? p : null;
-			}
-			if (name.startsWith("get") || name.startsWith("is"))
-			{
-				Object value = values.get(name.substring(name.startsWith("get") ? 3 : 2));
-				return value != null ? value : method.getReturnType() == boolean.class ? false
-					: method.getReturnType() == int.class ? 0 : null;
-			}
-			return null;
-		});
+		private final Widget widget = mock(Widget.class);
 
 		WidgetState(int id, int quantity, int index)
 		{
@@ -631,6 +613,70 @@ public class BankViewTest
 			values.put("Index", index);
 			values.put("DragDeadZone", 5);
 			values.put("DragDeadTime", 5);
+			// A property bag: setters store under the property name, getters read it back (setHidden is SelfHidden).
+			when(widget.getChildren()).thenAnswer(i -> values.get("Children"));
+			when(widget.getName()).thenAnswer(i -> values.get("Name"));
+			when(widget.getText()).thenAnswer(i -> values.get("Text"));
+			when(widget.getOnInvTransmitListener()).thenAnswer(i -> values.get("OnInvTransmitListener"));
+			when(widget.getOnOpListener()).thenAnswer(i -> values.get("OnOpListener"));
+			when(widget.getItemId()).thenAnswer(i -> intValue("ItemId"));
+			when(widget.getItemQuantity()).thenAnswer(i -> intValue("ItemQuantity"));
+			when(widget.getDragDeadTime()).thenAnswer(i -> intValue("DragDeadTime"));
+			when(widget.getDragDeadZone()).thenAnswer(i -> intValue("DragDeadZone"));
+			when(widget.getHeight()).thenAnswer(i -> intValue("Height"));
+			when(widget.getWidth()).thenAnswer(i -> intValue("Width"));
+			when(widget.getOriginalX()).thenAnswer(i -> intValue("OriginalX"));
+			when(widget.getOriginalY()).thenAnswer(i -> intValue("OriginalY"));
+			when(widget.getScrollHeight()).thenAnswer(i -> intValue("ScrollHeight"));
+			when(widget.getScrollY()).thenAnswer(i -> intValue("ScrollY"));
+			when(widget.getSpriteId()).thenAnswer(i -> intValue("SpriteId"));
+			when(widget.isHidden()).thenAnswer(i -> flag("Hidden"));
+			when(widget.isSelfHidden()).thenAnswer(i -> flag("SelfHidden"));
+			when(widget.setHidden(anyBoolean())).thenAnswer(store("SelfHidden"));
+			when(widget.setHasListener(anyBoolean())).thenAnswer(store("HasListener"));
+			when(widget.setName(any())).thenAnswer(store("Name"));
+			when(widget.setText(any())).thenAnswer(store("Text"));
+			when(widget.setOriginalX(anyInt())).thenAnswer(store("OriginalX"));
+			when(widget.setOriginalY(anyInt())).thenAnswer(store("OriginalY"));
+			when(widget.setOriginalWidth(anyInt())).thenAnswer(store("OriginalWidth"));
+			when(widget.setOriginalHeight(anyInt())).thenAnswer(store("OriginalHeight"));
+			when(widget.setScrollHeight(anyInt())).thenAnswer(store("ScrollHeight"));
+			when(widget.setScrollY(anyInt())).thenAnswer(store("ScrollY"));
+			when(widget.setSpriteId(anyInt())).thenAnswer(store("SpriteId"));
+			doAnswer(store("DragDeadTime")).when(widget).setDragDeadTime(anyInt());
+			doAnswer(store("DragDeadZone")).when(widget).setDragDeadZone(anyInt());
+			doAnswer(i -> values.put("OnOpListener", i.getRawArguments()[0])).when(widget)
+				.setOnOpListener(any(Object[].class));
+			doAnswer(i -> values.put("Action" + i.getArgument(0), i.getArgument(1))).when(widget)
+				.setAction(anyInt(), any());
+			doAnswer(i -> values.keySet().removeIf(key -> key.startsWith("Action"))).when(widget).clearActions();
+			when(widget.createChild(anyInt(), anyInt())).thenAnswer(i ->
+			{
+				WidgetState child = new WidgetState(-1, 0, children.size());
+				children.add(child);
+				values.put("Children", children.stream().map(c -> c.widget).toArray(Widget[]::new));
+				return child.widget;
+			});
+		}
+
+		private Answer<Widget> store(String property)
+		{
+			return i ->
+			{
+				values.put(property, i.getArgument(0));
+				return widget;
+			};
+		}
+
+		private int intValue(String property)
+		{
+			Object value = values.get(property);
+			return value == null ? 0 : (int) value;
+		}
+
+		private boolean flag(String property)
+		{
+			return Boolean.TRUE.equals(values.get(property));
 		}
 
 		int value(String name) { return (int) values.get(name); }

@@ -16,11 +16,8 @@ import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
-import com.google.gson.Gson;
 import java.awt.Component;
 import java.awt.Container;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -31,6 +28,7 @@ import javax.swing.SwingUtilities;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.components.IconTextField;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 /** Rejected input and empty searches explain themselves; estimate-changing assumptions sit beside the results. */
@@ -49,16 +47,7 @@ public class PanelFeedbackTest
 			@Override
 			public OwnedItems getOwnedItems()
 			{
-				try
-				{
-					Constructor<OwnedItems> constructor = OwnedItems.class.getDeclaredConstructor(ConfigManager.class, ItemManager.class);
-					constructor.setAccessible(true);
-					return constructor.newInstance(null, null);
-				}
-				catch (ReflectiveOperationException e)
-				{
-					throw new AssertionError(e);
-				}
+				return com.bestgearsetup.ConfigItemsForTests.emptyOwnedItems();
 			}
 
 			@Override
@@ -95,7 +84,7 @@ public class PanelFeedbackTest
 			{
 			};
 			BestGearSetupPanel panel = new BestGearSetupPanel(plugin(), config, null, null, null);
-			JTextField budget = field(panel, "budgetField", JTextField.class);
+			JTextField budget = panel.budgetField;
 			JLabel error = (JLabel) named(panel, "budgetError");
 			assertFalse(error.isVisible());
 			budget.setText("nonsense");
@@ -113,7 +102,7 @@ public class PanelFeedbackTest
 	@Test
 	public void emptySearchesSayWhyAndWhichTargetIsKept() throws Exception
 	{
-		GameData data = WikiGameData.get(new Gson()).gameData(new Gson());
+		GameData data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 		SwingUtilities.invokeAndWait(() ->
 		{
 			BestGearSetupPanel panel = new BestGearSetupPanel(plugin(), new BestGearSetupConfig()
@@ -125,7 +114,7 @@ public class PanelFeedbackTest
 				}
 			}, null, null, null);
 			panel.onDataLoaded(data);
-			IconTextField search = field(panel, "searchField", IconTextField.class);
+			IconTextField search = panel.searchField;
 			JLabel hint = (JLabel) named(panel, "noMatches");
 			search.setText("zzzz-no-monster");
 			assertTrue(hint.isVisible());
@@ -171,25 +160,12 @@ public class PanelFeedbackTest
 				Collections.emptyMap(), Collections.emptyMap(), false, Arrays.asList(used, blocked), false, false,
 				Collections.emptyList()));
 			assertTrue("No lock rows above the results", named(panel, "lockFEET") == null && named(panel, "lockHEAD") == null);
-			String status = field(panel, "statusLabel", JLabel.class).getText();
+			String status = panel.statusLabel.getText();
 			assertTrue(status, status.contains("Head lock can't be used: its requirements are too high. Remove it under Gear."));
 			assertFalse(status, status.contains("Feet lock"));
 		});
 	}
 
-	private static <T> T field(Object owner, String name, Class<T> type)
-	{
-		try
-		{
-			Field f = BestGearSetupPanel.class.getDeclaredField(name);
-			f.setAccessible(true);
-			return type.cast(f.get(owner));
-		}
-		catch (ReflectiveOperationException e)
-		{
-			throw new AssertionError(e);
-		}
-	}
 
 	private static Component named(Container container, String name)
 	{

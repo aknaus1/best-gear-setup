@@ -69,19 +69,19 @@ public class BestGearSetupPanel extends PluginPanel
 	private final BestGearSetupConfig config;
 	private final ItemManager itemManager;
 
-	private final IconTextField searchField = new IconTextField();
-	private final JToggleButton bossesButton = new JToggleButton("Bosses");
-	private final JToggleButton allButton = new JToggleButton("All monsters");
-	private final JPanel suggestions = new JPanel();
-	private final JComboBox<MonsterSummary> versionBox = new JComboBox<>();
-	private final JPanel versionRow = new JPanel(new BorderLayout(0, 2));
-	private final JComboBox<EncounterPhase> phaseBox = new JComboBox<>();
-	private final JPanel phaseRow = new JPanel(new BorderLayout(0, 2));
+	final IconTextField searchField = new IconTextField();
+	final JToggleButton bossesButton = new JToggleButton("Bosses");
+	final JToggleButton allButton = new JToggleButton("All monsters");
+	final JPanel suggestions = new JPanel();
+	final JComboBox<MonsterSummary> versionBox = new JComboBox<>();
+	final JPanel versionRow = new JPanel(new BorderLayout(0, 2));
+	final JComboBox<EncounterPhase> phaseBox = new JComboBox<>();
+	final JPanel phaseRow = new JPanel(new BorderLayout(0, 2));
 	private final JLabel monsterLabel = new JLabel();
-	private final JButton wikiButton = new JButton("Open Wiki");
-	private final JComboBox<SearchMode> modeBox = new JComboBox<>(SearchMode.values());
-	private final JTextField budgetField = new JTextField();
-	private final JPanel budgetRow = new JPanel(new BorderLayout(4, 0));
+	final JButton wikiButton = new JButton("Open Wiki");
+	final JComboBox<SearchMode> modeBox = new JComboBox<>(SearchMode.values());
+	final JTextField budgetField = new JTextField();
+	final JPanel budgetRow = new JPanel(new BorderLayout(4, 0));
 	private final CardLayout views = new CardLayout();
 	private final JButton gearButton = new JButton("Gear rules");
 	private final JLabel assumptionsLabel = new JLabel();
@@ -90,21 +90,21 @@ public class BestGearSetupPanel extends PluginPanel
 	private final Map<String, JButton> editorBackButtons = new HashMap<>();
 	private final JLabel budgetError = new JLabel();
 	private final JLabel noMatches = new JLabel();
-	private final JButton findButton = new JButton("Find best setup");
+	final JButton findButton = new JButton("Find best setup");
 	private final JButton clearSearchButton = new JButton("Clear search");
-	private final JLabel statusLabel = new JLabel();
+	final JLabel statusLabel = new JLabel();
 	private final JProgressBar progressBar = new JProgressBar(0, 100);
 	/** Holds the bar with its top gap; hidden whenever no search is running. */
 	private final JPanel progressRow = left(progressBar);
 	private final JLabel ownedLabel = new JLabel();
-	private final JPanel resultsPanel = new JPanel();
+	final JPanel resultsPanel = new JPanel();
 	private final ConstraintsPanel constraints;
 	private final FightOptionsPanel fightOptions;
 	private final SpriteCache sprites;
 	private final SkillIconManager skillIcons;
 
 	private GameData data;
-	private MonsterSummary selected;
+	MonsterSummary selected;
 	/** The searched group of {@link #selected}; its variants fill the version list. */
 	private MonsterGroup selectedGroup;
 	private boolean syncing;

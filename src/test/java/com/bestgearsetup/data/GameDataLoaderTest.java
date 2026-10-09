@@ -5,7 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
-import com.google.gson.Gson;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 public class GameDataLoaderTest
@@ -13,7 +13,7 @@ public class GameDataLoaderTest
 	@Test
 	public void everythingComesFromTheBundledSnapshots() throws Exception
 	{
-		GameDataLoader loader = new GameDataLoader(new Gson());
+		GameDataLoader loader = new GameDataLoader(RuneLiteAPI.GSON);
 		GameData data = loader.loadGameData();
 		assertFalse(data.getMonsters().isEmpty());
 		assertTrue(data.getItems(Slot.WEAPON).size() > 600);

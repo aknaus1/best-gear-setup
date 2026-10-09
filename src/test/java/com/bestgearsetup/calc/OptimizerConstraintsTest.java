@@ -22,17 +22,18 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class OptimizerConstraintsTest
 {
-	/** Main code gets the client's Gson in startUp; tests supply their own. */
+	/** Main code gets the client's Gson in startUp; tests use the same instance. */
 	@BeforeClass
 	public static void ownershipRules()
 	{
-		OwnershipRules.init(new Gson());
+		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
 	private GearItem whip;

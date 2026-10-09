@@ -6,10 +6,10 @@ import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GameDataLoader;
-import com.google.gson.Gson;
 import java.util.HashSet;
 import java.util.Set;
 import net.runelite.client.config.ConfigItemDescriptor;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 public class SettingsMetadataTest
@@ -28,7 +28,7 @@ public class SettingsMetadataTest
 
 	@Test public void dropdownsRetainEverySelectableBundledPotionName() throws Exception
 	{
-		GameData data = new GameDataLoader(new Gson()).loadGameData();
+		GameData data = new GameDataLoader(RuneLiteAPI.GSON).loadGameData();
 		for (CombatClass cls : CombatClass.values())
 		{
 			Set<String> names = new HashSet<>();

@@ -21,17 +21,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import net.runelite.api.gameval.ItemID;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 /** Special attacks mixed into normal searches, with a switch to the best spec weapon. */
 public class KillSpecialsTest
 {
-	/** Main code gets the client's Gson in startUp; tests supply their own. */
+	/** Main code gets the client's Gson in startUp; tests use the same instance. */
 	@BeforeClass
 	public static void ownershipRules()
 	{
-		OwnershipRules.init(new Gson());
+		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
 	private final GearItem sword = weapon(100, "sword", "slash sword", 4, "chop,slash,aggressive");

@@ -1,13 +1,11 @@
 package com.bestgearsetup;
 
-import java.lang.reflect.Method;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
 import java.util.ArrayList;
 import java.util.List;
-import net.runelite.client.config.Alpha;
-import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigItemDescriptor;
-import net.runelite.client.config.Range;
-import net.runelite.client.config.Units;
+import net.runelite.client.config.ConfigManager;
 
 /** The config item descriptors RuneLite's ConfigManager builds, for tests that run without a ConfigManager. */
 public final class ConfigItemsForTests
@@ -18,16 +16,16 @@ public final class ConfigItemsForTests
 
 	public static List<ConfigItemDescriptor> items()
 	{
-		List<ConfigItemDescriptor> items = new ArrayList<>();
-		for (Method m : BestGearSetupConfig.class.getMethods())
+		// getConfigDescriptor reads only the config interface, so the manager's own state is never needed.
+		ConfigManager manager = mock(ConfigManager.class, CALLS_REAL_METHODS);
+		return new ArrayList<>(manager.getConfigDescriptor(new BestGearSetupConfig()
 		{
-			if (m.getParameterCount() == 0 && m.isAnnotationPresent(ConfigItem.class))
-			{
-				items.add(new ConfigItemDescriptor(m.getDeclaredAnnotation(ConfigItem.class), m.getGenericReturnType(),
-					m.getDeclaredAnnotation(Range.class), m.getDeclaredAnnotation(Alpha.class),
-					m.getDeclaredAnnotation(Units.class)));
-			}
-		}
-		return items;
+		}).getItems());
+	}
+
+	/** Owned items with no account data, as the plugin has before login. */
+	public static OwnedItems emptyOwnedItems()
+	{
+		return new OwnedItems(null, null);
 	}
 }

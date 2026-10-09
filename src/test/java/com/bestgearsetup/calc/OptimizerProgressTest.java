@@ -8,10 +8,10 @@ import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.WikiGameData;
-import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -23,7 +23,7 @@ public class OptimizerProgressTest
 	@BeforeClass
 	public static void load() throws Exception
 	{
-		data = WikiGameData.get(new Gson()).gameData(new Gson());
+		data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 		context = new CombatContext(TestData.monster(100, 20), PlayerLevels.maxed(), false, true, null);
 	}
 

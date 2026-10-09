@@ -2,10 +2,8 @@ package com.bestgearsetup;
 
 import static org.junit.Assert.assertEquals;
 import com.bestgearsetup.data.MonsterSummary;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.SwingUtilities;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,7 +16,7 @@ public class QueuedRerunTest
 	private BestGearSetupPlugin plugin;
 
 	@Before
-	public void setUp() throws Exception
+	public void setUp()
 	{
 		plugin = new BestGearSetupPlugin()
 		{
@@ -28,26 +26,7 @@ public class QueuedRerunTest
 				started.add(summary);
 			}
 		};
-		set("lastSearched", target);
-	}
-
-	private Object field(String name) throws ReflectiveOperationException
-	{
-		Field field = BestGearSetupPlugin.class.getDeclaredField(name);
-		field.setAccessible(true);
-		return field.get(plugin);
-	}
-
-	private void set(String name, Object value) throws ReflectiveOperationException
-	{
-		Field field = BestGearSetupPlugin.class.getDeclaredField(name);
-		field.setAccessible(true);
-		field.set(plugin, value);
-	}
-
-	private void bump(String counter) throws ReflectiveOperationException
-	{
-		((AtomicInteger) field(counter)).incrementAndGet();
+		plugin.lastSearched = target;
 	}
 
 	private static void flushSwing() throws Exception
@@ -74,16 +53,9 @@ public class QueuedRerunTest
 		SwingUtilities.invokeAndWait(() ->
 		{
 			plugin.rerun();
-			try
-			{
-				// What onRuneScapeProfileChanged does before the queued callback runs.
-				bump("searchGeneration");
-				set("lastSearched", null);
-			}
-			catch (ReflectiveOperationException e)
-			{
-				throw new AssertionError(e);
-			}
+			// What onRuneScapeProfileChanged does before the queued callback runs.
+			plugin.searchGeneration.incrementAndGet();
+			plugin.lastSearched = null;
 		});
 		flushSwing();
 		assertEquals(0, started.size());
@@ -96,14 +68,7 @@ public class QueuedRerunTest
 		{
 			plugin.rerun();
 			plugin.rerun();
-			try
-			{
-				bump("lifecycle");
-			}
-			catch (ReflectiveOperationException e)
-			{
-				throw new AssertionError(e);
-			}
+			plugin.lifecycle.incrementAndGet();
 		});
 		flushSwing();
 		assertEquals(0, started.size());
@@ -111,14 +76,7 @@ public class QueuedRerunTest
 		SwingUtilities.invokeAndWait(() ->
 		{
 			plugin.rerun();
-			try
-			{
-				bump("searchGeneration");
-			}
-			catch (ReflectiveOperationException e)
-			{
-				throw new AssertionError(e);
-			}
+			plugin.searchGeneration.incrementAndGet();
 		});
 		flushSwing();
 		assertEquals(0, started.size());

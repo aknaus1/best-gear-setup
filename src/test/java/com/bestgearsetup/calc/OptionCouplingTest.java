@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ public class OptionCouplingTest
 	@BeforeClass
 	public static void load() throws Exception
 	{
-		Gson gson = new Gson();
+		Gson gson = RuneLiteAPI.GSON;
 		OwnershipRules.init(gson);
 		catalogue = WikiGameData.get(gson).gameData(gson);
 		monsters = WikiMonsters.get(gson);

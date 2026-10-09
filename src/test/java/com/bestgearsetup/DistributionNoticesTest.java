@@ -5,8 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import org.junit.Test;
 
 /**
@@ -20,17 +18,21 @@ public class DistributionNoticesTest
 		return text.replace("\r\n", "\n");
 	}
 
+	private static String read(String resource) throws IOException
+	{
+		try (InputStream in = DistributionNoticesTest.class.getResourceAsStream(resource))
+		{
+			assertNotNull(resource + " is missing", in);
+			return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+		}
+	}
+
 	private static void assertBundled(String repositoryFile) throws IOException
 	{
 		String resource = "/META-INF/" + repositoryFile;
-		try (InputStream in = DistributionNoticesTest.class.getResourceAsStream(resource))
-		{
-			assertNotNull(resource + " is missing from the JAR resources", in);
-			String bundled = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-			String original = new String(Files.readAllBytes(Paths.get(repositoryFile)), StandardCharsets.UTF_8);
-			assertEquals("src/main/resources" + resource + " differs from " + repositoryFile + "; copy it again",
-				normalise(original), normalise(bundled));
-		}
+		// build.gradle copies the repository files into the test resources under /repository.
+		assertEquals("src/main/resources" + resource + " differs from " + repositoryFile + "; copy it again",
+			normalise(read("/repository/" + repositoryFile)), normalise(read(resource)));
 	}
 
 	@Test

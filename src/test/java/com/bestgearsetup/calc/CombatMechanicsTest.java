@@ -11,10 +11,10 @@ import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
-import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.function.IntUnaryOperator;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 /** Regression vectors and enumerated damage rolls independent of the calculator's averaging code. */
@@ -365,7 +365,7 @@ public class CombatMechanicsTest
 	@Test
 	public void copiedMonsterRetainsWeaknessAndReplacedAttributesInvalidateCache()
 	{
-		Monster m = new Gson().fromJson("{\"name\":\"target\",\"weakness_type\":\"air\",\"weakness\":50,"
+		Monster m = RuneLiteAPI.GSON.fromJson("{\"name\":\"target\",\"weakness_type\":\"air\",\"weakness\":50,"
 			+ "\"flat_armour\":6,\"attributes\":[{\"name\":\"undead\"}]}", Monster.class);
 		assertTrue(m.hasAttribute("undead"));
 		Monster copy = m.copy();

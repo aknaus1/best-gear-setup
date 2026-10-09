@@ -9,11 +9,11 @@ import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
-import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.function.IntPredicate;
 import java.util.function.IntToLongFunction;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ public class AmmunitionOwnershipTest
 	@BeforeClass
 	public static void load() throws Exception
 	{
-		data = WikiGameData.get(new Gson()).gameData(new Gson());
+		data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 		atlatl = data.getItem(Slot.WEAPON, 29000);
 		dart = data.getItem(Slot.AMMO, 28991);
 		context = new CombatContext(TestData.monster(100, 20), PlayerLevels.maxed(), false, true, null);

@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import java.util.HashSet;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -32,7 +33,7 @@ public class OwnershipRulesTest
 	@BeforeClass
 	public static void load() throws Exception
 	{
-		Gson gson = new Gson();
+		Gson gson = RuneLiteAPI.GSON;
 		data = WikiGameData.get(gson).gameData(gson);
 		context = new CombatContext(WikiMonsters.get(gson).monster(data.matchNpc(265, null, 0).getName()),
 			PlayerLevels.maxed(), true, false, null);
@@ -104,8 +105,8 @@ public class OwnershipRulesTest
 	@Test
 	public void foldedCosmeticsBecomeExactCacheNamedCandidatesWithoutChangingTheSource()
 	{
-		GameData expanded = data.withMonsters(new Gson(), data.getMonsters());
-		expanded.addVariantItems(new Gson(), id -> id == 12436 ? "Amulet of fury (or)"
+		GameData expanded = data.withMonsters(RuneLiteAPI.GSON, data.getMonsters());
+		expanded.addVariantItems(RuneLiteAPI.GSON, id -> id == 12436 ? "Amulet of fury (or)"
 			: id == 8714 ? "Rune kiteshield (Arrav)" : null, id -> id == 8714);
 		assertNull(data.findItem(8714));
 		assertEquals("rune kiteshield (arrav)", expanded.findItem(8714).getName());
@@ -151,8 +152,8 @@ public class OwnershipRulesTest
 	@Test
 	public void cosmeticDisplayNamesPreserveCombatEffectsAndSourceSnapshotIsolation()
 	{
-		GameData expanded = data.withMonsters(new Gson(), data.getMonsters());
-		expanded.addVariantItems(new Gson(), id -> id == 25731 ? "Holy sanguinesti staff" : null, id -> false);
+		GameData expanded = data.withMonsters(RuneLiteAPI.GSON, data.getMonsters());
+		expanded.addVariantItems(RuneLiteAPI.GSON, id -> id == 25731 ? "Holy sanguinesti staff" : null, id -> false);
 		GearItem holy = expanded.findItem(25731);
 		assertNotNull(holy);
 		assertEquals("holy sanguinesti staff", holy.getName());

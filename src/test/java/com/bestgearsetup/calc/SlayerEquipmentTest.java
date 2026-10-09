@@ -19,13 +19,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.ToLongFunction;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 /** Slayer monsters with mandatory protective equipment: every returned setup must wear it, on or off task. */
 public class SlayerEquipmentTest
 {
-	private static final Gson GSON = new Gson();
+	private static final Gson GSON = RuneLiteAPI.GSON;
 	private static final ToLongFunction<GearItem> PRICE = item -> 100_000L;
 	private static final OptimizerSettings DEFAULTS = OptimizerSettings.builder().build();
 	private static GameData data;

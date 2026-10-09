@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import net.runelite.api.gameval.ItemID;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 /** Ordinary glories must not turn into trimmed recommendations through ownership expansion. */
@@ -30,7 +31,7 @@ public class GloryOwnershipTest
 	@Test
 	public void ownedOnlyRecommendsOrdinaryGloryWhenOnlyOrdinaryGloryIsHeld() throws Exception
 	{
-		Gson gson = new Gson();
+		Gson gson = RuneLiteAPI.GSON;
 		GameData data = WikiGameData.get(gson).gameData(gson);
 		Monster monster = WikiMonsters.get(gson).monster(data.matchNpc(265, null, 0).getName());
 		CombatContext context = new CombatContext(monster, PlayerLevels.maxed(), false, false, null);

@@ -19,13 +19,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 /** Variants catalogued as separate entries, such as "dragon hunter crossbow (b)", can be excluded together. */
 public class ExclusionFamilyTest
 {
-	private static final Gson GSON = new Gson();
+	private static final Gson GSON = RuneLiteAPI.GSON;
 	private static GameData data;
 	private static GearItem crossbow;
 	private static GearItem crossbowB;

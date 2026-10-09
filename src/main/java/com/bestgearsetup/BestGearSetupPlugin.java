@@ -129,14 +129,14 @@ public class BestGearSetupPlugin extends Plugin
 	private Client client;
 
 	@Inject
-	private ClientThread clientThread;
+	ClientThread clientThread;
 
 	@Inject
 	private ClientToolbar clientToolbar;
 
 
 	@Inject
-	private BestGearSetupConfig config;
+	BestGearSetupConfig config;
 
 	@Inject
 	private ConfigManager configManager;
@@ -180,36 +180,36 @@ public class BestGearSetupPlugin extends Plugin
 
 	@Getter
 	@Inject
-	private OwnedItems ownedItems;
+	OwnedItems ownedItems;
 
-	private BestGearSetupPanel panel;
+	BestGearSetupPanel panel;
 	private NavigationButton navButton;
-	private ExecutorService executor;
-	private volatile GameData gameData;
-	private volatile Future<?> search;
-	private final AtomicInteger searchGeneration = new AtomicInteger();
+	ExecutorService executor;
+	volatile GameData gameData;
+	volatile Future<?> search;
+	final AtomicInteger searchGeneration = new AtomicInteger();
 	/** Bumped on startup and shutdown so loading work queued by an earlier run cannot publish into this one. */
-	private final AtomicInteger lifecycle = new AtomicInteger();
+	final AtomicInteger lifecycle = new AtomicInteger();
 	private volatile Map<Integer, Long> prices = Collections.emptyMap();
-	private volatile MonsterSummary lastSearched;
+	volatile MonsterSummary lastSearched;
 	/** Equipment ids and their variants: the only ownership changes that can alter a result. */
-	private volatile Set<Integer> gearIds = Collections.emptySet();
+	volatile Set<Integer> gearIds = Collections.emptySet();
 	/** Last levels written to the profile; client thread only. */
 	private String lastRememberedLevels;
 	/** Ownership the latest search was computed with; null when no results depend on it. */
-	private volatile Set<Integer> searchOwned;
+	volatile Set<Integer> searchOwned;
 	/** Stack sizes and ammo quantity the latest search was computed with. */
-	private volatile Map<Integer, Long> searchQuantities;
-	private volatile int searchAmmoCount;
+	volatile Map<Integer, Long> searchQuantities;
+	volatile int searchAmmoCount;
 	/**
 	 * Stack sizes at the last relevant supply change since the search, or null if none; only a further change
 	 * restarts the settle timer.
 	 */
 	private volatile Map<Integer, Long> observedQuantities;
 	/** Ammunition and thrown weapons (and their variants): the stacks whose size can alter a result. */
-	private volatile Set<Integer> consumableIds = Collections.emptySet();
+	volatile Set<Integer> consumableIds = Collections.emptySet();
 	/** Swing thread only: waits for a changing stack to settle (e.g. while firing) before searching again. */
-	private javax.swing.Timer supplyRefresh;
+	javax.swing.Timer supplyRefresh;
 	/** How long a stack must stay unchanged before a quantity-only change reruns the search. */
 	int supplySettleMillis = 5000;
 	/** Read and written on the client thread only. */
@@ -539,7 +539,7 @@ public class BestGearSetupPlugin extends Plugin
 	 * affects the requested ammo quantity searches again once the stack stops changing, so firing doesn't restart
 	 * the search every attack. Food, potions and other non-gear changes are ignored.
 	 */
-	private void invalidateIfOwnershipChanged()
+	void invalidateIfOwnershipChanged()
 	{
 		Set<Integer> before = searchOwned;
 		if (before == null || lastSearched == null)
@@ -565,7 +565,7 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	/** Swing thread: (re)start the settle timer; each further relevant stack change pushes the refresh back. */
-	private void scheduleSupplyRefresh()
+	void scheduleSupplyRefresh()
 	{
 		if (supplyRefresh == null)
 		{
@@ -577,7 +577,7 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	/** Swing thread: the stack has settled; search again if it still differs from the one the results used. */
-	private void refreshSupply()
+	void refreshSupply()
 	{
 		Map<Integer, Long> now = ownedItems.quantitySnapshot();
 		if (searchOwned != null && supplyDiffers(searchQuantities, now, consumableIds, searchAmmoCount))
@@ -1316,7 +1316,7 @@ public class BestGearSetupPlugin extends Plugin
 		return out;
 	}
 
-	private OptimizerSettings buildSettings(BestGearSetupConfig config)
+	OptimizerSettings buildSettings(BestGearSetupConfig config)
 	{
 		Set<String> spellbooks = new HashSet<>();
 		spellbooks.add("standard");

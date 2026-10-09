@@ -3,8 +3,11 @@ package com.bestgearsetup.data;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import com.bestgearsetup.calc.PlayerLevels;
-import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 import net.runelite.api.ItemComposition;
@@ -107,21 +110,15 @@ public class EquipmentRequirementsTest
 	{
 		Map<Integer, Integer> params = new HashMap<>();
 		params.put(436, 75); // Orphan level; a default skill value of zero must not become Attack 75.
-		IterableHashTable<Node> table = (IterableHashTable<Node>) Proxy.newProxyInstance(
-			IterableHashTable.class.getClassLoader(), new Class<?>[]{IterableHashTable.class}, (proxy, method, args) ->
-				params.containsKey(((Number) args[0]).intValue()) ? node() : null);
-		ItemComposition composition = (ItemComposition) Proxy.newProxyInstance(ItemComposition.class.getClassLoader(),
-			new Class<?>[]{ItemComposition.class}, (proxy, method, args) ->
-				method.getName().equals("getParams") ? table : params.getOrDefault((int) args[0], 0));
+		IterableHashTable<Node> table = mock(IterableHashTable.class);
+		when(table.get(anyLong())).thenAnswer(i -> params.containsKey((int) i.<Long>getArgument(0).longValue())
+			? mock(Node.class) : null);
+		ItemComposition composition = mock(ItemComposition.class);
+		when(composition.getParams()).thenReturn(table);
+		when(composition.getIntValue(anyInt())).thenAnswer(i -> params.getOrDefault(i.<Integer>getArgument(0), 0));
 		EquipmentRequirements.Resolution result = rules.resolve(item(1, "unreviewed weapon", Slot.WEAPON), composition);
 		assertEquals(EquipmentRequirements.Source.REVIEW_REQUIRED, result.getSource());
 		assertFalse(result.getRequirements().containsKey("attack"));
-	}
-
-	private static Node node()
-	{
-		return (Node) Proxy.newProxyInstance(Node.class.getClassLoader(), new Class<?>[]{Node.class},
-			(proxy, method, args) -> null);
 	}
 
 	@Test

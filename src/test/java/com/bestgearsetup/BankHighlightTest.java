@@ -15,16 +15,17 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import net.runelite.api.widgets.WidgetItem;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class BankHighlightTest
 {
-	/** Main code gets the client's Gson in startUp; tests supply their own. */
+	/** Main code gets the client's Gson in startUp; tests use the same instance. */
 	@BeforeClass
 	public static void ownershipRules()
 	{
-		OwnershipRules.init(new Gson());
+		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
 	@Test

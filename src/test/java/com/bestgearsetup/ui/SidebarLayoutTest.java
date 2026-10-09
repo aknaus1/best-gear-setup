@@ -18,8 +18,6 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.Rectangle;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -62,16 +60,7 @@ public class SidebarLayoutTest
 					@Override
 					public OwnedItems getOwnedItems()
 					{
-						try
-						{
-							Constructor<OwnedItems> constructor = OwnedItems.class.getDeclaredConstructor(ConfigManager.class, ItemManager.class);
-							constructor.setAccessible(true);
-							return constructor.newInstance(null, null);
-						}
-						catch (ReflectiveOperationException e)
-						{
-							throw new AssertionError(e);
-						}
+						return com.bestgearsetup.ConfigItemsForTests.emptyOwnedItems();
 					}
 
 					@Override
@@ -93,17 +82,10 @@ public class SidebarLayoutTest
 					}
 				};
 				BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, null, null, null);
-				try
-				{
-					Field modeField = BestGearSetupPanel.class.getDeclaredField("modeBox"); modeField.setAccessible(true);
-					Field budgetField = BestGearSetupPanel.class.getDeclaredField("budgetRow"); budgetField.setAccessible(true);
-					javax.swing.JComboBox<?> mode = (javax.swing.JComboBox<?>) modeField.get(panel);
-					mode.setSelectedItem(com.bestgearsetup.calc.SearchMode.OWNED_ONLY);
-					assertFalse(((JPanel) budgetField.get(panel)).isVisible());
-					mode.setSelectedItem(com.bestgearsetup.calc.SearchMode.BUDGET);
-					assertTrue(((JPanel) budgetField.get(panel)).isVisible());
-				}
-				catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+				panel.modeBox.setSelectedItem(com.bestgearsetup.calc.SearchMode.OWNED_ONLY);
+				assertFalse(panel.budgetRow.isVisible());
+				panel.modeBox.setSelectedItem(com.bestgearsetup.calc.SearchMode.BUDGET);
+				assertTrue(panel.budgetRow.isVisible());
 				JButton options = button(panel, "Fight");
 				options.doClick();
 				assertTrue(named(panel, "fightEditor").isVisible());
@@ -131,16 +113,7 @@ public class SidebarLayoutTest
 					java.util.Collections.emptyMap(), plugin, null, null, 0);
 				JPanel gridRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
 				gridRow.add(grid);
-				try
-				{
-					Field field = BestGearSetupPanel.class.getDeclaredField("resultsPanel");
-					field.setAccessible(true);
-					((JPanel) field.get(panel)).add(BestGearSetupPanel.left(gridRow));
-				}
-				catch (ReflectiveOperationException e)
-				{
-					throw new AssertionError(e);
-				}
+				panel.resultsPanel.add(BestGearSetupPanel.left(gridRow));
 				panel.setSize(width, 420);
 				layout(panel);
 				layout(panel);
@@ -161,16 +134,7 @@ public class SidebarLayoutTest
 				assertTrue("Search notes should be collapsed", details != null);
 				JLabel notes = (JLabel) named(panel, "searchDetails");
 				assertFalse(notes.isVisible());
-				try
-				{
-					Field field = BestGearSetupPanel.class.getDeclaredField("statusLabel");
-					field.setAccessible(true);
-					assertFalse(((JLabel) field.get(panel)).getText().contains("provenance explanation"));
-				}
-				catch (ReflectiveOperationException e)
-				{
-					throw new AssertionError(e);
-				}
+				assertFalse(panel.statusLabel.getText().contains("provenance explanation"));
 				details.doClick();
 				assertTrue(notes.isVisible());
 				assertTrue(notes.getText().contains("provenance explanation"));

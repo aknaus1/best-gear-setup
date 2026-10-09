@@ -10,7 +10,6 @@ import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.WikiGameData;
-import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -18,6 +17,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 import net.runelite.api.gameval.ItemID;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ public class BoostAccessTest
 	@BeforeClass
 	public static void loadSnapshot() throws Exception
 	{
-		data = WikiGameData.get(new Gson()).gameData(new Gson());
+		data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 	}
 
 	private static String best(String skill, SearchMode mode, Integer... owned)

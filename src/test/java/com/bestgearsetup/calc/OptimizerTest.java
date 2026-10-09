@@ -22,16 +22,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.ToLongFunction;
 import net.runelite.api.gameval.ItemID;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class OptimizerTest
 {
-	/** Main code gets the client's Gson in startUp; tests supply their own. */
+	/** Main code gets the client's Gson in startUp; tests use the same instance. */
 	@BeforeClass
 	public static void ownershipRules()
 	{
-		OwnershipRules.init(new Gson());
+		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
 	private final GearItem sword = weapon(100, "sword", "slash sword", 4, "chop,slash,aggressive", "slash,slash,accurate");

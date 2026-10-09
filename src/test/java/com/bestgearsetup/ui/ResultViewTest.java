@@ -10,7 +10,6 @@ import com.bestgearsetup.calc.Thrall;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.data.Monster;
 import java.awt.Component;
-import java.lang.reflect.Method;
 import java.util.Collections;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -34,30 +33,21 @@ public class ResultViewTest
 				Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false);
 			SwingUtilities.invokeAndWait(() ->
 			{
-				try
+				ResultView view = new ResultView(results, null, null, null, null, 0);
+				JPanel box = view.statsBox(new DpsResult(2, 10, 0.5, 4, 4.8, null), null);
+				boolean found = false;
+				for (Component component : box.getComponents())
 				{
-					ResultView view = new ResultView(results, null, null, null, null, 0);
-					Method stats = ResultView.class.getDeclaredMethod("statsBox", DpsResult.class, Thrall.class);
-					stats.setAccessible(true);
-					JPanel box = (JPanel) stats.invoke(view, new DpsResult(2, 10, 0.5, 4, 4.8, null), null);
-					boolean found = false;
-					for (Component component : box.getComponents())
+					if (component instanceof JLabel && ((JLabel) component).getText().contains("TTK:"))
 					{
-						if (component instanceof JLabel && ((JLabel) component).getText().contains("TTK:"))
-						{
-							assertEquals("<html>TTK: ~" + (starting / 2.0) + "s</html>", ((JLabel) component).getText());
-							found = true;
-						}
+						assertEquals("<html>TTK: ~" + (starting / 2.0) + "s</html>", ((JLabel) component).getText());
+						found = true;
 					}
-					assertTrue(found);
-					assertTrue("No thrall line unless the setup includes one", label(box, "Incl. thrall") == null);
-					JPanel withThrall = (JPanel) stats.invoke(view, new DpsResult(2, 10, 0.5, 4, 4.8, null), Thrall.SUPERIOR);
-					assertEquals("<html>Incl. thrall: +0.417</html>", label(withThrall, "Incl. thrall").getText());
 				}
-				catch (ReflectiveOperationException e)
-				{
-					throw new AssertionError(e);
-				}
+				assertTrue(found);
+				assertTrue("No thrall line unless the setup includes one", label(box, "Incl. thrall") == null);
+				JPanel withThrall = view.statsBox(new DpsResult(2, 10, 0.5, 4, 4.8, null), Thrall.SUPERIOR);
+				assertEquals("<html>Incl. thrall: +0.417</html>", label(withThrall, "Incl. thrall").getText());
 			});
 		}
 	}

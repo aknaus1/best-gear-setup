@@ -4,22 +4,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.calc.OptimizerSettings;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.Collections;
 import org.junit.Test;
 
 public class WildernessSettingsTest
 {
-	private OptimizerSettings settings(BestGearSetupConfig config) throws Exception
+	private OptimizerSettings settings(BestGearSetupConfig config)
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
-		Field field = BestGearSetupPlugin.class.getDeclaredField("config");
-		field.setAccessible(true);
-		field.set(plugin, config);
-		Method build = BestGearSetupPlugin.class.getDeclaredMethod("buildSettings", BestGearSetupConfig.class);
-		build.setAccessible(true);
-		return (OptimizerSettings) build.invoke(plugin, config);
+		plugin.config = config;
+		return plugin.buildSettings(config);
 	}
 
 	@Test

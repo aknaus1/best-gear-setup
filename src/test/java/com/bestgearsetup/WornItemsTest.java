@@ -4,23 +4,23 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.data.GearItem;
 import com.google.gson.Gson;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class WornItemsTest
 {
-	/** Main code gets the client's Gson in startUp; tests supply their own. */
+	/** Main code gets the client's Gson in startUp; tests use the same instance. */
 	@BeforeClass
 	public static void ownershipRules()
 	{
-		OwnershipRules.init(new Gson());
+		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
 	private static BestGearSetupPlugin wearing(int... ids) throws Exception
@@ -36,16 +36,16 @@ public class WornItemsTest
 		{
 			equipped.add(id);
 		}
-		set(owned, OwnedItems.class, "equipped", equipped);
+		owned.equipped = equipped;
 		// Held in the bank only: owned but not worn.
-		set(owned, OwnedItems.class, "bank", Collections.singletonMap(4151, 1L));
+		owned.bank = Collections.singletonMap(4151, 1L);
 		return owned;
 	}
 
 	private static BestGearSetupPlugin plugin(OwnedItems owned) throws Exception
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
-		set(plugin, BestGearSetupPlugin.class, "ownedItems", owned);
+		plugin.ownedItems = owned;
 		return plugin;
 	}
 
@@ -82,7 +82,7 @@ public class WornItemsTest
 		OwnedItems owned = new OwnedItems(null, null);
 		Map<Integer, Long> remembered = new HashMap<>();
 		remembered.put(1704, 1L);
-		set(owned, OwnedItems.class, "worn", remembered);
+		owned.worn = remembered;
 		assertFalse(plugin(owned).wears(item(1704)));
 	}
 
@@ -96,10 +96,4 @@ public class WornItemsTest
 		assertFalse(plugin.wears(item(1704)));
 	}
 
-	private static void set(Object target, Class<?> type, String name, Object value) throws Exception
-	{
-		Field field = type.getDeclaredField(name);
-		field.setAccessible(true);
-		field.set(target, value);
-	}
 }

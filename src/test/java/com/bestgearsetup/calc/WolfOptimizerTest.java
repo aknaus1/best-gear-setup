@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 /** The exact Bloodrager chance reverses a close wolf crush equipment ranking. */
@@ -21,7 +22,7 @@ public class WolfOptimizerTest
 	@Test
 	public void slayerHelmetAndFuryBeatFullBloodMoonAndStrengthAmulet() throws Exception
 	{
-		Gson gson = new Gson();
+		Gson gson = RuneLiteAPI.GSON;
 		GameData data = WikiGameData.get(gson).gameData(gson);
 		Monster wolf = WikiMonsters.get(gson).monster(data.matchNpc(106, null, 0).getName());
 		CombatContext ctx = new CombatContext(wolf, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 67),

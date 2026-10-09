@@ -11,7 +11,7 @@ import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
-import com.google.gson.Gson;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 /** Boundary cases that must survive changes to modifier order and catalog identity. */
@@ -236,7 +236,7 @@ public class CombatEdgeCasesTest
 	@Test
 	public void realApiFlatFieldIsRetainedInCopies()
 	{
-		Monster m = new Gson().fromJson("{\"id\":13012,\"name\":\"eclipse moon\",\"flat\":6}", Monster.class);
+		Monster m = RuneLiteAPI.GSON.fromJson("{\"id\":13012,\"name\":\"eclipse moon\",\"flat\":6}", Monster.class);
 		assertEquals(Integer.valueOf(6), m.getFlatArmour());
 		assertEquals(Integer.valueOf(6), m.copy().getFlatArmour());
 	}

@@ -7,11 +7,11 @@ import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.WikiGameData;
-import com.google.gson.Gson;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.IntPredicate;
 import net.runelite.api.gameval.ItemID;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -25,7 +25,7 @@ public class ItemCostsTest
 	@BeforeClass
 	public static void loadBundledCatalogue() throws Exception
 	{
-		bundled = WikiGameData.get(new Gson()).gameData(new Gson());
+		bundled = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 	}
 
 	private long price(int id, long fallback, int... components)

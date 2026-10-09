@@ -5,9 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import com.google.gson.Gson;
 import java.util.List;
 import java.util.stream.Collectors;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -19,7 +19,7 @@ public class WikiGameDataTest
 	@BeforeClass
 	public static void load() throws Exception
 	{
-		data = WikiGameData.get(new Gson()).gameData(new Gson());
+		data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 	}
 
 	private static GearItem item(Slot slot, String name)

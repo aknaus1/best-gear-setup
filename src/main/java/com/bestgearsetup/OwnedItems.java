@@ -36,14 +36,14 @@ public class OwnedItems
 	private final ItemManager itemManager;
 
 	/** Quantity held per canonical item id, per container. */
-	private volatile Map<Integer, Long> bank = Collections.emptyMap();
-	private volatile Map<Integer, Long> inventory = Collections.emptyMap();
-	private volatile Map<Integer, Long> worn = Collections.emptyMap();
+	volatile Map<Integer, Long> bank = Collections.emptyMap();
+	volatile Map<Integer, Long> inventory = Collections.emptyMap();
+	volatile Map<Integer, Long> worn = Collections.emptyMap();
 	/**
 	 * Canonical ids equipped right now: set from the live worn container and cleared on logout. Unlike
 	 * {@link #worn} it is never persisted, so remembered equipment doesn't show as equipped while logged out.
 	 */
-	private volatile Set<Integer> equipped = Collections.emptySet();
+	volatile Set<Integer> equipped = Collections.emptySet();
 	/** Items the player marked as owned by hand (e.g. stored in the POH costume room); no quantity is known. */
 	private volatile Set<Integer> manual = Collections.emptySet();
 	/** Owned ids and reviewed equivalent charge states. */
@@ -200,7 +200,7 @@ public class OwnedItems
 		rebuild(true);
 	}
 
-	private void rebuild(boolean itemsChanged)
+	void rebuild(boolean itemsChanged)
 	{
 		Map<Integer, Long> total = combine(java.util.Arrays.asList(bank, inventory, worn), manual);
 		if (itemsChanged)
