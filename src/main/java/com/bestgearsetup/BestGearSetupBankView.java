@@ -20,7 +20,6 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
-import net.runelite.api.MenuAction;
 import net.runelite.api.ScriptID;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.ScriptCallbackEvent;
@@ -192,18 +191,25 @@ class BestGearSetupBankView
 		}
 	}
 
+	/** Whether the potion store is open; it must be closed by the player before the layout can show. */
+	boolean isPotionStoreOpen()
+	{
+		return client.getVarbitValue(VarbitID.BANK_CURRENTTAB) == BANKTAB_POTIONSTORE;
+	}
+
 	/** Client thread: switch from any bank tab/search into a temporary equipment tab. */
 	boolean show()
 	{
 		Widget bank = client.getWidget(InterfaceID.Bankmain.ITEMS);
-		boolean potionStore = client.getVarbitValue(VarbitID.BANK_CURRENTTAB) == BANKTAB_POTIONSTORE;
-		if (bank == null || (bank.isHidden() && !potionStore) || bank.getOnInvTransmitListener() == null
+		// The store is closed server-side by its button; plugins may not click it, and leaving it open behind
+		// the layout would stop deposits working (as in Bank Tags).
+		if (bank == null || bank.isHidden() || isPotionStoreOpen() || bank.getOnInvTransmitListener() == null
 			|| selection.isEmpty())
 		{
 			return false;
 		}
 		clear();
-		releaseOtherViews(potionStore);
+		releaseOtherViews();
 		active = true;
 		bank.setScrollY(0);
 		client.setVarcIntValue(VarClientID.BANK_SCROLLPOS, 0);
@@ -211,18 +217,12 @@ class BestGearSetupBankView
 		return true;
 	}
 
-	/** Close the potion store and any Bank Tags or Quest Helper tab so they cannot override this layout. */
-	private void releaseOtherViews(boolean potionStore)
+	/** Release any Bank Tags or Quest Helper tab so they cannot override this layout. */
+	private void releaseOtherViews()
 	{
-		if (potionStore)
-		{
-			// Leaving the store open behind the layout would stop deposits working (as in Bank Tags).
-			client.menuAction(-1, InterfaceID.Bankmain.POTIONSTORE_BUTTON, MenuAction.CC_OP, 1, -1, "Potion store", "");
-		}
-		client.menuAction(0, InterfaceID.Bankmain.TABS, MenuAction.CC_OP, 1, -1, "View all items", "");
 		client.setVarbit(VarbitID.BANK_CURRENTTAB, 0);
-		// A scripted menu action doesn't reach the other views' click handlers. Bank Tags and Quest Helper
-		// both release their tab when the bank search is toggled, so announce one without opening search.
+		// Bank Tags and Quest Helper both release their tab when the bank search is toggled, so announce one
+		// without opening search.
 		eventBus.post(new ScriptPreFired(ScriptID.BANKMAIN_SEARCH_TOGGLE));
 	}
 

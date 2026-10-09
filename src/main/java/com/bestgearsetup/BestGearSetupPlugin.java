@@ -82,7 +82,6 @@ import net.runelite.api.Quest;
 import net.runelite.api.QuestState;
 import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuEntryAdded;
@@ -186,10 +185,6 @@ public class BestGearSetupPlugin extends Plugin
 	private BestGearSetupPanel panel;
 	private NavigationButton navButton;
 	private ExecutorService executor;
-	/** Spare cores for a search's result tabs; none on machines with three or fewer logical processors. */
-	private volatile SearchPool searchPool;
-	/** The game's frame rate, sampled on the client thread, so searches can back off when they slow it down. */
-	private volatile int clientFps;
 	private volatile GameData gameData;
 	private volatile Future<?> search;
 	private final AtomicInteger searchGeneration = new AtomicInteger();
@@ -249,7 +244,6 @@ public class BestGearSetupPlugin extends Plugin
 			t.setPriority(Thread.MIN_PRIORITY);
 			return t;
 		});
-		searchPool = new SearchPool(Runtime.getRuntime().availableProcessors(), AttackStyle.Type.values().length);
 		migratePreferences();
 		panel = new BestGearSetupPanel(this, config, itemManager, spriteManager, skillIconManager);
 		BufferedImage icon = BestGearSetupPanel.createNavIcon();
@@ -294,10 +288,9 @@ public class BestGearSetupPlugin extends Plugin
 		// The lifecycle guard skips the usual refresh: release the layout and restore dragging unconditionally.
 		clientThread.invokeLater(bankView::clear);
 		clientToolbar.removeNavigation(navButton);
-		executor.shutdownNow();
+		// Running work stops itself on the lifecycle and search generations bumped above.
+		executor.shutdown();
 		executor = null;
-		searchPool.shutdown();
-		searchPool = null;
 		panel = null;
 		navButton = null;
 		gameData = null;
@@ -372,7 +365,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		catch (IOException | RuntimeException e)
 		{
-			if (life != lifecycle.get() || Thread.currentThread().isInterrupted())
+			if (life != lifecycle.get())
 			{
 				return;
 			}
@@ -423,14 +416,14 @@ public class BestGearSetupPlugin extends Plugin
 	 * item's parameters takes effect without a new snapshot. Runs before the data is published; the cache is
 	 * read on the client thread and skipped if the client is not ready.
 	 *
-	 * @return prepared catalogue, or null if loading was interrupted and must not be published
+	 * @return prepared catalogue, or null if waiting for the client thread was interrupted
 	 */
 	private GameData prepareGameData(GameData data)
 	{
 		if (!cacheReady())
 		{
 			log.debug("Game cache not loaded; using the bundled wear levels");
-			return Thread.currentThread().isInterrupted() ? null : data;
+			return data;
 		}
 		CompletableFuture<GameData> read = new CompletableFuture<>();
 		clientThread.invoke(() ->
@@ -464,7 +457,6 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		catch (InterruptedException e)
 		{
-			Thread.currentThread().interrupt();
 			return null;
 		}
 		catch (ExecutionException | TimeoutException e)
@@ -482,12 +474,6 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	// ------------------------------------------------------------ events
-
-	@Subscribe
-	public void onClientTick(ClientTick event)
-	{
-		clientFps = client.getFPS();
-	}
 
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged event)
@@ -642,7 +628,7 @@ public class BestGearSetupPlugin extends Plugin
 		setBankHighlightedSetup(null);
 		if (search != null)
 		{
-			search.cancel(true);
+			search.cancel(false);
 		}
 		lastSearched = null;
 		searchOwned = null;
@@ -797,7 +783,7 @@ public class BestGearSetupPlugin extends Plugin
 		int generation = searchGeneration.incrementAndGet();
 		if (search != null)
 		{
-			search.cancel(true);
+			search.cancel(false);
 		}
 		panel.showSearching(summary);
 
@@ -1071,8 +1057,7 @@ public class BestGearSetupPlugin extends Plugin
 					.miningLevel(config.miningLevel() == 0 ? mining : config.miningLevel()).build())
 				// HP-dependent target stats are re-derived in the same order for whole-fight averages.
 				.withHealthStates(hp -> specials.apply(MonsterStates.atHealth(scaled, hp)));
-			// One tab per attack type: melee is optimised separately for stab, slash and crush. The tabs are
-			// independent, so spare cores may search them at once (each with its own Optimizer).
+			// One tab per attack type: melee is optimised separately for stab, slash and crush.
 			List<AttackStyle.Type> types = new ArrayList<>();
 			for (AttackStyle.Type type : AttackStyle.Type.values())
 			{
@@ -1081,14 +1066,8 @@ public class BestGearSetupPlugin extends Plugin
 					types.add(type);
 				}
 			}
-			// Checked on whichever thread runs a tab: an interrupt, or a newer search.
-			BooleanSupplier cancelled = () -> Thread.currentThread().isInterrupted() || generation != searchGeneration.get();
-			OptimizerSettings searchSettings = settings;
-			SearchPool pool = searchPool;
-			if (pool == null)
-			{
-				return;
-			}
+			// A newer search, a cleared search or shutdown bumps the generation.
+			BooleanSupplier cancelled = () -> generation != searchGeneration.get();
 			SearchProgress progress = new SearchProgress(types.size(), percent -> SwingUtilities.invokeLater(() ->
 			{
 				if (panel != null && generation == searchGeneration.get())
@@ -1096,14 +1075,16 @@ public class BestGearSetupPlugin extends Plugin
 					panel.showProgress(percent);
 				}
 			}));
-			List<List<SetupResult>> tabs = pool.run(types, type ->
+			List<List<SetupResult>> tabs = new ArrayList<>();
+			for (int i = 0; i < types.size() && !cancelled.getAsBoolean(); i++)
 			{
-				int tab = types.indexOf(type);
-				OptimizerSettings typeSettings = searchSettings.toBuilder().styles(EnumSet.of(type)).build();
-				return new Optimizer(data, ctx, typeSettings, owned::contains, id -> quantities.getOrDefault(id, 0L),
-					item -> price(quotes, item)).optimize(classOf(type), cancelled, done -> progress.update(tab, done));
-			}, SearchPool.fpsThrottle(() -> clientFps), cancelled);
-			if (tabs == null)
+				int tab = i;
+				AttackStyle.Type type = types.get(i);
+				OptimizerSettings typeSettings = settings.toBuilder().styles(EnumSet.of(type)).build();
+				tabs.add(new Optimizer(data, ctx, typeSettings, owned::contains, id -> quantities.getOrDefault(id, 0L),
+					item -> price(quotes, item)).optimize(classOf(type), cancelled, done -> progress.update(tab, done)));
+			}
+			if (cancelled.getAsBoolean())
 			{
 				return;
 			}
@@ -1159,11 +1140,6 @@ public class BestGearSetupPlugin extends Plugin
 					panel.showResults(found);
 				}
 			});
-		}
-		catch (InterruptedException e)
-		{
-			// A newer search or shutdown cancelled this one.
-			Thread.currentThread().interrupt();
 		}
 		catch (IOException | RuntimeException | Error e)
 		{
@@ -1238,7 +1214,7 @@ public class BestGearSetupPlugin extends Plugin
 		searchGeneration.incrementAndGet();
 		if (search != null)
 		{
-			search.cancel(true);
+			search.cancel(false);
 			search = null;
 		}
 		if (supplyRefresh != null)

@@ -1,5 +1,6 @@
 package com.bestgearsetup;
 
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.SoundEffectID;
 import net.runelite.api.events.ClientTick;
@@ -184,6 +185,10 @@ class BestGearSetupBankButton
 			if (view.isActive())
 			{
 				view.clear();
+			}
+			else if (view.isPotionStoreOpen())
+			{
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Close the potion store to view the gear setup.", null);
 			}
 			else
 			{

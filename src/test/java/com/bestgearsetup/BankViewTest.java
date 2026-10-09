@@ -342,15 +342,23 @@ public class BankViewTest
 	}
 
 	@Test
-	public void showReleasesOtherPluginTabsAndThePotionStore() throws Exception
+	public void showReleasesOtherPluginTabsButNotThePotionStore() throws Exception
 	{
+		Fixture store = new Fixture();
+		store.view.setSelection(setup(Slot.WEAPON, item(12926)));
+		store.tab = 15;
+		store.container.values.put("Hidden", true);
+		assertTrue(store.view.isPotionStoreOpen());
+		assertFalse(store.view.show());
+		assertFalse(store.view.isActive());
+		assertEquals(15, store.tab);
+		assertTrue(store.posted.isEmpty());
+
 		Fixture bank = new Fixture();
 		bank.view.setSelection(setup(Slot.WEAPON, item(12926)));
-		bank.tab = 15;
-		bank.container.values.put("Hidden", true);
+		bank.tab = 3;
 		assertTrue(bank.view.show());
 		assertTrue(bank.view.isActive());
-		assertEquals(Arrays.asList("Potion store", "View all items"), bank.menuActions);
 		assertEquals(0, bank.tab);
 		// Bank Tags and Quest Helper close their own tabs on a search toggle.
 		assertEquals(1, bank.posted.size());
@@ -363,7 +371,6 @@ public class BankViewTest
 		hidden.view.setSelection(setup(Slot.WEAPON, item(12926)));
 		hidden.container.values.put("Hidden", true);
 		assertFalse(hidden.view.show());
-		assertTrue(hidden.menuActions.isEmpty());
 		assertTrue(hidden.posted.isEmpty());
 	}
 
@@ -432,7 +439,6 @@ public class BankViewTest
 		private int mode;
 		private String search = "";
 		private int tab;
-		private final List<String> menuActions = new ArrayList<>();
 		private final List<Object> posted = new ArrayList<>();
 		private final BestGearSetupBankView view;
 		private final Client client;
@@ -471,7 +477,7 @@ public class BankViewTest
 					case "getVarcStrValue": return search;
 					case "getVarbitValue": return tab;
 					case "setVarbit": tab = (int) args[1]; return null;
-					case "menuAction": menuActions.add((String) args[5]); return null;
+					case "menuAction": throw new AssertionError("Plugin Hub plugins may not call menuAction");
 					case "setVarcIntValue":
 						if ((int) args[0] == VarClientID.MESLAYERMODE) { mode = (int) args[1]; }
 						return null;
