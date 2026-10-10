@@ -10,8 +10,11 @@ This page covers what the plugin assumes and what it enforces. For installation 
 - Decorated equipment also counts as its base item, including Twisted ancestral. Ornament kits that can be
   removed and traded are tracked separately and included in the price of getting the item. Owning only the
   base item or only the kit doesn't give you a paid upgrade for free.
-- **Three modes**
+- **Four modes**
   - *Owned items only*: only gear you already have.
+  - *Inventory + equipped only*: only what you're carrying right now, in your inventory or worn. Your bank
+    and items marked as owned by hand are ignored, so it suits picking a setup when you're already at the
+    fight. It works without opening your bank, and withdrawing or dropping gear runs the search again.
   - *Owned + budget*: your gear plus anything you can buy within the budget (e.g. `50m`).
     Untradeable items are only used if you own them, unless they can be bought as tradeable components.
   - *Best in slot*: no limits, including untradeables you don't own and every diary tier.
@@ -47,7 +50,8 @@ This page covers what the plugin assumes and what it enforces. For installation 
   account while you're logged in and remembered the same way. Before the first login they're assumed
   unlocked, like the 99s.
 - When the potion choice is *Best*, potion boosts follow the search mode. *Owned items only* uses only
-  potions and hearts you own (any dose; a divine potion counts as the regular one). *Owned + budget* can buy
+  potions and hearts you own (any dose; a divine potion counts as the regular one), and *Inventory +
+  equipped only* only those you're carrying. *Owned + budget* can buy
   potions (they don't count against the budget) but still needs you to own an imbued or saturated heart.
   *Best in slot* assumes everything. Against Chambers of Xeric and Tombs of Amascut targets, *Best* also
   considers that raid's own supplies (overloads, smelling salts) without needing you to own them, and
@@ -217,7 +221,7 @@ shown separately as loaded ammo. Consumable ammo is priced using the quantity yo
 weapons that get used up (knives, darts, thrownaxes, javelins and chinchompas; not blowpipes, Tonalztics of
 Ralos or the Hunter's spear). Whatever you hold in your bank, inventory and equipment covers part of that
 quantity, and only the shortfall is bought (and counted against the budget). *Owned items only* only uses
-them if you hold the full quantity. Ammunition you've marked as owned by hand has no known stack size, so
+them if you hold the full quantity, and *Inventory + equipped only* only if you carry it. Ammunition you've marked as owned by hand has no known stack size, so
 it's assumed to cover any quantity. When a stack you hold changes in a way that matters for the requested
 quantity, the search runs again once the stack has stayed the same for five seconds, so it doesn't restart
 on every shot.
@@ -383,11 +387,12 @@ exists in the source. Piety keeps its real 20% accuracy and 23% strength boosts.
 ### Bundled data
 
 The plugin has its own DPS calculator (using OSRS Wiki formulas) and optimiser. By default it reads two
-bundled snapshots: 3,110 monster variants (`tools/wiki_monsters.py`) and about 1,900 pieces of equipment
+bundled snapshots: 3,130 monster variants (`tools/wiki_monsters.py`) and about 1,900 pieces of equipment
 along with the spell, prayer and potion tables (`tools/wiki_equipment.py`). Copies with identical stats
 (charges, ornament kits, locked, poisoned, degraded and NMZ versions, recolours) are merged into one entry,
-and owning any of them counts. League, Grid Master, beta, Last Man Standing and PvP Arena items are left
-out, and Deadman and Bounty Hunter gear is hidden behind its setting.
+and owning any of them counts. League-only, Grid Master, beta, Last Man Standing and PvP Arena items are
+left out (League reward-shop cosmetics of main-game items, such as the soulreaper axe (o), are kept), and
+Deadman and Bounty Hunter gear is hidden behind its setting.
 See [the bundled data notes](equipment-requirements.md) for how the snapshots are built.
 
 Weapon styles, ammunition, autocast spells, spell max hits, prayers and potions don't have structured Wiki

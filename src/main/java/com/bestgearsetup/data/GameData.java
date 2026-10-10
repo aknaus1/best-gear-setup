@@ -302,6 +302,7 @@ public class GameData
 					GearItem copy = gson.fromJson(gson.toJson(item), GearItem.class);
 					copy.setId(variant);
 					copy.setCombatName(item.getCombatName());
+					copy.setCombatId(item.getCombatId());
 					copy.setName(name.toLowerCase(Locale.ROOT));
 					if (item.isDmmEquipment() && !copy.isDmmEquipment())
 					{

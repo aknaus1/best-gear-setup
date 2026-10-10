@@ -3,6 +3,7 @@ package com.bestgearsetup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.data.MonsterSummary;
 import com.google.gson.Gson;
 import java.util.Arrays;
@@ -151,6 +152,39 @@ public class SearchInvalidationTest
 		}
 		assertEquals("Lobster changes must not restart the settle timer", 1, schedules.get());
 		settle();
+		assertEquals(1, reruns.get());
+	}
+
+	/** An Inventory + equipped only search ignores the bank, but withdrawing gear changes its result. */
+	@Test
+	public void inventoryOnlySearchesIgnoreBankChanges()
+	{
+		owned = new OwnedItems(null, null);
+		owned.bank = Collections.singletonMap(4151, 1L);
+		owned.rebuild(true);
+		plugin = new BestGearSetupPlugin()
+		{
+			@Override
+			public void rerun()
+			{
+				reruns.incrementAndGet();
+			}
+		};
+		plugin.ownedItems = owned;
+		plugin.searchMode = SearchMode.INVENTORY_ONLY;
+		plugin.searchOwned = owned.snapshot(SearchMode.INVENTORY_ONLY);
+		plugin.searchQuantities = owned.quantitySnapshot(SearchMode.INVENTORY_ONLY);
+		plugin.lastSearched = new MonsterSummary();
+		plugin.gearIds = ids(4151, 11840);
+
+		owned.bank = Collections.singletonMap(11840, 1L);
+		owned.rebuild(true);
+		plugin.invalidateIfOwnershipChanged();
+		assertEquals("Bank changes don't affect carried gear", 0, reruns.get());
+
+		owned.inventory = Collections.singletonMap(4151, 1L);
+		owned.rebuild(true);
+		plugin.invalidateIfOwnershipChanged();
 		assertEquals(1, reruns.get());
 	}
 

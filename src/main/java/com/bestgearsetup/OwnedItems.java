@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import com.bestgearsetup.calc.SearchMode;
 import lombok.Getter;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
@@ -20,7 +21,8 @@ import net.runelite.client.game.ItemVariationMapping;
 /**
  * Tracks which items the player owns across bank, inventory and worn equipment, with stack sizes so
  * ammunition can be priced by the shortfall. Each container is persisted per RuneScape profile so the
- * bank is remembered after it has been opened once.
+ * bank is remembered after it has been opened once. Inventory + equipped only searches see just the carried
+ * containers: no bank and no items marked owned by hand.
  */
 @Singleton
 public class OwnedItems
@@ -50,6 +52,9 @@ public class OwnedItems
 	private volatile Set<Integer> expanded = Collections.emptySet();
 	/** Total quantity per id across containers; {@link #UNLIMITED} for items marked owned by hand. */
 	private volatile Map<Integer, Long> quantities = Collections.emptyMap();
+	/** {@link #expanded} and {@link #quantities} for the inventory and worn equipment alone. */
+	private volatile Set<Integer> carriedExpanded = Collections.emptySet();
+	private volatile Map<Integer, Long> carriedQuantities = Collections.emptyMap();
 
 	@Getter
 	private volatile boolean bankKnown;
@@ -186,6 +191,18 @@ public class OwnedItems
 		return quantities;
 	}
 
+	/** {@link #snapshot()}, or only the carried items for an Inventory + equipped only search. */
+	public Set<Integer> snapshot(SearchMode mode)
+	{
+		return mode == SearchMode.INVENTORY_ONLY ? carriedExpanded : expanded;
+	}
+
+	/** {@link #quantitySnapshot()}, or only the carried stacks for an Inventory + equipped only search. */
+	public Map<Integer, Long> quantitySnapshot(SearchMode mode)
+	{
+		return mode == SearchMode.INVENTORY_ONLY ? carriedQuantities : quantities;
+	}
+
 	/** Distinct items seen in the bank, inventory and worn equipment, excluding manual entries. */
 	public int count()
 	{
@@ -203,11 +220,14 @@ public class OwnedItems
 	void rebuild(boolean itemsChanged)
 	{
 		Map<Integer, Long> total = combine(java.util.Arrays.asList(bank, inventory, worn), manual);
+		Map<Integer, Long> carried = combine(java.util.Arrays.asList(inventory, worn), Collections.emptySet());
 		if (itemsChanged)
 		{
 			expanded = expand(total.keySet());
+			carriedExpanded = expand(carried.keySet());
 		}
 		quantities = Collections.unmodifiableMap(total);
+		carriedQuantities = Collections.unmodifiableMap(carried);
 	}
 
 	/** Sum stacks across containers; a manual entry has no known quantity, so it covers any stack. */

@@ -101,12 +101,15 @@ DROP_NAME = re.compile(r"\((?:broken|inactive|deactivated|empty|unlit|damaged|be
 # Wiki categories of content outside the main game.
 DROP_CATEGORY = re.compile(r"League$|^Grid Master$|^Beta items$|shelved content|^Emir's Arena$|"
                            r"^Discontinued content$")
+# Leagues Reward Shop ornament kits ("soulreaper axe (o)") are main-game cosmetics, though the Wiki files them
+# under the league; one is kept when RuneLite groups it with a kept main-game item.
+LEAGUE_CATEGORY = re.compile(r"League$")
 # Deadman Mode gear keeps a "(dmm)" marker so searches can leave it out unless asked for.
 DEADMAN_CATEGORY = re.compile(r"^Deadman(?: Mode|: | seasonal items)")
 DROP_PAGE = re.compile(r"\((?:Last Man Standing|beta|historical|Grid Master|Leagues)\)", re.I)
 # Name noise that never changes an item's effect; stat-identical items whose names agree after removing it
 # are one catalogue entry (charges, ornament kits, locked/poisoned/degraded/NMZ copies).
-NOISE = re.compile(r"\s*\((?:\d+|l|or|g|t|cr|h\d|p\+{0,2}|kp|nz|deadman|uncharged|charged|used|new)\)"
+NOISE = re.compile(r"\s*\((?:\d+|l|o|or|g|t|cr|h\d|p\+{0,2}|kp|nz|deadman|uncharged|charged|used|new)\)"
                    r"|\s+(?:100|75|50|25|0)$|^(?:dyed |gilded |trimmed )")
 
 ARROW_TIER = {"bronze": 1, "iron": 1, "steel": 5, "mithril": 20, "adamant": 30, "rune": 40, "amethyst": 50,
@@ -538,7 +541,12 @@ def build(refresh):
 
     titles = sorted({row["page_name"] for row in rows})
     categories = cached("wiki-item-categories.json", refresh, lambda: fetch_categories(titles))
-    rows = [row for row in rows if not any(DROP_CATEGORY.search(c) for c in categories.get(row["page_name"], []))]
+
+    def dropped(row):
+        return [c for c in categories.get(row["page_name"], []) if DROP_CATEGORY.search(c)]
+    kept_groups = {variation_of.get(ids_of(row)[0]) for row in rows if not dropped(row)} - {None}
+    rows = [row for row in rows if not dropped(row)
+            or all(LEAGUE_CATEGORY.search(c) for c in dropped(row)) and variation_of.get(ids_of(row)[0]) in kept_groups]
     titles = sorted({row["page_name"] for row in rows})
     pages = cached("wiki-item-pages.json", refresh, lambda: fetch_pages(titles))
     missing = [t for t in titles if t not in pages]

@@ -8,15 +8,17 @@ plugin, so it makes no network requests. Sources and licences are listed in
 
 | Resource | Generator | Contents |
 | --- | --- | --- |
-| `wiki-monsters.json.gz` | `tools/wiki_monsters.py` | 3,110 monster variants from `infobox_monster` and `Category:Bosses` |
-| `wiki-gamedata.json.gz` | `tools/wiki_equipment.py` | 638 weapons and 1,305 other slot entries (darts appear both as weapons and as blowpipe ammunition), 48 combat spells, offensive prayers and potions |
+| `wiki-monsters.json.gz` | `tools/wiki_monsters.py` | 3,130 monster variants from `infobox_monster` and `Category:Bosses` |
+| `wiki-gamedata.json.gz` | `tools/wiki_equipment.py` | 638 weapons and 1,308 other slot entries (darts appear both as weapons and as blowpipe ammunition), 48 combat spells, offensive prayers and potions |
 | `status-immunities.json` | `tools/wiki_status_immunities.py` | Poison, venom, freeze and burn resistance by NPC id |
 | `equipment-requirements.json` | `tools/equipment_requirements.py` | 123 reviewed wear rules, each linked to its source |
 
 The equipment snapshot joins `infobox_item` with `infobox_bonuses` (stats, slot, category, speed, members,
 tradeable). A row is dropped if the item has been removed from the game, is a Last Man Standing or beta
 copy, is in a broken, inactive, unlit or empty state, or sits in one of the Wiki categories for Leagues,
-Grid Master, beta items, shelved content, Emir's Arena (PvP Arena loadouts) or discontinued content.
+Grid Master, beta items, shelved content, Emir's Arena (PvP Arena loadouts) or discontinued content. A
+Leagues Reward Shop cosmetic such as the soulreaper axe (o) is kept when RuneLite's item variations group it
+with a kept main-game item, since the Wiki files it under the league although it is used on main-game worlds.
 Cosmetics with no stats are dropped too, except for items an encounter or effect rule needs (the ring of
 recoil, Efaritay's aid, slayer protection items and so on). Deadman gear gets a `(dmm)` marker from its
 Wiki category, so the Deadman setting still controls it.

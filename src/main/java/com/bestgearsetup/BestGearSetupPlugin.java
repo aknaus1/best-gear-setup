@@ -202,6 +202,8 @@ public class BestGearSetupPlugin extends Plugin
 	private String lastRememberedLevels;
 	/** Ownership the latest search was computed with; null when no results depend on it. */
 	volatile Set<Integer> searchOwned;
+	/** The latest search's mode: Inventory + equipped only compares carried items alone. */
+	volatile SearchMode searchMode;
 	/** Stack sizes and ammo quantity the latest search was computed with. */
 	volatile Map<Integer, Long> searchQuantities;
 	volatile int searchAmmoCount;
@@ -570,7 +572,8 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			return;
 		}
-		Set<Integer> now = ownedItems.snapshot();
+		SearchMode mode = searchMode;
+		Set<Integer> now = ownedItems.snapshot(mode);
 		if (before != now && gearOwnershipDiffers(before, now, gearIds))
 		{
 			searchOwned = now;
@@ -579,7 +582,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		// Compare with the last observed supply, not the search's: unrelated container events (food, potions)
 		// must not keep pushing back the refresh of a stack that has already settled.
-		Map<Integer, Long> quantities = ownedItems.quantitySnapshot();
+		Map<Integer, Long> quantities = ownedItems.quantitySnapshot(mode);
 		Map<Integer, Long> observed = observedQuantities;
 		if (supplyDiffers(observed != null ? observed : searchQuantities, quantities, consumableIds, searchAmmoCount))
 		{
@@ -603,7 +606,7 @@ public class BestGearSetupPlugin extends Plugin
 	/** Swing thread: the stack has settled; search again if it still differs from the one the results used. */
 	void refreshSupply()
 	{
-		Map<Integer, Long> now = ownedItems.quantitySnapshot();
+		Map<Integer, Long> now = ownedItems.quantitySnapshot(searchMode);
 		if (searchOwned != null && supplyDiffers(searchQuantities, now, consumableIds, searchAmmoCount))
 		{
 			searchQuantities = now;
@@ -900,14 +903,20 @@ public class BestGearSetupPlugin extends Plugin
 			Map<Integer, Long> quotes = snapshotPrices(data);
 			prices = quotes;
 			// Ownership is fixed for the whole search; later gear changes invalidate the results instead.
-			Set<Integer> owned = ownedItems.snapshot();
-			Map<Integer, Long> quantities = ownedItems.quantitySnapshot();
+			SearchMode mode = assumptions.mode();
+			Set<Integer> owned = ownedItems.snapshot(mode);
+			Map<Integer, Long> quantities = ownedItems.quantitySnapshot(mode);
+			searchMode = mode;
 			searchOwned = owned;
 			searchQuantities = quantities;
 			observedQuantities = null;
 			searchAmmoCount = config.ammoCount();
+			// Rada's blessing 4 is an Elite diary reward, so owning it anywhere proves completion before the varbit
+			// is seen, even when the search only uses carried items.
+			Boolean eliteDiary = kourendElite == null && ownedItems.snapshot().contains(ItemID.ZEAH_BLESSING_ELITE)
+				? Boolean.TRUE : kourendElite;
 			search = executor.submit(() -> runSearch(data, summary, levels, rememberedLevels, prayerUnlocks,
-				kourendElite, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes));
+				eliteDiary, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes));
 		});
 	}
 
@@ -1057,8 +1066,7 @@ public class BestGearSetupPlugin extends Plugin
 			EncounterPhases.applyStats(scaled);
 			Monster monster = specials.apply(MonsterStates.atHealth(scaled, 0));
 
-			// Rada's blessing 4 is an Elite diary reward, so owning it proves completion before the varbit is seen.
-			boolean eliteDiary = kourendElite != null ? kourendElite : owned.contains(ItemID.ZEAH_BLESSING_ELITE);
+			boolean eliteDiary = Boolean.TRUE.equals(kourendElite);
 			OptimizerSettings settings = buildSettings(config).toBuilder().kourendEliteDiary(eliteDiary)
 				.karuulmDungeon(karuulmDungeon).build();
 			Map<CombatClass, OffensivePrayer> prayers = new EnumMap<>(CombatClass.class);
@@ -1308,7 +1316,8 @@ public class BestGearSetupPlugin extends Plugin
 			}
 			if (mode != SearchMode.UNLIMITED && !boosts.test(p))
 			{
-				problems.add(mode == SearchMode.OWNED_ONLY ? "not owned" : "not owned and can't be bought");
+				problems.add(mode == SearchMode.INVENTORY_ONLY ? "not in your inventory" : mode == SearchMode.OWNED_ONLY ? "not owned"
+					: "not owned and can't be bought");
 			}
 			warnings.add(GameData.titleCase(classes[i].name().toLowerCase(java.util.Locale.ROOT)) + " potion picked by name: "
 				+ GameData.titleCase(p.getName()) + (problems.isEmpty() ? "."

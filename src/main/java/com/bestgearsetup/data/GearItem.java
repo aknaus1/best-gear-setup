@@ -21,6 +21,8 @@ public class GearItem
 	private String name;
 	/** Original snapshot identity for stat-identical cosmetics whose display name has a prefix. */
 	private String combatName;
+	/** Snapshot id of the item a stat-identical cosmetic copies, so it casts the same spells; null for snapshot items. */
+	private Integer combatId;
 	/** Fixed acquisition price used by offline tests; the plugin prices items from RuneLite at search time. */
 	private long price;
 	private boolean tradeable;
@@ -156,6 +158,12 @@ public class GearItem
 			lowerCombatName = lower;
 		}
 		return lower;
+	}
+
+	/** Spell lists name snapshot ids, so a folded cosmetic shown separately checks them as its original. */
+	public int getCombatId()
+	{
+		return combatId == null ? id : combatId;
 	}
 
 	/** Combat effects keep the original snapshot identity when a folded cosmetic is shown separately. */

@@ -641,7 +641,7 @@ public class OptimizerOracleTest
 			{
 				return true;
 			}
-			if (s.getMode() == SearchMode.OWNED_ONLY || OwnershipRules.requiresOwnership(item.getId())
+			if (s.getMode().isHeldOnly() || OwnershipRules.requiresOwnership(item.getId())
 				|| !item.isTradeable() && !ItemCosts.hasTradableComponents(item.getId()))
 			{
 				return false;
@@ -718,7 +718,7 @@ public class OptimizerOracleTest
 			}
 			GearItem ammo = WeaponRules.loadsAmmo(weapon) ? l.getLoadedAmmo() : l.get(Slot.AMMO);
 			boolean needsAmmo = !weapon.getAmmunition().isEmpty();
-			if (needsAmmo && (ammo == null || !weapon.getAmmunition().contains(ammo.getId()) || !usable(ammo)))
+			if (needsAmmo && (ammo == null || !weapon.getAmmunition().contains(ammo.getCombatId()) || !usable(ammo)))
 			{
 				return "ammunition";
 			}
@@ -766,7 +766,7 @@ public class OptimizerOracleTest
 						String name = spell.getName().toLowerCase(Locale.ROOT);
 						String book = spell.getSpellbook() == null ? "" : spell.getSpellbook().toLowerCase(Locale.ROOT);
 						if (spell.getMaxHit() > 0 && spell.getLevel() <= c.ctx.getMagic() && s.getSpellbooks().contains(book)
-							&& spell.castableWith(weapon.getId())
+							&& spell.castableWith(weapon.getCombatId())
 							&& (!name.contains("demonbane") || c.ctx.getMonster().hasAttribute("demon"))
 							&& (!name.equals("crumble undead") || c.ctx.getMonster().hasAttribute("undead")))
 						{
@@ -816,7 +816,7 @@ public class OptimizerOracleTest
 				{
 					for (GearItem a : c.pool)
 					{
-						if (a.getSlot() == Slot.AMMO && weapon.getAmmunition().contains(a.getId()) && usable(a))
+						if (a.getSlot() == Slot.AMMO && weapon.getAmmunition().contains(a.getCombatId()) && usable(a))
 						{
 							ammo.add(a);
 						}

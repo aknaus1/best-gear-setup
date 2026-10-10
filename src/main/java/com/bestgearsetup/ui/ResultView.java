@@ -28,7 +28,10 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -110,6 +113,8 @@ class ResultView extends JPanel
 	}
 
 	private static final int TAB_SIZE = 32;
+	/** CSS width of the wrapped max-hit line; Swing scales CSS px by 1.3, so this fills the stats box. */
+	private static final int STAT_WRAP_WIDTH = 155;
 
 	private final BestGearSetupPlugin plugin;
 	private final ItemManager itemManager;
@@ -299,38 +304,51 @@ class ResultView extends JPanel
 
 	JPanel statsBox(DpsResult d, Thrall thrall)
 	{
-		JPanel box = new JPanel(new GridLayout(0, 1, 0, 2));
+		// One column, each row only as tall as its own text, so a wrapped max-hit note doesn't stretch every row
+		JPanel box = new JPanel(new GridBagLayout());
 		box.setBackground(BOX_BG);
 		box.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BOX_BORDER),
-			new EmptyBorder(4, 6, 4, 6)));
+			new EmptyBorder(2, 6, 4, 6)));
+		GridBagConstraints row = new GridBagConstraints();
+		row.gridx = 0;
+		row.weightx = 1;
+		row.fill = GridBagConstraints.HORIZONTAL;
+		row.insets = new Insets(2, 0, 0, 0);
 		String max = d.getMaxHit() + (d.getMaxHitDetail() == null ? "" : " (" + d.getMaxHitDetail() + ")");
 		double ttk = d.getPrimaryDps() > 0 ? results.getStartingHitpoints() / d.getPrimaryDps() : 0;
 		boolean area = d.getTargetsHit() > 1;
-		box.add(stat("<b>" + (area ? "Total DPS: " : "DPS: ") + fmt(d.getDps(), 3) + "</b>"));
+		box.add(stat("<b>" + (area ? "Total DPS: " : "DPS: ") + fmt(d.getDps(), 3) + "</b>"), row);
 		if (thrall != null)
 		{
 			JLabel thrallLabel = stat("Incl. thrall: +" + fmt(thrall.getDps(), 3));
 			thrallLabel.setName("thrallDps");
 			thrallLabel.setToolTipText(thrall + " (max hit " + thrall.getMaxHit() + ", always hits, every 2.4s)");
-			box.add(thrallLabel);
+			box.add(thrallLabel, row);
 		}
-		box.add(stat((area ? "Primary max: " : "Max hit: ") + max));
-		box.add(stat("Accuracy: " + fmt(d.getAccuracy() * 100, 1) + "%"));
-		box.add(stat((area ? "Avg attack: " : "Avg hit: ") + fmt(d.getAverageHit(), 2)));
-		box.add(stat("Speed: " + fmt(d.getExpectedSpeedTicks() * 0.6, 2) + "s"));
+		String maxText = (area ? "Primary max: " : "Max hit: ") + max;
+		JLabel maxHit = stat(maxText);
+		if (d.getMaxHitDetail() != null)
+		{
+			// A fixed width gives the long note its wrapped height; an unsized label only reports one line
+			maxHit.setText(BestGearSetupPanel.html(maxText, STAT_WRAP_WIDTH));
+		}
+		box.add(maxHit, row);
+		box.add(stat("Accuracy: " + fmt(d.getAccuracy() * 100, 1) + "%"), row);
+		box.add(stat((area ? "Avg attack: " : "Avg hit: ") + fmt(d.getAverageHit(), 2)), row);
+		box.add(stat("Speed: " + fmt(d.getExpectedSpeedTicks() * 0.6, 2) + "s"), row);
 		JLabel ttkLabel = stat("TTK: ~" + fmt(ttk, 1) + "s");
 		ttkLabel.setToolTipText("Approximate: selected enemy hitpoints / damage to that enemy (no overkill)");
-		box.add(ttkLabel);
+		box.add(ttkLabel, row);
 		if (area)
 		{
-			box.add(stat("Primary DPS: " + fmt(d.getPrimaryDps(), 3)));
-			box.add(stat("Enemies hit: " + d.getTargetsHit()));
+			box.add(stat("Primary DPS: " + fmt(d.getPrimaryDps(), 3)), row);
+			box.add(stat("Enemies hit: " + d.getTargetsHit()), row);
 		}
 		double kph = results.getMonster().getHitpoints() > 0 ? d.getDps() * 3600 / results.getMonster().getHitpoints() : 0;
 		JLabel kills = stat("Est. KPH: " + fmt(kph, 1));
 		kills.setToolTipText("Damage-based estimate: total DPS / enemy HP. Assumes continuous combat; excludes overkill, "
 			+ "respawns, travel, banking, eating and boss phases.");
-		box.add(kills);
+		box.add(kills, row);
 		return box;
 	}
 

@@ -143,7 +143,7 @@ public interface BestGearSetupConfig extends Config
 		keyName = MODE_KEY,
 		name = "Mode",
 		hidden = true,
-		description = "Owned items only, owned items plus a budget, or unlimited best in slot",
+		description = "Owned items only, inventory and equipment only, owned items plus a budget, or unlimited best in slot",
 		section = searchSection,
 		position = 1
 	)

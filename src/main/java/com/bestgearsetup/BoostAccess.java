@@ -17,7 +17,7 @@ import net.runelite.client.game.ItemVariationMapping;
 
 /**
  * Which stat boosts (potions, hearts) a search may assume when the potion choice is "best".
- * Owned items only uses boosts the player owns; Owned + budget adds anything tradeable (boosts are
+ * Owned items only uses boosts the player owns (Inventory + equipped only, those carried); Owned + budget adds anything tradeable (boosts are
  * not counted against the budget); Best in slot assumes every boost. Any dose counts as owning a
  * potion, and a divine potion counts as its ordinary version. Raid supplies (overloads, smelling salts) are handed
  * out inside the raid, so they need no ownership; they can be left out for the start of a raid, before you have them.
@@ -65,6 +65,7 @@ final class BoostAccess
 		switch (mode)
 		{
 			case OWNED_ONLY:
+			case INVENTORY_ONLY:
 				return p -> p.isRaidSupply() ? raidPotions : owns(p, owned);
 			case BUDGET:
 				return p -> p.isRaidSupply() ? raidPotions : !UNTRADEABLE.contains(p.getId()) || owns(p, owned);

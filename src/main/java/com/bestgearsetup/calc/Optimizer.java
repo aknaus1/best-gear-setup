@@ -1914,7 +1914,7 @@ public class Optimizer
 			String name = spell.getName().toLowerCase(Locale.ROOT);
 			String book = spell.getSpellbook() == null ? "" : spell.getSpellbook().toLowerCase(Locale.ROOT);
 			if (spell.getMaxHit() <= 0 || spell.getLevel() > ctx.getMagic()
-				|| !settings.getSpellbooks().contains(book) || !spell.castableWith(weapon.getId()))
+				|| !settings.getSpellbooks().contains(book) || !spell.castableWith(weapon.getCombatId()))
 			{
 				continue;
 			}
@@ -1934,22 +1934,32 @@ public class Optimizer
 	private List<GearItem> compatibleAmmo(GearItem weapon, boolean firesAmmoSlot)
 	{
 		SlotLock ammoLock = firesAmmoSlot ? settings.getLocks().get(Slot.AMMO) : null;
-		List<GearItem> out = new ArrayList<>();
+		List<GearItem> listed = new ArrayList<>();
 		for (int id : weapon.getAmmunition())
 		{
 			GearItem a = data.getItem(Slot.AMMO, id);
-			if (a == null || !usable(a))
+			if (a != null)
+			{
+				listed.add(a);
+			}
+		}
+		// Cosmetic copies such as poisoned arrows have ids the Wiki's ammunition list doesn't name; they follow
+		// their original, after it so equal-strength ties keep the listed order.
+		for (GearItem a : data.getItems(Slot.AMMO))
+		{
+			if (a.getCombatId() != a.getId() && weapon.getAmmunition().contains(a.getCombatId()))
+			{
+				listed.add(a);
+			}
+		}
+		List<GearItem> out = new ArrayList<>();
+		for (GearItem a : listed)
+		{
+			if (!usable(a))
 			{
 				continue;
 			}
-			if (ammoLock != null)
-			{
-				if (ammoLock.getKind() == SlotLock.Kind.ITEM && ammoLock.getItemId() == id)
-				{
-					out.add(a);
-				}
-			}
-			else if (usable(a))
+			if (ammoLock == null || ammoLock.getKind() == SlotLock.Kind.ITEM && ammoLock.getItemId() == a.getId())
 			{
 				out.add(a);
 			}
@@ -2124,7 +2134,7 @@ public class Optimizer
 		{
 			return true;
 		}
-		if (DiaryRewards.isReward(item.getId()) || settings.getMode() == SearchMode.OWNED_ONLY)
+		if (DiaryRewards.isReward(item.getId()) || settings.getMode().isHeldOnly())
 		{
 			return false;
 		}
@@ -2186,12 +2196,15 @@ public class Optimizer
 		}
 		if (DiaryRewards.isReward(item.getId()))
 		{
-			return "you don't own this diary tier";
+			return settings.getMode() == SearchMode.INVENTORY_ONLY ? "this diary tier isn't in your inventory or equipment"
+				: "you don't own this diary tier";
 		}
-		if (settings.getMode() == SearchMode.OWNED_ONLY)
+		if (settings.getMode().isHeldOnly())
 		{
+			boolean carried = settings.getMode() == SearchMode.INVENTORY_ONLY;
 			return isOwned(item) ? "you have " + heldQuantity(item) + " of the " + settings.getAmmoCount()
-				+ " requested (Ammo quantity) and the search uses owned items only"
+				+ " requested (Ammo quantity) and the search uses " + (carried ? "carried" : "owned") + " items only"
+				: carried ? "it isn't in your inventory or equipment and the search uses carried items only"
 				: "you don't own it and the search uses owned items only";
 		}
 		if (!purchasable(item))

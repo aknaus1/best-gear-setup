@@ -713,6 +713,10 @@ public class BestGearSetupPanel extends PluginPanel
 			{
 				status.append(" Open your bank once so the plugin can see what you own.");
 			}
+			else if (config.mode() == SearchMode.INVENTORY_ONLY)
+			{
+				status.append(" Only your inventory and worn equipment are used; withdraw gear or change the mode.");
+			}
 			else
 			{
 				status.append(" Check locks, excluded items and style / experience filters.");

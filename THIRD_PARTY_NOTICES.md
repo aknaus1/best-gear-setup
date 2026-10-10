@@ -18,13 +18,13 @@ non-commercial and share-alike terms apply to this data, not the plugin's BSD li
 
 | File | Where it comes from |
 | --- | --- |
-| `wiki-monsters.json.gz` | Built by `tools/wiki_monsters.py` from the Wiki's `infobox_monster` bucket and `Category:Bosses`, retrieved `2026-10-01T05:06:58Z`. Variant names are normalised, and encounter tags, multi-NPC mappings, Nylocas colour variants and Challenge Mode exclusions are added. 3,110 variants. |
-| `wiki-gamedata.json.gz` | Built by `tools/wiki_equipment.py` from the Wiki's `infobox_item`, `infobox_bonuses` and `infobox_spell` buckets, item page text (for wear requirements) and page categories, retrieved `2026-10-01` (UTC). Items with identical stats are merged, names are normalised, and League, beta and PvP Arena items are left out. It also has hand-written tables (weapon styles, ammunition tiers, autocast lists, spell max hits, prayer and potion boosts), each based on a named Wiki page. Wear levels also use requirement parameters read from a local copy of the game cache. |
-| `status-immunities.json` | Built by `tools/wiki_status_immunities.py` from the Wiki's monster resistance fields, retrieved `2026-10-01T04:09:01Z`. Resistance values are normalised and keyed by NPC ID. |
+| `wiki-monsters.json.gz` | Built by `tools/wiki_monsters.py` from the Wiki's `infobox_monster` bucket and `Category:Bosses`, retrieved `2026-10-10T05:23:40Z`. Variant names are normalised, and encounter tags, multi-NPC mappings, Nylocas colour variants and Challenge Mode exclusions are added. 3,130 variants. |
+| `wiki-gamedata.json.gz` | Built by `tools/wiki_equipment.py` from the Wiki's `infobox_item`, `infobox_bonuses` and `infobox_spell` buckets, item page text (for wear requirements) and page categories, retrieved `2026-10-10` (UTC). Items with identical stats are merged, names are normalised, and League-only, beta and PvP Arena items are left out (League reward-shop cosmetics of main-game items are kept). It also has hand-written tables (weapon styles, ammunition tiers, autocast lists, spell max hits, prayer and potion boosts), each based on a named Wiki page. Wear levels also use requirement parameters read from a local copy of the game cache. |
+| `status-immunities.json` | Built by `tools/wiki_status_immunities.py` from the Wiki's monster resistance fields, retrieved `2026-10-10T05:26:15Z`. Resistance values are normalised and keyed by NPC ID. |
 | `equipment-requirements.json` | Built by `tools/equipment_requirements.py`. Hand-reviewed wear rules, each with its item selectors, slot checks, review notes and a link to the Wiki page it comes from. It's based on the Wiki, so the same licence applies. |
 
-Retrieval times are in UTC; in Pacific time, the monster and status snapshots were both taken on
-30 September 2026. The generator scripts record every change they make to the source data. If you
+Retrieval times are in UTC; in Pacific time, all three Wiki snapshots were taken on
+9 October 2026. The generator scripts record every change they make to the source data. If you
 redistribute the data, keep its metadata and the per-rule source links with it.
 
 ## OSRS Wiki DPS calculator

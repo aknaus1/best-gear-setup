@@ -7,7 +7,7 @@ rotation is implemented**. The gaps, and what it would take to close them, are l
 ## Evidence
 
 Monsters, equipment, spells, prayers and potions come from bundled Wiki snapshots
-(`wiki-monsters.json.gz`, 3,110 variants; `wiki-gamedata.json.gz`, 638 weapons and 1,305 other slot
+(`wiki-monsters.json.gz`, 3,130 variants; `wiki-gamedata.json.gz`, 638 weapons and 1,308 other slot
 entries, 48 spells). The plugin makes no network requests. Wear requirements combine cache parameters,
 Wiki item text and the reviewed rules, and the live client cache can only raise them; see
 [the bundled data notes](docs/equipment-requirements.md). Sources and licences are listed in

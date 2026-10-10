@@ -196,7 +196,7 @@ public class SlayerEquipmentTest
 				for (CombatClass cls : CombatClass.values())
 				{
 					List<SetupResult> results = optimizer.optimize(cls, () -> false);
-					if (mode != SearchMode.OWNED_ONLY) { assertFalse(mode + " " + cls, results.isEmpty()); }
+					if (!mode.isHeldOnly()) { assertFalse(mode + " " + cls, results.isEmpty()); }
 					for (SetupResult result : results)
 					{
 						found++;

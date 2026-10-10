@@ -52,6 +52,14 @@ public class BoostAccessTest
 	}
 
 	@Test
+	public void inventoryOnlyUsesBoostsLikeOwnedOnly()
+	{
+		assertNull(best("ranged", SearchMode.INVENTORY_ONLY));
+		assertEquals("ranging potion", best("ranged", SearchMode.INVENTORY_ONLY, ItemID._1DOSERANGERSPOTION));
+		assertEquals("saturated heart", best("magic", SearchMode.INVENTORY_ONLY, ItemID.IMBUED_HEART, ItemID.SATURATED_HEART));
+	}
+
+	@Test
 	public void divinePotionsCountAsTheirOrdinaryVersion()
 	{
 		assertEquals("super combat potion", best("strength", SearchMode.OWNED_ONLY, ItemID._2DOSEDIVINECOMBAT));

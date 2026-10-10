@@ -3,6 +3,7 @@ package com.bestgearsetup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import com.bestgearsetup.calc.SearchMode;
 import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.Collections;
@@ -167,5 +168,29 @@ public class OwnedItemsTest
 			Collections.singleton(4164));
 		assertEquals(Long.valueOf(200), total.get(9242));
 		assertEquals(Long.valueOf(OwnedItems.UNLIMITED), total.get(4164));
+	}
+
+	@Test
+	public void inventoryOnlySnapshotsLeaveOutTheBank()
+	{
+		OwnedItems owned = new OwnedItems(null, null);
+		owned.bank = Collections.singletonMap(ItemID.ABYSSAL_WHIP, 1L);
+		owned.inventory = Collections.singletonMap(9242, 159L);
+		owned.worn = Collections.singletonMap(ItemID.AMULET_OF_GLORY_4, 1L);
+		owned.rebuild(true);
+
+		Set<Integer> carried = owned.snapshot(SearchMode.INVENTORY_ONLY);
+		assertFalse(carried.contains(ItemID.ABYSSAL_WHIP));
+		assertTrue(carried.contains(9242));
+		// Charge variants are expanded the same way as for the full snapshot.
+		assertTrue(carried.contains(ItemID.AMULET_OF_GLORY_1));
+		assertEquals(Long.valueOf(159), owned.quantitySnapshot(SearchMode.INVENTORY_ONLY).get(9242));
+		assertFalse(owned.quantitySnapshot(SearchMode.INVENTORY_ONLY).containsKey(ItemID.ABYSSAL_WHIP));
+
+		for (SearchMode mode : new SearchMode[]{SearchMode.OWNED_ONLY, SearchMode.BUDGET, SearchMode.UNLIMITED, null})
+		{
+			assertTrue(owned.snapshot(mode).contains(ItemID.ABYSSAL_WHIP));
+			assertTrue(owned.quantitySnapshot(mode).containsKey(ItemID.ABYSSAL_WHIP));
+		}
 	}
 }

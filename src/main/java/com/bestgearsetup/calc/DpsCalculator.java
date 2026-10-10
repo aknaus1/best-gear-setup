@@ -1215,7 +1215,7 @@ public final class DpsCalculator
 			}
 			// A charged Dizana's quiver adds +10 ranged accuracy and +1 ranged strength to fired arrows and bolts.
 			GearItem ammo = l.get(Slot.AMMO);
-			if (firesAmmo && ammo != null && weapon.getAmmunition().contains(ammo.getId())
+			if (firesAmmo && ammo != null && weapon.getAmmunition().contains(ammo.getCombatId())
 				&& QUIVERS.contains(lower(l.get(Slot.CAPE))))
 			{
 				b.ranged += 10;
