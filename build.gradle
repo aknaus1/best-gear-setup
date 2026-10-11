@@ -30,7 +30,7 @@ dependencies {
 
 group = 'com.bestgearsetup'
 // Keep in step with version= in runelite-plugin.properties, which is what the Plugin Hub shows.
-version = '1.0.0'
+version = '1.1.0'
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_11
