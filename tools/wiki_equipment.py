@@ -104,6 +104,8 @@ DROP_CATEGORY = re.compile(r"League$|^Grid Master$|^Beta items$|shelved content|
 # Leagues Reward Shop ornament kits ("soulreaper axe (o)") are main-game cosmetics, though the Wiki files them
 # under the league; one is kept when RuneLite groups it with a kept main-game item.
 LEAGUE_CATEGORY = re.compile(r"League$")
+# League ornament kits whose name neither extends the base item's nor shares its RuneLite variation group.
+ORNAMENT_OF = {"blazing blowpipe": "toxic blowpipe", "dinh's blazing bulwark": "dinh's bulwark"}
 # Deadman Mode gear keeps a "(dmm)" marker so searches can leave it out unless asked for.
 DEADMAN_CATEGORY = re.compile(r"^Deadman(?: Mode|: | seasonal items)")
 DROP_PAGE = re.compile(r"\((?:Last Man Standing|beta|historical|Grid Master|Leagues)\)", re.I)
@@ -454,6 +456,8 @@ def collapse(rows, variation_of):
         def related(name, base):
             row, base_row = entries[name][0], entries[base][0]
             group = variation_of.get(ids_of(row)[0])
+            if ORNAMENT_OF.get(name) == base:
+                return True
             return name.endswith(" " + base) and (name.startswith(ORNAMENT_PREFIXES)
                                                   or group is not None and group == variation_of.get(ids_of(base_row)[0]))
 
@@ -546,7 +550,8 @@ def build(refresh):
         return [c for c in categories.get(row["page_name"], []) if DROP_CATEGORY.search(c)]
     kept_groups = {variation_of.get(ids_of(row)[0]) for row in rows if not dropped(row)} - {None}
     rows = [row for row in rows if not dropped(row)
-            or all(LEAGUE_CATEGORY.search(c) for c in dropped(row)) and variation_of.get(ids_of(row)[0]) in kept_groups]
+            or all(LEAGUE_CATEGORY.search(c) for c in dropped(row))
+            and (variation_of.get(ids_of(row)[0]) in kept_groups or display_name(row) in ORNAMENT_OF)]
     titles = sorted({row["page_name"] for row in rows})
     pages = cached("wiki-item-pages.json", refresh, lambda: fetch_pages(titles))
     missing = [t for t in titles if t not in pages]

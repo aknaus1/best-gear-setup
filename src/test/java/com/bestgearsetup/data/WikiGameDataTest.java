@@ -119,6 +119,9 @@ public class WikiGameDataTest
 		assertTrue(scythe.getVariants().contains(25736));
 		assertTrue(item(Slot.WEAPON, "tumeken's shadow").getVariants().contains(27277));
 		assertTrue(item(Slot.HEAD, "slayer helmet (i)").getVariants().contains(19649));
+		// League ornament kits named unlike their base item: the blazing blowpipe and blazing bulwark.
+		assertTrue(item(Slot.WEAPON, "toxic blowpipe").getVariants().contains(28688));
+		assertTrue(item(Slot.WEAPON, "dinh's bulwark").getVariants().contains(28682));
 		// Same stats, different effects: these stay separate.
 		assertEquals(75, item(Slot.WEAPON, "blood ancient sceptre").getMagicReq());
 		assertTrue(item(Slot.WEAPON, "eldritch nightmare staff").getVariants().size() <= 2);

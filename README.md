@@ -3,7 +3,7 @@
 Find the best gear for any monster or boss without leaving RuneLite. Stick to what you own, shop within a
 budget, or go straight to best in slot.
 
-![Best setups for Vorkath (best in slot), Yama (owned items) and Nylocas Vasilias (inventory + equipped)](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/results.png)
+![Best setups for Vorkath (best in slot), Yama (owned + budget) and Verzik Vitur (owned items only)](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/results.png)
 
 ## Getting started
 
@@ -12,7 +12,8 @@ budget, or go straight to best in slot.
 3. Open the **Best Gear Setup** sidebar panel, or right-click an NPC and choose **Best setup**.
 4. Search for a monster, pick a mode and click **Find best setup**.
 
-Right-click an item in a result to lock it, exclude it or mark it as owned.
+Right-click an item in a result to lock it, exclude it or mark it as owned, or add these rules from the
+**Gear** panel.
 
 ## Features
 
@@ -28,13 +29,14 @@ Right-click an item in a result to lock it, exclude it or mark it as owned.
 - **Encounter rules are enforced:** damage caps, immunities, dragonfire protection, raid scaling and
   required Slayer gear.
 
-![The RuneLite client with the bank gear layout, highlighted inventory and Verzik Vitur result in the side panel](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/bank-layout.png)
+![The RuneLite client with the bank gear layout, highlighted inventory and Yama result in the side panel](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/bank-layout.png)
 
-The **Fight** panel sets your HP, Slayer task, raid party size, Wilderness and pre-fight defence
-reductions. **Settings** covers search options, attack styles, equipment, spellbooks, boosts and
+Everything else is in the sidebar too. **Fight** sets your HP, Slayer task, raid party size, Wilderness
+and pre-fight defence reductions. **Gear** lists your locks, excluded items and extra owned items, with a
+search to add more. **Settings** covers search options, attack styles, equipment, spellbooks, boosts and
 highlights.
 
-![Fight panel and plugin settings](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
+![The Fight and Settings panels in the sidebar](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
 
 ## Good to know
 
