@@ -52,9 +52,9 @@ public class SidebarLayoutTest
 						configurationOpened[0]++;
 					}
 					@Override
-					public java.util.Collection<net.runelite.client.config.ConfigItemDescriptor> getConfigItems()
+					public net.runelite.client.config.ConfigDescriptor getConfigDescriptor()
 					{
-						return com.bestgearsetup.ConfigItemsForTests.items();
+						return com.bestgearsetup.ConfigItemsForTests.descriptor();
 					}
 
 					@Override
@@ -94,9 +94,12 @@ public class SidebarLayoutTest
 				assertTrue(((JScrollPane) panel.getComponent(0)).isVisible());
 				panel.setSize(width, 420);
 				button(panel, "Settings").doClick();
-				assertEquals("Settings opens RuneLite's configuration page", 1, configurationOpened[0]);
-				assertTrue("Settings must not replace the results view", ((JScrollPane) panel.getComponent(0)).isVisible());
-				for (String[] editor : new String[][]{{"Fight", "fight"}, {"Gear", "gear"}})
+				assertTrue("Settings opens in the sidebar", named(panel, "settingsEditor").isVisible());
+				assertEquals(0, configurationOpened[0]);
+				button(panel, "Open in RuneLite settings").doClick();
+				assertEquals("RuneLite's configuration page stays one click away", 1, configurationOpened[0]);
+				button(panel, "Back to results").doClick();
+				for (String[] editor : new String[][]{{"Fight", "fight"}, {"Gear", "gear"}, {"Settings", "settings"}})
 				{
 					button(panel, editor[0]).doClick();
 					for (int pass = 0; pass < 3; pass++) { layout(panel); }
@@ -130,7 +133,7 @@ public class SidebarLayoutTest
 				panel.showResults(new SearchResults(new Monster(), 100, Collections.emptyMap(),
 					Collections.singletonList("Long calculation and provenance explanation"),
 					Collections.emptyMap(), Collections.emptyMap(), false));
-				JButton details = button(panel, "+ Search details");
+				JButton details = button(panel, "Search details");
 				assertTrue("Search notes should be collapsed", details != null);
 				JLabel notes = (JLabel) named(panel, "searchDetails");
 				assertFalse(notes.isVisible());

@@ -4,6 +4,7 @@ import com.bestgearsetup.calc.AttackReach;
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.CombatContext;
 import com.bestgearsetup.calc.CombatModifiers;
+import com.bestgearsetup.calc.CosmeticVariants;
 import com.bestgearsetup.calc.DragonfireProtection;
 import com.bestgearsetup.calc.EncounterPhases;
 import com.bestgearsetup.calc.LockStatus;
@@ -34,6 +35,8 @@ import com.bestgearsetup.data.StatusImmunities;
 import com.bestgearsetup.ui.BestGearSetupPanel;
 import com.google.gson.Gson;
 import com.google.inject.Provides;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -60,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -88,7 +92,7 @@ import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.client.callback.ClientThread;
-import net.runelite.client.config.ConfigItemDescriptor;
+import net.runelite.client.config.ConfigDescriptor;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.eventbus.EventBus;
@@ -103,6 +107,8 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.ui.components.colorpicker.ColorPickerManager;
+import net.runelite.client.ui.components.colorpicker.RuneliteColorPicker;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.ui.overlay.OverlayMenuEntry;
@@ -177,6 +183,9 @@ public class BestGearSetupPlugin extends Plugin
 
 	@Inject
 	private EventBus eventBus;
+
+	@Inject
+	private ColorPickerManager colorPickerManager;
 
 	/** Immutable selection snapshot shared between the sidebar and the bank and inventory renderers. */
 	@Getter
@@ -1228,7 +1237,7 @@ public class BestGearSetupPlugin extends Plugin
 		bankHighlightIds = Collections.unmodifiableSet(ids);
 		if (bankView != null)
 		{
-			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions);
+			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions, this::bankItemIds);
 			int life = lifecycle.get();
 			clientThread.invokeLater(() ->
 			{
@@ -1265,13 +1274,26 @@ public class BestGearSetupPlugin extends Plugin
 		}
 	}
 
-	private static void addBankHighlightItem(Set<Integer> ids, GearItem item)
+	private void addBankHighlightItem(Set<Integer> ids, GearItem item)
 	{
 		if (item != null)
 		{
-			ids.add(item.getId());
-			ids.addAll(item.getOwnershipVariants());
+			ids.addAll(bankItemIds(item));
 		}
+	}
+
+	/**
+	 * The item and its charge states, then its same-stats cosmetic variants, which can be worn in its place: the
+	 * bank shows whichever is there, and a recoloured or ornamented copy is highlighted too.
+	 */
+	private List<Integer> bankItemIds(GearItem item)
+	{
+		List<Integer> ids = BestGearSetupBankView.itemIds(item);
+		for (GearItem other : CosmeticVariants.others(gameData, item))
+		{
+			ids.addAll(BestGearSetupBankView.itemIds(other));
+		}
+		return ids;
 	}
 
 	private static CombatClass classOf(AttackStyle.Type type)
@@ -1661,9 +1683,13 @@ public class BestGearSetupPlugin extends Plugin
 		}
 	}
 
-	public void clearLocksAndExclusions()
+	public void clearLocks()
 	{
 		setConfig(BestGearSetupConfig.LOCKS_KEY, "");
+	}
+
+	public void clearExclusions()
+	{
 		setConfig(BestGearSetupConfig.EXCLUDED_KEY, "");
 	}
 
@@ -1857,10 +1883,23 @@ public class BestGearSetupPlugin extends Plugin
 			&& npc.getHealthRatio() != 0 && player.getWorldArea().distanceTo(npc.getWorldArea()) <= 128 ? npc : null;
 	}
 
-	/** Names, descriptions and ranges of the config items, for panels that edit hidden settings. */
-	public Collection<ConfigItemDescriptor> getConfigItems()
+	/** Sections, names, descriptions and ranges of the config items, for the panels that edit them. */
+	public ConfigDescriptor getConfigDescriptor()
 	{
-		return configManager.getConfigDescriptor(config).getItems();
+		return configManager.getConfigDescriptor(config);
+	}
+
+	/**
+	 * Open RuneLite's color picker by the given component. {@code onChange} previews each change and
+	 * {@code onClose} receives the color chosen when the picker is closed.
+	 */
+	public void pickColor(Component owner, Color current, String title, Consumer<Color> onChange, Consumer<Color> onClose)
+	{
+		RuneliteColorPicker picker = colorPickerManager.create(SwingUtilities.windowForComponent(owner), current, title, true);
+		picker.setLocationRelativeTo(owner);
+		picker.setOnColorChange(onChange);
+		picker.setOnClose(onClose);
+		picker.setVisible(true);
 	}
 
 	/** Open this plugin's page in RuneLite's configuration panel. */

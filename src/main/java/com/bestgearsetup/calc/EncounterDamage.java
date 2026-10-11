@@ -5,7 +5,6 @@ import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -145,7 +144,7 @@ final class EncounterDamage
 
 	static String spell(Loadout loadout)
 	{
-		return loadout.getSpell() == null ? "" : loadout.getSpell().getName().toLowerCase(Locale.ROOT);
+		return loadout.getSpell() == null ? "" : loadout.getSpell().getLowerName();
 	}
 
 	static Rule rule(Monster monster, Loadout loadout)

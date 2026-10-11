@@ -2,11 +2,10 @@ package com.bestgearsetup.data;
 
 import com.google.gson.annotations.SerializedName;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Data;
 
 /**
@@ -74,8 +73,11 @@ public class Monster
 	/** The monster's own attacks, keyed by name ("slash", "magic", "dragonfire"...). */
 	private Map<String, MonsterAttack> attackStyles;
 
-	/** Built on first use; volatile so searches on several threads see the whole set. */
-	private transient volatile Set<String> attributeNames;
+	/**
+	 * Lower-case attribute names mapped to true, then earlier answers by the queried string: damage rules ask about the
+	 * same literals for every setup a search scores. Built on first use; volatile so other threads see the whole map.
+	 */
+	private transient volatile Map<String, Boolean> attributeAnswers;
 	/** Derived from the name; cleared by {@link #setName}. */
 	private transient String lowerName;
 	/** Selected temporary boss state; set by the search, never by the API. */
@@ -131,7 +133,7 @@ public class Monster
 		m.task = task;
 		m.attributes = attributes;
 		m.attackStyles = attackStyles;
-		m.attributeNames = attributeNames;
+		m.attributeAnswers = attributeAnswers;
 		m.lowerName = lowerName;
 		m.phase = phase;
 		m.toaRaidLevel = toaRaidLevel;
@@ -173,26 +175,34 @@ public class Monster
 
 	public boolean hasAttribute(String attribute)
 	{
-		if (attributeNames == null)
+		Map<String, Boolean> answers = attributeAnswers;
+		if (answers == null)
 		{
-			Set<String> names = new HashSet<>();
+			answers = new ConcurrentHashMap<>();
 			for (Attribute a : attributes == null ? Collections.<Attribute>emptyList() : attributes)
 			{
 				if (a != null && a.getName() != null)
 				{
-					names.add(a.getName().toLowerCase(Locale.ROOT));
+					answers.put(a.getName().toLowerCase(Locale.ROOT), Boolean.TRUE);
 				}
 			}
-			attributeNames = names;
+			attributeAnswers = answers;
 		}
-		return attributeNames.contains(attribute.toLowerCase(Locale.ROOT));
+		Boolean known = answers.get(attribute);
+		if (known == null)
+		{
+			// Every name is in the map, so a lower-case query that is missing is not an attribute.
+			known = Boolean.TRUE.equals(answers.get(attribute.toLowerCase(Locale.ROOT)));
+			answers.put(attribute, known);
+		}
+		return known;
 	}
 
 	/** Invalidate the derived tag cache when reference data is replaced. */
 	public void setAttributes(List<Attribute> attributes)
 	{
 		this.attributes = attributes;
-		attributeNames = null;
+		attributeAnswers = null;
 	}
 
 	public int getDefLightOrStandard()

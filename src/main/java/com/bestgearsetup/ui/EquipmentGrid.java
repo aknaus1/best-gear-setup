@@ -4,6 +4,7 @@ import com.bestgearsetup.Budget;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.OwnedItems;
+import com.bestgearsetup.calc.CosmeticVariants;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.SetupResult;
@@ -21,6 +22,8 @@ import java.awt.GridLayout;
 import java.awt.RenderingHints;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.swing.JComponent;
@@ -57,6 +60,8 @@ class EquipmentGrid extends JPanel
 	private static final Color UNTRADEABLE = new Color(0xFF, 0x9F, 0x40);
 	private static final Color WORN = new Color(0x7C, 0xF0, 0x7C);
 	private static final String TIP_FOOTER = "<br><i>Right-click for options</i></html>";
+	/** Same-stats variants named in a tooltip before the rest are only counted. */
+	private static final int MAX_SAME_STATS_NAMES = 3;
 
 	private static final Slot[] LAYOUT = {
 		null, Slot.HEAD, null,
@@ -97,7 +102,8 @@ class EquipmentGrid extends JPanel
 		setMaximumSize(getPreferredSize());
 	}
 
-	private static int placeholderSprite(Slot slot)
+	/** The empty-slot icon the equipment screen shows for this slot. */
+	static int placeholderSprite(Slot slot)
 	{
 		switch (slot)
 		{
@@ -231,6 +237,7 @@ class EquipmentGrid extends JPanel
 				{
 					tip.append("<br>Filled for defence / prayer (no DPS)");
 				}
+				tip.append(sameStatsVariants(item, plugin));
 				if (variantOfExcluded(item, plugin))
 				{
 					tip.append("<br>A variant of an item you excluded; right-click to exclude all variants");
@@ -258,6 +265,38 @@ class EquipmentGrid extends JPanel
 				return super.getToolTipText(event);
 			}
 			return itemTip + (wearable ? (worn() ? "<br>Equipped" : "<br>Not equipped") : "") + TIP_FOOTER;
+		}
+
+		/** Ornamented, kitted or recoloured copies that fight the same; owned ones first, as any can be worn instead. */
+		private static String sameStatsVariants(GearItem item, BestGearSetupPlugin plugin)
+		{
+			List<GearItem> others = CosmeticVariants.others(plugin.getGameData(), item);
+			if (others.isEmpty())
+			{
+				return "";
+			}
+			List<String> owned = new ArrayList<>();
+			List<String> rest = new ArrayList<>();
+			for (GearItem other : others)
+			{
+				String name = BestGearSetupPanel.escape(GameData.titleCase(other.getName()));
+				if (plugin.owns(other))
+				{
+					owned.add(name + " (owned)");
+				}
+				else
+				{
+					rest.add(name);
+				}
+			}
+			owned.addAll(rest);
+			int shown = Math.min(owned.size(), MAX_SAME_STATS_NAMES);
+			StringBuilder line = new StringBuilder("<br>Same stats: ").append(String.join(", ", owned.subList(0, shown)));
+			if (owned.size() > shown)
+			{
+				line.append(" and ").append(owned.size() - shown).append(" more");
+			}
+			return line.toString();
 		}
 
 		private static boolean variantOfExcluded(GearItem item, BestGearSetupPlugin plugin)

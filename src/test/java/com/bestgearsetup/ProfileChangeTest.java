@@ -37,8 +37,8 @@ public class ProfileChangeTest
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin()
 		{
-			@Override public java.util.Collection<net.runelite.client.config.ConfigItemDescriptor> getConfigItems()
-			{ return ConfigItemsForTests.items(); }
+			@Override public net.runelite.client.config.ConfigDescriptor getConfigDescriptor()
+			{ return ConfigItemsForTests.descriptor(); }
 			@Override public Map<Slot, SlotLock> getLocks() { return Collections.emptyMap(); }
 			@Override public Set<Integer> getExcluded() { return Collections.emptySet(); }
 			@Override public String getPotionChoice(CombatClass cls) { return PotionChoice.BEST; }
@@ -98,9 +98,9 @@ public class ProfileChangeTest
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin()
 		{
 			@Override
-			public java.util.Collection<net.runelite.client.config.ConfigItemDescriptor> getConfigItems()
+			public net.runelite.client.config.ConfigDescriptor getConfigDescriptor()
 			{
-				return ConfigItemsForTests.items();
+				return ConfigItemsForTests.descriptor();
 			}
 
 			@Override

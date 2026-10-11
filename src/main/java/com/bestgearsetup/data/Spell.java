@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import lombok.Data;
 
@@ -25,6 +26,8 @@ public class Spell
 
 	/** Built on first use; volatile so searches on several threads see the whole set. */
 	private transient volatile Set<Integer> weaponIds;
+	/** Derived from the name; cleared by {@link #setName}. Transient keeps it out of Gson and equals. */
+	private transient String lowerName;
 
 	public boolean castableWith(int weaponId)
 	{
@@ -50,6 +53,24 @@ public class Spell
 	public String getName()
 	{
 		return name == null ? "" : name;
+	}
+
+	public void setName(String name)
+	{
+		this.name = name;
+		lowerName = null;
+	}
+
+	/** {@link #getName()} in lower case; damage rules match it for every setup the search scores. */
+	public String getLowerName()
+	{
+		String lower = lowerName;
+		if (lower == null)
+		{
+			lower = getName().toLowerCase(Locale.ROOT);
+			lowerName = lower;
+		}
+		return lower;
 	}
 
 	@Override

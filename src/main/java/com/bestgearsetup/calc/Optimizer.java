@@ -65,6 +65,11 @@ public class Optimizer
 	private static final Slot[] SLOTS = Slot.values();
 	/** Two-slot refinement is quadratic in candidates per slot pair: apply it to the strongest few weapons only. */
 	private static final int PAIR_REFINED_WEAPONS = 5;
+	/**
+	 * How far below the best score an option's bound must be to skip it. Far above {@link #EPS} times the number of
+	 * options, so an option skipped this way can't have changed which of the others wins a near tie.
+	 */
+	private static final double BOUND_MARGIN = 1e-6;
 	/** Weight that makes the calc-mode metric dominate DPS, which only breaks ties. */
 	private static final double PRIMARY_WEIGHT = 1e6;
 
@@ -97,6 +102,22 @@ public class Optimizer
 	 */
 	private final Map<ScoreKey, Double> scores = new HashMap<>();
 	private final ScoreKey probe = new ScoreKey();
+	/**
+	 * Special attacks scored by {@link #strongest}, for the whole search: setups found for different weapons often
+	 * share their armour, and so hold the same spec loadouts.
+	 */
+	private final Map<ScoreKey, DpsResult> specResults = new HashMap<>();
+	/**
+	 * Per slot, an imaginary plain item with the highest of every bonus among the slot's plain candidates (see
+	 * {@link #plain}), and which list positions are plain. No plain candidate can score more with an option than this
+	 * item does, so options it can't make competitive are skipped for all of them.
+	 */
+	private final Map<Slot, GearItem> boundItems = new EnumMap<>(Slot.class);
+	private final Map<Slot, boolean[]> plainCandidates = new EnumMap<>(Slot.class);
+	/** The candidates, class and weapon {@link #boundItems} and {@link #plainCandidates} were built for. */
+	private Map<Slot, List<GearItem>> boundCandidates;
+	private CombatClass boundClass;
+	private GearItem boundWeapon;
 	/** The searched class's candidate shields, offered as an off-hand for one-handed spec weapons. */
 	private List<GearItem> specShields = Collections.emptyList();
 	private final PlayerLevels levels;
@@ -169,6 +190,9 @@ public class Optimizer
 			return Collections.emptyList();
 		}
 		Map<Slot, List<GearItem>> candidates = candidates(cls);
+		boundCandidates = candidates;
+		boundClass = cls;
+		boundWeapon = null;
 		specShields = candidates.getOrDefault(Slot.SHIELD, Collections.emptyList());
 		List<GearItem> weapons = weapons(cls);
 		if (weapons.size() > maxWeapons)
@@ -684,6 +708,7 @@ public class Optimizer
 		AttackStyle bestStyle = originalStyle;
 		Spell bestSpell = originalSpell;
 		List<Slot> slots = new ArrayList<>(candidates.keySet());
+		Map<Slot, Set<GearItem>> plain = pairPlainItems(l.getWeapon(), slots);
 		for (int a = 0; a < slots.size(); a++)
 		{
 			Slot left = slots.get(a);
@@ -693,6 +718,13 @@ public class Optimizer
 				Slot right = slots.get(b);
 				GearItem originalRight = l.get(right);
 				long base = originalCost - itemCost(originalLeft) - itemCost(originalRight);
+				Set<GearItem> plainLeft = plain.get(left);
+				Set<GearItem> plainRight = plain.get(right);
+				List<GearItem> seconds = candidates.get(right);
+				// Option bounds with plain items replaced by the slot's imaginary item: both slots, or one of them for
+				// each item in the other (by the right-hand item's position).
+				double[] bothBounds = null;
+				double[][] rightHeld = null;
 				for (GearItem first : candidates.get(left))
 				{
 					if (cancelled.getAsBoolean())
@@ -708,8 +740,11 @@ public class Optimizer
 						continue;
 					}
 					l.set(left, first);
-					for (GearItem second : candidates.get(right))
+					boolean firstPlain = plainLeft != null && plainLeft.contains(first);
+					double[] leftHeld = null;
+					for (int k = 0; k < seconds.size(); k++)
 					{
+						GearItem second = seconds.get(k);
 						long c = base + itemCost(first) + itemCost(second);
 						if (second == originalRight || !withinBudget(c)
 							|| allowanceOnly && expensive(second) == expensive(originalRight))
@@ -721,10 +756,51 @@ public class Optimizer
 						{
 							continue;
 						}
+						boolean secondPlain = plainRight != null && plainRight.contains(second);
+						List<Option> tried = options;
+						if (firstPlain || secondPlain)
+						{
+							double[] bounds;
+							if (firstPlain && secondPlain)
+							{
+								if (bothBounds == null)
+								{
+									bothBounds = pairBounds(l, left, boundItems.get(left), right, boundItems.get(right), options);
+								}
+								bounds = bothBounds;
+							}
+							else if (firstPlain)
+							{
+								if (rightHeld == null)
+								{
+									rightHeld = new double[seconds.size()][];
+								}
+								if (rightHeld[k] == null)
+								{
+									rightHeld[k] = pairBounds(l, left, boundItems.get(left), right, second, options);
+								}
+								bounds = rightHeld[k];
+							}
+							else
+							{
+								if (leftHeld == null)
+								{
+									leftHeld = pairBounds(l, left, first, right, boundItems.get(right), options);
+								}
+								bounds = leftHeld;
+							}
+							l.set(left, first);
+							l.set(right, second);
+							tried = optionsWithin(options, bounds, bestScore - EPS - BOUND_MARGIN);
+							if (tried.isEmpty())
+							{
+								continue;
+							}
+						}
 						// Pairs are almost never repeated, so they skip the memo.
 						l.setStyle(originalStyle);
 						l.setSpell(originalSpell);
-						double s = scoreBestOption(l, options, false);
+						double s = scoreBestOption(l, tried, false);
 						if (s > bestScore + EPS || Math.abs(s - bestScore) <= EPS && c < bestCost)
 						{
 							bestScore = s;
@@ -951,6 +1027,16 @@ public class Optimizer
 				double bestD = cur;
 				long bestC = curCost;
 				long base = curCost - itemCost(orig);
+				// Bound the options for plain items when scoring every option, and there are several items to skip.
+				boolean[] plain = !joint || slot == Slot.AMMO || candidates != boundCandidates ? null
+					: plainCandidates(weapon, slot);
+				if (plain != null && plainOthers(plain, list, orig) < 2)
+				{
+					plain = null;
+				}
+				double[] bounds = null;
+				List<Option> open = options;
+				double openFor = Double.NaN;
 				for (int i = -1; i < list.size(); i++)
 				{
 					GearItem cand = i < 0 ? null : list.get(i);
@@ -968,9 +1054,29 @@ public class Optimizer
 					{
 						continue;
 					}
+					List<Option> tried = options;
+					if (plain != null && i >= 0 && plain[i])
+					{
+						if (bounds == null)
+						{
+							bounds = optionBounds(l, slot, options);
+							l.set(slot, cand);
+						}
+						if (openFor != bestD)
+						{
+							open = optionsWithin(options, bounds, bestD - EPS - BOUND_MARGIN);
+							openFor = bestD;
+						}
+						if (open.isEmpty())
+						{
+							// No option lets any plain item in this slot reach the best so far.
+							continue;
+						}
+						tried = open;
+					}
 					l.setStyle(keptStyle);
 					l.setSpell(keptSpell);
-					double d = joint ? scoreBestOption(l, options, true) : score(l);
+					double d = joint ? scoreBestOption(l, tried, true) : score(l);
 					if (d > bestD + EPS || (Math.abs(d - bestD) <= EPS
 						&& (c < bestC || c == bestC && (betterBonuses(cand, bestItem)
 							|| bestItem == null && d > 0 && usefulBonuses(cand, l)))))
@@ -998,6 +1104,103 @@ public class Optimizer
 				break;
 			}
 		}
+	}
+
+	/**
+	 * The most each option can score with any plain item in the slot, the rest of the loadout unchanged: its score
+	 * wearing {@link #boundItems}' item there. Leaves the slot holding that item and the option changed.
+	 */
+	private double[] optionBounds(Loadout l, Slot slot, List<Option> options)
+	{
+		l.set(slot, boundItems.get(slot));
+		return optionBounds(l, options);
+	}
+
+	/** As {@link #optionBounds(Loadout, Slot, List)} for a pair of slots, each holding the item given. */
+	private double[] pairBounds(Loadout l, Slot left, GearItem first, Slot right, GearItem second, List<Option> options)
+	{
+		l.set(left, first);
+		l.set(right, second);
+		return optionBounds(l, options);
+	}
+
+	/**
+	 * Per slot, the pair candidates {@link #boundItems} bounds for this weapon: its plain candidates and the empty
+	 * slot. Slots without bounds (ammunition) are left out.
+	 */
+	private Map<Slot, Set<GearItem>> pairPlainItems(GearItem weapon, List<Slot> slots)
+	{
+		Map<Slot, Set<GearItem>> out = new EnumMap<>(Slot.class);
+		for (Slot slot : slots)
+		{
+			List<GearItem> list = boundCandidates == null ? null : boundCandidates.get(slot);
+			if (slot == Slot.AMMO || list == null)
+			{
+				continue;
+			}
+			boolean[] plain = plainCandidates(weapon, slot);
+			Set<GearItem> items = Collections.newSetFromMap(new IdentityHashMap<>());
+			items.add(null);
+			for (int i = 0; i < plain.length; i++)
+			{
+				if (plain[i])
+				{
+					items.add(list.get(i));
+				}
+			}
+			out.put(slot, items);
+		}
+		return out;
+	}
+
+	/** Each option's score for the loadout as it is, without the expensive-item cap; leaves the last option set. */
+	private double[] optionBounds(Loadout l, List<Option> options)
+	{
+		double[] bounds = new double[options.size()];
+		for (int k = 0; k < bounds.length; k++)
+		{
+			l.setStyle(options.get(k).getStyle());
+			l.setSpell(options.get(k).getSpell());
+			// Shares the weapon's memo, since no real setup holds the imaginary item. Leaving out the expensive-item cap
+			// (which would price that item) only raises the bound.
+			probe.fill(l);
+			Double known = scores.get(probe);
+			if (known == null)
+			{
+				known = protectedSetup(l) ? metric(DpsCalculator.calculate(l, ctx)) : 0;
+				scores.put(probe.copy(), known);
+			}
+			bounds[k] = known;
+		}
+		return bounds;
+	}
+
+	private static int plainOthers(boolean[] plain, List<GearItem> list, GearItem orig)
+	{
+		int count = 0;
+		for (int i = 0; i < plain.length; i++)
+		{
+			count += plain[i] && list.get(i) != orig ? 1 : 0;
+		}
+		return count;
+	}
+
+	/** The options, in order, whose bound reaches the threshold; all of them when there are too many to rule out near ties. */
+	private static List<Option> optionsWithin(List<Option> options, double[] bounds, double threshold)
+	{
+		if (options.size() * EPS * 4 >= BOUND_MARGIN)
+		{
+			return options;
+		}
+		List<Option> out = new ArrayList<>(options.size());
+		for (int k = 0; k < bounds.length; k++)
+		{
+			if (bounds[k] >= threshold)
+			{
+				out.add(options.get(k));
+			}
+		}
+		return out.size() == options.size() ? options : out;
 	}
 
 	/** The value being maximised: the calc-mode metric, with DPS as tie-breaker. */
@@ -1250,7 +1453,13 @@ public class Optimizer
 			{
 				continue;
 			}
-			DpsResult r = DpsCalculator.calculate(l, specCtx);
+			probe.fill(l);
+			DpsResult r = specResults.get(probe);
+			if (r == null)
+			{
+				r = DpsCalculator.calculate(l, specCtx);
+				specResults.put(probe.copy(), r);
+			}
 			if (best == null || r.getPrimaryDps() > best.getResult().getPrimaryDps() + EPS
 				|| Math.abs(r.getPrimaryDps() - best.getResult().getPrimaryDps()) <= EPS && c < best.getCost())
 			{
@@ -1321,7 +1530,7 @@ public class Optimizer
 					out.add(w);
 				}
 			}
-			return out;
+			return withoutCosmeticCopies(out);
 		});
 	}
 
@@ -1593,6 +1802,173 @@ public class Optimizer
 		return out;
 	}
 
+	/** Which of the slot's candidates are plain for this weapon's ascent; rebuilds the bound items when the weapon changes. */
+	private boolean[] plainCandidates(GearItem weapon, Slot slot)
+	{
+		if (weapon != boundWeapon)
+		{
+			boundWeapon = weapon;
+			boundItems.clear();
+			plainCandidates.clear();
+			for (Map.Entry<Slot, List<GearItem>> e : boundCandidates.entrySet())
+			{
+				List<GearItem> list = e.getValue();
+				boolean[] plain = new boolean[list.size()];
+				// Starting from zero keeps every bonus at least the empty slot's.
+				GearItem top = new GearItem();
+				top.setName("");
+				top.setId(-1);
+				top.setSlot(e.getKey());
+				for (int i = 0; i < plain.length; i++)
+				{
+					GearItem item = list.get(i);
+					plain[i] = plain(item, weapon);
+					if (plain[i])
+					{
+						top.setStabBonus(Math.max(top.getStabBonus(), item.getStabBonus()));
+						top.setSlashBonus(Math.max(top.getSlashBonus(), item.getSlashBonus()));
+						top.setCrushBonus(Math.max(top.getCrushBonus(), item.getCrushBonus()));
+						top.setRangedBonus(Math.max(top.getRangedBonus(), item.getRangedBonus()));
+						top.setMagicBonus(Math.max(top.getMagicBonus(), item.getMagicBonus()));
+						top.setMeleeStr(Math.max(top.getMeleeStr(), item.getMeleeStr()));
+						top.setRangedStr(Math.max(top.getRangedStr(), item.getRangedStr()));
+						top.setMagicStr(Math.max(top.getMagicStr(), item.getMagicStr()));
+						top.setPrayerBonus(Math.max(top.getPrayerBonus(), item.getPrayerBonus()));
+						top.setStabDef(Math.max(top.getStabDef(), item.getStabDef()));
+						top.setSlashDef(Math.max(top.getSlashDef(), item.getSlashDef()));
+						top.setCrushDef(Math.max(top.getCrushDef(), item.getCrushDef()));
+						top.setRangedDef(Math.max(top.getRangedDef(), item.getRangedDef()));
+						top.setMagicDef(Math.max(top.getMagicDef(), item.getMagicDef()));
+					}
+				}
+				boundItems.put(e.getKey(), top);
+				plainCandidates.put(e.getKey(), plain);
+			}
+		}
+		return plainCandidates.get(slot);
+	}
+
+	/**
+	 * Equipment that changes this weapon's score only through its bonuses, the score never falling as one rises: no
+	 * named effect the calculator checks can apply with this weapon and target, and it isn't protection or ammunition
+	 * recovery the setup may need. Effects not recognised here count as applying.
+	 */
+	private boolean plain(GearItem item, GearItem weapon)
+	{
+		if (DragonfireProtection.isProtectiveShield(item) || SlayerEquipment.isRequired(monster, settings, item)
+			|| WeaponRules.isAmmoRecoveryCape(item) && settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon))
+		{
+			return false;
+		}
+		// Effects match the calculator's name, which drops the "corrupted " of Deadman items.
+		String name = EncounterDamage.lower(item);
+		// Coloured slayer helmets ("hydra slayer helmet") have the effect without the special name.
+		if (!specialName(item.getLowerCombatName()) && !specialName(name) && !name.contains("max cape")
+			&& !DpsCalculator.isSlayerHelm(item))
+		{
+			return true;
+		}
+		return !ctx.getModifiers().isSpecialAttack() && !effectApplies(item, name, weapon);
+	}
+
+	/** Whether a named effect of the item could change this weapon's score against this target; true if unsure. */
+	private boolean effectApplies(GearItem item, String name, GearItem weapon)
+	{
+		CombatClass cls = boundClass;
+		String w = EncounterDamage.lower(weapon);
+		boolean ahrim = cls == CombatClass.MAGIC && EquipmentEffects.namedWeapon(weapon, "ahrim's staff");
+		boolean karil = cls == CombatClass.RANGED && EquipmentEffects.namedWeapon(weapon, "karil's crossbow");
+		// Target stats can follow its remaining HP; keep target-specific effects whenever they might.
+		boolean fixedTarget = ctx.getHealthStates() == null;
+		if (name.startsWith("dharok's "))
+		{
+			return cls == CombatClass.MELEE && EquipmentEffects.namedWeapon(weapon, "dharok's greataxe");
+		}
+		if (name.startsWith("verac's "))
+		{
+			return cls == CombatClass.MELEE && EquipmentEffects.namedWeapon(weapon, "verac's flail");
+		}
+		if (name.startsWith("blood moon "))
+		{
+			return cls == CombatClass.MELEE && EquipmentEffects.namedWeapon(weapon, "dual macuahuitl");
+		}
+		if (name.startsWith("ahrim's "))
+		{
+			return ahrim;
+		}
+		if (name.startsWith("karil's "))
+		{
+			return karil;
+		}
+		if (name.startsWith("amulet of the damned"))
+		{
+			return ahrim || karil;
+		}
+		if (name.startsWith("eclipse moon "))
+		{
+			return cls == CombatClass.RANGED && WeaponRules.isAtlatl(weapon);
+		}
+		if (name.startsWith("obsidian ") || name.startsWith("berserker necklace"))
+		{
+			return cls == CombatClass.MELEE && (w.startsWith("toktz-") || w.startsWith("tzhaar-ket-"));
+		}
+		if (name.startsWith("inquisitor's "))
+		{
+			return cls == CombatClass.MELEE;
+		}
+		if (name.startsWith("crystal helm") || name.startsWith("crystal body") || name.startsWith("crystal legs"))
+		{
+			return cls == CombatClass.MELEE
+				|| cls == CombatClass.RANGED && (w.startsWith("bow of faerdhinen") || w.startsWith("crystal bow"));
+		}
+		if (name.startsWith("void melee helm"))
+		{
+			return cls == CombatClass.MELEE;
+		}
+		if (name.startsWith("void ranger helm"))
+		{
+			return cls == CombatClass.RANGED;
+		}
+		if (name.startsWith("void mage helm"))
+		{
+			return cls == CombatClass.MAGIC;
+		}
+		if (name.startsWith("virtus ") || name.startsWith("tome of ") || name.startsWith("elemental amulet")
+			|| name.startsWith("amulet of air") || name.startsWith("amulet of water") || name.startsWith("amulet of earth")
+			|| name.startsWith("amulet of fire") || name.startsWith("chaos gauntlets")
+			|| name.startsWith("confliction gauntlets") || name.startsWith("brimstone ring"))
+		{
+			return cls == CombatClass.MAGIC;
+		}
+		if ((name.contains("saradomin") || name.contains("guthix") || name.contains("zamorak")) && name.contains("cape"))
+		{
+			// Only Charge reads the god capes.
+			return cls == CombatClass.MAGIC && ctx.getModifiers().isCharge();
+		}
+		if (name.startsWith("dizana's") || name.startsWith("blessed dizana's"))
+		{
+			return cls == CombatClass.RANGED;
+		}
+		if (name.startsWith("salve amulet"))
+		{
+			return !fixedTarget || monster.hasAttribute("undead");
+		}
+		if (name.startsWith("amulet of avarice"))
+		{
+			return !fixedTarget || monster.getLowerName().startsWith("revenant");
+		}
+		if (name.startsWith("efaritay's aid"))
+		{
+			return !fixedTarget || monster.hasAttribute("vampyre (t1)") || monster.hasAttribute("vampyre (t2)")
+				|| monster.hasAttribute("vampyre (t3)");
+		}
+		if (DpsCalculator.isSlayerHelm(item))
+		{
+			return ctx.isOnTask();
+		}
+		return true;
+	}
+
 	private static boolean dominates(List<GearItem> pool, double[][] values, long[] costs, boolean[] risky, int j, int i)
 	{
 		if (costs[j] > costs[i] || risky[j] && !risky[i])
@@ -1671,7 +2047,11 @@ public class Optimizer
 
 	private static boolean isSpecial(GearItem item)
 	{
-		String n = item.getLowerCombatName();
+		return specialName(item.getLowerCombatName());
+	}
+
+	private static boolean specialName(String n)
+	{
 		for (String p : SPECIAL_PREFIXES)
 		{
 			if (n.startsWith(p))
@@ -1719,7 +2099,65 @@ public class Optimizer
 			}
 			out.add(w);
 		}
+		return withoutCosmeticCopies(out);
+	}
+
+	/**
+	 * One weapon per set of cosmetic variants: the owned or cheapest priced one, then the snapshot item. Each copy
+	 * would repeat the same ascent and crowd distinct weapons out of the capped preselection and refinement sweeps.
+	 * A cheaper copy over the Wilderness value limit doesn't replace a dearer one under it, so both stay.
+	 */
+	private List<GearItem> withoutCosmeticCopies(List<GearItem> weapons)
+	{
+		Map<Integer, List<GearItem>> byCombatId = new HashMap<>();
+		for (GearItem w : weapons)
+		{
+			byCombatId.computeIfAbsent(w.getCombatId(), k -> new ArrayList<>()).add(w);
+		}
+		List<GearItem> out = new ArrayList<>(weapons.size());
+		for (GearItem w : weapons)
+		{
+			boolean replaced = false;
+			for (GearItem other : byCombatId.get(w.getCombatId()))
+			{
+				if (other != w && preferredCopy(other, w) && CosmeticVariants.equivalent(other, w))
+				{
+					replaced = true;
+					break;
+				}
+			}
+			if (!replaced)
+			{
+				out.add(w);
+			}
+		}
 		return out;
+	}
+
+	/** Whether {@code a} serves wherever {@code b} does, at no greater cost or Wilderness risk. */
+	private boolean preferredCopy(GearItem a, GearItem b)
+	{
+		// An unknown price is never assumed free: a priced copy wins over an unpriced one.
+		long costA = unpriced(a) ? Long.MAX_VALUE : itemCost(a);
+		long costB = unpriced(b) ? Long.MAX_VALUE : itemCost(b);
+		boolean riskyA = settings.isWildernessRiskLimited() && expensive(a);
+		boolean riskyB = settings.isWildernessRiskLimited() && expensive(b);
+		if (costA > costB || riskyA && !riskyB)
+		{
+			return false;
+		}
+		if (costA < costB || riskyB && !riskyA)
+		{
+			return true;
+		}
+		// Free and untradeable copies tie on cost: the one held is the one to show and highlight.
+		if (isOwned(a) != isOwned(b))
+		{
+			return isOwned(a);
+		}
+		boolean snapshotA = a.getId() == a.getCombatId();
+		boolean snapshotB = b.getId() == b.getCombatId();
+		return snapshotA != snapshotB ? snapshotA : a.getId() < b.getId();
 	}
 
 	/** Recovery capes that satisfy availability and the cape lock, before combined setup costs are checked. */

@@ -1,25 +1,26 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.Spell;
-import java.util.Locale;
 
 /** Elemental spell scaling and equipment compatibility, independent of API max-hit snapshots. */
 final class SpellRules
 {
+	private static final String[] ELEMENTS = {"water", "earth", "fire"};
+
 	private SpellRules()
 	{
 	}
 
 	static String element(Spell spell)
 	{
-		String name = spell == null ? "" : spell.getName().toLowerCase(Locale.ROOT);
+		String name = spell == null ? "" : spell.getLowerName();
 		if (name.startsWith("wind "))
 		{
 			return "air";
 		}
-		for (String element : new String[]{"water", "earth", "fire"})
+		for (String element : ELEMENTS)
 		{
-			if (name.startsWith(element + " "))
+			if (name.startsWith(element) && name.startsWith(" ", element.length()))
 			{
 				return element;
 			}

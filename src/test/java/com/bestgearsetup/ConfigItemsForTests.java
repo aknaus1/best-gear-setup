@@ -4,6 +4,7 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import java.util.ArrayList;
 import java.util.List;
+import net.runelite.client.config.ConfigDescriptor;
 import net.runelite.client.config.ConfigItemDescriptor;
 import net.runelite.client.config.ConfigManager;
 
@@ -16,11 +17,16 @@ public final class ConfigItemsForTests
 
 	public static List<ConfigItemDescriptor> items()
 	{
+		return new ArrayList<>(descriptor().getItems());
+	}
+
+	public static ConfigDescriptor descriptor()
+	{
 		// getConfigDescriptor reads only the config interface, so the manager's own state is never needed.
 		ConfigManager manager = mock(ConfigManager.class, CALLS_REAL_METHODS);
-		return new ArrayList<>(manager.getConfigDescriptor(new BestGearSetupConfig()
+		return manager.getConfigDescriptor(new BestGearSetupConfig()
 		{
-		}).getItems());
+		});
 	}
 
 	/** Owned items with no account data, as the plugin has before login. */

@@ -27,10 +27,11 @@ public class SidebarSectionTest
 			gearToggle.doClick();
 			assertFalse(fight.getContent().isVisible());
 			assertTrue(gear.getContent().isVisible());
-			assertEquals("- Locks & exclusions (3)", gearToggle.getText());
+			assertEquals("Locks & exclusions (3)", gearToggle.getText());
+			assertEquals("Expanded", gearToggle.getAccessibleContext().getAccessibleDescription());
 			fightToggle.doClick();
 			assertFalse(gear.getContent().isVisible());
-			assertEquals("+ Locks & exclusions (3)", gearToggle.getText());
+			assertEquals("Collapsed", gearToggle.getAccessibleContext().getAccessibleDescription());
 			fightToggle.doClick();
 			assertFalse(fight.getContent().isVisible());
 		});

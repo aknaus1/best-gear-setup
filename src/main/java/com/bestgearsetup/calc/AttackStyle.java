@@ -2,6 +2,8 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GameData;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Value;
 
 /**
@@ -17,6 +19,12 @@ public class AttackStyle
 		STAB, SLASH, CRUSH, RANGED, MAGIC, ATLATL
 	}
 
+	/**
+	 * Parsed styles by catalogue string. Styles are immutable, and one instance per string lets the optimiser's
+	 * identity-keyed score memo recognise the same style across weapons and calls.
+	 */
+	private static final Map<String, AttackStyle> PARSED = new ConcurrentHashMap<>();
+
 	String name;
 	Type type;
 	/** accurate, aggressive, controlled, defensive, rapid, longrange or magic (autocast). */
@@ -28,6 +36,21 @@ public class AttackStyle
 		{
 			return null;
 		}
+		AttackStyle known = PARSED.get(raw);
+		if (known != null)
+		{
+			return known;
+		}
+		AttackStyle parsed = parseUncached(raw);
+		if (parsed != null)
+		{
+			PARSED.put(raw, parsed);
+		}
+		return parsed;
+	}
+
+	private static AttackStyle parseUncached(String raw)
+	{
 		String[] parts = raw.toLowerCase(Locale.ROOT).split(",");
 		if (parts.length < 3)
 		{

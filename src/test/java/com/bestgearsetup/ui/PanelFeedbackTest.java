@@ -39,9 +39,9 @@ public class PanelFeedbackTest
 		return new BestGearSetupPlugin()
 		{
 			@Override
-			public java.util.Collection<net.runelite.client.config.ConfigItemDescriptor> getConfigItems()
+			public net.runelite.client.config.ConfigDescriptor getConfigDescriptor()
 			{
-				return com.bestgearsetup.ConfigItemsForTests.items();
+				return com.bestgearsetup.ConfigItemsForTests.descriptor();
 			}
 
 			@Override

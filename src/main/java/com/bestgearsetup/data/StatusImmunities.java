@@ -50,7 +50,34 @@ public final class StatusImmunities
 		boolean known;
 	}
 
+	/** The last target looked up and its answer: a search asks about the same target for every setup it scores. */
+	private static volatile Lookup last;
+
+	@Value
+	private static class Lookup
+	{
+		Monster monster;
+		int id;
+		String name;
+		boolean poison;
+		boolean venom;
+		Immunity immunity;
+	}
+
 	public static Immunity of(Monster m)
+	{
+		Lookup l = last;
+		if (l != null && l.monster == m && l.id == m.getId() && l.name.equals(m.getName())
+			&& l.poison == m.isImmunePoison() && l.venom == m.isImmuneVenom())
+		{
+			return l.immunity;
+		}
+		Immunity immunity = lookUp(m);
+		last = new Lookup(m, m.getId(), m.getName(), m.isImmunePoison(), m.isImmuneVenom(), immunity);
+		return immunity;
+	}
+
+	private static Immunity lookUp(Monster m)
 	{
 		load();
 		int[] record = byId.get(Integer.toString(m.getId()));

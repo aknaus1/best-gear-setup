@@ -72,9 +72,9 @@ public class FightOptionsPanelTest
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin()
 		{
 			@Override
-			public java.util.Collection<net.runelite.client.config.ConfigItemDescriptor> getConfigItems()
+			public net.runelite.client.config.ConfigDescriptor getConfigDescriptor()
 			{
-				return com.bestgearsetup.ConfigItemsForTests.items();
+				return com.bestgearsetup.ConfigItemsForTests.descriptor();
 			}
 
 			@Override
@@ -167,16 +167,16 @@ public class FightOptionsPanelTest
 			FightOptionsPanel panel = new FightOptionsPanel(plugin, config, com.bestgearsetup.ConfigItemsForTests.items());
 			assertFalse("Collapsed by default", control(panel, "preparationContent").isVisible());
 			JButton toggle = (JButton) control(panel, "preparationToggle");
-			assertEquals("+ Pre-fight preparation (1)", toggle.getText());
+			assertEquals("Pre-fight preparation (1)", toggle.getText());
 			assertEquals(2, ((JSpinner) control(panel, "specDwh")).getValue());
 			assertFalse("Tome only applies with Vulnerability", control(panel, "specTomeOfWaterRow").isVisible());
 			((JCheckBox) control(panel, "specVulnerability")).doClick();
 			assertEquals(true, writes.get("specVulnerability"));
 			assertTrue(control(panel, "specTomeOfWaterRow").isVisible());
-			assertEquals("+ Pre-fight preparation (2)", toggle.getText());
+			assertEquals("Pre-fight preparation (2)", toggle.getText());
 			((JSpinner) control(panel, "specBgsDamage")).setValue(40);
 			assertEquals(40, writes.get("specBgsDamage"));
-			assertEquals("+ Pre-fight preparation (3)", toggle.getText());
+			assertEquals("Pre-fight preparation (3)", toggle.getText());
 			// Opening and closing it must leave the always-open sections showing.
 			assertTrue(control(panel, "fightConditionsContent").isVisible());
 			toggle.doClick();

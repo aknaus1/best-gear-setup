@@ -2,10 +2,14 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
+import java.util.regex.Pattern;
 
 /** Tile reach and encounter restrictions, separate from damage and accuracy. */
 public final class AttackReach
 {
+	private static final Pattern METAL_CROSSBOW =
+		Pattern.compile("(bronze|blurite|iron|steel|mithril|adamant|rune|dragon) crossbow.*");
+
 	private AttackReach()
 	{
 	}
@@ -182,7 +186,7 @@ public final class AttackReach
 		return base == 0 ? 0 : Math.min(10, base + (style.getStance().equals("longrange") ? 2 : 0));
 	}
 
-	private static int baseRange(GearItem weapon)
+	static int baseRange(GearItem weapon)
 	{
 		String name = weapon.getLowerCombatName().replace("corrupted ", "");
 		switch (weapon.getSubcategory())
@@ -254,7 +258,7 @@ public final class AttackReach
 				{
 					return 7;
 				}
-				if (name.matches("(bronze|blurite|iron|steel|mithril|adamant|rune|dragon) crossbow.*"))
+				if (METAL_CROSSBOW.matcher(name).matches())
 				{
 					return 7;
 				}

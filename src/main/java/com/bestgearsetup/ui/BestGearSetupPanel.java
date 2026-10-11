@@ -47,6 +47,7 @@ import javax.swing.Scrollable;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import net.runelite.client.config.ConfigDescriptor;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.game.SpriteManager;
@@ -101,6 +102,7 @@ public class BestGearSetupPanel extends PluginPanel
 	final JPanel resultsPanel = new JPanel();
 	private final ConstraintsPanel constraints;
 	private final FightOptionsPanel fightOptions;
+	private final SettingsPanel settingsPanel;
 	private final SpriteCache sprites;
 	private final SkillIconManager skillIcons;
 
@@ -117,11 +119,13 @@ public class BestGearSetupPanel extends PluginPanel
 		this.plugin = plugin;
 		this.config = config;
 		SidebarSection.Accordion options = new SidebarSection.Accordion();
-		this.fightOptions = new FightOptionsPanel(plugin, config, plugin.getConfigItems(), options);
+		ConfigDescriptor descriptor = plugin.getConfigDescriptor();
+		this.fightOptions = new FightOptionsPanel(plugin, config, descriptor.getItems(), options);
+		this.settingsPanel = new SettingsPanel(plugin, config, descriptor);
 		this.itemManager = itemManager;
 		this.sprites = new SpriteCache(spriteManager);
 		this.skillIcons = skillIconManager;
-		this.constraints = new ConstraintsPanel(plugin, options);
+		this.constraints = new ConstraintsPanel(plugin, options, itemManager, spriteManager == null ? null : sprites);
 
 		setLayout(views);
 		setBorder(new EmptyBorder(8, 8, 8, 8));
@@ -137,8 +141,7 @@ public class BestGearSetupPanel extends PluginPanel
 		JPanel titleRow = new JPanel(new BorderLayout());
 		titleRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		titleRow.add(title, BorderLayout.CENTER);
-		filterBadge.setFont(FontManager.getRunescapeSmallFont());
-		filterBadge.setMargin(new java.awt.Insets(0, 2, 0, 2));
+		Controls.badge(filterBadge);
 		filterBadge.setToolTipText("Bosses-only filter is active. Click to search all monsters.");
 		filterBadge.addActionListener(e -> allButton.doClick());
 		titleRow.add(filterBadge, BorderLayout.EAST);
@@ -169,8 +172,7 @@ public class BestGearSetupPanel extends PluginPanel
 
 		searchField.setIcon(IconTextField.Icon.SEARCH);
 		searchField.setPreferredSize(new Dimension(PANEL_WIDTH - 16, 30));
-		searchField.setBackground(ColorScheme.DARKER_GRAY_COLOR);
-		searchField.setHoverBackgroundColor(ColorScheme.DARK_GRAY_HOVER_COLOR);
+		Controls.search(searchField, "Search monsters...");
 		searchField.setEnabled(false);
 		searchField.getDocument().addDocumentListener(new DocumentListener()
 		{
@@ -229,10 +231,10 @@ public class BestGearSetupPanel extends PluginPanel
 		content.add(spacer(6));
 
 		versionRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		JLabel versionLabel = new JLabel("Version");
-		setSmall(versionLabel, Color.WHITE);
+		JLabel versionLabel = Controls.caption("Version");
 		versionLabel.setLabelFor(versionBox);
 		versionBox.setFocusable(false);
+		Controls.field(versionBox);
 		versionBox.setToolTipText("Boss phase or monster variant to search against");
 		versionBox.setRenderer(new DefaultListCellRenderer()
 		{
@@ -264,10 +266,10 @@ public class BestGearSetupPanel extends PluginPanel
 
 		phaseRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		phaseRow.setBorder(new EmptyBorder(3, 0, 0, 0));
-		JLabel phaseLabel = new JLabel("Boss phase");
-		setSmall(phaseLabel, Color.WHITE);
+		JLabel phaseLabel = Controls.caption("Boss phase");
 		phaseLabel.setLabelFor(phaseBox);
 		phaseBox.setFocusable(false);
+		Controls.field(phaseBox);
 		phaseBox.setToolTipText("Select a temporary boss state. Only the named boss is affected.");
 		phaseBox.addActionListener(e ->
 		{
@@ -304,8 +306,8 @@ public class BestGearSetupPanel extends PluginPanel
 			}
 		});
 		wikiButton.setText("Wiki");
-		wikiButton.setFont(FontManager.getRunescapeSmallFont());
-		wikiButton.setMargin(new java.awt.Insets(0, 3, 0, 3));
+		Controls.secondary(wikiButton);
+		wikiButton.setMargin(new java.awt.Insets(1, 6, 1, 6));
 		targetRow.add(wikiButton, BorderLayout.EAST);
 		content.add(left(targetRow));
 		content.add(spacer(6));
@@ -314,6 +316,12 @@ public class BestGearSetupPanel extends PluginPanel
 		settings.setLayout(new BoxLayout(settings, BoxLayout.Y_AXIS));
 		settings.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		modeBox.setFocusable(false);
+		Controls.field(modeBox);
+		JLabel modeLabel = Controls.caption("Gear source");
+		modeLabel.setLabelFor(modeBox);
+		modeLabel.setBorder(new EmptyBorder(0, 0, 2, 0));
+		settings.add(left(modeLabel));
+		modeBox.setAlignmentX(LEFT_ALIGNMENT);
 		modeBox.addActionListener(e ->
 		{
 			updateBudgetEnabled();
@@ -325,10 +333,14 @@ public class BestGearSetupPanel extends PluginPanel
 		settings.add(modeBox);
 
 		budgetRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		JLabel budgetLabel = new JLabel("Budget");
-		budgetLabel.setFont(FontManager.getRunescapeSmallFont());
+		budgetRow.setBorder(new EmptyBorder(4, 0, 0, 0));
+		budgetRow.setAlignmentX(LEFT_ALIGNMENT);
+		JLabel budgetLabel = Controls.caption("Budget");
+		budgetLabel.setLabelFor(budgetField);
 		budgetRow.add(budgetLabel, BorderLayout.WEST);
 		budgetField.setToolTipText("e.g. 750k, 50m, 1.2b");
+		Controls.field(budgetField);
+		Controls.placeholder(budgetField, "e.g. 50m");
 		budgetField.addActionListener(e -> commitBudget());
 		budgetField.addFocusListener(new java.awt.event.FocusAdapter()
 		{
@@ -350,6 +362,7 @@ public class BestGearSetupPanel extends PluginPanel
 
 		findButton.setEnabled(false);
 		findButton.setFocusable(false);
+		Controls.primary(findButton);
 		findButton.addActionListener(e ->
 		{
 			if (modeBox.getSelectedItem() == SearchMode.BUDGET) { commitBudget(); }
@@ -359,8 +372,7 @@ public class BestGearSetupPanel extends PluginPanel
 			}
 		});
 		clearSearchButton.setName("clearSearch");
-		clearSearchButton.setFont(FontManager.getRunescapeSmallFont());
-		clearSearchButton.setMargin(new java.awt.Insets(2, 3, 2, 3));
+		Controls.secondary(clearSearchButton);
 		clearSearchButton.setFocusable(false);
 		clearSearchButton.setToolTipText("Clear the target, results, highlights and bank gear layout");
 		clearSearchButton.addActionListener(e -> plugin.clearGearSearch());
@@ -370,7 +382,7 @@ public class BestGearSetupPanel extends PluginPanel
 		searchActions.add(clearSearchButton, BorderLayout.EAST);
 		content.add(left(searchActions));
 		content.add(spacer(4));
-		JPanel actions = new JPanel(new GridLayout(1, 3, 2, 0));
+		JPanel actions = new JPanel(new GridLayout(1, 3, 4, 0));
 		actions.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		JButton fightButton = new JButton("Fight");
 		fightButton.setName("fightEditorButton");
@@ -379,12 +391,12 @@ public class BestGearSetupPanel extends PluginPanel
 		gearButton.addActionListener(e -> { editorOrigin = gearButton; openEditor("gear"); });
 		JButton settingsButton = new JButton("Settings");
 		settingsButton.setName("settingsButton");
-		settingsButton.setToolTipText("Open this plugin's settings in RuneLite's configuration panel");
-		settingsButton.addActionListener(e -> plugin.openConfiguration());
+		settingsButton.setToolTipText("Search preferences, attack styles, equipment, boosts and highlights");
+		settingsButton.addActionListener(e -> { editorOrigin = settingsButton; openEditor("settings"); });
 		for (JButton action : new JButton[]{fightButton, gearButton, settingsButton})
 		{
-			action.setFont(FontManager.getRunescapeSmallFont());
-			action.setMargin(new java.awt.Insets(1, 0, 1, 0));
+			Controls.secondary(action);
+			action.setMargin(new java.awt.Insets(3, 0, 3, 0));
 			actions.add(action);
 		}
 		content.add(left(actions));
@@ -417,21 +429,6 @@ public class BestGearSetupPanel extends PluginPanel
 		resultsPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		content.add(left(resultsPanel));
 
-		JLabel credit = new JLabel(html("Data: <u>Old School RuneScape Wiki contributors</u>. DPS is an estimate; encounter and fight assumptions apply."));
-		credit.setFont(FontManager.getRunescapeSmallFont());
-		credit.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-		credit.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		credit.addMouseListener(new MouseAdapter()
-		{
-			@Override
-			public void mouseClicked(MouseEvent e)
-			{
-				LinkBrowser.browse(WIKI_URL);
-			}
-		});
-		content.add(spacer(8));
-		content.add(left(credit));
-
 		JPanel north = new SidebarContent();
 		north.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		north.add(content, BorderLayout.NORTH);
@@ -442,6 +439,7 @@ public class BestGearSetupPanel extends PluginPanel
 		add(scroll, "results");
 		addEditor("Fight assumptions", fightOptions, "fight");
 		addEditor("Gear rules", constraints, "gear");
+		addEditor("Settings", settingsPanel, "settings");
 
 		syncFromConfig();
 	}
@@ -453,6 +451,9 @@ public class BestGearSetupPanel extends PluginPanel
 		editor.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		JButton back = new JButton("Back to results");
 		back.setName(key + "Back");
+		Controls.ghost(back);
+		back.setIcon(new Controls.Chevron(Controls.Chevron.LEFT, null));
+		back.setIconTextGap(6);
 		editorBackButtons.put(key, back);
 		back.addActionListener(e ->
 		{
@@ -463,7 +464,9 @@ public class BestGearSetupPanel extends PluginPanel
 		header.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		header.add(back, BorderLayout.NORTH);
 		JLabel heading = new JLabel(title);
-		setSmall(heading, Color.WHITE);
+		heading.setFont(FontManager.getRunescapeBoldFont());
+		heading.setForeground(Color.WHITE);
+		heading.setBorder(new EmptyBorder(4, 0, 0, 0));
 		header.add(heading, BorderLayout.SOUTH);
 		editor.add(header, BorderLayout.NORTH);
 		JPanel wrapped = new SidebarContent();
@@ -538,6 +541,7 @@ public class BestGearSetupPanel extends PluginPanel
 		if (data == null)
 		{
 			JButton retry = new JButton("Retry");
+			Controls.secondary(retry);
 			retry.addActionListener(e ->
 			{
 				resultsPanel.removeAll();
@@ -563,6 +567,7 @@ public class BestGearSetupPanel extends PluginPanel
 		showVersions(null, null);
 		searchField.setText("");
 		suggestions.removeAll();
+		Controls.outlineList(suggestions);
 		noMatches.setVisible(false);
 		monsterLabel.setText("");
 		monsterLabel.setToolTipText(null);
@@ -589,6 +594,7 @@ public class BestGearSetupPanel extends PluginPanel
 		wikiButton.setToolTipText("Open the OSRS Wiki page for " + monster.getDisplayName());
 		fightOptions.setTarget(monster);
 		suggestions.removeAll();
+		Controls.outlineList(suggestions);
 		suggestions.revalidate();
 		noMatches.setVisible(false);
 		monsterLabel.setText("<html><div style='width:120px'><b>" + escape(monster.getDisplayName())
@@ -764,8 +770,11 @@ public class BestGearSetupPanel extends PluginPanel
 		{
 			JPanel details = new JPanel(new BorderLayout());
 			details.setBackground(ColorScheme.DARK_GRAY_COLOR);
-			JButton toggle = new JButton("+ Search details");
+			JButton toggle = new JButton("Search details");
 			toggle.setFocusable(false);
+			Controls.ghost(toggle);
+			toggle.setIcon(new Controls.Chevron(Controls.Chevron.RIGHT, null));
+			toggle.setIconTextGap(6);
 			JLabel notes = new JLabel(html(detailLines.stream().map(BestGearSetupPanel::escape)
 				.collect(Collectors.joining("<br>"))));
 			notes.setName("searchDetails");
@@ -776,7 +785,7 @@ public class BestGearSetupPanel extends PluginPanel
 			toggle.addActionListener(e ->
 			{
 				notes.setVisible(!notes.isVisible());
-				toggle.setText((notes.isVisible() ? "- " : "+ ") + "Search details");
+				toggle.setIcon(new Controls.Chevron(notes.isVisible() ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, null));
 				resultsPanel.revalidate();
 			});
 			resultsPanel.add(left(details));
@@ -829,6 +838,7 @@ public class BestGearSetupPanel extends PluginPanel
 			showPhases(selected);
 			budgetField.setText(config.budget());
 			fightOptions.refresh();
+			settingsPanel.refresh();
 			updateBudgetEnabled();
 			constraints.refresh();
 			int rules = plugin.getLocks().size() + plugin.getExcluded().size();
@@ -902,6 +912,7 @@ public class BestGearSetupPanel extends PluginPanel
 			noMatches.setToolTipText(hiddenByFilter ? "Click to search all monsters" : null);
 		}
 		noMatches.setVisible(none);
+		Controls.outlineList(suggestions);
 		suggestions.revalidate();
 		suggestions.repaint();
 		revalidate();
@@ -940,7 +951,7 @@ public class BestGearSetupPanel extends PluginPanel
 			@Override
 			public void mouseEntered(MouseEvent e)
 			{
-				row.setBackground(ColorScheme.DARK_GRAY_HOVER_COLOR);
+				row.setBackground(Controls.ROW_HOVER);
 			}
 
 			@Override

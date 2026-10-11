@@ -17,6 +17,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
@@ -82,7 +83,13 @@ class BestGearSetupBankView
 
 	void setSelection(SetupResult setup, List<Potion> potions)
 	{
-		selection = layoutFor(setup, potions);
+		setSelection(setup, potions, BestGearSetupBankView::itemIds);
+	}
+
+	/** As {@link #setSelection(SetupResult, List)}, with each item's ids in the order they may take its cell. */
+	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds)
+	{
+		selection = layoutFor(setup, potions, itemIds);
 	}
 
 	static Map<Integer, Integer> cellsFor(SetupResult setup)
@@ -92,10 +99,10 @@ class BestGearSetupBankView
 
 	static Map<Integer, Integer> cellsFor(SetupResult setup, List<Potion> potions)
 	{
-		return Collections.unmodifiableMap(layoutFor(setup, potions).cells);
+		return Collections.unmodifiableMap(layoutFor(setup, potions, BestGearSetupBankView::itemIds).cells);
 	}
 
-	static Layout layoutFor(SetupResult setup, List<Potion> potions)
+	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds)
 	{
 		Layout layout = new Layout();
 		if (setup != null)
@@ -103,16 +110,16 @@ class BestGearSetupBankView
 			Loadout loadout = setup.getLoadout();
 			for (Slot slot : Slot.values())
 			{
-				addItem(layout, loadout.get(slot), CELLS[slot.ordinal()]);
+				addItem(layout, itemIds, loadout.get(slot), CELLS[slot.ordinal()]);
 			}
-			addItem(layout, loadout.getLoadedAmmo(), loadout.get(Slot.AMMO) == null ? 10 : 40);
+			addItem(layout, itemIds, loadout.getLoadedAmmo(), loadout.get(Slot.AMMO) == null ? 10 : 40);
 			SpecialPlan special = setup.getSpecial();
 			if (special != null && special.isSwitch(loadout))
 			{
-				addItem(layout, special.getWeapon(), SPEC_WEAPON_CELL);
-				addItem(layout, special.getOffhand(), SPEC_OFFHAND_CELL);
-				addItem(layout, special.getAmmo(), SPEC_AMMO_CELL);
-				addItem(layout, special.getLoadedAmmo(), SPEC_AMMO_CELL);
+				addItem(layout, itemIds, special.getWeapon(), SPEC_WEAPON_CELL);
+				addItem(layout, itemIds, special.getOffhand(), SPEC_OFFHAND_CELL);
+				addItem(layout, itemIds, special.getAmmo(), SPEC_AMMO_CELL);
+				addItem(layout, itemIds, special.getLoadedAmmo(), SPEC_AMMO_CELL);
 			}
 			List<Integer> spellItems = SpellRunes.required(setup);
 			for (int i = 0; i < spellItems.size(); i++)
@@ -142,15 +149,21 @@ class BestGearSetupBankView
 		return index < reserved.length ? reserved[index] : EXTRA_ROWS_START + index;
 	}
 
-	private static void addItem(Layout layout, GearItem item, int cell)
+	private static void addItem(Layout layout, Function<GearItem, List<Integer>> itemIds, GearItem item, int cell)
 	{
 		if (item != null)
 		{
-			List<Integer> ids = new ArrayList<>();
-			ids.add(item.getId());
-			ids.addAll(item.getOwnershipVariants());
-			layout.add(ids, cell, GEAR);
+			layout.add(itemIds.apply(item), cell, GEAR);
 		}
+	}
+
+	/** The item, then its equivalent charge states. */
+	static List<Integer> itemIds(GearItem item)
+	{
+		List<Integer> ids = new ArrayList<>();
+		ids.add(item.getId());
+		ids.addAll(item.getOwnershipVariants());
+		return ids;
 	}
 
 	/**
