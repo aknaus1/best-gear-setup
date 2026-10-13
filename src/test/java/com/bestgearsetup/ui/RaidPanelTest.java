@@ -194,7 +194,8 @@ public class RaidPanelTest
 	{
 		GameData data = new GameDataLoader(new Gson()).loadGameData();
 		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
-		when(plugin.getConfigDescriptor()).thenReturn(ConfigItemsForTests.descriptor());
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
 		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
 		ItemManager images = mock(ItemManager.class);
 		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
@@ -238,7 +239,8 @@ public class RaidPanelTest
 	{
 		GameData data = new GameDataLoader(new Gson()).loadGameData();
 		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
-		when(plugin.getConfigDescriptor()).thenReturn(ConfigItemsForTests.descriptor());
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
 		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
 		ItemManager images = mock(ItemManager.class);
 		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
