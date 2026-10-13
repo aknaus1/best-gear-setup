@@ -216,6 +216,12 @@ public class BestGearSetupPlugin extends Plugin
 	final AtomicInteger lifecycle = new AtomicInteger();
 	private volatile Map<Integer, Long> prices = Collections.emptyMap();
 	volatile MonsterSummary lastSearched;
+	/** Akkha's live protection prayer the latest search used, or null when it read none. */
+	volatile com.bestgearsetup.data.EncounterPhase searchedPhase;
+	/** The latest search used specs landed on one NPC instance, so another instance needs its own search. */
+	volatile boolean searchedLandedSpecs;
+	/** The latest search failed, so engaging its target again should retry it. */
+	volatile boolean searchFailed;
 	private volatile RaidPlan raidPlan;
 	/** Equipment ids and their variants: the only ownership changes that can alter a result. */
 	volatile Set<Integer> gearIds = Collections.emptySet();
@@ -856,13 +862,27 @@ public class BestGearSetupPlugin extends Plugin
 		if (liveSpecs != null) { liveSpecs.trackTarget(npc); }
 		int sequence = ++activeSequence;
 		int life = lifecycle.get();
+		boolean shown = showsSameType(match, targetPhase);
 		SwingUtilities.invokeLater(() ->
 		{
 			if (panel != null && config.activeEncounter() && sequence == activeSequence && life == lifecycle.get())
 			{
-				panel.selectActiveMonster(match);
+				if (shown) { panel.showActiveMonster(match, targetPhase); }
+				else { panel.selectActiveMonster(match); }
 			}
 		});
+	}
+
+	/**
+	 * Whether the results already shown (or being searched) are for this type of monster: the same variant, the
+	 * same live Akkha phase, and nothing specific to the NPC instance they were found for, such as specs landed on
+	 * it. Another NPC of the same type, e.g. the next abyssal demon or wave nylocas, then needs no new search.
+	 */
+	boolean showsSameType(MonsterSummary match, com.bestgearsetup.data.EncounterPhase phase)
+	{
+		MonsterSummary last = lastSearched;
+		return last != null && last.getId() == match.getId() && last.getName().equals(match.getName())
+			&& searchedPhase == phase && !searchedLandedSpecs && !searchFailed;
 	}
 
 	/** Your own hits, blocked or not, mark the NPC you are fighting. */
@@ -938,6 +958,8 @@ public class BestGearSetupPlugin extends Plugin
 			return;
 		}
 		lastSearched = summary;
+		searchFailed = false;
+		searchedLandedSpecs = false;
 		if (cached == null) { raidPlan = null; }
 		int generation = searchGeneration.incrementAndGet();
 		if (search != null)
@@ -988,6 +1010,7 @@ public class BestGearSetupPlugin extends Plugin
 			NPC npc = matchingLiveTarget(summary);
 			com.bestgearsetup.data.EncounterPhase livePhase = LiveRaid.akkhaPhase(npc);
 			if (livePhase != null) { detected.put("encounterPhase", livePhase); }
+			searchedPhase = livePhase;
 			AccountFacts.TaskRecord assignment = AccountFacts.task(client, configManager, gson);
 			WorldPoint taskLocation = npc != null ? npc.getWorldLocation()
 				: AccountFacts.ready(client) && client.getLocalPlayer() != null ? client.getLocalPlayer().getWorldLocation() : null;
@@ -1020,6 +1043,7 @@ public class BestGearSetupPlugin extends Plugin
 			detected.putAll(liveRaid.values);
 			Map<String, Object> landed = liveSpecs == null ? Collections.emptyMap() : liveSpecs.overrides(npc);
 			detected.putAll(landed);
+			searchedLandedSpecs = !landed.isEmpty();
 			if (!landed.isEmpty())
 			{ detectedNotes.add("Pre-fight preparation: specs landed on this target so far, in place of the Fight settings."); }
 			detected.put("potionMelee", getPotionChoice(CombatClass.MELEE));
@@ -1214,6 +1238,7 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			// Errors (e.g. assertion failures) would otherwise vanish inside the executor's Future.
 			log.warn("Best setup search failed", e);
+			if (generation == searchGeneration.get()) { searchFailed = true; }
 			SwingUtilities.invokeLater(() ->
 			{
 				if (panel != null && generation == searchGeneration.get())
@@ -1401,7 +1426,7 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			for (GearItem item : data.getItems(slot))
 			{
-				if (RaidPlan.providedInRaid(item)) { encounterOwned.add(item.getId()); }
+				if (RaidPlan.providedInRaid(item) && usesDawnbringer(encounter, config)) { encounterOwned.add(item.getId()); }
 				else if (!allowed.contains(item.getId())) { excluded.add(item.getId()); }
 			}
 		}
@@ -1449,6 +1474,15 @@ public class BestGearSetupPlugin extends Plugin
 			.map(setup -> plan.fillAmmoFor(setup, found))
 			.filter(setup -> plan.supportsSupplies(setup, found, owned::contains))
 			.max(java.util.Comparator.comparingDouble(setup -> setup.getDps().getPrimaryDps())).orElse(null);
+	}
+
+	/**
+	 * Whether this encounter may use the raid-provided Dawnbringer: only at Verzik P1, and only when the player
+	 * says they pick it up there. Planning it for everyone would assume a weapon only one player holds.
+	 */
+	static boolean usesDawnbringer(RaidEncounter encounter, BestGearSetupConfig config)
+	{
+		return config.tobDawnbringer() && encounter.getTarget().getName().equals("verzik vitur (phase 1)");
 	}
 
 	/** Why an encounter was searched with every style it allows: the styles actually tried found no setup. */
@@ -1529,10 +1563,11 @@ public class BestGearSetupPlugin extends Plugin
 				overrides.put("specTomeOfWater", false);
 			}
 			Set<Integer> encounterOwned = new HashSet<>(owned);
-			if (encounter.getTarget().getName().equals("verzik vitur (phase 1)"))
-			{
-				data.getItems(Slot.WEAPON).stream().filter(RaidPlan::providedInRaid).forEach(item -> encounterOwned.add(item.getId()));
-			}
+			Set<Integer> encounterExcluded = new HashSet<>(excluded);
+			// Only the Dawnbringer holder picks it up at Verzik P1; everyone else fights P1 with their own gear.
+			boolean dawnbringer = usesDawnbringer(encounter, config);
+			data.getItems(Slot.WEAPON).stream().filter(RaidPlan::providedInRaid)
+				.forEach(item -> (dawnbringer ? encounterOwned : encounterExcluded).add(item.getId()));
 			List<String> styleWarnings = new ArrayList<>();
 			Set<AttackStyle.Type> chosen = raidStyles(encounter, config, styleWarnings);
 			Set<AttackStyle.Type> styles = widened[index] != null ? encounter.getRequiredStyles() : chosen;
@@ -1540,7 +1575,7 @@ public class BestGearSetupPlugin extends Plugin
 			List<String> notes = same ? detectedNotes : Collections.emptyList();
 			SearchResults result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
 				false, mining, quotes, encounterOwned, quantities, generation, assumptions,
-				liveRaid, notes, styles, excluded, config.raidSpellbook(), progress.encounter(pass, index));
+				liveRaid, notes, styles, encounterExcluded, config.raidSpellbook(), progress.encounter(pass, index));
 			if (result != null && result.isEmpty() && pass == 0 && !styles.equals(encounter.getRequiredStyles()))
 			{
 				// A chosen (or default distance) style without a usable setup, e.g. no ranged gear owned, must not
@@ -1548,7 +1583,7 @@ public class BestGearSetupPlugin extends Plugin
 				widened[index] = widenedWarning(encounter, styles);
 				result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
 					false, mining, quotes, encounterOwned, quantities, generation, assumptions,
-					liveRaid, notes, encounter.getRequiredStyles(), excluded, config.raidSpellbook(), progress.encounter(pass, index));
+					liveRaid, notes, encounter.getRequiredStyles(), encounterExcluded, config.raidSpellbook(), progress.encounter(pass, index));
 			}
 			if (widened[index] != null) { styleWarnings.add(widened[index]); }
 			return result == null ? null : result.withWarnings(styleWarnings);

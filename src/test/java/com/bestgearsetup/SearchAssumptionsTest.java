@@ -44,6 +44,7 @@ public class SearchAssumptionsTest
 		GETTERS.put("toaPathOrder", BestGearSetupConfig::toaPathOrder);
 		GETTERS.put("tobMaidenRole", BestGearSetupConfig::tobMaidenRole);
 		GETTERS.put("tobNylocasRole", BestGearSetupConfig::tobNylocasRole);
+		GETTERS.put("tobDawnbringer", BestGearSetupConfig::tobDawnbringer);
 		GETTERS.put("raidStyles", BestGearSetupConfig::raidStyles);
 		GETTERS.put("showMenuOption", BestGearSetupConfig::showMenuOption);
 		GETTERS.put("highlightBankGear", BestGearSetupConfig::highlightBankGear);

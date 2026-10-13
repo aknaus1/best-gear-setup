@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.SearchDepth;
 import com.bestgearsetup.calc.SearchMode;
+import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GameDataLoader;
 import com.bestgearsetup.data.GearItem;
@@ -31,6 +32,18 @@ import org.junit.Test;
 /** Exercise the real raid search pipeline with a small, real owned kit instead of synthetic DPS. */
 public class RaidSearchTest
 {
+	@Test public void dawnbringerIsOnlyPlannedForItsHolderAtVerzikP1() throws Exception
+	{
+		GameData data = new GameDataLoader(new Gson()).loadGameData();
+		List<RaidEncounter> tob = RaidPlanType.TOB.encounters(data);
+		RaidEncounter p1 = tob.stream().filter(e -> e.getLabel().equals("Verzik P1")).findFirst().get();
+		RaidEncounter p2 = tob.stream().filter(e -> e.getLabel().equals("Verzik P2")).findFirst().get();
+		BestGearSetupConfig holder = new BestGearSetupConfig() { @Override public boolean tobDawnbringer() { return true; } };
+		assertTrue(!BestGearSetupPlugin.usesDawnbringer(p1, new BestGearSetupConfig() { }));
+		assertTrue(BestGearSetupPlugin.usesDawnbringer(p1, holder));
+		assertTrue(!BestGearSetupPlugin.usesDawnbringer(p2, holder));
+	}
+
 	@Test public void allThreeRaidsProduceCompleteKitsUsingBundledCombatData() throws Exception
 	{
 		GameDataLoader loader = new GameDataLoader(new Gson());
@@ -91,6 +104,17 @@ public class RaidSearchTest
 			assertTrue(result[0].getSetups().stream().allMatch(s -> s.getLoadout().getSpell() == null
 				|| s.getLoadout().getSpell().getSpellbook().equals(config.raidSpellbook().key())));
 			assertEquals(0, result[0].getBuyCost());
+			if (type == RaidPlanType.TOB)
+			{
+				// Only the Dawnbringer holder (off by default) uses it at Verzik P1; P1 still gets a setup without it.
+				for (int i = 0; i < result[0].getEncounters().size(); i++)
+				{
+					SetupResult setup = result[0].getSetups().get(i);
+					assertTrue(result[0].getEncounters().get(i).getLabel(), !RaidPlan.providedInRaid(setup.getLoadout().getWeapon())
+						&& (setup.getSpecial() == null || !RaidPlan.providedInRaid(setup.getSpecial().getWeapon())));
+				}
+				assertTrue(result[0].getEncounters().stream().anyMatch(e -> e.getLabel().equals("Verzik P1")));
+			}
 			if (type == RaidPlanType.COX_CM)
 			{
 				for (RaidEncounter encounter : result[0].getEncounters())

@@ -53,6 +53,12 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 34, hidden = true)
 	default RaidOptions.NylocasRole tobNylocasRole() { return RaidOptions.NylocasRole.ALL; }
 
+	@ConfigItem(keyName = "tobDawnbringer", name = "Dawnbringer holder at Verzik P1",
+		description = "You pick up the Dawnbringer at Verzik P1 and use its special. Off: P1 is planned with your own gear, "
+			+ "under her per-hit damage caps.",
+		section = searchSection, position = 35, hidden = true)
+	default boolean tobDawnbringer() { return false; }
+
 	String GROUP = "bestgearsetup";
 	String MODE_KEY = "mode";
 	String BUDGET_KEY = "budget";

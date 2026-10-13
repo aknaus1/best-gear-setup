@@ -117,7 +117,9 @@ public class FightOptionsPanelTest
 			assertFalse(control(panel, "toaPathOrderRow").isVisible());
 			assertTrue(control(panel, "tobMaidenRoleRow").isVisible());
 			assertTrue(control(panel, "tobNylocasRoleRow").isVisible());
+			assertTrue(control(panel, "tobDawnbringerRow").isVisible());
 			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.SINGLE);
+			assertFalse(control(panel, "tobDawnbringerRow").isVisible());
 			assertFalse(control(panel, "tobNylocasRoleRow").isVisible());
 			// ToA plans start on the Apmeken baboons, which the raid doesn't scale: the Raid section stays open.
 			panel.setTarget(target("baboon brawler (level 56)", "tombs of amascut"));

@@ -29,8 +29,10 @@ potions brewed in the raid aren't in the potion table), and every later room may
 the first two paths are fought without smelling salts and the third and fourth paths and the Wardens may use
 them. ToB hands out no boosts, so every room uses the potions you bring. Rooms where raid boosts are available
 follow **Include raid potions**. Named potion overrides still apply and their warnings remain visible.
-Dawnbringer is available for Verzik P1 and is obtained in the raid, so it is not a bank withdrawal or an
-entry inventory slot.
+The Dawnbringer is picked up in the raid by one player for Verzik P1, so it is never a bank withdrawal or an
+entry inventory slot, and it is only planned for P1 when **Dawnbringer holder at Verzik P1** (under
+**Fight → Raid** while planning ToB) is on. By default P1 uses your own gear under her random per-hit caps
+(0–10 for melee, 0–3 for ranged and magic), which usually favours melee.
 
 **Attack style** (under the boss selector) restricts the displayed encounter's search to melee, ranged, magic
 or ranged-or-magic. *Auto* keeps each encounter's default: ranged or magic for bosses fought from distance in
@@ -98,7 +100,8 @@ capacity is checked after encounter switches. Required rune stacks are packed in
 occupies one inventory slot; overflow types remain loose. Hovering the pouch lists its planned contents.
 The sidebar runs from search input to current boss/monster, Version, gear source, action buttons, worn
 equipment and inventory. In a raid, the current boss selector updates both the shown gear and Version.
-The inventory heading minimizes or expands the grid, retaining its state when raid results refresh.
+The inventory starts minimized; its heading expands or minimizes the grid, and that choice carries over to
+new searches, raid encounter switches and re-plans.
 Food, healing, extra potion doses and utility supplies
 are left to the player. The bank's equipment
 silhouette is followed by the four-column inventory on its right; loaded darts appear below for loading.
@@ -110,7 +113,12 @@ per game tick. Combat starts when one of the player's own hitsplats (including b
 or when the NPC attacks back while the player targets it; clicking, walking up to or standing near an NPC
 does not. With several NPCs hit at once (AoE, chinning) the targeted one leads. Combat lapses after 16 ticks
 without either signal, or when the NPC dies or despawns.
-New NPC instances and transformed IDs trigger a search; non-combat interactions and dead targets do not.
+New NPC instances and transformed IDs trigger a search, unless the results already shown (or being searched)
+are for the same monster: the same variant (NPC id and version) and, for Akkha, the same protection prayer.
+Fighting the next abyssal demon, or another wave nylocas of the same colour, keeps the results; in a raid the
+plan's matching encounter is shown again without searching or re-planning. A new instance is still searched
+when the shown results used specs landed on the previous NPC, or when the last search failed. Non-combat
+interactions and dead targets don't trigger a search.
 The last target stays visible between fights. With **Use active defence**, the existing own/party special
 tracker supplies landed drains for the actual NPC instance. Unobserved drains and Vulnerability are not
 inferred. A new spawn or phase starts a fresh tracked state. Saved pre-fight values are not overwritten.

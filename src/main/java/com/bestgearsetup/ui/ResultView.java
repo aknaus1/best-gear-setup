@@ -126,6 +126,8 @@ class ResultView extends JPanel
 	private final SearchResults results;
 	private final boolean publishBank;
 	private final JComponent carriedInventory;
+	/** Holds the inventory's minimized state, so it survives new results; this view itself when none is given. */
+	private final JComponent inventoryState;
 	/** Result tabs, highest DPS first. */
 	private final List<AttackStyle.Type> tabOrder = new ArrayList<>();
 	private final JPanel tabs = new JPanel(new GridLayout(0, 5, 2, 2));
@@ -149,7 +151,15 @@ class ResultView extends JPanel
 	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
 		SkillIconManager skillIcons, int ammoCount, boolean publishBank, JComponent carriedInventory)
 	{
+		this(results, plugin, itemManager, sprites, skillIcons, ammoCount, publishBank, carriedInventory, null);
+	}
+
+	/** @param inventoryState a component that outlives this view and keeps the inventory's minimized state */
+	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
+		SkillIconManager skillIcons, int ammoCount, boolean publishBank, JComponent carriedInventory, JComponent inventoryState)
+	{
 		this.carriedInventory = carriedInventory;
+		this.inventoryState = inventoryState == null ? this : inventoryState;
 		this.publishBank = publishBank;
 		this.results = results;
 		this.plugin = plugin;
@@ -284,7 +294,7 @@ class ResultView extends JPanel
 		JComponent inventory = carriedInventory;
 		if (inventory == null)
 		{
-			InventoryView supplies = new InventoryView(itemManager, this, "setupInventory", plugin, sprites, ammoCount);
+			InventoryView supplies = new InventoryView(itemManager, inventoryState, "setupInventory", plugin, sprites, ammoCount);
 			supplies.showItems(RaidPlan.inventoryForSetup(selected, results,
 				id -> plugin.getOwnedItems().owns(id) && !plugin.getExcluded().contains(id)));
 			inventory = supplies;

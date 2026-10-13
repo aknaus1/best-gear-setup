@@ -94,6 +94,8 @@ public class BestGearSetupPanel extends PluginPanel
 	final JPanel raidStyleRow = new JPanel(new BorderLayout(0, 2));
 	/** The raid encounter the style selector edits. */
 	private RaidEncounter styledEncounter;
+	/** The raid plan on screen, or null when none is; active-encounter switches select its encounters. */
+	private RaidPlan shownPlan;
 	/** Label of the encounter whose style was just changed, shown again once the raid is re-planned. */
 	private String pendingRaidEncounter;
 	final JPanel phaseRow = new JPanel(new BorderLayout(0, 2));
@@ -724,6 +726,36 @@ public class BestGearSetupPanel extends PluginPanel
 		wikiButton.setToolTipText("Open the OSRS Wiki page for " + selected.getDisplayName());
 	}
 
+	/**
+	 * The player engaged another NPC of the type already shown, so its results stand: in a raid, show that
+	 * encounter of the plan again (the player may have browsed to another) without searching or re-planning.
+	 */
+	public void showActiveMonster(MonsterSummary monster, EncounterPhase phase)
+	{
+		RaidPlan plan = shownPlan;
+		if (raidType == RaidPlanType.SINGLE || plan == null || !encounterBox.isVisible()) { return; }
+		RaidEncounter shown = (RaidEncounter) raidVersionBox.getSelectedItem();
+		if (shown != null && shown.getTarget().getId() == monster.getId() && (phase == null || shown.getPhase() == phase)) { return; }
+		RaidEncounter match = null;
+		for (RaidEncounter encounter : plan.getEncounters())
+		{
+			if (encounter.getTarget().getId() == monster.getId()
+				&& (match == null || phase != null && encounter.getPhase() == phase && match.getPhase() != phase))
+			{ match = encounter; }
+		}
+		if (match != null) { showEncounter(match); }
+	}
+
+	/** Select an encounter of the shown raid plan through the boss and version selectors. */
+	private void showEncounter(RaidEncounter encounter)
+	{
+		for (int i = 0; i < encounterBox.getItemCount(); i++)
+		{
+			if (encounterBox.getItemAt(i).getBossName().equals(encounter.getBossName())) { encounterBox.setSelectedIndex(i); break; }
+		}
+		raidVersionBox.setSelectedItem(encounter);
+	}
+
 	/** Automatic target changes keep a matching full raid selected. */
 	public void selectActiveMonster(MonsterSummary monster)
 	{
@@ -775,12 +807,7 @@ public class BestGearSetupPanel extends PluginPanel
 		pendingRaidEncounter = null;
 		RaidEncounter edited = label == null ? null
 			: plan.getEncounters().stream().filter(e -> e.getLabel().equals(label)).findFirst().orElse(null);
-		if (edited == null) { return; }
-		for (int i = 0; i < encounterBox.getItemCount(); i++)
-		{
-			if (encounterBox.getItemAt(i).getBossName().equals(edited.getBossName())) { encounterBox.setSelectedIndex(i); break; }
-		}
-		raidVersionBox.setSelectedItem(edited);
+		if (edited != null) { showEncounter(edited); }
 	}
 
 	/** Offer the displayed raid encounter's attack styles; hidden outside raids and where the style is fixed. */
@@ -883,6 +910,7 @@ public class BestGearSetupPanel extends PluginPanel
 		RaidResultView.detachSelector(raidVersionBox);
 		encounterBox.setModel(new DefaultComboBoxModel<>());
 		encounterBox.setVisible(false);
+		shownPlan = null;
 		showRaidStyles(null);
 		monsterLabel.setVisible(true);
 		progressRow.setVisible(false);
@@ -921,6 +949,7 @@ public class BestGearSetupPanel extends PluginPanel
 		versionRow.add(raidVersionBox, BorderLayout.CENTER);
 		statusLabel.setText(html(escape(plan.getType().toString()) + ": " + plan.getEncounters().size() + " encounter setups"
 			+ (first.isAssumedLevels() ? "<br>Assuming 99 combat stats." : first.isRememberedLevels() ? "<br>Using remembered account levels." : "")));
+		shownPlan = plan;
 		resultsPanel.add(left(new RaidResultView(plan, active, activeResult, plugin, itemManager, sprites, skillIcons,
 			config.ammoCount(), encounterBox, raidVersionBox, this::showDisplayedEncounter)));
 		reopenPendingEncounter(plan);
@@ -940,7 +969,7 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 		JLabel notes = new JLabel(html("Raid kits use a bounded search over valid setups; lower equipment limits share more armour."
 			+ "<br>Runes are packed into your pouch; hover it to see its contents. Extra rune types stay in free inventory slots. Food, healing and utility supplies are not planned."
-			+ "<br>In-raid boosts are omitted from the bank: CoX overloads are assumed after Tekton and ToA smelling salts after the first two paths. Dawnbringer is obtained at Verzik. Loaded darts must be loaded before entry."));
+			+ "<br>In-raid boosts are omitted from the bank: CoX overloads are assumed after Tekton and ToA smelling salts after the first two paths. Dawnbringer is only planned at Verzik P1 for its holder (Fight, Raid). Loaded darts must be loaded before entry."));
 		setSmall(notes, ColorScheme.LIGHT_GRAY_COLOR);
 		resultsPanel.add(left(notes));
 		resultsPanel.revalidate();
@@ -1004,7 +1033,9 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 		if (!found.isEmpty())
 		{
-			ResultView resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount());
+			// The boss selector outlives every result, so it keeps the inventory's minimized state for raids too.
+			ResultView resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount(),
+				true, null, encounterBox);
 			resultsPanel.add(left(resultView));
 		}
 		List<String> detailLines = new ArrayList<>();

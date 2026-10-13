@@ -16,7 +16,10 @@ import javax.swing.JPanel;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.util.AsyncBufferedImage;
 
-/** Inventory below worn equipment, with pouch tooltips and a collapse state retained across updates. */
+/**
+ * Inventory below worn equipment, with pouch tooltips. It starts minimized; the state is kept on a component that
+ * outlives the results (the side panel's boss selector), so it carries over to new searches and raid encounters.
+ */
 class InventoryView extends JPanel
 {
 	private static final String EXPANDED = "inventoryExpanded";
@@ -68,7 +71,8 @@ class InventoryView extends JPanel
 		applyExpanded();
 	}
 
-	private boolean expanded() { return !Boolean.FALSE.equals(stateOwner.getClientProperty(EXPANDED)); }
+	/** Minimized until the player expands it; the state owner keeps that choice for later results. */
+	private boolean expanded() { return Boolean.TRUE.equals(stateOwner.getClientProperty(EXPANDED)); }
 
 	private void applyExpanded()
 	{

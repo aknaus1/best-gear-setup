@@ -5,6 +5,13 @@ is what the Plugin Hub shows.
 
 ## Unreleased
 
+- Active encounter keeps the shown results when you engage another NPC of the same monster (same variant and,
+  for Akkha, the same prayer), such as the next abyssal demon or wave nylocas; in a raid it shows the plan's
+  encounter again instead of searching. Results that used specs landed on the last NPC are still refreshed.
+- The inventory under worn gear starts minimized, and expanding or minimizing it now carries over to new
+  searches as well as raid encounter switches and re-plans.
+- Verzik P1 no longer assumes you hold the Dawnbringer: it is planned only with the new ToB option
+  **Dawnbringer holder at Verzik P1** (off by default); otherwise P1 uses your own gear under her damage caps.
 - Recommend an overhead protection prayer with every setup, for single monsters and each raid encounter:
   curated raid advice with a reason where the fight switches styles, otherwise the Wiki attack styles.
   Ranged and magic setups fight from distance, where melee attacks are dropped unless the monster only melees
