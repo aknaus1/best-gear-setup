@@ -260,18 +260,56 @@ public class RaidPanelTest
 			panel.onDataLoaded(data); panel.selectRaid(RaidPlanType.TOA);
 			panel.showRaidResults(plan, encounters.get(0).getTarget());
 			RaidEncounter zebak = encounters.stream().filter(e -> e.getLabel().equals("Zebak")).findFirst().get();
+			RaidEncounter enraged = encounters.stream().filter(e -> e.getLabel().equals("Zebak Enraged")).findFirst().get();
 			panel.encounterBox.setSelectedItem(zebak);
+			panel.raidVersionBox.setSelectedItem(enraged);
+			assertEquals(enraged.getTarget(), panel.selected);
 			assertTrue(panel.raidStyleRow.isVisible());
 			assertEquals(RaidStyle.AUTO, panel.raidStyleBox.getSelectedItem());
 			verify(plugin, never()).setConfig(org.mockito.ArgumentMatchers.eq(BestGearSetupConfig.RAID_STYLES_KEY), any());
+			// The choice is saved for the boss, so it covers both Zebak phases.
 			panel.raidStyleBox.setSelectedItem(RaidStyle.MELEE);
 			verify(plugin).setConfig(BestGearSetupConfig.RAID_STYLES_KEY, "TOA|Zebak=MELEE");
+			// The re-planned raid reopens the encounter that was being edited, not the first room.
+			panel.showSearching(encounters.get(0).getTarget());
+			panel.showRaidResults(plan, encounters.get(0).getTarget());
+			assertEquals(enraged, panel.raidVersionBox.getSelectedItem());
+			assertEquals(enraged.getTarget(), panel.selected);
+			// A later re-plan follows the plan again.
+			panel.showRaidResults(plan, encounters.get(0).getTarget());
+			assertEquals(encounters.get(0), panel.raidVersionBox.getSelectedItem());
 			// The Wardens' P2 ranged phase can only be damaged by ranged, so there is nothing to choose.
 			RaidEncounter warden = encounters.stream().filter(e -> e.getLabel().equals("Elidinis P2: Ranged")).findFirst().get();
 			panel.encounterBox.setSelectedItem(warden);
 			assertTrue(!panel.raidStyleRow.isVisible());
 			panel.clearResults("New search");
 			assertTrue(!panel.raidStyleRow.isVisible());
+		});
+	}
+
+	@Test public void failedRaidPlanOffersToResetSavedAttackStyles() throws Exception
+	{
+		GameData data = new GameDataLoader(new Gson()).loadGameData();
+		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
+		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
+		BestGearSetupConfig config = new BestGearSetupConfig()
+		{
+			@Override public String raidStyles() { return "COX_CM|Tekton=MAGIC;TOA|Zebak=MELEE"; }
+		};
+		SwingUtilities.invokeAndWait(() ->
+		{
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, config, null, null, null);
+			panel.onDataLoaded(data);
+			panel.showError("Search failed");
+			assertTrue("Single searches have no raid styles", components(panel).stream().noneMatch(c -> "resetRaidStyles".equals(c.getName())));
+			panel.selectRaid(RaidPlanType.TOA);
+			panel.showError("Search failed: No usable setup for Zebak.");
+			javax.swing.JButton reset = (javax.swing.JButton) components(panel).stream()
+				.filter(c -> "resetRaidStyles".equals(c.getName())).findFirst().get();
+			reset.doClick();
+			verify(plugin).setConfig(BestGearSetupConfig.RAID_STYLES_KEY, "COX_CM|Tekton=MAGIC");
 		});
 	}
 

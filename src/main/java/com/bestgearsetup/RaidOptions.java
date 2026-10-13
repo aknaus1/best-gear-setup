@@ -24,7 +24,7 @@ public class RaidOptions
 	MaidenRole maidenRole = MaidenRole.BOTH;
 	@Builder.Default
 	NylocasRole nylocasRole = NylocasRole.ALL;
-	/** Saved style choices by {@link #key}; encounters without one use Auto. */
+	/** Saved style choices by {@link #key} (raid and boss); bosses without one use Auto. */
 	@Builder.Default
 	Map<String, RaidStyle> styles = Collections.emptyMap();
 
@@ -64,17 +64,18 @@ public class RaidOptions
 			.nylocasRole(config.tobNylocasRole()).styles(parse(config.raidStyles())).build();
 	}
 
-	public RaidStyle style(RaidPlanType type, String label)
+	/** The saved choice for a boss, by {@link RaidEncounter#getBossName}. */
+	public RaidStyle style(RaidPlanType type, String boss)
 	{
-		return styles.getOrDefault(key(type, label), RaidStyle.AUTO);
+		return styles.getOrDefault(key(type, boss), RaidStyle.AUTO);
 	}
 
-	static String key(RaidPlanType type, String label)
+	static String key(RaidPlanType type, String boss)
 	{
-		return type.name() + "|" + label;
+		return type.name() + "|" + boss;
 	}
 
-	/** Saved choices, such as "COX_CM|Mystics=MELEE;TOA|Zebak=MAGIC"; unknown entries are ignored. */
+	/** Saved choices, such as "COX_CM|Skeletal Mystic=MELEE;TOA|Zebak=MAGIC"; unknown entries are ignored. */
 	public static Map<String, RaidStyle> parse(String saved)
 	{
 		Map<String, RaidStyle> styles = new LinkedHashMap<>();
@@ -96,12 +97,31 @@ public class RaidOptions
 		return styles;
 	}
 
-	/** The saved value with one encounter's choice replaced; Auto removes it. Entries are sorted for stable values. */
-	public static String withStyle(String saved, RaidPlanType type, String label, RaidStyle style)
+	/** The saved value with one boss's choice replaced; Auto removes it. Entries are sorted for stable values. */
+	public static String withStyle(String saved, RaidPlanType type, String boss, RaidStyle style)
 	{
 		Map<String, RaidStyle> styles = new TreeMap<>(parse(saved));
-		if (style == null || style == RaidStyle.AUTO) { styles.remove(key(type, label)); }
-		else { styles.put(key(type, label), style); }
+		if (style == null || style == RaidStyle.AUTO) { styles.remove(key(type, boss)); }
+		else { styles.put(key(type, boss), style); }
+		return format(styles);
+	}
+
+	/** Whether any boss of the raid has a saved choice. */
+	public static boolean hasStyles(String saved, RaidPlanType type)
+	{
+		return parse(saved).keySet().stream().anyMatch(key -> key.startsWith(type.name() + "|"));
+	}
+
+	/** The saved value with every choice for one raid removed, so each of its bosses is back on Auto. */
+	public static String withoutStyles(String saved, RaidPlanType type)
+	{
+		Map<String, RaidStyle> styles = new TreeMap<>(parse(saved));
+		styles.keySet().removeIf(key -> key.startsWith(type.name() + "|"));
+		return format(styles);
+	}
+
+	private static String format(Map<String, RaidStyle> styles)
+	{
 		StringBuilder out = new StringBuilder();
 		styles.forEach((key, value) -> out.append(out.length() == 0 ? "" : ";").append(key).append('=').append(value.name()));
 		return out.toString();

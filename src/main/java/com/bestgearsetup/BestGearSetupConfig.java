@@ -53,9 +53,6 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 34, hidden = true)
 	default RaidOptions.NylocasRole tobNylocasRole() { return RaidOptions.NylocasRole.ALL; }
 
-	@ConfigItem(keyName = RAID_STYLES_KEY, name = "", description = "", hidden = true)
-	default String raidStyles() { return ""; }
-
 	String GROUP = "bestgearsetup";
 	String MODE_KEY = "mode";
 	String BUDGET_KEY = "budget";
@@ -829,6 +826,12 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigItem(keyName = EXCLUDED_KEY, name = "", description = "", hidden = true)
 	default String excluded()
+	{
+		return "";
+	}
+
+	@ConfigItem(keyName = RAID_STYLES_KEY, name = "", description = "", hidden = true)
+	default String raidStyles()
 	{
 		return "";
 	}

@@ -94,6 +94,8 @@ public class BestGearSetupPanel extends PluginPanel
 	final JPanel raidStyleRow = new JPanel(new BorderLayout(0, 2));
 	/** The raid encounter the style selector edits. */
 	private RaidEncounter styledEncounter;
+	/** Label of the encounter whose style was just changed, shown again once the raid is re-planned. */
+	private String pendingRaidEncounter;
 	final JPanel phaseRow = new JPanel(new BorderLayout(0, 2));
 	private final JLabel monsterLabel = new JLabel();
 	final JButton wikiButton = new JButton("Open Wiki");
@@ -366,8 +368,8 @@ public class BestGearSetupPanel extends PluginPanel
 		raidStyleBox.setFocusable(false);
 		Controls.field(raidStyleBox);
 		raidStyleBox.setName("raidStyle");
-		raidStyleBox.setToolTipText("Attack style planned for this raid encounter. Auto uses ranged or magic where the "
-			+ "boss is fought from distance. Changing it re-plans the raid.");
+		raidStyleBox.setToolTipText("Attack style planned for every phase of this raid boss. Auto uses ranged or magic "
+			+ "where the boss is fought from distance; phases the style can't damage keep Auto. Changing it re-plans the raid.");
 		raidStyleBox.setRenderer(new DefaultListCellRenderer()
 		{
 			@Override public java.awt.Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index,
@@ -384,10 +386,12 @@ public class BestGearSetupPanel extends PluginPanel
 		{
 			RaidEncounter encounter = styledEncounter;
 			RaidStyle style = (RaidStyle) raidStyleBox.getSelectedItem();
-			if (!syncing && encounter != null && style != null && style != encounter.getStyleChoice())
+			if (!syncing && encounter != null && style != null && style != encounter.getDisplayedStyleChoice())
 			{
+				// One choice covers every phase of the boss; the re-planned raid reopens this encounter.
+				pendingRaidEncounter = encounter.getLabel();
 				plugin.setConfig(BestGearSetupConfig.RAID_STYLES_KEY,
-					RaidOptions.withStyle(config.raidStyles(), raidType, encounter.getLabel(), style));
+					RaidOptions.withStyle(config.raidStyles(), raidType, encounter.getBossName(), style));
 			}
 		});
 		raidStyleRow.add(raidStyleLabel, BorderLayout.NORTH);
@@ -610,6 +614,20 @@ public class BestGearSetupPanel extends PluginPanel
 		statusLabel.setForeground(new Color(0xFF6B6B));
 		statusLabel.setText(html(escape(message)));
 		findButton.setEnabled(selected != null && data != null);
+		// Saved attack styles are hidden settings, so a raid that can't be planned offers to clear them.
+		if (raidType != RaidPlanType.SINGLE && RaidOptions.hasStyles(config.raidStyles(), raidType))
+		{
+			RaidPlanType raid = raidType;
+			JButton reset = new JButton("Reset raid attack styles to Auto");
+			reset.setName("resetRaidStyles");
+			Controls.secondary(reset);
+			reset.addActionListener(e -> plugin.setConfig(BestGearSetupConfig.RAID_STYLES_KEY,
+				RaidOptions.withoutStyles(config.raidStyles(), raid)));
+			resultsPanel.removeAll();
+			resultsPanel.add(left(reset));
+			resultsPanel.revalidate();
+			resultsPanel.repaint();
+		}
 	}
 
 	/** A neutral status message, e.g. while the data is still loading. */
@@ -649,6 +667,7 @@ public class BestGearSetupPanel extends PluginPanel
 	public void clearSearch()
 	{
 		raidType = RaidPlanType.SINGLE;
+		pendingRaidEncounter = null;
 		fightOptions.setRaidPlan(raidType);
 		selected = null;
 		showVersions(null, null);
@@ -722,6 +741,7 @@ public class BestGearSetupPanel extends PluginPanel
 			versionRow.remove(raidVersionBox);
 			versionRow.add(versionBox, BorderLayout.CENTER);
 			showRaidStyles(null);
+			pendingRaidEncounter = null;
 		}
 		fightOptions.setRaidPlan(raidType);
 		searchField.setText(raidType == RaidPlanType.SINGLE ? group == null ? monster.getDisplayName() : group.getDisplayName() : raidType.toString());
@@ -745,6 +765,21 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 	}
 
+	/** After a style change re-plans the raid, show the encounter that was being edited instead of the first. */
+	private void reopenPendingEncounter(RaidPlan plan)
+	{
+		String label = pendingRaidEncounter;
+		pendingRaidEncounter = null;
+		RaidEncounter edited = label == null ? null
+			: plan.getEncounters().stream().filter(e -> e.getLabel().equals(label)).findFirst().orElse(null);
+		if (edited == null) { return; }
+		for (int i = 0; i < encounterBox.getItemCount(); i++)
+		{
+			if (encounterBox.getItemAt(i).getBossName().equals(edited.getBossName())) { encounterBox.setSelectedIndex(i); break; }
+		}
+		raidVersionBox.setSelectedItem(edited);
+	}
+
 	/** Offer the displayed raid encounter's attack styles; hidden outside raids and where the style is fixed. */
 	private void showRaidStyles(RaidEncounter encounter)
 	{
@@ -755,7 +790,7 @@ public class BestGearSetupPanel extends PluginPanel
 			styledEncounter = encounter;
 			List<RaidStyle> choices = encounter == null ? java.util.Collections.emptyList() : encounter.getStyleChoices();
 			raidStyleBox.setModel(new DefaultComboBoxModel<>(choices.toArray(new RaidStyle[0])));
-			if (encounter != null) { raidStyleBox.setSelectedItem(encounter.getStyleChoice()); }
+			if (encounter != null) { raidStyleBox.setSelectedItem(encounter.getDisplayedStyleChoice()); }
 			raidStyleRow.setVisible(choices.size() > 1);
 		}
 		finally
@@ -885,11 +920,12 @@ public class BestGearSetupPanel extends PluginPanel
 			+ (first.isAssumedLevels() ? "<br>Assuming 99 combat stats." : first.isRememberedLevels() ? "<br>Using remembered account levels." : "")));
 		resultsPanel.add(left(new RaidResultView(plan, active, activeResult, plugin, itemManager, sprites, skillIcons,
 			config.ammoCount(), encounterBox, raidVersionBox, this::showDisplayedEncounter)));
+		reopenPendingEncounter(plan);
 		monsterLabel.setVisible(false);
 		encounterBox.setVisible(true);
 		List<String> warnings = plan.getResults().stream().flatMap(r -> r.getWarnings().stream()).distinct().collect(Collectors.toList());
 		if (activeResult != null) { warnings.addAll(activeResult.getWarnings()); }
-		if (plan.getType() == RaidPlanType.TOB && config.tobMaidenRole() == RaidOptions.MaidenRole.FREEZER
+		if (plan.getType() == RaidPlanType.TOB && config.tobMaidenRole() != RaidOptions.MaidenRole.DPS
 			&& plan.getSpellbook() != RaidSpellbook.ANCIENT)
 		{ warnings.add("Freezing the Maiden nylocas needs Ice or Blood Barrage: set Raid spellbook to Ancient."); }
 		if (!warnings.isEmpty())

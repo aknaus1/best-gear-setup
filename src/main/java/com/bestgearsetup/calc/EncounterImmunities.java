@@ -6,7 +6,7 @@ import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 
 /** Combat-class and equipment requirements shared by search filtering and direct DPS scoring. */
-final class EncounterImmunities
+public final class EncounterImmunities
 {
 	/** Slot.values() copies the array on every call, and every scored setup is checked. */
 	private static final Slot[] SLOTS = Slot.values();
@@ -15,7 +15,8 @@ final class EncounterImmunities
 	{
 	}
 
-	static boolean classAllowed(Monster monster, CombatClass cls)
+	/** Whether the target, in its selected phase, can be damaged by the combat class at all. */
+	public static boolean classAllowed(Monster monster, CombatClass cls)
 	{
 		int id = monster.getId();
 		if (CombatRules.phase(monster, EncounterPhase.AKKHA_IMMUNE_MELEE) && cls == CombatClass.MELEE

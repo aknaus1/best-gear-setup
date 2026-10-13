@@ -177,7 +177,8 @@ public enum RaidPlanType
 		{
 			RaidEncounter encounter = out.get(index);
 			out.set(index, encounter.withRaidSupplies(index >= supplied)
-				.withStyleChoice(options.style(this, encounter.getLabel())));
+				// One choice per boss covers all of its phases and versions; a phase it can't damage keeps Auto.
+				.withStyleChoice(options.style(this, encounter.getBossName())));
 		}
 		return out;
 	}

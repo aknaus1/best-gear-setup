@@ -60,6 +60,21 @@ public final class ProtectionPrayers
 		/** Every overhead used in the fight in priority order, including {@link #prayer}; empty when none is. */
 		List<Overhead> switches;
 		String note;
+		/** The Wiki data couldn't be read, so no prayer is recommended either way. */
+		boolean unknown;
+
+		public Advice(Overhead prayer, List<Overhead> switches, String note)
+		{
+			this(prayer, switches, note, false);
+		}
+
+		public Advice(Overhead prayer, List<Overhead> switches, String note, boolean unknown)
+		{
+			this.prayer = prayer;
+			this.switches = switches;
+			this.note = note;
+			this.unknown = unknown;
+		}
 
 		public boolean isSwitching()
 		{
@@ -74,12 +89,12 @@ public final class ProtectionPrayers
 				return "Switch: " + switches.stream().map(o -> o.toString().replace("Protect from ", ""))
 					.collect(Collectors.joining(" / "));
 			}
-			return prayer == null ? "None needed" : prayer.toString();
+			return prayer != null ? prayer.toString() : unknown ? "Unknown \u2013 check the Wiki" : "None needed";
 		}
 	}
 
 	private static final Advice UNKNOWN = new Advice(null, Collections.emptyList(),
-		"The Wiki lists no protectable attack styles for this target.");
+		"The Wiki attack data for this target can't be read, so check its Wiki page.", true);
 
 	/** Curated raid advice by name prefix, most specific first: {melee range, from distance}. */
 	private static final Map<String, Advice[]> RAIDS = new LinkedHashMap<>();
@@ -133,24 +148,30 @@ public final class ProtectionPrayers
 			+ "its slam.", Overhead.MAGIC, Overhead.MISSILES));
 		// Theatre of Blood
 		both("the maiden of sugadinti", advice("Maiden's blood attacks are magic.", Overhead.MAGIC));
-		both("nylocas matomenos", advice("The nylocas don't attack; keep Protect from Magic against Maiden.", Overhead.MAGIC));
-		both("pestilent bloat", advice("None: dodge the falling flesh. Protect from Melee only helps while you stand "
-			+ "under Bloat."));
+		// Only the Maiden room's nylocas: the Verzik room's use their own Wiki data.
+		for (String mode : new String[]{"entry", "normal", "hard"})
+		{
+			both("nylocas matomenos (" + mode + " mode maiden)", advice("The nylocas don't attack; keep Protect from Magic "
+				+ "against Maiden.", Overhead.MAGIC));
+		}
+		both("pestilent bloat", advice("None: step out from under Bloat before it stomps and dodge the falling flesh."));
 		both("nylocas vasilias (melee)", advice("Vasilias attacks with its current form's style and changes form every "
 			+ "few attacks.", Overhead.MELEE));
 		both("nylocas vasilias (ranged)", advice("Vasilias attacks with its current form's style and changes form every "
 			+ "few attacks.", Overhead.MISSILES));
 		both("nylocas vasilias (magic)", advice("Vasilias attacks with its current form's style and changes form every "
 			+ "few attacks.", Overhead.MAGIC));
-		raid("sotetseg", advice("Sotetseg alternates magic and ranged orbs: pray against each. Use Protect from Melee "
-			+ "while you tank it in melee range.", Overhead.MAGIC, Overhead.MISSILES, Overhead.MELEE),
+		raid("sotetseg", advice("Tanking in melee range: Protect from Melee against its melee, switching to Magic or "
+			+ "Missiles for its magic and ranged orbs.", Overhead.MELEE, Overhead.MAGIC, Overhead.MISSILES),
 			advice("Sotetseg alternates magic and ranged orbs: pray against each.", Overhead.MAGIC, Overhead.MISSILES));
-		both("xarpus", advice("Xarpus spits ranged attacks; its acid pools aren't prayable.", Overhead.MISSILES));
+		both("xarpus", advice("None needed: Xarpus's spit is typeless, so no overhead reduces it (Protect from Missiles "
+			+ "is only habit). Avoid the acid pools."));
 		both("verzik vitur (phase 1)", advice("Hide behind a pillar; her P1 attack is magic.", Overhead.MAGIC));
 		both("verzik vitur (phase 2)", advice("Verzik P2 alternates magic and ranged attacks; step off the ranged "
 			+ "bomb tiles and don't stand under her.", Overhead.MAGIC, Overhead.MISSILES));
-		raid("verzik vitur (phase 3)", advice("Verzik P3 melees players in her range and otherwise rotates magic and "
-			+ "ranged; every fifth attack is a special.", Overhead.MELEE, Overhead.MAGIC, Overhead.MISSILES),
+		raid("verzik vitur (phase 3)", advice("Pray against her magic and ranged attacks. Her melee is typeless and no "
+			+ "prayer blocks it: stay out of her melee range unless you are tanking. Every fifth attack is a special.",
+			Overhead.MAGIC, Overhead.MISSILES),
 			advice("Verzik P3 rotates magic and ranged at distance; every fifth attack is a special.",
 				Overhead.MAGIC, Overhead.MISSILES));
 	}
@@ -202,7 +223,9 @@ public final class ProtectionPrayers
 
 	/**
 	 * The Wiki attack styles: every protectable style, highest max hit first. Typeless, dragonfire, poison and
-	 * fully prayer-penetrating attacks are left out. From distance, melee attacks are dropped.
+	 * fully prayer-penetrating attacks are left out, and "all" means all three styles. From distance, melee attacks
+	 * are dropped unless the monster only has melee, since it walks up to you unless you safespot it. Data that
+	 * can't be read (e.g. "none" with a max hit, or "various") gives no recommendation rather than "None needed".
 	 */
 	static Advice fromAttackStyles(Monster monster, boolean meleeRange)
 	{
@@ -212,31 +235,57 @@ public final class ProtectionPrayers
 			return UNKNOWN;
 		}
 		Map<Overhead, Integer> maxHits = new EnumMap<>(Overhead.class);
+		boolean unknown = false;
+		boolean unprotectable = false;
 		for (Map.Entry<String, Monster.MonsterAttack> entry : attacks.entrySet())
 		{
 			Monster.MonsterAttack attack = entry.getValue();
-			if (attack == null || attack.isTypeless())
+			if (attack == null)
 			{
 				continue;
 			}
-			for (Overhead overhead : protectedBy(entry.getKey()))
+			String style = entry.getKey().toLowerCase(Locale.ROOT).trim();
+			if (style.equals("none") || style.equals("n/a"))
 			{
-				maxHits.merge(overhead, attack.getMaxHit(), Math::max);
+				// No attack, unless the Wiki still gives it a max hit.
+				unknown |= attack.getMaxHit() > 0;
+				continue;
+			}
+			if (attack.isTypeless())
+			{
+				unprotectable = true;
+				continue;
+			}
+			// Several attacks can share one entry, e.g. "ranged <br/> typeless".
+			for (String part : style.split("<br\\s*/?>"))
+			{
+				Set<Overhead> blocked = protectedBy(part);
+				if (blocked.isEmpty())
+				{
+					boolean known = unprotectable(part);
+					unprotectable |= known;
+					unknown |= !known;
+				}
+				for (Overhead overhead : blocked)
+				{
+					maxHits.merge(overhead, attack.getMaxHit(), Math::max);
+				}
 			}
 		}
 		if (maxHits.isEmpty())
 		{
-			return UNKNOWN;
+			return unknown ? UNKNOWN : new Advice(null, Collections.emptyList(), unprotectable
+				? "Its attacks aren't blocked by protection prayers." : "It doesn't attack.");
 		}
-		boolean meleeOnly = maxHits.keySet().equals(EnumSet.of(Overhead.MELEE));
+		String partial = unknown ? " Some of its Wiki attack data can't be read." : "";
+		if (!meleeRange && maxHits.keySet().equals(EnumSet.of(Overhead.MELEE)))
+		{
+			return new Advice(Overhead.MELEE, Collections.singletonList(Overhead.MELEE), "Melee only: it walks up to "
+				+ "you, so pray Melee; none is needed if you safespot it or keep out of its reach." + partial);
+		}
 		if (!meleeRange)
 		{
 			maxHits.remove(Overhead.MELEE);
-		}
-		if (maxHits.isEmpty())
-		{
-			return new Advice(null, Collections.emptyList(), meleeOnly
-				? "Melee-only attacker: none needed at distance; Protect from Melee if it reaches you." : null);
 		}
 		// Highest max hit first; ties favour ranged, then magic (melee setups can usually step out of melee).
 		List<Overhead> order = new ArrayList<>(maxHits.keySet());
@@ -247,7 +296,7 @@ public final class ProtectionPrayers
 		String note = order.size() == 1 ? "Wiki attack style: " + styles + "."
 			: "Wiki attack styles: " + styles + ". Pray against the incoming style; " + order.get(0).toString()
 				+ (maxHits.get(order.get(0)) > 0 ? " covers the hardest hit." : " is a safe default.");
-		return new Advice(order.get(0), Collections.unmodifiableList(order), note);
+		return new Advice(order.get(0), Collections.unmodifiableList(order), note + partial);
 	}
 
 	private static int tieRank(Overhead overhead)
@@ -255,15 +304,29 @@ public final class ProtectionPrayers
 		return overhead == Overhead.MISSILES ? 0 : overhead == Overhead.MAGIC ? 1 : 2;
 	}
 
-	/** The overheads that block an attack, from the Wiki's attack style names (e.g. "magical ranged", "crush"). */
+	/** Attack styles no overhead blocks: typeless, dragonfire and breath, poison, bleed, curses and prayer-piercing. */
+	static boolean unprotectable(String style)
+	{
+		String s = style.toLowerCase(Locale.ROOT);
+		return s.contains("typeless") || s.contains("prayer penetration") || s.contains("dragonfire")
+			|| s.contains("breath") || s.contains("poison") || s.contains("bleed") || s.contains("curse");
+	}
+
+	/**
+	 * The overheads that block an attack, from the Wiki's attack style names (e.g. "magical ranged", "crush"); empty
+	 * for attacks no overhead blocks and for names that can't be read. "All" is all three styles.
+	 */
 	static Set<Overhead> protectedBy(String style)
 	{
 		Set<Overhead> out = EnumSet.noneOf(Overhead.class);
-		String s = style.toLowerCase(Locale.ROOT);
-		if (s.contains("typeless") || s.contains("prayer penetration") || s.contains("dragonfire")
-			|| s.contains("breath") || s.contains("poison") || s.contains("bleed") || s.contains("curse"))
+		String s = style.toLowerCase(Locale.ROOT).trim();
+		if (unprotectable(s))
 		{
 			return out;
+		}
+		if (s.equals("all"))
+		{
+			return EnumSet.allOf(Overhead.class);
 		}
 		// "Magical melee" and "magical ranged" are protected by the prayer for how they are delivered.
 		if (s.contains("magical melee"))

@@ -140,26 +140,69 @@ public class RaidOptionsTest
 	}
 
 	@Test
-	public void savedStyleChoicesRestrictTheEncounterAndRoundTrip()
+	public void savedStyleChoicesApplyToEveryPhaseOfTheBossAndRoundTrip()
 	{
 		String saved = RaidOptions.withStyle("", RaidPlanType.TOA, "Zebak", RaidStyle.MAGIC);
-		saved = RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Mystics", RaidStyle.MELEE);
-		saved = RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Vanguard: Melee", RaidStyle.RANGED);
+		saved = RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Skeletal Mystic", RaidStyle.MELEE);
+		saved = RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Vanguard", RaidStyle.RANGED);
 		RaidOptions options = RaidOptions.builder().styles(RaidOptions.parse(saved)).build();
 		assertEquals(RaidStyle.MAGIC, options.style(RaidPlanType.TOA, "Zebak"));
 		assertEquals(RaidStyle.AUTO, options.style(RaidPlanType.TOB, "Zebak"));
-		RaidEncounter zebak = find(encounters(RaidPlanType.TOA, options), "Zebak");
-		assertEquals(EnumSet.of(AttackStyle.Type.MAGIC), zebak.getStyles());
+		List<RaidEncounter> toa = encounters(RaidPlanType.TOA, options);
+		assertEquals(EnumSet.of(AttackStyle.Type.MAGIC), find(toa, "Zebak").getStyles());
+		assertEquals(EnumSet.of(AttackStyle.Type.MAGIC), find(toa, "Zebak Enraged").getStyles());
+		assertEquals(RaidStyle.MAGIC, find(toa, "Zebak Enraged").getDisplayedStyleChoice());
 		RaidEncounter mystics = find(encounters(RaidPlanType.COX_CM, options), "Mystics");
 		assertEquals(EnumSet.of(AttackStyle.Type.STAB, AttackStyle.Type.SLASH, AttackStyle.Type.CRUSH), mystics.getStyles());
-		// A style the target can't be damaged by keeps its required style.
+		// A style the target can't be damaged by keeps Auto for that phase.
 		RaidEncounter vanguard = find(encounters(RaidPlanType.COX_CM, options), "Vanguard: Melee");
 		assertEquals(EnumSet.of(AttackStyle.Type.MAGIC), vanguard.getStyles());
+		assertTrue(vanguard.isStyleFallback());
 		assertEquals(Collections.singletonList(RaidStyle.AUTO), vanguard.getStyleChoices());
+		assertEquals(RaidStyle.AUTO, vanguard.getDisplayedStyleChoice());
 		// Auto removes the saved entry; unknown entries are ignored.
-		assertEquals(RaidOptions.withStyle(RaidOptions.withStyle("", RaidPlanType.COX_CM, "Mystics", RaidStyle.MELEE),
-			RaidPlanType.TOA, "Zebak", RaidStyle.MAGIC), RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Vanguard: Melee", RaidStyle.AUTO));
+		assertEquals(RaidOptions.withStyle(RaidOptions.withStyle("", RaidPlanType.COX_CM, "Skeletal Mystic", RaidStyle.MELEE),
+			RaidPlanType.TOA, "Zebak", RaidStyle.MAGIC), RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Vanguard", RaidStyle.AUTO));
 		assertEquals(Collections.singletonMap("TOA|Zebak", RaidStyle.MAGIC), RaidOptions.parse("TOA|Zebak=MAGIC;bad;TOB|Maiden=NOPE"));
+		assertTrue(RaidOptions.hasStyles(saved, RaidPlanType.COX_CM));
+		assertFalse(RaidOptions.hasStyles(saved, RaidPlanType.TOB));
+		assertEquals("TOA|Zebak=MAGIC", RaidOptions.withoutStyles(saved, RaidPlanType.COX_CM));
+	}
+
+	@Test
+	public void styleChoicesLeaveOutStylesTheTargetIsImmuneTo()
+	{
+		List<RaidEncounter> cox = encounters(RaidPlanType.COX_CM, RaidOptions.DEFAULT);
+		assertFalse(find(cox, "Tekton").getStyleChoices().contains(RaidStyle.RANGED));
+		assertTrue(find(cox, "Tekton").getStyleChoices().containsAll(Arrays.asList(RaidStyle.MELEE, RaidStyle.MAGIC)));
+		assertFalse(find(cox, "Vasa Crystal").getStyleChoices().contains(RaidStyle.RANGED));
+		assertEquals(Collections.singletonList(RaidStyle.AUTO), find(cox, "Guardians").getStyleChoices());
+		assertFalse(find(cox, "Vespula").getStyleChoices().contains(RaidStyle.MELEE));
+		assertFalse(find(cox, "Vespula Portal").getStyleChoices().contains(RaidStyle.MELEE));
+		List<RaidEncounter> toa = encounters(RaidPlanType.TOA, RaidOptions.DEFAULT);
+		assertFalse(find(toa, "Akkha: Immune To Melee").getStyleChoices().contains(RaidStyle.MELEE));
+		assertEquals(Collections.singletonList(RaidStyle.AUTO), find(toa, "Akkha: Final Stand (Melee Only)").getStyleChoices());
+
+		// One choice for Akkha: phases immune to it keep Auto, the others use it.
+		RaidOptions melee = RaidOptions.builder().styles(RaidOptions.parse("TOA|Akkha=MELEE")).build();
+		List<RaidEncounter> akkha = encounters(RaidPlanType.TOA, melee);
+		assertTrue(find(akkha, "Akkha: Immune To Melee").isStyleFallback());
+		assertTrue(find(akkha, "Akkha: Immune To Melee").getStyles().isEmpty());
+		assertEquals(EnumSet.of(AttackStyle.Type.STAB, AttackStyle.Type.SLASH, AttackStyle.Type.CRUSH),
+			find(akkha, "Akkha: Immune To Ranged").getStyles());
+		assertFalse(find(akkha, "Akkha: Immune To Ranged").isStyleFallback());
+	}
+
+	@Test
+	public void aSavedChoiceThatMatchesAutoIsShownAsAuto()
+	{
+		RaidOptions magic = RaidOptions.builder().styles(RaidOptions.parse("TOB|The Maiden Of Sugadinti=MAGIC")).build();
+		RaidEncounter dps = find(encounters(RaidPlanType.TOB, magic), "Maiden");
+		assertEquals(RaidStyle.MAGIC, dps.getDisplayedStyleChoice());
+		RaidEncounter freezer = find(encounters(RaidPlanType.TOB, magic.toBuilder().maidenRole(RaidOptions.MaidenRole.FREEZER).build()), "Maiden");
+		assertFalse(freezer.getStyleChoices().contains(RaidStyle.MAGIC));
+		assertEquals(RaidStyle.AUTO, freezer.getDisplayedStyleChoice());
+		assertEquals(EnumSet.of(AttackStyle.Type.MAGIC), freezer.getStyles());
 	}
 
 	@Test

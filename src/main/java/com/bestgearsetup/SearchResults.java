@@ -91,6 +91,16 @@ public class SearchResults
 			assumedLevels, locks, markOfDarkness, rememberedLevels, warnings, thrall, raidScaling, baseDefence, prayerLevel);
 	}
 
+	/** The same results with extra warnings shown beside them, e.g. a raid style choice that couldn't be used. */
+	public SearchResults withWarnings(List<String> extra)
+	{
+		if (extra.isEmpty()) { return this; }
+		List<String> all = new ArrayList<>(warnings);
+		extra.stream().filter(w -> !all.contains(w)).forEach(all::add);
+		return new SearchResults(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks,
+			markOfDarkness, rememberedLevels, Collections.unmodifiableList(all), thrall, raidScaling, baseDefence, prayerLevel);
+	}
+
 	/** The overhead to use against this target with a setup, which fights in melee range or from distance. */
 	public ProtectionPrayers.Advice protectionFor(SetupResult setup)
 	{

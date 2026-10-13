@@ -52,16 +52,39 @@ public class ProtectionPrayersTest
 	}
 
 	@Test
-	public void meleeOnlyMonstersNeedNoPrayerFromDistance()
+	public void meleeOnlyMonstersStillNeedMeleeFromDistanceUnlessSafespotted()
 	{
 		Monster demon = attacking("abyssal demon (standard)", "stab", 8);
 		Advice close = ProtectionPrayers.recommend(demon, CombatClass.MELEE, 99);
 		assertEquals(Overhead.MELEE, close.getPrayer());
 		assertFalse(close.isSwitching());
 		Advice far = ProtectionPrayers.recommend(demon, CombatClass.RANGED, 99);
-		assertNull(far.getPrayer());
-		assertEquals("None needed", far.summary());
-		assertTrue(far.getNote().contains("Melee-only"));
+		assertEquals(Overhead.MELEE, far.getPrayer());
+		assertEquals("Protect from Melee", far.summary());
+		assertTrue(far.getNote().contains("safespot"));
+	}
+
+	@Test
+	public void unreadableAttackDataIsUnknownRatherThanNoneNeeded()
+	{
+		Advice all = ProtectionPrayers.recommend(attacking("tormented demon", "all", 30), CombatClass.MELEE, 99);
+		assertEquals(Arrays.asList(Overhead.MISSILES, Overhead.MAGIC, Overhead.MELEE), all.getSwitches());
+		Advice unknown = ProtectionPrayers.recommend(attacking("mystery", "none", 22), CombatClass.MELEE, 99);
+		assertNull(unknown.getPrayer());
+		assertTrue(unknown.isUnknown());
+		assertEquals("Unknown \u2013 check the Wiki", unknown.summary());
+		assertTrue(ProtectionPrayers.recommend(attacking("mystery", "various", 10), CombatClass.MAGIC, 99).isUnknown());
+		assertTrue(ProtectionPrayers.recommend(new Monster(), CombatClass.MAGIC, 99).isUnknown());
+		// No attack at all, or only attacks no overhead blocks: nothing to pray.
+		Advice idle = ProtectionPrayers.recommend(attacking("practice dummy", "n/a", 0), CombatClass.MELEE, 99);
+		assertEquals("None needed", idle.summary());
+		assertFalse(idle.isUnknown());
+		Advice typeless = ProtectionPrayers.recommend(attacking("spitter", "typeless ranged", 11, "poison", 11), CombatClass.RANGED, 99);
+		assertEquals("None needed", typeless.summary());
+		assertTrue(typeless.getNote().contains("aren't blocked"));
+		// Several attacks in one entry are read separately.
+		assertEquals(Overhead.MISSILES, ProtectionPrayers.recommend(attacking("wasp", "ranged <br/> typeless", 20),
+			CombatClass.MAGIC, 99).getPrayer());
 	}
 
 	@Test
@@ -139,17 +162,23 @@ public class ProtectionPrayersTest
 		assertFalse(ProtectionPrayers.recommend(bundled("akkha"), CombatClass.MAGIC, 99).getSwitches().contains(Overhead.MELEE));
 		assertEquals(Overhead.MAGIC, ProtectionPrayers.recommend(bundled("the maiden of sugadinti (normal)"), CombatClass.MAGIC, 99).getPrayer());
 		assertEquals(Overhead.MAGIC, ProtectionPrayers.recommend(bundled("nylocas matomenos (normal mode maiden)"), CombatClass.MAGIC, 99).getPrayer());
+		Monster verzikNylocas = bundled("nylocas matomenos (normal mode verzik)");
+		assertNull("The Maiden advice is only for the Maiden room", ProtectionPrayers.curated(verzikNylocas, false));
 		assertNull(ProtectionPrayers.recommend(bundled("pestilent bloat (normal)"), CombatClass.MELEE, 99).getPrayer());
 		assertEquals(Overhead.MELEE, ProtectionPrayers.recommend(bundled("nylocas vasilias (melee) (normal)"), CombatClass.MELEE, 99).getPrayer());
 		assertEquals(Overhead.MISSILES, ProtectionPrayers.recommend(bundled("nylocas vasilias (ranged) (normal)"), CombatClass.RANGED, 99).getPrayer());
 		assertEquals(Overhead.MAGIC, ProtectionPrayers.recommend(bundled("nylocas vasilias (magic) (normal)"), CombatClass.MAGIC, 99).getPrayer());
 		Advice sotetseg = ProtectionPrayers.recommend(bundled("sotetseg (normal)"), CombatClass.MELEE, 99);
-		assertTrue(sotetseg.getSwitches().containsAll(Arrays.asList(Overhead.MAGIC, Overhead.MISSILES, Overhead.MELEE)));
+		assertEquals(Arrays.asList(Overhead.MELEE, Overhead.MAGIC, Overhead.MISSILES), sotetseg.getSwitches());
 		assertFalse(ProtectionPrayers.recommend(bundled("sotetseg (normal)"), CombatClass.RANGED, 99).getSwitches().contains(Overhead.MELEE));
-		assertEquals(Overhead.MISSILES, ProtectionPrayers.recommend(bundled("xarpus"), CombatClass.RANGED, 99).getPrayer());
+		// Xarpus's spit is typeless in the Wiki data, so no overhead reduces it.
+		Advice xarpus = ProtectionPrayers.recommend(bundled("xarpus"), CombatClass.RANGED, 99);
+		assertNull(xarpus.getPrayer());
+		assertTrue(xarpus.getNote().contains("typeless"));
+		// Verzik P3's melee is typeless crush: even in melee range the overheads are for her magic and ranged.
 		Advice verzik = ProtectionPrayers.recommend(bundled("verzik vitur (phase 3)"), CombatClass.MELEE, 99);
-		assertEquals(Overhead.MELEE, verzik.getPrayer());
-		assertTrue(verzik.isSwitching());
+		assertEquals(Arrays.asList(Overhead.MAGIC, Overhead.MISSILES), verzik.getSwitches());
+		assertTrue(verzik.getNote().contains("typeless"));
 		assertFalse(ProtectionPrayers.recommend(bundled("verzik vitur (phase 3)"), CombatClass.RANGED, 99)
 			.getSwitches().contains(Overhead.MELEE));
 		assertNull(ProtectionPrayers.recommend(bundled("tumeken's warden (core-ejected)"), CombatClass.MELEE, 99).getPrayer());

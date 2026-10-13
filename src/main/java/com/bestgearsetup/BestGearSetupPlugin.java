@@ -1412,9 +1412,11 @@ public class BestGearSetupPlugin extends Plugin
 		overrides.put("aoe", false);
 		overrides.put("wilderness", false);
 		if (!encounter.isRaidSupplies()) { overrides.put("raidPotions", false); }
-		SearchResults found = computeSearch(data, summary, levels, remembered, prayerUnlocks, diary, false, mining,
+		List<String> styleWarnings = new ArrayList<>();
+		SearchResults searched = computeSearch(data, summary, levels, remembered, prayerUnlocks, diary, false, mining,
 			quotes, encounterOwned, quantities, generation, SearchAssumptions.capture(config, overrides), liveRaid, notes,
-			raidStyles(encounter, config), excluded, config.raidSpellbook(), publishProgress);
+			raidStyles(encounter, config, styleWarnings), excluded, config.raidSpellbook(), publishProgress);
+		SearchResults found = searched == null ? null : searched.withWarnings(styleWarnings);
 		if (found == null) { return true; }
 		if (found.hasBlockingLock()) { return false; }
 		SetupResult best = found.getByType().values().stream().flatMap(Collection::stream)
@@ -1430,18 +1432,22 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	/**
-	 * The attack types an encounter is searched with. When Auto's default (e.g. ranged or magic for Zebak) shares
-	 * no type with the enabled attack styles, the encounter falls back to the types it can be damaged by.
+	 * The attack types an encounter is searched with. A saved choice whose types are all turned off under Attack
+	 * styles falls back to Auto, with a warning; when Auto's default (e.g. ranged or magic for Zebak) is turned
+	 * off too, the encounter uses every type the raid allows. A choice never leaves an encounter unsearchable.
 	 */
-	private Set<AttackStyle.Type> raidStyles(RaidEncounter encounter, BestGearSetupConfig config)
+	private Set<AttackStyle.Type> raidStyles(RaidEncounter encounter, BestGearSetupConfig config, List<String> warnings)
 	{
+		Set<AttackStyle.Type> enabled = buildSettings(config).getStyles();
 		Set<AttackStyle.Type> styles = encounter.getStyles();
-		if (encounter.getStyleChoice() == RaidStyle.AUTO && !styles.isEmpty()
-			&& Collections.disjoint(styles, buildSettings(config).getStyles()))
+		if (!styles.isEmpty() && Collections.disjoint(styles, enabled) && encounter.getStyleChoice() != RaidStyle.AUTO
+			&& !encounter.isStyleFallback())
 		{
-			return encounter.getRequiredStyles();
+			warnings.add(encounter.getLabel() + ": the chosen " + encounter.getStyleChoice() + " attack style is turned off "
+				+ "under Attack styles, so Auto was used.");
+			styles = encounter.getAutoStyles();
 		}
-		return styles;
+		return !styles.isEmpty() && Collections.disjoint(styles, enabled) ? encounter.getRequiredStyles() : styles;
 	}
 
 	/** Search every raid target, then consolidate switches when the independent setups exceed the limit. */
@@ -1454,6 +1460,8 @@ public class BestGearSetupPlugin extends Plugin
 			RaidOptions.of(config));
 		RaidSearchProgress progress = new RaidSearchProgress(encounters.size(), publishProgress);
 		BooleanSupplier cancelled = () -> generation != searchGeneration.get();
+		// Encounters whose chosen style found no setup in the first pass; later passes keep the wider search.
+		String[] widened = new String[encounters.size()];
 		RaidConsolidator.Search search = (index, excluded, pass) ->
 		{
 			RaidEncounter encounter = encounters.get(index);
@@ -1493,10 +1501,27 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				data.getItems(Slot.WEAPON).stream().filter(RaidPlan::providedInRaid).forEach(item -> encounterOwned.add(item.getId()));
 			}
+			List<String> styleWarnings = new ArrayList<>();
+			Set<AttackStyle.Type> styles = widened[index] != null ? encounter.getRequiredStyles() : raidStyles(encounter, config, styleWarnings);
+			BestGearSetupConfig assumptions = SearchAssumptions.capture(config, overrides);
+			List<String> notes = same ? detectedNotes : Collections.emptyList();
 			SearchResults result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
-				false, mining, quotes, encounterOwned, quantities, generation, SearchAssumptions.capture(config, overrides),
-				liveRaid, same ? detectedNotes : Collections.emptyList(), raidStyles(encounter, config), excluded, config.raidSpellbook(), progress.encounter(pass, index));
-			return result;
+				false, mining, quotes, encounterOwned, quantities, generation, assumptions,
+				liveRaid, notes, styles, excluded, config.raidSpellbook(), progress.encounter(pass, index));
+			if (result != null && result.isEmpty() && pass == 0 && !styles.equals(encounter.getRequiredStyles()))
+			{
+				// A chosen (or default distance) style without a usable setup, e.g. no ranged gear owned, must not
+				// fail the whole raid: search every style the raid allows here and say so.
+				widened[index] = encounter.getLabel() + ": no usable " + (encounter.getStyleChoice() == RaidStyle.AUTO
+					? encounter.getPreferredStyle() : encounter.getStyleChoice()).toString().toLowerCase(Locale.ROOT)
+					+ " setup, so every attack style was searched.";
+				styleWarnings.clear();
+				result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
+					false, mining, quotes, encounterOwned, quantities, generation, assumptions,
+					liveRaid, notes, encounter.getRequiredStyles(), excluded, config.raidSpellbook(), progress.encounter(pass, index));
+			}
+			if (widened[index] != null) { styleWarnings.add(widened[index]); }
+			return result == null ? null : result.withWarnings(styleWarnings);
 		};
 		List<SearchResults> results = new ArrayList<>();
 		for (int index = 0; index < encounters.size(); index++)

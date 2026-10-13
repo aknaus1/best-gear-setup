@@ -32,20 +32,28 @@ follow **Include raid potions**. Named potion overrides still apply and their wa
 Dawnbringer is available for Verzik P1 and is obtained in the raid, so it is not a bank withdrawal or an
 entry inventory slot.
 
-**Attack style** (under the boss selector, for the displayed encounter) restricts that encounter's search to
-melee, ranged, magic or ranged-or-magic. *Auto* keeps the encounter's default: ranged or magic for bosses
-fought from distance in practice even when melee is higher DPS (Skeletal Mystics, the large Muttadile and
-Zebak, who can't be tanked in melee range), and any style elsewhere. Encounters with a fixed style
-(Vanguards, Warden P2 phases, Maiden's nylocas, and each colour of Nylocas and Vasilias form) don't offer a
-choice. When Auto's default shares no style with the enabled **Attack styles**, the encounter falls
-back to every style it can be damaged by. The choice is saved per raid and encounter and re-plans the raid.
+**Attack style** (under the boss selector) restricts the displayed boss's search to melee, ranged, magic or
+ranged-or-magic. *Auto* keeps each encounter's default: ranged or magic for bosses fought from distance in
+practice even when melee is higher DPS (Skeletal Mystics, the large Muttadile and Zebak, who can't be tanked
+in melee range), and any style elsewhere. Only styles the displayed phase can be damaged by are offered (no
+ranged for Tekton or the Vasa crystal, no melee for Vespula, only melee for Guardians, and so on), and
+encounters with a fixed style (Vanguards, Warden P2 phases, Maiden's nylocas, and each colour of Nylocas
+and Vasilias form) don't offer a choice. The choice is saved per raid and boss and covers every phase and
+version of that boss; a phase the chosen style can't damage (e.g. Akkha while immune to it) keeps Auto.
+Changing it re-plans the raid and reopens the encounter you were looking at.
+
+A choice never stops the raid being planned. When its styles are all turned off under **Attack styles**,
+the encounter uses Auto; when Auto's default is turned off too, every style the encounter allows. When a
+chosen or default style finds no usable setup (e.g. no ranged gear owned), the encounter is searched with
+every style it allows. Each case is listed as a warning beside the results. If a raid still can't be
+planned, the error offers **Reset raid attack styles to Auto**.
 
 **Theatre of Blood roles** (under **Fight → Raid** while planning ToB) change the encounters:
 
 - **ToB Maiden role:** *DPS and freeze* (the default, for solo and small teams) plans the boss and the
   Nylocas Matomenos. *DPS* leaves the nylocas to the freezers. *Freezer* stays on magic at Maiden as well as
-  on the nylocas; freezing needs Ice or Blood Barrage, so the results warn unless **Raid spellbook** is
-  Ancient.
+  on the nylocas. Freezing needs Ice or Blood Barrage, so with *Freezer* or *DPS and freeze* the results
+  warn unless **Raid spellbook** is Ancient.
 - **ToB Nylocas role:** *All styles* plans every colour of wave nylocas; *Melee*, *Ranged* and *Magic* plan
   only the grey, green or blue waves. Each colour only takes damage from its own style. Every role still
   plans each Vasilias form with that form's style.
@@ -170,13 +178,18 @@ open the sidebar or perform any game action.
   next to the prayer and potions when a setup uses it. With it turned off, elemental weaknesses such as
   Yama's weakness to water can outrank demonbane spells.
 - **Protection prayer:** each result names the overhead to use with the shown setup, as *Protect from Magic*,
-  *Switch: Magic / Missiles* or *None needed*. Melee setups stand in the target's melee range; ranged and
-  magic setups are assumed to fight from distance, where melee-only attacks don't reach. Raid bosses use
-  curated advice with a short reason where the fight switches (Olm, Akkha, Zebak, Vasa, Sotetseg, Verzik P2
-  and P3, the Wardens and Vasilias forms). Other monsters use the Wiki's attack styles: the protectable style
-  with the highest max hit comes first, and typeless, dragonfire and prayer-piercing attacks are left out.
-  Overheads above your Prayer level (Magic 37, Missiles 40, Melee 43) are dropped and the note says why.
-  It is advice only and doesn't change the DPS calculation.
+  *Switch: Magic / Missiles*, *None needed* or *Unknown – check the Wiki*. Melee setups stand in the target's
+  melee range; ranged and magic setups are assumed to fight from distance, where a monster's melee attacks
+  are dropped if it has others. A melee-only monster still gets *Protect from Melee*, since it walks up to
+  you; the note says none is needed if you safespot it. Raid bosses use curated advice with a short reason
+  where the fight switches (Olm, Akkha, Zebak, Vasa, Sotetseg, Verzik P2 and P3, the Wardens and Vasilias
+  forms). Attacks no overhead blocks are called out: Xarpus's spit and Verzik P3's melee are typeless, so
+  Xarpus needs none and Verzik P3 is Magic / Missiles even for her tank. Other monsters use the Wiki's attack
+  styles: the protectable style with the highest max hit comes first, "all" means all three, and typeless,
+  dragonfire and prayer-piercing attacks are left out. *None needed* only appears when the monster has no
+  protectable attack; attack data that can't be read shows *Unknown*. Overheads above your Prayer level
+  (Magic 37, Missiles 40, Melee 43) are dropped and the note says why. It is advice only and doesn't change
+  the DPS calculation.
 - **Potions** are set per combat style with the dropdowns under **Combat boosts**: *Best available* (the
   strongest potion you can use anywhere, leaving out raid, NMZ and Deadman potions and brews), *None*, or
   any potion from the potion table (overloads, smelling salts, ...). A potion picked by name is always used.

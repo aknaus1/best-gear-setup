@@ -157,9 +157,11 @@ class FightOptionsPanel extends JPanel
 	private void updateVisibility()
 	{
 		RaidScaling.Raid raid = RaidScaling.raid(target);
-		raidSection.getParent().setVisible(raid != RaidScaling.Raid.NONE);
-		settingRows.row("raidPartySize").setVisible(raid != RaidScaling.Raid.NONE);
-		settingRows.row("toaRaidLevel").setVisible(raid == RaidScaling.Raid.TOA);
+		// A complete raid keeps its settings visible even on unscaled puzzle targets such as the ToA baboons.
+		boolean planned = raidPlan != RaidPlanType.SINGLE;
+		raidSection.getParent().setVisible(raid != RaidScaling.Raid.NONE || planned);
+		settingRows.row("raidPartySize").setVisible(raid != RaidScaling.Raid.NONE || planned);
+		settingRows.row("toaRaidLevel").setVisible(raid == RaidScaling.Raid.TOA || raidPlan == RaidPlanType.TOA);
 		settingRows.row("toaPathLevel").setVisible(raid == RaidScaling.Raid.TOA && RaidScaling.toaPath(target));
 		settingRows.row("coxChallengeMode").setVisible(raid == RaidScaling.Raid.COX);
 		settingRows.row("miningLevel").setVisible(raid == RaidScaling.Raid.COX && target.getName().contains("guardian"));
