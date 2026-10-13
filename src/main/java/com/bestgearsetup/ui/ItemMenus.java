@@ -1,6 +1,7 @@
 package com.bestgearsetup.ui;
 
 import com.bestgearsetup.BestGearSetupPlugin;
+import com.bestgearsetup.RaidPlan;
 import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
@@ -51,7 +52,7 @@ final class ItemMenus
 		{
 			String name = GameData.titleCase(item.getName());
 			GameData data = plugin.getGameData();
-			List<Integer> family = data == null ? Collections.emptyList() : data.variantFamily(item).stream()
+			List<Integer> family = data == null || item.getSlot() == null ? Collections.emptyList() : data.variantFamily(item).stream()
 				.map(GearItem::getId).collect(Collectors.toList());
 			if (family.size() > 1)
 			{
@@ -74,6 +75,23 @@ final class ItemMenus
 			}
 		}
 		return menu;
+	}
+
+	static JPopupMenu supply(RaidPlan.InventoryItem item, BestGearSetupPlugin plugin)
+	{
+		GearItem supply = new GearItem(); supply.setId(item.getIds().get(0)); supply.setName(item.getName());
+		JPopupMenu menu = create(supply, null, false, plugin);
+		addContents(menu, item.getContents(), plugin);
+		return menu;
+	}
+
+	static void addContents(JPopupMenu menu, List<RaidPlan.InventoryItem> contents, BestGearSetupPlugin plugin)
+	{
+		if (!contents.isEmpty()) { menu.addSeparator(); }
+		for (RaidPlan.InventoryItem item : contents)
+		{
+			add(menu, "Exclude " + GameData.titleCase(item.getName()), () -> plugin.setExcluded(item.getIds().get(0), true));
+		}
 	}
 
 	private static void add(JPopupMenu menu, String text, Runnable action)

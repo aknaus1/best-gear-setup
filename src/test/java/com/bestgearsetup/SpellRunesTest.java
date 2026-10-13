@@ -22,9 +22,12 @@ import java.util.Set;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
+import org.junit.BeforeClass;
 
 public class SpellRunesTest
 {
+	@BeforeClass public static void ownershipRules() { OwnershipRules.init(RuneLiteAPI.GSON); }
+
 	@Test
 	public void everyBundledSpellHasItsRunes() throws Exception
 	{
@@ -134,9 +137,60 @@ public class SpellRunesTest
 	}
 
 	@Test
+	public void bankLayoutPutsAnOwnedRunePouchBeforeTheRunes()
+	{
+		SetupResult barrage = new SetupResult(CombatClass.MAGIC, loadout("blood barrage", "kodai wand", null), null, 0);
+		Map<Integer, Integer> none = BestGearSetupBankView.cellsFor(barrage, Collections.emptyList(), id -> false);
+		assertFalse(none.containsKey(ItemID.BH_RUNE_POUCH));
+		assertEquals(Integer.valueOf(4), none.get(ItemID.DEATHRUNE));
+		// Both pouches owned: the divine one takes the cell, the regular one only fills it in its absence.
+		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(barrage, Collections.emptyList(),
+			id -> id == ItemID.DIVINE_RUNE_POUCH || id == ItemID.BH_RUNE_POUCH_TROUVER);
+		assertEquals(Integer.valueOf(4), cells.get(ItemID.DIVINE_RUNE_POUCH));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID.BH_RUNE_POUCH_TROUVER));
+		assertFalse(cells.containsKey(ItemID.BH_RUNE_POUCH));
+		assertEquals(Integer.valueOf(5), cells.get(ItemID.DEATHRUNE));
+		// No runes needed, no pouch.
+		assertFalse(BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MAGIC,
+			loadout(null, "trident of the swamp", null), null, 0), Collections.emptyList(), id -> true)
+			.containsKey(ItemID.DIVINE_RUNE_POUCH));
+	}
+
+	@Test
+	public void bankHighlightsIncludeAnOwnedRunePouchWhenRunesAreNeeded()
+	{
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
+		plugin.config = new BestGearSetupConfig() {};
+		plugin.ownedItems = new OwnedItems(null, null);
+		plugin.ownedItems.bank = Collections.singletonMap(ItemID.BH_RUNE_POUCH, 1L);
+		plugin.ownedItems.rebuild(true);
+		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MAGIC,
+			loadout("ice barrage", "kodai wand", null), null, 0));
+		assertTrue(plugin.getBankHighlightIds().contains(ItemID.BH_RUNE_POUCH));
+		assertFalse(plugin.getBankHighlightIds().contains(ItemID.DIVINE_RUNE_POUCH));
+		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout(null, "abyssal whip", null), null,
+			0));
+		assertFalse(plugin.getBankHighlightIds().contains(ItemID.BH_RUNE_POUCH));
+	}
+
+	@Test public void excludedDivinePouchFallsBackToOwnedRegularPouch()
+	{
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
+		plugin.config = new BestGearSetupConfig() { @Override public String excluded() { return Integer.toString(ItemID.DIVINE_RUNE_POUCH); } };
+		plugin.ownedItems = new OwnedItems(null, null);
+		java.util.Map<Integer, Long> bank = new java.util.HashMap<>();
+		bank.put(ItemID.DIVINE_RUNE_POUCH, 1L); bank.put(ItemID.BH_RUNE_POUCH, 1L);
+		plugin.ownedItems.bank = bank; plugin.ownedItems.rebuild(true);
+		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MAGIC, loadout("ice barrage", "kodai wand", null), null, 0));
+		assertFalse(plugin.getBankHighlightIds().contains(ItemID.DIVINE_RUNE_POUCH));
+		assertTrue(plugin.getBankHighlightIds().contains(ItemID.BH_RUNE_POUCH));
+	}
+
+	@Test
 	public void bankHighlightsIncludeSpellRunes()
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
+		plugin.ownedItems = new OwnedItems(null, null);
 		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MAGIC,
 			loadout("blood barrage", "kodai wand", null), null, 0));
 		assertTrue(plugin.getBankHighlightIds().containsAll(Arrays.asList(ItemID.DEATHRUNE, ItemID.BLOODRUNE,

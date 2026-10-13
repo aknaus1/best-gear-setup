@@ -3,18 +3,41 @@ package com.bestgearsetup;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.EncounterPhase;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Locale;
 import net.runelite.api.Client;
+import net.runelite.api.NPC;
+import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.gameval.VarbitID;
 
 /** Raid scaling read once from the matching live raid; never written to planning configuration. */
 final class LiveRaid
 {
 	final Map<String, Object> values = new HashMap<>();
+	final Map<String, Integer> pathLevels = new HashMap<>();
 	int maxCombat;
 	boolean raidDetected;
+
+	/** Read Akkha's actual protection prayer; other bosses and missing icons have no phase override. */
+	static EncounterPhase akkhaPhase(NPC npc)
+	{
+		if (npc == null || !"akkha".equalsIgnoreCase(npc.getName())) { return null; }
+		int[] archives = npc.getOverheadArchiveIds();
+		short[] sprites = npc.getOverheadSpriteIds();
+		if (archives == null || sprites == null) { return null; }
+		boolean melee = false, ranged = false, magic = false;
+		for (int i = 0; i < Math.min(archives.length, sprites.length); i++)
+		{
+			if (archives[i] != SpriteID.HEADICONS_PRAYER) { continue; }
+			melee |= sprites[i] == 0;
+			ranged |= sprites[i] == 1 || sprites[i] == 6;
+			magic |= sprites[i] == 2 || sprites[i] == 6;
+		}
+		return ranged && magic ? EncounterPhase.AKKHA_ENRAGE : melee ? EncounterPhase.AKKHA_IMMUNE_MELEE
+			: ranged ? EncounterPhase.AKKHA_IMMUNE_RANGED : magic ? EncounterPhase.AKKHA_IMMUNE_MAGIC : null;
+	}
 
 	static Monster target(MonsterSummary summary)
 	{
@@ -48,6 +71,10 @@ final class LiveRaid
 			{ size += client.getVarbitValue(id) > 0 ? 1 : 0; }
 			live.values.put("toaRaidLevel", Math.max(0, Math.min(600, client.getVarbitValue(VarbitID.TOA_CLIENT_RAID_LEVEL))));
 			String name = summary.getName().toLowerCase(Locale.ROOT);
+			live.pathLevels.put("zebak", Math.max(0, Math.min(6, client.getVarbitValue(VarbitID.TOA_CLIENT_CRONDIS_LEVEL))));
+			live.pathLevels.put("kephri", Math.max(0, Math.min(6, client.getVarbitValue(VarbitID.TOA_CLIENT_SCABARAS_LEVEL))));
+			live.pathLevels.put("akkha", Math.max(0, Math.min(6, client.getVarbitValue(VarbitID.TOA_CLIENT_HET_LEVEL))));
+			live.pathLevels.put("ba-ba", Math.max(0, Math.min(6, client.getVarbitValue(VarbitID.TOA_CLIENT_APMEKEN_LEVEL))));
 			int path = name.contains("zebak") ? VarbitID.TOA_CLIENT_CRONDIS_LEVEL : name.contains("kephri") ? VarbitID.TOA_CLIENT_SCABARAS_LEVEL
 				: name.contains("akkha") ? VarbitID.TOA_CLIENT_HET_LEVEL : name.contains("ba-ba") ? VarbitID.TOA_CLIENT_APMEKEN_LEVEL : -1;
 			if (path >= 0) { live.values.put("toaPathLevel", Math.max(0, Math.min(6, client.getVarbitValue(path)))); }
@@ -66,6 +93,7 @@ final class LiveRaid
 		{
 			live.values.keySet().removeIf(key -> key.startsWith("toa") || key.equals("coxChallengeMode"));
 			live.maxCombat = 0;
+			live.pathLevels.clear();
 		}
 		return live;
 	}

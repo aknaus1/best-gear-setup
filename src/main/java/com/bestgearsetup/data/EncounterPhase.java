@@ -7,6 +7,10 @@ package com.bestgearsetup.data;
 public enum EncounterPhase
 {
 	STANDARD("Standard"),
+	AKKHA_IMMUNE_MELEE("Akkha: immune to melee"),
+	AKKHA_IMMUNE_RANGED("Akkha: immune to ranged"),
+	AKKHA_IMMUNE_MAGIC("Akkha: immune to magic"),
+	AKKHA_ENRAGE("Akkha: final stand (melee only)"),
 	HUEYCOATL_PILLAR("Hueycoatl pillar"),
 	ROYAL_TITANS_OUT_OF_MELEE("Titans out of melee"),
 	ABYSSAL_SIRE_TRANSITION("Sire transition"),

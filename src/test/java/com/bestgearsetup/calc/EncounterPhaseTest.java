@@ -7,6 +7,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.data.EncounterPhase;
+import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
@@ -16,6 +17,30 @@ import org.junit.Test;
 public class EncounterPhaseTest
 {
 	private static final double EPS = 1e-10;
+
+	@Test public void akkhaProtectionBlocksTheProtectedClassInSearchAndDirectDamage()
+	{
+		Loadout melee = loadout("test sword", "slash sword", "slash,slash,accurate");
+		Loadout ranged = loadout("test bow", "bow", "rapid,ranged,rapid");
+		Loadout magic = loadout("trident of the seas", "powered staff", "accurate,magic,accurate");
+		for (EncounterPhase phase : new EncounterPhase[]{EncounterPhase.AKKHA_IMMUNE_MELEE,
+			EncounterPhase.AKKHA_IMMUNE_RANGED, EncounterPhase.AKKHA_IMMUNE_MAGIC, EncounterPhase.AKKHA_ENRAGE})
+		{
+			Monster akkha = target(11789, "akkha", phase);
+			for (Loadout setup : new Loadout[]{melee, ranged, magic})
+			{
+				CombatClass cls = WeaponRules.classOf(setup.getStyle());
+				boolean allowed = phase == EncounterPhase.AKKHA_ENRAGE ? cls == CombatClass.MELEE
+					: phase == EncounterPhase.AKKHA_IMMUNE_MELEE ? cls != CombatClass.MELEE
+					: phase == EncounterPhase.AKKHA_IMMUNE_RANGED ? cls != CombatClass.RANGED : cls != CombatClass.MAGIC;
+				assertEquals(allowed, Optimizer.classAllowed(akkha, cls));
+				assertEquals(allowed, EncounterImmunities.attackAllowed(akkha, setup));
+				if (!allowed) { assertEquals(0, calculate(setup, akkha).getDps(), EPS); }
+			}
+			Monster shadow = target(11797, "akkha's shadow", phase);
+			for (CombatClass cls : CombatClass.values()) { assertTrue(Optimizer.classAllowed(shadow, cls)); }
+		}
+	}
 
 	private static Loadout loadout(String name, String subcategory, String style)
 	{

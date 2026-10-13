@@ -22,6 +22,22 @@ import net.runelite.client.config.Units;
 @ConfigGroup(BestGearSetupConfig.GROUP)
 public interface BestGearSetupConfig extends Config
 {
+	@ConfigItem(keyName = "activeEncounter", name = "Active encounter",
+		description = "Follow the attackable NPC you are in combat with (your hits land on it, or it attacks you back) and recalculate when it changes. Tracked defence drains are included when Use active defence is enabled.",
+		section = searchSection, position = 9, hidden = true)
+	default boolean activeEncounter() { return false; }
+
+	@ConfigItem(keyName = "raidEquipmentLimit", name = "Raid equipment slots",
+		description = "Maximum inventory slots used by equipment switches, including special weapons and spare ammunition. Starting worn gear is excluded. Spell supplies and boosts must also fit in 28 slots.",
+		section = searchSection, position = 10, hidden = true)
+	@Range(min = 0, max = 28)
+	default int raidEquipmentLimit() { return 20; }
+
+	@ConfigItem(keyName = "raidSpellbook", name = "Raid spellbook",
+		description = "Use one spellbook throughout the raid. Arceuus permits thralls; Ancient permits ice and blood spells; Standard permits fire spells. The allowed spellbooks settings still apply.",
+		section = searchSection, position = 11, hidden = true)
+	default RaidSpellbook raidSpellbook() { return RaidSpellbook.ARCEUUS; }
+
 	String GROUP = "bestgearsetup";
 	String MODE_KEY = "mode";
 	String BUDGET_KEY = "budget";
@@ -84,7 +100,7 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigSection(
 		name = "Combat boosts",
-		description = "Potions, prayers, thralls and other reusable combat assumptions",
+		description = "Prayers, potions, weapon poison and spell boosts",
 		position = 4,
 		closedByDefault = true
 	)
@@ -127,7 +143,7 @@ public interface BestGearSetupConfig extends Config
 		section = displaySection, position = 3)
 	default boolean highlightInventoryGear()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = INVENTORY_HIGHLIGHT_COLOR_KEY, name = "Inventory color",
@@ -279,7 +295,7 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(keyName = "charge", name = "Assume Charge",
-		description = "Boost god spells when wearing the matching god cape.", section = boostSection, position = 7)
+		description = "Boost god spells when wearing the matching god cape.", section = boostSection, position = 6)
 	default boolean charge()
 	{
 		return false;
@@ -287,14 +303,14 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigItem(keyName = "markOfDarkness", name = "Mark of Darkness",
 		description = "Assume Mark of Darkness is cast before demonbane spells (higher accuracy and damage against demons).",
-		section = boostSection, position = 8)
+		section = boostSection, position = 7)
 	default boolean markOfDarkness()
 	{
 		return true;
 	}
 
 	@ConfigItem(keyName = "sunfireRunes", name = "Use sunfire runes",
-		description = "Raise fire spell minimum rolls to 10% of the maximum before tome effects.", section = boostSection, position = 9)
+		description = "Raise fire spell minimum rolls to 10% of the maximum before tome effects.", section = boostSection, position = 8)
 	default boolean sunfireRunes()
 	{
 		return false;
@@ -307,11 +323,25 @@ public interface BestGearSetupConfig extends Config
 		return false;
 	}
 
+	@ConfigItem(
+		keyName = "thrall",
+		name = "Thralls",
+		description = "Add the strongest thrall your Magic level casts (lesser 38, superior 57, greater 76). Needs the "
+			+ "Arceuus spellbook allowed and A Kingdom Divided; not used while autocasting a non-Arceuus spell",
+		section = searchSection,
+		position = 5,
+		hidden = true
+	)
+	default boolean thrall()
+	{
+		return true;
+	}
+
 	@ConfigItem(keyName = "killSpecials", name = "Use special attacks",
 		description = "Mix special attacks into each kill, switching to the best spec weapon of the same combat style "
 			+ "(and an off-hand after a two-handed weapon; bought within the budget). Draining specs open the kill so "
 			+ "the rest is fought at the drained stats; lightbearer is worn when its faster regeneration pays. Counted "
-			+ "in DPS, TTK and kills/hour.", section = searchSection, position = 6)
+			+ "in DPS, TTK and kills/hour.", section = searchSection, position = 6, hidden = true)
 	default boolean killSpecials()
 	{
 		return true;
@@ -319,7 +349,7 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigItem(keyName = "specEnergy", name = "Spec energy",
 		description = "Regenerating: steady-state energy over a trip (10% every 30 seconds), for repeated kills. "
-			+ "Full bar: start every kill at 100%, for single boss kills.", section = searchSection, position = 7)
+			+ "Full bar: start every kill at 100%, for single boss kills.", section = searchSection, position = 7, hidden = true)
 	default SpecEnergy specEnergy()
 	{
 		return SpecEnergy.REGENERATION;
@@ -329,7 +359,7 @@ public interface BestGearSetupConfig extends Config
 		description = "How defence-draining specs (dragon warhammer, elder maul, Bandos godsword...) are ranked. "
 			+ "Expected: the average kill, weighting misses by their chance. Ignore drain: score the damage only. "
 			+ "Worst case: assume every drain misses, so a drain spec is only used if it pays even when it never lands.",
-		section = searchSection, position = 8)
+		section = searchSection, position = 8, hidden = true)
 	default DrainSpecs drainSpecs()
 	{
 		return DrainSpecs.EXPECTED;
@@ -337,7 +367,7 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigItem(keyName = "weaponPoison", name = "Weapon poison",
 		description = "Poison assumed on poisonable daggers, spears, hastae, darts, knives, javelins, arrows and "
-			+ "bolts (the bundled data lists only unpoisoned items).", section = boostSection, position = 6)
+			+ "bolts (the bundled data lists only unpoisoned items).", section = boostSection, position = 5)
 	default WeaponPoison weaponPoison()
 	{
 		return WeaponPoison.NONE;
@@ -559,14 +589,14 @@ public interface BestGearSetupConfig extends Config
 	// ------------------------------------------------------------ experience
 
 	@ConfigItem(keyName = "attackXp", name = "Attack XP", description = "Allow styles that give Attack experience",
-		section = experienceSection, position = 20)
+		section = experienceSection, position = 0)
 	default boolean attackXp()
 	{
 		return true;
 	}
 
 	@ConfigItem(keyName = "strengthXp", name = "Strength XP", description = "Allow styles that give Strength experience",
-		section = experienceSection, position = 21)
+		section = experienceSection, position = 1)
 	default boolean strengthXp()
 	{
 		return true;
@@ -574,7 +604,7 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigItem(keyName = "defenceXp", name = "Defence XP",
 		description = "Allow styles that give Defence experience (defensive, controlled, long range). Turn off for pures",
-		section = experienceSection, position = 22)
+		section = experienceSection, position = 2)
 	default boolean defenceXp()
 	{
 		return true;
@@ -587,7 +617,7 @@ public interface BestGearSetupConfig extends Config
 		name = "Fill with",
 		description = "What to wear in slots that add no damage",
 		section = fillSection,
-		position = 30
+		position = 0
 	)
 	default FillMode fillMode()
 	{
@@ -599,7 +629,7 @@ public interface BestGearSetupConfig extends Config
 		name = "Defence",
 		description = "Which defence to maximise when filling with defence. 'Target' weights by the monster's attacks",
 		section = fillSection,
-		position = 31
+		position = 1
 	)
 	default DefenceFocus defenceFocus()
 	{
@@ -611,7 +641,7 @@ public interface BestGearSetupConfig extends Config
 		name = "Max DPS loss",
 		description = "DPS you are willing to give up for fill items, in percent (e.g. 0.5)",
 		section = fillSection,
-		position = 32
+		position = 2
 	)
 	@Units(Units.PERCENT)
 	default double fillMargin()
@@ -723,25 +753,12 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "thrall",
-		name = "Thralls",
-		description = "Add the strongest thrall your Magic level casts (lesser 38, superior 57, greater 76). Needs the "
-			+ "Arceuus spellbook allowed and A Kingdom Divided; not used while autocasting a non-Arceuus spell",
-		section = boostSection,
-		position = 5
-	)
-	default boolean thrall()
-	{
-		return true;
-	}
-
-	@ConfigItem(
 		keyName = "raidPotions",
 		name = "Include raid potions",
 		description = "Let Best available potions use overloads (CoX) and smelling salts (ToA) against raid targets. "
 			+ "Turn off for the start of a raid, before you have them. A potion chosen by name is still used",
 		section = boostSection,
-		position = 1
+		position = 4
 	)
 	default boolean raidPotions()
 	{
@@ -755,13 +772,13 @@ public interface BestGearSetupConfig extends Config
 	@ConfigItem(keyName = "autoRaid", name = "Use active raid", description = "Read scaling from a matching live raid target; otherwise use the values below", hidden = true)
 	default boolean autoRaid() { return true; }
 
-	@ConfigItem(keyName = "meleePotionChoice", name = "Melee potion", description = "Best available uses ownership rules, plus overloads / smelling salts inside their raid when raid potions are included; named boosts and None override that choice", section = boostSection, position = 2)
+	@ConfigItem(keyName = "meleePotionChoice", name = "Melee potion", description = "Best available uses ownership rules, plus overloads / smelling salts inside their raid when raid potions are included; named boosts and None override that choice", section = boostSection, position = 1)
 	default PotionOptions.Melee meleePotion() { return PotionOptions.Melee.BEST; }
 
-	@ConfigItem(keyName = "rangedPotionChoice", name = "Ranged potion", description = "Best available uses ownership rules, plus overloads / smelling salts inside their raid when raid potions are included; named boosts and None override that choice", section = boostSection, position = 3)
+	@ConfigItem(keyName = "rangedPotionChoice", name = "Ranged potion", description = "Best available uses ownership rules, plus overloads / smelling salts inside their raid when raid potions are included; named boosts and None override that choice", section = boostSection, position = 2)
 	default PotionOptions.Ranged rangedPotion() { return PotionOptions.Ranged.BEST; }
 
-	@ConfigItem(keyName = "magicPotionChoice", name = "Magic potion", description = "Best available uses ownership rules, plus overloads / smelling salts inside their raid when raid potions are included; named boosts and None override that choice", section = boostSection, position = 4)
+	@ConfigItem(keyName = "magicPotionChoice", name = "Magic potion", description = "Best available uses ownership rules, plus overloads / smelling salts inside their raid when raid potions are included; named boosts and None override that choice", section = boostSection, position = 3)
 	default PotionOptions.Magic magicPotion() { return PotionOptions.Magic.BEST; }
 
 	// ------------------------------------------------------------ managed from the side panel

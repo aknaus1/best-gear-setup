@@ -1,7 +1,8 @@
 # Best Gear Setup
 
-Find the best gear for any monster or boss without leaving RuneLite. Stick to what you own, shop within a
-budget, or go straight to best in slot.
+A DPS calculator and gear optimizer for monsters, bosses and Slayer, built into RuneLite. Compare melee,
+ranged and magic equipment to find your best loadout. Stick to what you own, shop within a budget, or go
+straight to best in slot.
 
 ![Best setups for Vorkath (best in slot), Yama (owned + budget) and Verzik Vitur (owned items only)](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/results.png)
 
@@ -18,6 +19,24 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
 ## Features
 
 - **Any monster or boss**, with versions and phases (Vorkath, Verzik, Yama and so on) in one search.
+- **Complete raid plans:** search for *Challenge Mode: Chambers of Xeric*, *Tombs of Amascut* or
+  *Theatre of Blood* (also `CM CoX`, `ToA` or `ToB`). Start wearing Tekton, Ba-Ba or Maiden gear,
+  with a shared inventory of switches. The boss selector above **Version** changes the equipment shown.
+  The bank shows starting worn gear on the left and
+  the shared inventory in four columns beside it.
+- The sidebar shows inventory below worn gear. Runes fill an owned rune pouch (three types) or divine
+  rune pouch (four types); hover the pouch to see its planned contents. Overflow rune types stay loose.
+  Click the inventory heading to minimize or expand it.
+- Raid setups keep required ammo worn when the slot is free. If several ammo types are needed, empty
+  slots use the most-used type; bow and crossbow setups retain their own ammunition. Hover a blowpipe
+  to see its loaded darts, and right-click it to exclude those darts. Inventory gear has the same hover
+  details and right-click controls as worn equipment.
+- **Raid equipment slots** limits carried switches; **Raid spellbook** keeps spells consistent across rooms.
+  Empty inventory slots are left for food, healing and utility supplies.
+- **Active encounter** follows the attackable NPC you are in combat with (your hits land on it, or it attacks
+  you back), not one you have only clicked or are standing near, including new spawns and phase changes.
+  With **Use active defence** enabled, tracked landed specials update its Defence. In a planned raid,
+  recalculations use the selected shared kit.
 - **Four modes:** *Owned items only*, *Inventory + equipped only*, *Owned + budget* (e.g. `50m`) and
   *Best in slot*.
 - **A result per attack style** with DPS, max hit, accuracy, time to kill, kills per hour and the cost of
@@ -31,10 +50,10 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
 
 ![The RuneLite client with the bank gear layout, highlighted inventory and Yama result in the side panel](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/bank-layout.png)
 
-Everything else is in the sidebar too. **Fight** sets your HP, Slayer task, raid party size, Wilderness
-and pre-fight defence reductions. **Gear** lists your locks, excluded items and extra owned items, with a
-search to add more. **Settings** covers search options, attack styles, equipment, spellbooks, boosts and
-highlights.
+Everything else is in the sidebar too. **Fight** sets active encounter, your HP, Slayer task, thralls,
+special attacks, raid scaling and kit limits, Wilderness and pre-fight defence reductions. **Gear** lists
+your locks, excluded items and extra owned items, with a search to add more. **Settings** covers search
+options, attack styles, equipment, spellbooks, boosts and highlights.
 
 ![The Fight and Settings panels in the sidebar](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
 

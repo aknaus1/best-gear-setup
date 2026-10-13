@@ -8,6 +8,7 @@ import com.bestgearsetup.calc.CosmeticVariants;
 import com.bestgearsetup.calc.DragonfireProtection;
 import com.bestgearsetup.calc.EncounterPhases;
 import com.bestgearsetup.calc.LockStatus;
+import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.MonsterStates;
 import com.bestgearsetup.calc.Optimizer;
 import com.bestgearsetup.calc.OptimizerSettings;
@@ -19,6 +20,7 @@ import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SlayerEquipment;
 import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.calc.SpecialAttacks;
+import com.bestgearsetup.calc.SupportSpell;
 import com.bestgearsetup.calc.WeaponRules;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.CombatClass;
@@ -64,6 +66,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -83,8 +87,11 @@ import net.runelite.api.QuestState;
 import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
+import net.runelite.api.events.HitsplatApplied;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuEntryAdded;
+import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.gameval.InventoryID;
@@ -117,12 +124,16 @@ import net.runelite.client.util.Text;
 @Slf4j
 @PluginDescriptor(
 	name = "Best Gear Setup",
-	description = "Find the best gear setup for any monster, using your owned items or a budget",
-	tags = {"gear", "setup", "dps", "bis", "best", "calculator", "bank", "budget", "boss", "slayer", "optimizer"}
+	description = "DPS calculator and gear optimizer for monsters, bosses and Slayer. Find best in slot gear using owned items or a budget.",
+	tags = {"gear", "setup", "dps", "best", "bis", "calculator", "bank", "budget", "boss", "slayer", "optimizer",
+		"equipment", "loadout", "pvm", "combat", "melee", "ranged", "magic", "accuracy", "maxhit", "ttk", "weapon",
+		"armour", "armor"}
 )
 public class BestGearSetupPlugin extends Plugin
 {
 	private static final String MENU_OPTION = "Best setup";
+	/** Ticks without combat before an encounter ends, about ten seconds: longer than any attack or phase gap. */
+	private static final int ENGAGEMENT_TICKS = 16;
 	/** RuneScape-profile key remembering whether the Elite Kourend & Kebos Diary is complete. */
 	private static final String KOUREND_ELITE_KEY = "kourendEliteDiary";
 	/** RuneScape-profile key remembering whether A Kingdom Divided (needed for thralls) is complete. */
@@ -205,6 +216,7 @@ public class BestGearSetupPlugin extends Plugin
 	final AtomicInteger lifecycle = new AtomicInteger();
 	private volatile Map<Integer, Long> prices = Collections.emptyMap();
 	volatile MonsterSummary lastSearched;
+	private volatile RaidPlan raidPlan;
 	/** Equipment ids and their variants: the only ownership changes that can alter a result. */
 	volatile Set<Integer> gearIds = Collections.emptySet();
 	/** Last levels written to the profile; client thread only. */
@@ -229,6 +241,13 @@ public class BestGearSetupPlugin extends Plugin
 	int supplySettleMillis = 5000;
 	/** Read and written on the client thread only. */
 	private NPC lookupTarget;
+	private NPC activeTarget;
+	/** The NPC you are in combat with and the tick combat with it was last seen. */
+	private NPC engagedNpc;
+	private int engagedTick;
+	private int activeTargetId = -1;
+	private com.bestgearsetup.data.EncounterPhase activeTargetPhase;
+	private volatile int activeSequence;
 	/** Swing thread only: whether this run has started loading the bundled data. */
 	private boolean dataRequested;
 
@@ -335,7 +354,11 @@ public class BestGearSetupPlugin extends Plugin
 		searchQuantities = null;
 		observedQuantities = null;
 		lastSearched = null;
+		raidPlan = null;
 		lookupTarget = null;
+		activeTarget = null;
+		engagedNpc = null;
+		activeSequence++;
 		if (supplyRefresh != null)
 		{
 			supplyRefresh.stop();
@@ -513,6 +536,13 @@ public class BestGearSetupPlugin extends Plugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged event)
 	{
+		if (event.getGameState() != GameState.LOGGED_IN)
+		{
+			activeTarget = null;
+			engagedNpc = null;
+			activeTargetId = -1;
+			activeSequence++;
+		}
 		if (event.getGameState().getState() >= GameState.LOGIN_SCREEN.getState())
 		{
 			SwingUtilities.invokeLater(this::requestGameData);
@@ -660,6 +690,10 @@ public class BestGearSetupPlugin extends Plugin
 	@Subscribe
 	public void onRuneScapeProfileChanged(RuneScapeProfileChanged event)
 	{
+		activeTarget = null;
+		engagedNpc = null;
+		activeTargetId = -1;
+		activeSequence++;
 		int generation = searchGeneration.incrementAndGet();
 		setBankHighlightedSetup(null);
 		if (search != null)
@@ -667,6 +701,7 @@ public class BestGearSetupPlugin extends Plugin
 			search.cancel(false);
 		}
 		lastSearched = null;
+		raidPlan = null;
 		searchOwned = null;
 		searchQuantities = null;
 		observedQuantities = null;
@@ -792,6 +827,81 @@ public class BestGearSetupPlugin extends Plugin
 
 	// ------------------------------------------------------------ search
 
+	/** Follow combat once per tick; phase changes and new same-name spawns each get fresh stats. */
+	@Subscribe
+	public void onGameTick(GameTick event)
+	{
+		Player player = client.getLocalPlayer();
+		boolean following = config.activeEncounter() && client.getGameState() == GameState.LOGGED_IN && player != null;
+		// Targeting alone (clicking or walking up to an NPC) is not combat; it is once the NPC attacks you back.
+		if (following && player.getInteracting() instanceof NPC && player.getInteracting().getInteracting() == player)
+		{
+			engage((NPC) player.getInteracting());
+		}
+		NPC npc = following ? engaged() : null;
+		if (npc == null || !isAttackable(npc))
+		{
+			if (activeTarget != null) { activeTarget = null; activeTargetId = -1; activeSequence++; }
+			return;
+		}
+		GameData data = gameData;
+		com.bestgearsetup.data.EncounterPhase targetPhase = LiveRaid.akkhaPhase(npc);
+		if (data == null || activeTarget == npc && activeTargetId == npc.getId() && activeTargetPhase == targetPhase) { return; }
+		MonsterSummary match = data.matchNpc(npc.getId(), npc.getName(), npc.getCombatLevel());
+		if (match == null) { return; }
+		activeTarget = npc;
+		activeTargetId = npc.getId();
+		activeTargetPhase = targetPhase;
+		lookupTarget = npc;
+		if (liveSpecs != null) { liveSpecs.trackTarget(npc); }
+		int sequence = ++activeSequence;
+		int life = lifecycle.get();
+		SwingUtilities.invokeLater(() ->
+		{
+			if (panel != null && config.activeEncounter() && sequence == activeSequence && life == lifecycle.get())
+			{
+				panel.selectActiveMonster(match);
+			}
+		});
+	}
+
+	/** Your own hits, blocked or not, mark the NPC you are fighting. */
+	@Subscribe
+	public void onHitsplatApplied(HitsplatApplied event)
+	{
+		if (event.getActor() instanceof NPC && event.getHitsplat().isMine())
+		{
+			engage((NPC) event.getActor());
+		}
+	}
+
+	@Subscribe
+	public void onNpcDespawned(NpcDespawned event)
+	{
+		if (event.getNpc() == engagedNpc) { engagedNpc = null; }
+	}
+
+	/** Client thread: record combat with an NPC. With several in combat (AoE, chinning) the one you target leads. */
+	private void engage(NPC npc)
+	{
+		Player player = client.getLocalPlayer();
+		if (npc != engagedNpc && engaged() != null && (player == null || player.getInteracting() != npc)) { return; }
+		engagedNpc = npc;
+		engagedTick = client.getTickCount();
+	}
+
+	/** Client thread: the NPC you are in combat with, or null once it has died or combat with it has lapsed. */
+	private NPC engaged()
+	{
+		NPC npc = engagedNpc;
+		if (npc != null && (npc.getHealthRatio() == 0 || npc.isDead() || client.getTickCount() - engagedTick > ENGAGEMENT_TICKS))
+		{
+			engagedNpc = null;
+			return null;
+		}
+		return npc;
+	}
+
 	private boolean matchesTarget(NPC npc, MonsterSummary selected)
 	{
 		GameData data = gameData;
@@ -810,12 +920,25 @@ public class BestGearSetupPlugin extends Plugin
 	 */
 	public void findBestSetup(MonsterSummary summary)
 	{
+		findBestSetup(summary, panel == null ? RaidPlanType.SINGLE : panel.getRaidType(), null);
+	}
+
+	public void findActiveSetup(MonsterSummary summary)
+	{
+		RaidPlanType type = panel == null ? RaidPlanType.SINGLE : panel.getRaidType();
+		RaidPlan cached = raidPlan;
+		findBestSetup(summary, type, cached != null && cached.getType() == type ? cached : null);
+	}
+
+	private void findBestSetup(MonsterSummary summary, RaidPlanType raidType, RaidPlan cached)
+	{
 		GameData data = gameData;
 		if (data == null || executor == null)
 		{
 			return;
 		}
 		lastSearched = summary;
+		if (cached == null) { raidPlan = null; }
 		int generation = searchGeneration.incrementAndGet();
 		if (search != null)
 		{
@@ -863,6 +986,8 @@ public class BestGearSetupPlugin extends Plugin
 				}
 			}
 			NPC npc = matchingLiveTarget(summary);
+			com.bestgearsetup.data.EncounterPhase livePhase = LiveRaid.akkhaPhase(npc);
+			if (livePhase != null) { detected.put("encounterPhase", livePhase); }
 			AccountFacts.TaskRecord assignment = AccountFacts.task(client, configManager, gson);
 			WorldPoint taskLocation = npc != null ? npc.getWorldLocation()
 				: AccountFacts.ready(client) && client.getLocalPlayer() != null ? client.getLocalPlayer().getWorldLocation() : null;
@@ -893,7 +1018,7 @@ public class BestGearSetupPlugin extends Plugin
 			if (diary == null) { detectedNotes.add("Kandarin hard diary: unknown, so the enchanted bolt bonus isn't assumed."); }
 			LiveRaid liveRaid = npc == null || !config.autoRaid() ? new LiveRaid() : LiveRaid.read(client, summary);
 			detected.putAll(liveRaid.values);
-			Map<String, Object> landed = liveSpecs == null ? Collections.emptyMap() : liveSpecs.overrides(summary.getName());
+			Map<String, Object> landed = liveSpecs == null ? Collections.emptyMap() : liveSpecs.overrides(npc);
 			detected.putAll(landed);
 			if (!landed.isEmpty())
 			{ detectedNotes.add("Pre-fight preparation: specs landed on this target so far, in place of the Fight settings."); }
@@ -925,7 +1050,7 @@ public class BestGearSetupPlugin extends Plugin
 			Boolean eliteDiary = kourendElite == null && ownedItems.snapshot().contains(ItemID.ZEAH_BLESSING_ELITE)
 				? Boolean.TRUE : kourendElite;
 			search = executor.submit(() -> runSearch(data, summary, levels, rememberedLevels, prayerUnlocks,
-				eliteDiary, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes));
+				eliteDiary, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes, raidType, cached));
 		});
 	}
 
@@ -935,7 +1060,17 @@ public class BestGearSetupPlugin extends Plugin
 		MonsterSummary last = lastSearched;
 		if (last != null && LiveSpecs.sameTarget(target, last.getName()))
 		{
-			rerun();
+			if (config.activeEncounter())
+			{
+				int generation = searchGeneration.get();
+				int life = lifecycle.get();
+				SwingUtilities.invokeLater(() ->
+				{
+					if (panel != null && life == lifecycle.get() && generation == searchGeneration.get() && last == lastSearched)
+					{ findActiveSetup(last); }
+				});
+			}
+			else { rerun(); }
 		}
 	}
 
@@ -1059,127 +1194,20 @@ public class BestGearSetupPlugin extends Plugin
 
 	private void runSearch(GameData data, MonsterSummary summary, PlayerLevels knownLevels, boolean rememberedLevels,
 		Set<String> prayerUnlocks, Boolean kourendElite, boolean karuulmDungeon, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
-		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid, List<String> detectedNotes)
+		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid, List<String> detectedNotes, RaidPlanType raidType, RaidPlan cached)
 	{
 		try
 		{
-			boolean assumedLevels = knownLevels == null;
-			PlayerLevels levels = assumedLevels ? PlayerLevels.maxed() : knownLevels;
-			Monster baseMonster = api.getMonster(summary);
-			SpecialAttacks specials = specials(config);
-			// Wiki order: raid scaling, health-dependent stats, then pre-fight defence reductions.
-			RaidScaling.Settings raid = raidSettings(levels, mining, config);
-			if (liveRaid.maxCombat > 0 && liveRaid.maxCombat <= 126) { raid = raid.toBuilder().partyMaxCombat(liveRaid.maxCombat).build(); }
-			Monster scaled = RaidScaling.apply(baseMonster, raid);
-			scaled.setPhase(config.encounterPhase());
-			EncounterPhases.applyStats(scaled);
-			Monster monster = specials.apply(MonsterStates.atHealth(scaled, 0));
-
-			boolean eliteDiary = Boolean.TRUE.equals(kourendElite);
-			OptimizerSettings settings = buildSettings(config).toBuilder().kourendEliteDiary(eliteDiary)
-				.karuulmDungeon(karuulmDungeon).build();
-			Map<CombatClass, OffensivePrayer> prayers = new EnumMap<>(CombatClass.class);
-			if (config.usePrayers())
+			if (raidType != RaidPlanType.SINGLE)
 			{
-				Predicate<String> available = PrayerUnlocks.available(prayerUnlocks);
-				for (CombatClass cls : CombatClass.values())
-				{
-					OffensivePrayer p = PrayerUnlocks.best(data.getPrayers(cls), levels, available);
-					if (p != null)
-					{
-						prayers.put(cls, p);
-					}
-				}
-			}
-			Predicate<Potion> boosts = BoostAccess.allowed(settings.getMode(), owned, config.raidPotions());
-			CombatContext ctx = new CombatContext(monster, levels, config.onSlayerTask(),
-				PotionChoice.boostedLevel(data, "attack", levels.getAttack(), potionChoice(config, CombatClass.MELEE), boosts, monster),
-				PotionChoice.boostedLevel(data, "strength", levels.getStrength(), potionChoice(config, CombatClass.MELEE), boosts, monster),
-				PotionChoice.boostedLevel(data, "ranged", levels.getRanged(), potionChoice(config, CombatClass.RANGED), boosts, monster),
-				PotionChoice.boostedLevel(data, "magic", levels.getMagic(), potionChoice(config, CombatClass.MAGIC), boosts, monster),
-				prayers, config.thrall()).withFightOptions(config.aoe() ? config.aoeTargets() : 1, 0)
-				.withModifiers(CombatModifiers.builder().currentHitpoints(config.currentHitpoints())
-					.wilderness(config.wilderness())
-					.forinthrySurge(config.forinthrySurge())
-					.weaponPoison(config.weaponPoison()).charge(config.charge())
-					.markOfDarkness(config.markOfDarkness()).sunfireRunes(config.sunfireRunes())
-					.kandarinDiary(config.kandarinDiary()).soulreaperStacks(config.soulreaperStacks())
-					.miningLevel(config.miningLevel() == 0 ? mining : config.miningLevel()).build())
-				// HP-dependent target stats are re-derived in the same order for whole-fight averages.
-				.withHealthStates(hp -> specials.apply(MonsterStates.atHealth(scaled, hp)));
-			// One tab per attack type: melee is optimised separately for stab, slash and crush.
-			List<AttackStyle.Type> types = new ArrayList<>();
-			for (AttackStyle.Type type : AttackStyle.Type.values())
-			{
-				if (settings.getStyles().contains(type))
-				{
-					types.add(type);
-				}
-			}
-			// A newer search, a cleared search or shutdown bumps the generation.
-			BooleanSupplier cancelled = () -> generation != searchGeneration.get();
-			SearchProgress progress = new SearchProgress(types.size(), percent -> SwingUtilities.invokeLater(() ->
-			{
-				if (panel != null && generation == searchGeneration.get())
-				{
-					panel.showProgress(percent);
-				}
-			}));
-			List<List<SetupResult>> tabs = new ArrayList<>();
-			for (int i = 0; i < types.size() && !cancelled.getAsBoolean(); i++)
-			{
-				int tab = i;
-				AttackStyle.Type type = types.get(i);
-				OptimizerSettings typeSettings = settings.toBuilder().styles(EnumSet.of(type)).build();
-				tabs.add(new Optimizer(data, ctx, typeSettings, owned::contains, id -> quantities.getOrDefault(id, 0L),
-					item -> price(quotes, item)).optimize(classOf(type), cancelled, done -> progress.update(tab, done)));
-			}
-			if (cancelled.getAsBoolean())
-			{
+				if (cached != null && refreshRaidEncounter(cached, data, summary, knownLevels, rememberedLevels, prayerUnlocks, kourendElite, mining, quotes, owned, quantities, generation, config, liveRaid, detectedNotes, percent -> publishSearchProgress(generation, percent * 90 / 100))) { return; }
+				runRaidSearch(data, summary, knownLevels, rememberedLevels, prayerUnlocks, kourendElite, mining, quotes, owned, quantities, generation, config, liveRaid, detectedNotes, raidType, percent -> publishSearchProgress(generation, cached == null ? percent : 90 + percent * 9 / 100));
 				return;
 			}
-			progress.complete();
-			Map<AttackStyle.Type, List<SetupResult>> byType = new LinkedHashMap<>();
-			for (int i = 0; i < types.size(); i++)
-			{
-				if (!tabs.get(i).isEmpty())
-				{
-					byType.put(types.get(i), tabs.get(i));
-				}
-			}
-			if (generation != searchGeneration.get())
-			{
-				return;
-			}
-			List<String> notes = describeSearch(data, levels, baseMonster, scaled, monster, specials, ctx, settings, raid, config);
-			notes.addAll(detectedNotes);
-			if (config.usePrayers() && prayerUnlocks == null)
-			{
-				notes.add("Prayer unlocks are unknown until you log in; Piety, Rigour, Augury and similar are assumed unlocked.");
-			}
-			if (kourendElite == null && !eliteDiary && SlayerEquipment.inKaruulm(baseMonster, settings))
-			{
-				notes.add("Elite Kourend & Kebos Diary status is unknown until you log in, so Karuulm boots are required.");
-			}
-			String unpricedNote = unpricedNote(data, quotes, settings);
-			if (unpricedNote != null)
-			{
-				notes.add(0, unpricedNote);
-			}
-			List<LockStatus> locks = LockStatus.check(data,
-				new Optimizer(data, ctx, settings, owned::contains, id -> quantities.getOrDefault(id, 0L),
-					item -> price(quotes, item)), settings.getLocks());
-			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
-				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
-				rememberedLevels, assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config),
-				monster.isImmuneThrall() ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
-				scaled.getDefenceLevel());
+			SearchResults found = computeSearch(data, summary, knownLevels, rememberedLevels, prayerUnlocks, kourendElite, karuulmDungeon, mining, quotes, owned, quantities, generation, config, liveRaid, detectedNotes, Collections.emptySet(), Collections.emptySet(), null, percent -> publishSearchProgress(generation, percent));
 			SwingUtilities.invokeLater(() ->
 			{
-				if (panel != null && generation == searchGeneration.get())
-				{
-					panel.showResults(found);
-				}
+				if (found != null && panel != null && generation == searchGeneration.get()) { panel.showProgress(100); panel.showResults(found); }
 			});
 		}
 		catch (IOException | RuntimeException | Error e)
@@ -1196,13 +1224,327 @@ public class BestGearSetupPlugin extends Plugin
 		}
 	}
 
+	/** Only successful result publication may display 100%; stale searches cannot update the bar. */
+	private void publishSearchProgress(int generation, int percent)
+	{
+		SwingUtilities.invokeLater(() ->
+		{
+			if (panel != null && generation == searchGeneration.get()) { panel.showProgress(Math.min(99, percent)); }
+		});
+	}
+
+	private SearchResults computeSearch(GameData data, MonsterSummary summary, PlayerLevels knownLevels, boolean rememberedLevels,
+		Set<String> prayerUnlocks, Boolean kourendElite, boolean karuulmDungeon, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
+		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid, List<String> detectedNotes, Set<AttackStyle.Type> allowedStyles, Set<Integer> extraExcluded, RaidSpellbook spellbook, IntConsumer publishProgress) throws IOException
+	{
+		boolean assumedLevels = knownLevels == null;
+		PlayerLevels levels = assumedLevels ? PlayerLevels.maxed() : knownLevels;
+		Monster baseMonster = api.getMonster(summary);
+		SpecialAttacks specials = specials(config);
+		// Wiki order: raid scaling, health-dependent stats, then pre-fight defence reductions.
+		RaidScaling.Settings raid = raidSettings(levels, mining, config);
+		if (liveRaid.maxCombat > 0 && liveRaid.maxCombat <= 126) { raid = raid.toBuilder().partyMaxCombat(liveRaid.maxCombat).build(); }
+		Monster scaled = RaidScaling.apply(baseMonster, raid);
+		scaled.setPhase(config.encounterPhase());
+		EncounterPhases.applyStats(scaled);
+		Monster monster = specials.apply(MonsterStates.atHealth(scaled, 0));
+
+		boolean eliteDiary = Boolean.TRUE.equals(kourendElite);
+		OptimizerSettings settings = buildSettings(config).toBuilder().kourendEliteDiary(eliteDiary)
+			.karuulmDungeon(karuulmDungeon).build();
+		if (!allowedStyles.isEmpty())
+		{
+			Set<AttackStyle.Type> styles = EnumSet.noneOf(AttackStyle.Type.class);
+			styles.addAll(settings.getStyles());
+			styles.retainAll(allowedStyles);
+			settings = settings.toBuilder().styles(styles).build();
+		}
+		Set<Integer> excludedSupplies = new HashSet<>(settings.getExcluded());
+		Set<Integer> excluded = new HashSet<>(settings.getExcluded());
+		excluded.addAll(extraExcluded);
+		settings = settings.toBuilder().excluded(excluded).build();
+		if (spellbook != null)
+		{
+			Set<String> books = new HashSet<>(settings.getSpellbooks());
+			books.retainAll(Collections.singleton(spellbook.key()));
+			settings = settings.toBuilder().spellbooks(books).build();
+		}
+		Map<CombatClass, OffensivePrayer> prayers = new EnumMap<>(CombatClass.class);
+		if (config.usePrayers())
+		{
+			Predicate<String> available = PrayerUnlocks.available(prayerUnlocks);
+			for (CombatClass cls : CombatClass.values())
+			{
+				OffensivePrayer p = PrayerUnlocks.best(data.getPrayers(cls), levels, available);
+				if (p != null)
+				{
+					prayers.put(cls, p);
+				}
+			}
+		}
+		Predicate<Potion> boosts = BoostAccess.allowed(settings.getMode(), owned, config.raidPotions())
+			.and(potion -> !excludedSupplies.contains(potion.getId()));
+		CombatContext ctx = new CombatContext(monster, levels, config.onSlayerTask(),
+			PotionChoice.boostedLevel(data, "attack", levels.getAttack(), potionChoice(config, CombatClass.MELEE), boosts, monster),
+			PotionChoice.boostedLevel(data, "strength", levels.getStrength(), potionChoice(config, CombatClass.MELEE), boosts, monster),
+			PotionChoice.boostedLevel(data, "ranged", levels.getRanged(), potionChoice(config, CombatClass.RANGED), boosts, monster),
+			PotionChoice.boostedLevel(data, "magic", levels.getMagic(), potionChoice(config, CombatClass.MAGIC), boosts, monster),
+			prayers, config.thrall() && (spellbook == null || spellbook == RaidSpellbook.ARCEUUS)
+				&& SpellRunes.suppliesAllowed(new Loadout(), EnumSet.of(SupportSpell.THRALL), excludedSupplies))
+			.withFightOptions(config.aoe() ? config.aoeTargets() : 1, 0)
+			.withModifiers(CombatModifiers.builder().currentHitpoints(config.currentHitpoints())
+				.wilderness(config.wilderness())
+				.forinthrySurge(config.forinthrySurge())
+				.weaponPoison(config.weaponPoison()).charge(config.charge()
+					&& SpellRunes.suppliesAllowed(new Loadout(), EnumSet.of(SupportSpell.CHARGE), excludedSupplies))
+				.markOfDarkness(config.markOfDarkness()
+					&& SpellRunes.suppliesAllowed(new Loadout(), EnumSet.of(SupportSpell.MARK_OF_DARKNESS), excludedSupplies))
+				.sunfireRunes(config.sunfireRunes())
+				.kandarinDiary(config.kandarinDiary()).soulreaperStacks(config.soulreaperStacks())
+				.miningLevel(config.miningLevel() == 0 ? mining : config.miningLevel()).build())
+			// HP-dependent target stats are re-derived in the same order for whole-fight averages.
+			.withHealthStates(hp -> specials.apply(MonsterStates.atHealth(scaled, hp)));
+		// One tab per attack type: melee is optimised separately for stab, slash and crush.
+		List<AttackStyle.Type> types = new ArrayList<>();
+		for (AttackStyle.Type type : AttackStyle.Type.values())
+		{
+			if (settings.getStyles().contains(type))
+			{
+				types.add(type);
+			}
+		}
+		// A newer search, a cleared search or shutdown bumps the generation.
+		BooleanSupplier cancelled = () -> generation != searchGeneration.get();
+		SearchProgress progress = new SearchProgress(types.size() + 1, publishProgress);
+		List<List<SetupResult>> tabs = new ArrayList<>();
+		for (int i = 0; i < types.size() && !cancelled.getAsBoolean(); i++)
+		{
+			int tab = i;
+			AttackStyle.Type type = types.get(i);
+			OptimizerSettings typeSettings = settings.toBuilder().styles(EnumSet.of(type)).build();
+			tabs.add(new Optimizer(data, ctx, typeSettings, owned::contains, id -> quantities.getOrDefault(id, 0L),
+				item -> price(quotes, item)).optimize(classOf(type), cancelled, done -> progress.update(tab, done)));
+		}
+		if (cancelled.getAsBoolean())
+		{
+			return null;
+		}
+		Map<AttackStyle.Type, List<SetupResult>> byType = new LinkedHashMap<>();
+		for (int i = 0; i < types.size(); i++)
+		{
+			if (!tabs.get(i).isEmpty())
+			{
+				byType.put(types.get(i), tabs.get(i));
+			}
+		}
+		if (generation != searchGeneration.get())
+		{
+			return null;
+		}
+		List<String> notes = describeSearch(data, levels, baseMonster, scaled, monster, specials, ctx, settings, raid, config);
+		notes.addAll(detectedNotes);
+		if (config.usePrayers() && prayerUnlocks == null)
+		{
+			notes.add("Prayer unlocks are unknown until you log in; Piety, Rigour, Augury and similar are assumed unlocked.");
+		}
+		if (kourendElite == null && !eliteDiary && SlayerEquipment.inKaruulm(baseMonster, settings))
+		{
+			notes.add("Elite Kourend & Kebos Diary status is unknown until you log in, so Karuulm boots are required.");
+		}
+		String unpricedNote = unpricedNote(data, quotes, settings);
+		if (unpricedNote != null)
+		{
+			notes.add(0, unpricedNote);
+		}
+		List<LockStatus> locks = LockStatus.check(data,
+			new Optimizer(data, ctx, settings, owned::contains, id -> quantities.getOrDefault(id, 0L),
+				item -> price(quotes, item)), settings.getLocks());
+		SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
+			potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
+			rememberedLevels, assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config),
+			monster.isImmuneThrall() ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
+			scaled.getDefenceLevel());
+		if (cancelled.getAsBoolean()) { return null; }
+		progress.complete();
+		Map<AttackStyle.Type, List<SetupResult>> supplied = new LinkedHashMap<>();
+		byType.forEach((type, setups) ->
+		{
+			List<SetupResult> usable = setups.stream().filter(setup -> SpellRunes.suppliesAllowed(setup.getLoadout(), setup.getSupportSpells(), excludedSupplies))
+				.filter(setup -> found.potionsForSetup(setup).stream().noneMatch(potion -> excludedSupplies.contains(potion.getId())))
+				.collect(Collectors.toList());
+			if (!usable.isEmpty()) { supplied.put(type, usable); }
+		});
+		return found.withCandidates(supplied);
+	}
+
+
+	/** Refresh one fight using only the raid kit already selected, without re-planning every boss. */
+	private boolean refreshRaidEncounter(RaidPlan plan, GameData data, MonsterSummary summary, PlayerLevels levels,
+		boolean remembered, Set<String> prayerUnlocks, Boolean diary, int mining, Map<Integer, Long> quotes,
+		Set<Integer> owned, Map<Integer, Long> quantities, int generation, BestGearSetupConfig config,
+		LiveRaid liveRaid, List<String> notes, IntConsumer publishProgress) throws IOException
+	{
+		RaidEncounter encounter = plan.getEncounters().stream().filter(e -> e.getTarget().getName().equals(summary.getName())
+			&& e.getPhase() == config.encounterPhase()).findFirst().orElseGet(() -> plan.getEncounters().stream()
+				.filter(e -> e.getTarget().getName().equals(summary.getName())).findFirst().orElse(null));
+		if (encounter == null) { return false; }
+		Set<Integer> allowed = new HashSet<>();
+		plan.getEquipment().forEach(item -> allowed.add(item.getId()));
+		for (SetupResult setup : plan.getSetups())
+		{
+			if (setup.getLoadout().getLoadedAmmo() != null) { allowed.add(setup.getLoadout().getLoadedAmmo().getId()); }
+			if (setup.getSpecial() != null && setup.getSpecial().getLoadedAmmo() != null) { allowed.add(setup.getSpecial().getLoadedAmmo().getId()); }
+		}
+		Set<Integer> excluded = new HashSet<>();
+		Set<Integer> encounterOwned = new HashSet<>(owned);
+		for (Slot slot : Slot.values())
+		{
+			for (GearItem item : data.getItems(slot))
+			{
+				if (RaidPlan.providedInRaid(item)) { encounterOwned.add(item.getId()); }
+				else if (!allowed.contains(item.getId())) { excluded.add(item.getId()); }
+			}
+		}
+		Map<String, Object> overrides = new HashMap<>();
+		overrides.put("coxChallengeMode", plan.getType() == RaidPlanType.COX_CM);
+		overrides.put("encounterPhase", encounter.getPhase());
+		overrides.put("onSlayerTask", false);
+		overrides.put("aoe", false);
+		overrides.put("wilderness", false);
+		if (encounter == plan.getEncounters().get(0)) { overrides.put("raidPotions", false); }
+		SearchResults found = computeSearch(data, summary, levels, remembered, prayerUnlocks, diary, false, mining,
+			quotes, encounterOwned, quantities, generation, SearchAssumptions.capture(config, overrides), liveRaid, notes,
+			encounter.getStyles(), excluded, config.raidSpellbook(), publishProgress);
+		if (found == null) { return true; }
+		if (found.hasBlockingLock()) { return false; }
+		SetupResult best = found.getByType().values().stream().flatMap(Collection::stream)
+			.map(setup -> plan.fillAmmoFor(setup, found))
+			.filter(setup -> plan.supportsSupplies(setup, found, owned::contains))
+			.max(java.util.Comparator.comparingDouble(setup -> setup.getDps().getPrimaryDps())).orElse(null);
+		if (best == null) { return false; }
+		SwingUtilities.invokeLater(() ->
+		{
+			if (panel != null && generation == searchGeneration.get()) { panel.showProgress(100); panel.showRaidResults(plan, summary, found.withSetup(best)); }
+		});
+		return true;
+	}
+
+	/** Search every raid target, then consolidate switches when the independent setups exceed the limit. */
+	private void runRaidSearch(GameData data, MonsterSummary active, PlayerLevels levels, boolean remembered,
+		Set<String> prayerUnlocks, Boolean diary, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
+		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid,
+		List<String> detectedNotes, RaidPlanType type, IntConsumer publishProgress) throws IOException
+	{
+		List<RaidEncounter> encounters = type.encounters(data, raidSettings(levels == null ? PlayerLevels.maxed() : levels, mining, config));
+		RaidSearchProgress progress = new RaidSearchProgress(encounters.size(), publishProgress);
+		BooleanSupplier cancelled = () -> generation != searchGeneration.get();
+		RaidConsolidator.Search search = (index, excluded, pass) ->
+		{
+			RaidEncounter encounter = encounters.get(index);
+			if (cancelled.getAsBoolean()) { return null; }
+			SwingUtilities.invokeLater(() ->
+			{
+				if (panel != null && !cancelled.getAsBoolean())
+				{ panel.showEncounterProgress((pass == 0 ? "Planning " : "Comparing gear switches for ") + type + ": " + encounter.getLabel()); }
+			});
+			Map<String, Object> overrides = new HashMap<>();
+			overrides.put("coxChallengeMode", type == RaidPlanType.COX_CM);
+			overrides.put("encounterPhase", encounter.getPhase());
+			overrides.put("onSlayerTask", false);
+			overrides.put("wilderness", false);
+			overrides.put("aoe", false);
+			if (!liveRaid.pathLevels.isEmpty())
+			{
+				int path = 0;
+				for (Map.Entry<String, Integer> entry : liveRaid.pathLevels.entrySet())
+				{
+					if (encounter.getTarget().getName().startsWith(entry.getKey())) { path = entry.getValue(); }
+				}
+				overrides.put("toaPathLevel", path);
+			}
+			// Tekton / Maiden / Ba-Ba are fought before raid boosts become available.
+			if (encounter == encounters.get(0)) { overrides.put("raidPotions", false); }
+			boolean same = encounter.getTarget().getId() == active.getId();
+			if (!same)
+			{
+				for (String key : new String[]{"specElderMaul", "specDwh", "specEmberlight", "specArclight", "specTonalztics",
+					"specBgsDamage", "specSeercullDamage", "specAyakDamage"}) { overrides.put(key, 0); }
+				overrides.put("specVulnerability", false);
+				overrides.put("specTomeOfWater", false);
+			}
+			Set<Integer> encounterOwned = new HashSet<>(owned);
+			if (encounter.getTarget().getName().equals("verzik vitur (phase 1)"))
+			{
+				data.getItems(Slot.WEAPON).stream().filter(RaidPlan::providedInRaid).forEach(item -> encounterOwned.add(item.getId()));
+			}
+			SearchResults result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
+				false, mining, quotes, encounterOwned, quantities, generation, SearchAssumptions.capture(config, overrides),
+				liveRaid, same ? detectedNotes : Collections.emptyList(), encounter.getStyles(), excluded, config.raidSpellbook(), progress.encounter(pass, index));
+			return result;
+		};
+		List<SearchResults> results = new ArrayList<>();
+		for (int index = 0; index < encounters.size(); index++)
+		{
+			SearchResults result = search.run(index, Collections.emptySet(), 0);
+			if (result == null) { return; }
+			if (result.isEmpty() || result.hasBlockingLock())
+			{ throw new IllegalStateException("No usable setup for " + encounters.get(index).getLabel() + ". Check owned gear, locks and allowed styles."); }
+			results.add(result);
+		}
+		int limit = Math.max(0, Math.min(28, config.raidEquipmentLimit()));
+		long budget = config.mode() == SearchMode.BUDGET ? Budget.parse(config.budget()) : Long.MAX_VALUE;
+		Set<Integer> excludedSupplies = buildSettings(config).getExcluded();
+		IntPredicate kitOwns = id -> owned.contains(id) && !excludedSupplies.contains(id);
+		RaidPlan selected = RaidPlanner.select(type, config.raidSpellbook(), encounters, results, limit, budget, kitOwns,
+			item -> price(quotes, item), config.ammoCount(), id -> quantities.getOrDefault(id, 0L), cancelled, progress.selection(0));
+		// A feasible beam result can sacrifice a whole combat class to save starting inventory slots.
+		// Compare shared-armour alternatives whenever the independently best setups do not fit.
+		List<SetupResult> bestSetups = RaidConsolidator.best(results);
+		RaidPlan independent = RaidPlanner.select(type, config.raidSpellbook(), encounters,
+			java.util.stream.IntStream.range(0, results.size()).mapToObj(i -> results.get(i).withSetup(bestSetups.get(i)))
+				.collect(Collectors.toList()), limit, budget, kitOwns, item -> price(quotes, item), config.ammoCount(),
+			id -> quantities.getOrDefault(id, 0L), cancelled);
+		if (independent == null && !cancelled.getAsBoolean())
+		{
+			Set<Integer> locked = buildSettings(config).getLocks().values().stream().map(SlotLock::getItemId).collect(Collectors.toSet());
+			// Only kits faster than the beam's own result can replace it, so let consolidation prune against it.
+			double bound = selected == null ? Double.POSITIVE_INFINITY
+				: RaidConsolidator.seconds(selected.getSetups(), selected.getResults(), encounters);
+			RaidPlan consolidated = RaidConsolidator.select(data, type, config.raidSpellbook(), encounters, results, locked, limit, budget,
+				kitOwns, item -> price(quotes, item), config.ammoCount(), id -> quantities.getOrDefault(id, 0L), cancelled, bound, search);
+			if (consolidated != null && (selected == null
+				|| RaidConsolidator.seconds(consolidated.getSetups(), consolidated.getResults(), encounters)
+					< RaidConsolidator.seconds(selected.getSetups(), selected.getResults(), encounters)))
+			{ selected = consolidated; }
+		}
+		if (cancelled.getAsBoolean()) { return; }
+		if (selected != null)
+		{
+			RaidPlan plan = selected;
+			progress.complete();
+			SwingUtilities.invokeLater(() ->
+			{
+				if (panel != null && !cancelled.getAsBoolean()) { raidPlan = plan; panel.showProgress(100); panel.showRaidResults(plan, active); }
+			});
+			return;
+		}
+		if (!cancelled.getAsBoolean())
+		{
+			throw new IllegalStateException("No complete raid kit found within " + config.raidEquipmentLimit()
+				+ " equipment slots, 28 inventory slots and the shared budget. Raise the limit/budget or adjust gear rules.");
+		}
+	}
+
 	/** Clear the bank highlights, or publish a setup without its boosts. */
 	public void setBankHighlightedSetup(SetupResult setup)
 	{
 		setBankHighlightedSetup(setup, Collections.emptyList());
 	}
 
-	/** Publish the displayed setup's equipment, loaded ammunition, spell runes and boosts to the bank. */
+	/**
+	 * Publish the displayed setup's equipment, loaded ammunition, spell runes (with an owned rune pouch) and
+	 * boosts to the bank.
+	 */
 	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions)
 	{
 		Set<Integer> ids = new HashSet<>();
@@ -1220,10 +1562,9 @@ public class BestGearSetupPlugin extends Plugin
 				addBankHighlightItem(ids, setup.getSpecial().getAmmo());
 				addBankHighlightItem(ids, setup.getSpecial().getLoadedAmmo());
 			}
-			for (int rune : SpellRunes.required(setup))
+			for (List<Integer> spellItem : SpellRunes.bankItems(setup, this::ownsItem))
 			{
-				ids.add(rune);
-				ids.addAll(SpellRunes.substitutes(rune));
+				ids.addAll(spellItem);
 			}
 			for (Potion potion : potions)
 			{
@@ -1237,7 +1578,8 @@ public class BestGearSetupPlugin extends Plugin
 		bankHighlightIds = Collections.unmodifiableSet(ids);
 		if (bankView != null)
 		{
-			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions, this::bankItemIds);
+			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions, this::bankItemIds,
+				this::ownsItem);
 			int life = lifecycle.get();
 			clientThread.invokeLater(() ->
 			{
@@ -1249,9 +1591,34 @@ public class BestGearSetupPlugin extends Plugin
 		}
 	}
 
+	/** Publish the starting worn gear and the complete shared raid inventory side by side. */
+	public void setBankHighlightedRaid(RaidPlan plan)
+	{
+		Set<Integer> ids = new HashSet<>();
+		plan.getEquipment().forEach(item -> addBankHighlightItem(ids, item));
+		plan.getInventory().forEach(item ->
+		{
+			ids.addAll(item.getIds());
+			item.getContents().forEach(rune -> ids.addAll(rune.getIds()));
+		});
+		for (SetupResult setup : plan.getSetups())
+		{
+			addBankHighlightItem(ids, setup.getLoadout().getLoadedAmmo());
+			if (setup.getSpecial() != null) { addBankHighlightItem(ids, setup.getSpecial().getLoadedAmmo()); }
+		}
+		bankHighlightIds = Collections.unmodifiableSet(ids);
+		if (bankView != null)
+		{
+			bankView.setRaidSelection(plan, this::bankItemIds);
+			int life = lifecycle.get();
+			clientThread.invokeLater(() -> { if (life == lifecycle.get()) { bankView.refreshSelection(); } });
+		}
+	}
+
 	/** Swing thread: cancel current and queued work and release the selected setup and target. */
 	public void clearGearSearch()
 	{
+		activeSequence++;
 		searchGeneration.incrementAndGet();
 		if (search != null)
 		{
@@ -1263,6 +1630,7 @@ public class BestGearSetupPlugin extends Plugin
 			supplyRefresh.stop();
 		}
 		lastSearched = null;
+		raidPlan = null;
 		lookupTarget = null;
 		searchOwned = null;
 		searchQuantities = null;
@@ -1272,6 +1640,11 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			panel.clearSearch();
 		}
+	}
+
+	private boolean ownsItem(int itemId)
+	{
+		return ownedItems.owns(itemId) && !getExcluded().contains(itemId);
 	}
 
 	private void addBankHighlightItem(Set<Integer> ids, GearItem item)
@@ -1348,7 +1721,7 @@ public class BestGearSetupPlugin extends Plugin
 		return warnings;
 	}
 
-	private Map<CombatClass, List<Potion>> potionsUsed(GameData data, PlayerLevels levels, Monster target, Predicate<Potion> boosts,
+	Map<CombatClass, List<Potion>> potionsUsed(GameData data, PlayerLevels levels, Monster target, Predicate<Potion> boosts,
 		BestGearSetupConfig config)
 	{
 		Map<CombatClass, List<Potion>> out = new EnumMap<>(CombatClass.class);
@@ -1363,10 +1736,9 @@ public class BestGearSetupPlugin extends Plugin
 				continue;
 			}
 			List<Potion> list = out.computeIfAbsent(classes[i], k -> new ArrayList<>());
-			if (list.stream().noneMatch(x -> x.getId() == p.getId()))
-			{
-				list.add(p);
-			}
+			// Keep each skill's entry: combined potions must retain their Strength boost for atlatl results.
+			// The view deduplicates item IDs after selecting the skills the setup uses.
+			list.add(p);
 		}
 		return out;
 	}
@@ -1438,6 +1810,7 @@ public class BestGearSetupPlugin extends Plugin
 			.protectMagic(config.protectMagic())
 			.locks(getLocks())
 			.excluded(getExcluded())
+			.excludedSupplies(getExcluded().stream().filter(SpellRunes::isSpellSupply).collect(Collectors.toSet()))
 			.build();
 	}
 

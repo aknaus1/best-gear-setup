@@ -4,6 +4,7 @@ import com.bestgearsetup.Budget;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.SearchResults;
+import com.bestgearsetup.RaidPlan;
 import com.bestgearsetup.calc.AttackReach;
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.DpsResult;
@@ -122,6 +123,8 @@ class ResultView extends JPanel
 	private final SkillIconManager skillIcons;
 	private final int ammoCount;
 	private final SearchResults results;
+	private final boolean publishBank;
+	private final JComponent carriedInventory;
 	/** Result tabs, highest DPS first. */
 	private final List<AttackStyle.Type> tabOrder = new ArrayList<>();
 	private final JPanel tabs = new JPanel(new GridLayout(0, 5, 2, 2));
@@ -133,6 +136,20 @@ class ResultView extends JPanel
 	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
 		SkillIconManager skillIcons, int ammoCount)
 	{
+		this(results, plugin, itemManager, sprites, skillIcons, ammoCount, true);
+	}
+
+	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
+		SkillIconManager skillIcons, int ammoCount, boolean publishBank)
+	{
+		this(results, plugin, itemManager, sprites, skillIcons, ammoCount, publishBank, null);
+	}
+
+	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
+		SkillIconManager skillIcons, int ammoCount, boolean publishBank, JComponent carriedInventory)
+	{
+		this.carriedInventory = carriedInventory;
+		this.publishBank = publishBank;
 		this.results = results;
 		this.plugin = plugin;
 		this.itemManager = itemManager;
@@ -146,7 +163,7 @@ class ResultView extends JPanel
 		JPanel tabRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
 		tabRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		tabRow.add(tabs);
-		add(BestGearSetupPanel.left(tabRow));
+		if (publishBank || results.getByType().size() > 1) { add(BestGearSetupPanel.left(tabRow)); }
 		body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
 		body.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		add(BestGearSetupPanel.left(body));
@@ -166,7 +183,7 @@ class ResultView extends JPanel
 	{
 		selectedType = type;
 		selected = setup;
-		plugin.setBankHighlightedSetup(setup, potionsFor(setup));
+		if (publishBank) { plugin.setBankHighlightedSetup(setup, potionsFor(setup)); }
 		rebuildTabs();
 		rebuildBody();
 	}
@@ -262,6 +279,16 @@ class ResultView extends JPanel
 		gridRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		gridRow.add(new EquipmentGrid(selected, locksBySlot(), plugin, itemManager, sprites, ammoCount));
 		body.add(BestGearSetupPanel.left(gridRow));
+		body.add(spacer(6));
+		JComponent inventory = carriedInventory;
+		if (inventory == null)
+		{
+			InventoryView supplies = new InventoryView(itemManager, this, "setupInventory", plugin, sprites, ammoCount);
+			supplies.showItems(RaidPlan.inventoryForSetup(selected, results,
+				id -> plugin.getOwnedItems().owns(id) && !plugin.getExcluded().contains(id)));
+			inventory = supplies;
+		}
+		body.add(BestGearSetupPanel.left(inventory));
 		body.add(spacer(6));
 
 		body.add(BestGearSetupPanel.left(statsBox(d, thrallFor(selected))));
@@ -366,10 +393,11 @@ class ResultView extends JPanel
 		{
 			if (item != null)
 			{
-				JLabel icon = new JLabel();
+				List<RaidPlan.InventoryItem> contents = item == plan.getWeapon() && plan.getLoadedAmmo() != null
+					? Collections.singletonList(new RaidPlan.InventoryItem(plan.getLoadedAmmo().getName(),
+						Collections.singletonList(plan.getLoadedAmmo().getId()), false)) : Collections.emptyList();
+				JComponent icon = EquipmentGrid.inventoryCell(item, contents, plugin, itemManager, sprites, ammoCount);
 				icon.setPreferredSize(new Dimension(36, 32));
-				icon.setToolTipText(GameData.titleCase(item.getName()));
-				itemManager.getImage(item.getId()).addTo(icon);
 				icons.add(icon);
 			}
 		}
@@ -555,22 +583,10 @@ class ResultView extends JPanel
 		return row;
 	}
 
-	/** Potions and hearts a setup in the selected tab assumes; the atlatl also uses the melee boosts. */
-	private List<Potion> potionsFor(SetupResult setup)
+	/** Potions and hearts a setup assumes; Strength-based ranged weapons also use Strength boosts. */
+	List<Potion> potionsFor(SetupResult setup)
 	{
-		List<Potion> potions = new ArrayList<>(results.getPotions().getOrDefault(setup.getCombatClass(),
-			Collections.emptyList()));
-		if (selectedType == AttackStyle.Type.ATLATL)
-		{
-			for (Potion p : results.getPotions().getOrDefault(CombatClass.MELEE, Collections.emptyList()))
-			{
-				if (potions.stream().noneMatch(x -> x.getId() == p.getId()))
-				{
-					potions.add(p);
-				}
-			}
-		}
-		return potions;
+		return results.potionsForSetup(setup);
 	}
 
 	/** Mark of Darkness only affects demonbane spells cast at demons. */

@@ -61,7 +61,8 @@ final class LiveSpecs
 	private final Consumer<String> changed;
 
 	private final Map<String, Integer> landed = new HashMap<>();
-	private int targetIndex = -1;
+	private NPC trackedTarget;
+	private int trackedId = -1;
 	/** Lower-case name of the tracked target; read by searches off the client thread. */
 	private volatile String targetName;
 	private volatile Map<String, Object> snapshot = new HashMap<>();
@@ -91,6 +92,29 @@ final class LiveSpecs
 	{
 		String name = targetName;
 		return name != null && sameTarget(name, monsterName) ? snapshot : new HashMap<>();
+	}
+
+	/** Match the actual NPC instance so a drain never leaks to another monster of the same name. */
+	Map<String, Object> overrides(NPC npc)
+	{
+		return config.autoSpecs() && npc != null && npc == trackedTarget && npc.getId() == trackedId
+			? snapshot : new HashMap<>();
+	}
+
+	/** Start an active encounter at zero tracked drains, including a new spawn or phase transformation. */
+	void trackTarget(NPC npc)
+	{
+		if (!config.autoSpecs() || npc == null || npc.getName() == null) { return; }
+		if (trackedTarget == npc && trackedId == npc.getId()) { return; }
+		landed.clear();
+		trackedTarget = npc;
+		trackedId = npc.getId();
+		targetName = Text.removeTags(npc.getName()).toLowerCase(Locale.ROOT).trim();
+		Map<String, Object> values = new HashMap<>();
+		LIMITS.forEach((key, limit) -> values.put(key, 0));
+		values.put("specVulnerability", false);
+		values.put("specTomeOfWater", false);
+		snapshot = values;
 	}
 
 	/** Whether a catalogue name ("verzik vitur (phase 2)") names the live NPC ("verzik vitur"). */
@@ -214,7 +238,7 @@ final class LiveSpecs
 	@Subscribe
 	public void onNpcDespawned(NpcDespawned event)
 	{
-		if (event.getNpc().getIndex() == targetIndex)
+		if (event.getNpc() == trackedTarget)
 		{
 			end();
 		}
@@ -244,15 +268,15 @@ final class LiveSpecs
 		{
 			return;
 		}
-		if (target.getIndex() != targetIndex)
+		if (trackedTarget != target || trackedId != target.getId())
 		{
-			landed.clear();
-			targetIndex = target.getIndex();
-			targetName = Text.removeTags(target.getName()).toLowerCase(Locale.ROOT).trim();
+			trackTarget(target);
 		}
 		landed.merge(used.key, used.amount(hit, target), Integer::sum);
 		Map<String, Object> values = new HashMap<>();
 		LIMITS.forEach((k, limit) -> values.put(k, Math.min(limit, landed.getOrDefault(k, 0))));
+		values.put("specVulnerability", false);
+		values.put("specTomeOfWater", false);
 		snapshot = values;
 		changed.accept(targetName);
 	}
@@ -262,7 +286,8 @@ final class LiveSpecs
 	{
 		String name = targetName;
 		landed.clear();
-		targetIndex = -1;
+		trackedTarget = null;
+		trackedId = -1;
 		targetName = null;
 		snapshot = new HashMap<>();
 		weapon = null;

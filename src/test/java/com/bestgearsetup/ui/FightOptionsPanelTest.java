@@ -217,6 +217,39 @@ public class FightOptionsPanelTest
 	}
 
 	@Test
+	public void fightSettingsMovedFromSettingsAreEditableHere() throws Exception
+	{
+		Map<String, Object> writes = new HashMap<>();
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin() {
+			@Override public void setConfig(String key, Object value) { writes.put(key, value); }
+		};
+		SwingUtilities.invokeAndWait(() -> {
+			FightOptionsPanel panel = new FightOptionsPanel(plugin, new BestGearSetupConfig() {},
+				com.bestgearsetup.ConfigItemsForTests.items());
+			Component conditions = control(panel, "fightConditionsContent");
+			for (String key : Arrays.asList("activeEncounter", "thrall"))
+			{
+				assertTrue(key, SwingUtilities.isDescendingFrom(control(panel, key), conditions));
+			}
+			Component specials = control(panel, "specialAttacksContent");
+			for (String key : Arrays.asList("killSpecials", "specEnergy", "drainSpecs"))
+			{
+				assertTrue(key, SwingUtilities.isDescendingFrom(control(panel, key), specials));
+			}
+			Component raid = control(panel, "raidScalingContent");
+			for (String key : Arrays.asList("raidEquipmentLimit", "raidSpellbook"))
+			{
+				assertTrue(key, SwingUtilities.isDescendingFrom(control(panel, key), raid));
+			}
+			assertTrue(control(panel, "specEnergyRow").isVisible());
+			((JCheckBox) control(panel, "killSpecials")).doClick();
+			assertEquals(false, writes.get("killSpecials"));
+			assertFalse("Spec options only apply with specials on", control(panel, "specEnergyRow").isVisible());
+			assertFalse(control(panel, "drainSpecsRow").isVisible());
+		});
+	}
+
+	@Test
 	public void wildernessOnlyTargetsShowWildernessOnWithoutSavingIt() throws Exception
 	{
 		Map<String, Object> writes = new HashMap<>();

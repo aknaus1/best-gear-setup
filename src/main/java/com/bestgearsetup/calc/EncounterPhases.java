@@ -45,6 +45,14 @@ public final class EncounterPhases
 		}
 		switch (phase)
 		{
+			case AKKHA_IMMUNE_MELEE:
+				return "Akkha protects against melee; use ranged or magic.";
+			case AKKHA_IMMUNE_RANGED:
+				return "Akkha protects against ranged; use melee or magic.";
+			case AKKHA_IMMUNE_MAGIC:
+				return "Akkha protects against magic; use melee or ranged.";
+			case AKKHA_ENRAGE:
+				return "Akkha final stand: protects against ranged and magic; use melee.";
 			case HUEYCOATL_PILLAR:
 				return "Hueycoatl pillar: each hit deals 30% more damage after the tail caps.";
 			case ROYAL_TITANS_OUT_OF_MELEE:

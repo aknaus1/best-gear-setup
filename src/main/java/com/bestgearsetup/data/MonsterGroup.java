@@ -88,7 +88,7 @@ public final class MonsterGroup
 	 * The name without its trailing parenthesised versions: "doom of mokhaiotl (delve 1) (npc 14708)" and
 	 * "abyssal sire (phase 3 (stage 1))" become "doom of mokhaiotl" and "abyssal sire".
 	 */
-	static String baseName(String name)
+	public static String baseName(String name)
 	{
 		String base = name.trim();
 		while (base.endsWith(")"))

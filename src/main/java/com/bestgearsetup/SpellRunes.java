@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.runelite.api.gameval.ItemID;
@@ -24,7 +25,7 @@ import net.runelite.api.gameval.ItemID;
  * The rune types a setup's combat and support spells consume, less any the equipped staff or tome
  * supplies, plus the Book of the dead a thrall needs.
  */
-final class SpellRunes
+public final class SpellRunes
 {
 	private static final int AIR = ItemID.AIRRUNE;
 	private static final int WATER = ItemID.WATERRUNE;
@@ -41,6 +42,9 @@ final class SpellRunes
 	private static final Map<SupportSpell, List<Integer>> SUPPORT = new EnumMap<>(SupportSpell.class);
 	private static final Map<Integer, List<Integer>> SUBSTITUTES = new HashMap<>();
 	private static final Map<String, List<Integer>> STAFF_ELEMENTS = new HashMap<>();
+	// Best first: a divine pouch takes the cell ahead of a regular one, each before its locked (l) copy.
+	private static final List<Integer> RUNE_POUCHES = Arrays.asList(ItemID.DIVINE_RUNE_POUCH,
+		ItemID.DIVINE_RUNE_POUCH_TROUVER, ItemID.BH_RUNE_POUCH, ItemID.BH_RUNE_POUCH_TROUVER);
 	// "air battlestaff", "mystic dust staff", "staff of fire"; sceptres and other staves supply nothing.
 	private static final Pattern ELEMENTAL_STAFF = Pattern.compile("(?:mystic )?(\\w+) (?:battle)?staff\\b.*");
 	private static final Pattern BASIC_STAFF = Pattern.compile("staff of (\\w+)");
@@ -125,6 +129,44 @@ final class SpellRunes
 	{
 	}
 
+	static String supplyName(int id)
+	{
+		if (id == ItemID.BOOK_OF_THE_DEAD) { return "Book of the dead"; }
+		if (pouchCapacity(id) == 4) { return "Divine rune pouch"; }
+		if (pouchCapacity(id) == 3) { return "Rune pouch"; }
+		int[] ids = {AIR, WATER, EARTH, FIRE, MIND, CHAOS, DEATH, BLOOD, SOUL, COSMIC, WRATH};
+		String[] names = {"Air", "Water", "Earth", "Fire", "Mind", "Chaos", "Death", "Blood", "Soul", "Cosmic", "Wrath"};
+		for (int i = 0; i < ids.length; i++) { if (id == ids[i]) { return names[i] + " runes"; } }
+		return "Spell supplies";
+	}
+
+	static int pouchCapacity(int id)
+	{
+		if (id == ItemID.DIVINE_RUNE_POUCH || id == ItemID.DIVINE_RUNE_POUCH_TROUVER) { return 4; }
+		return id == ItemID.BH_RUNE_POUCH || id == ItemID.BH_RUNE_POUCH_TROUVER ? 3 : 0;
+	}
+
+	static List<Integer> bestOwnedPouches(IntPredicate owns)
+	{
+		List<Integer> ids = new ArrayList<>();
+		int capacity = 0;
+		for (int id : RUNE_POUCHES)
+		{
+			if (owns.test(id) && (capacity == 0 || pouchCapacity(id) == capacity))
+			{
+				ids.add(id);
+				capacity = pouchCapacity(id);
+			}
+		}
+		return ids;
+	}
+
+	static boolean isRune(int id)
+	{
+		return id == AIR || id == WATER || id == EARTH || id == FIRE || id == MIND || id == CHAOS
+			|| id == DEATH || id == BLOOD || id == SOUL || id == COSMIC || id == WRATH;
+	}
+
 	private static void spell(String name, Integer... runes)
 	{
 		SPELLS.put(name, Collections.unmodifiableList(Arrays.asList(runes)));
@@ -135,6 +177,15 @@ final class SpellRunes
 	{
 		return setup == null ? Collections.emptyList() : required(setup.getLoadout(), setup.getSupportSpells());
 	}
+
+	/** Equipment search must not assume an explicitly excluded spell supply. */
+	public static boolean suppliesAllowed(Loadout loadout, Set<SupportSpell> support, Set<Integer> excluded)
+	{
+		return excluded.isEmpty() || required(loadout, support).stream().noneMatch(excluded::contains);
+	}
+
+	/** Supplies checked during spell scoring, excluding unrelated gear, boosts and pouches. */
+	public static boolean isSpellSupply(int id) { return isRune(id) || id == ItemID.BOOK_OF_THE_DEAD; }
 
 	static List<Integer> required(Loadout loadout, Set<SupportSpell> support)
 	{
@@ -154,6 +205,39 @@ final class SpellRunes
 		}
 		items.removeAll(supplied(loadout));
 		return new ArrayList<>(items);
+	}
+
+	/**
+	 * The setup's spell items grouped by bank cell: the player's rune pouches if the spells need any rune, then
+	 * each required item followed by the runes that can be cast in its place.
+	 */
+	static List<List<Integer>> bankItems(SetupResult setup, IntPredicate owns)
+	{
+		List<Integer> required = required(setup);
+		List<List<Integer>> cells = new ArrayList<>();
+		if (required.stream().anyMatch(item -> item != ItemID.BOOK_OF_THE_DEAD))
+		{
+			List<Integer> pouches = new ArrayList<>();
+			for (int pouch : RUNE_POUCHES)
+			{
+				if (owns.test(pouch))
+				{
+					pouches.add(pouch);
+				}
+			}
+			if (!pouches.isEmpty())
+			{
+				cells.add(pouches);
+			}
+		}
+		for (int item : required)
+		{
+			List<Integer> ids = new ArrayList<>();
+			ids.add(item);
+			ids.addAll(substitutes(item));
+			cells.add(ids);
+		}
+		return cells;
 	}
 
 	/** Combination, sunfire and aether runes that can be cast in place of {@code rune}. */

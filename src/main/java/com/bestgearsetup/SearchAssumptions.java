@@ -22,6 +22,9 @@ import java.util.Set;
  */
 final class SearchAssumptions implements BestGearSetupConfig
 {
+	private final boolean activeEncounter;
+	private final int raidEquipmentLimit;
+	private final RaidSpellbook raidSpellbook;
 	private final boolean showMenuOption;
 	private final boolean highlightBankGear;
 	private final Color bankHighlightColor;
@@ -107,6 +110,9 @@ final class SearchAssumptions implements BestGearSetupConfig
 
 	private SearchAssumptions(BestGearSetupConfig source, Overrides o)
 	{
+		activeEncounter = o.get("activeEncounter", source.activeEncounter());
+		raidSpellbook = o.get("raidSpellbook", source.raidSpellbook());
+		raidEquipmentLimit = o.get("raidEquipmentLimit", source.raidEquipmentLimit());
 		showMenuOption = o.get("showMenuOption", source.showMenuOption());
 		highlightBankGear = o.get("highlightBankGear", source.highlightBankGear());
 		bankHighlightColor = o.get("bankHighlightColor", source.bankHighlightColor());
@@ -199,6 +205,9 @@ final class SearchAssumptions implements BestGearSetupConfig
 		return snapshot;
 	}
 
+	@Override public boolean activeEncounter() { return activeEncounter; }
+	@Override public RaidSpellbook raidSpellbook() { return raidSpellbook; }
+	@Override public int raidEquipmentLimit() { return raidEquipmentLimit; }
 	@Override public boolean showMenuOption() { return showMenuOption; }
 	@Override public boolean highlightBankGear() { return highlightBankGear; }
 	@Override public Color bankHighlightColor() { return bankHighlightColor; }

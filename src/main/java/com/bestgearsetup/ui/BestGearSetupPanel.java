@@ -7,6 +7,9 @@ import com.bestgearsetup.calc.EncounterPhases;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.SearchResults;
+import com.bestgearsetup.RaidPlan;
+import com.bestgearsetup.RaidEncounter;
+import com.bestgearsetup.RaidPlanType;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
@@ -72,10 +75,14 @@ public class BestGearSetupPanel extends PluginPanel
 	private final ItemManager itemManager;
 
 	final IconTextField searchField = new IconTextField();
+	private RaidPlanType raidType = RaidPlanType.SINGLE;
+	final JComboBox<RaidEncounter> encounterBox = new JComboBox<>();
+	private boolean selectingRaid;
 	final JToggleButton bossesButton = new JToggleButton("Bosses");
 	final JToggleButton allButton = new JToggleButton("All monsters");
 	final JPanel suggestions = new JPanel();
 	final JComboBox<MonsterSummary> versionBox = new JComboBox<>();
+	final JComboBox<RaidEncounter> raidVersionBox = new JComboBox<>();
 	final JPanel versionRow = new JPanel(new BorderLayout(0, 2));
 	final JComboBox<EncounterPhase> phaseBox = new JComboBox<>();
 	final JPanel phaseRow = new JPanel(new BorderLayout(0, 2));
@@ -135,18 +142,9 @@ public class BestGearSetupPanel extends PluginPanel
 		content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 		content.setBackground(ColorScheme.DARK_GRAY_COLOR);
 
-		JLabel title = new JLabel("Best Gear Setup");
-		title.setFont(FontManager.getRunescapeBoldFont());
-		title.setForeground(Color.WHITE);
-		JPanel titleRow = new JPanel(new BorderLayout());
-		titleRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		titleRow.add(title, BorderLayout.CENTER);
 		Controls.badge(filterBadge);
 		filterBadge.setToolTipText("Bosses-only filter is active. Click to search all monsters.");
 		filterBadge.addActionListener(e -> allButton.doClick());
-		titleRow.add(filterBadge, BorderLayout.EAST);
-		content.add(left(titleRow));
-		content.add(spacer(6));
 
 		JPanel filter = new JPanel(new GridLayout(1, 2, 2, 0));
 		filter.setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -172,7 +170,8 @@ public class BestGearSetupPanel extends PluginPanel
 
 		searchField.setIcon(IconTextField.Icon.SEARCH);
 		searchField.setPreferredSize(new Dimension(PANEL_WIDTH - 16, 30));
-		Controls.search(searchField, "Search monsters...");
+		Controls.search(searchField, "Search monsters or raids...");
+		searchField.setName("targetSearch");
 		searchField.setEnabled(false);
 		searchField.getDocument().addDocumentListener(new DocumentListener()
 		{
@@ -198,6 +197,8 @@ public class BestGearSetupPanel extends PluginPanel
 		{
 			if (data != null)
 			{
+				List<RaidPlanType> raids = RaidPlanType.search(searchField.getText());
+				if (!raids.isEmpty()) { selectRaid(raids.get(0)); return; }
 				List<MonsterGroup> matches = data.searchMonsterGroups(searchField.getText(), 1, bossesButton.isSelected());
 				if (!matches.isEmpty())
 				{
@@ -205,7 +206,11 @@ public class BestGearSetupPanel extends PluginPanel
 				}
 			}
 		});
-		content.add(left(searchField));
+		JPanel searchRow = new JPanel(new BorderLayout(4, 0));
+		searchRow.setOpaque(false);
+		searchRow.add(searchField, BorderLayout.CENTER);
+		searchRow.add(filterBadge, BorderLayout.EAST);
+		content.add(left(searchRow));
 
 		suggestions.setLayout(new BoxLayout(suggestions, BoxLayout.Y_AXIS));
 		suggestions.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -228,6 +233,55 @@ public class BestGearSetupPanel extends PluginPanel
 		});
 		noMatches.setVisible(false);
 		content.add(left(noMatches));
+		content.add(spacer(6));
+
+		monsterLabel.setForeground(Color.WHITE);
+		monsterLabel.setFont(FontManager.getRunescapeSmallFont());
+		JPanel targetRow = new JPanel(new BorderLayout(2, 0));
+		targetRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		monsterLabel.setName("selectedTarget");
+		JPanel targetChoice = new JPanel(new BorderLayout());
+		targetChoice.setOpaque(false);
+		targetChoice.setName("targetChoice");
+		targetChoice.add(monsterLabel, BorderLayout.NORTH);
+		Controls.field(encounterBox);
+		encounterBox.setName("raidEncounter");
+		encounterBox.setToolTipText("Boss or monster whose equipment is shown below");
+		encounterBox.getAccessibleContext().setAccessibleName("Current boss or monster");
+		encounterBox.setRenderer(new DefaultListCellRenderer()
+		{
+			@Override public java.awt.Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index,
+				boolean isSelected, boolean cellHasFocus)
+			{
+				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				if (value instanceof RaidEncounter) { setText(((RaidEncounter) value).getBossName()); }
+				return this;
+			}
+		});
+		encounterBox.setVisible(false);
+		targetChoice.add(encounterBox, BorderLayout.CENTER);
+		targetRow.add(targetChoice, BorderLayout.CENTER);
+		wikiButton.setEnabled(false);
+		wikiButton.setFocusable(false);
+		wikiButton.setToolTipText("Select a monster to open its OSRS Wiki page");
+		wikiButton.addActionListener(e ->
+		{
+			if (selected != null)
+			{
+				LinkBrowser.browse(HttpUrl.get(WIKI_URL).newBuilder()
+					.addPathSegments("w/Special:Lookup")
+					.addQueryParameter("type", "npc")
+					.addQueryParameter("id", String.valueOf(selected.getId()))
+					.addQueryParameter("name", selectedGroup == null ? selected.getDisplayName() : selectedGroup.getDisplayName())
+					.addQueryParameter("utm_source", "runelite")
+					.build().toString());
+			}
+		});
+		wikiButton.setText("Wiki");
+		Controls.secondary(wikiButton);
+		wikiButton.setMargin(new java.awt.Insets(1, 6, 1, 6));
+		targetRow.add(wikiButton, BorderLayout.EAST);
+		content.add(left(targetRow));
 		content.add(spacer(6));
 
 		versionRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -261,6 +315,19 @@ public class BestGearSetupPanel extends PluginPanel
 		});
 		versionRow.add(versionLabel, BorderLayout.NORTH);
 		versionRow.add(versionBox, BorderLayout.CENTER);
+		Controls.field(raidVersionBox);
+		raidVersionBox.setName("raidVersion");
+		raidVersionBox.setToolTipText("Phase of the selected boss in this raid kit");
+		raidVersionBox.setRenderer(new DefaultListCellRenderer()
+		{
+			@Override public java.awt.Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index,
+				boolean isSelected, boolean cellHasFocus)
+			{
+				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				if (value instanceof RaidEncounter) { setText(((RaidEncounter) value).getVersionLabel()); }
+				return this;
+			}
+		});
 		versionRow.setVisible(false);
 		content.add(left(versionRow));
 
@@ -284,33 +351,6 @@ public class BestGearSetupPanel extends PluginPanel
 		content.add(left(phaseRow));
 		content.add(spacer(6));
 
-		monsterLabel.setForeground(Color.WHITE);
-		monsterLabel.setFont(FontManager.getRunescapeSmallFont());
-		JPanel targetRow = new JPanel(new BorderLayout(2, 0));
-		targetRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		targetRow.add(monsterLabel, BorderLayout.CENTER);
-		wikiButton.setEnabled(false);
-		wikiButton.setFocusable(false);
-		wikiButton.setToolTipText("Select a monster to open its OSRS Wiki page");
-		wikiButton.addActionListener(e ->
-		{
-			if (selected != null)
-			{
-				LinkBrowser.browse(HttpUrl.get(WIKI_URL).newBuilder()
-					.addPathSegments("w/Special:Lookup")
-					.addQueryParameter("type", "npc")
-					.addQueryParameter("id", String.valueOf(selected.getId()))
-					.addQueryParameter("name", selectedGroup == null ? selected.getDisplayName() : selectedGroup.getDisplayName())
-					.addQueryParameter("utm_source", "runelite")
-					.build().toString());
-			}
-		});
-		wikiButton.setText("Wiki");
-		Controls.secondary(wikiButton);
-		wikiButton.setMargin(new java.awt.Insets(1, 6, 1, 6));
-		targetRow.add(wikiButton, BorderLayout.EAST);
-		content.add(left(targetRow));
-		content.add(spacer(6));
 
 		JPanel settings = new JPanel();
 		settings.setLayout(new BoxLayout(settings, BoxLayout.Y_AXIS));
@@ -563,6 +603,7 @@ public class BestGearSetupPanel extends PluginPanel
 	/** Reset the current target and recommendations after the plugin cancels outstanding work. */
 	public void clearSearch()
 	{
+		raidType = RaidPlanType.SINGLE;
 		selected = null;
 		showVersions(null, null);
 		searchField.setText("");
@@ -584,10 +625,51 @@ public class BestGearSetupPanel extends PluginPanel
 		select(data == null ? null : data.groupOf(monster, bossesButton.isSelected()), monster, run);
 	}
 
+	public RaidPlanType getRaidType() { return raidType; }
+
+	/** Select a full raid from the ordinary search results. */
+	public void selectRaid(RaidPlanType raid)
+	{
+		if (data == null || raid == RaidPlanType.SINGLE) { return; }
+		plugin.clearGearSearch();
+		raidType = raid;
+		selectingRaid = true;
+		try { selectMonster(raid.encounters(data).get(0).getTarget(), true); }
+		finally { selectingRaid = false; }
+	}
+
+	private void showDisplayedEncounter(RaidEncounter encounter)
+	{
+		selected = encounter.getTarget();
+		monsterLabel.setText("<html><div style='width:120px'><b>" + escape(selected.getDisplayName())
+			+ "</b> (lvl " + selected.getCombatLevel() + ")</div></html>");
+		versionRow.setVisible(raidVersionBox.getItemCount() > 1);
+		phaseRow.setVisible(false);
+		fightOptions.setTarget(selected);
+		wikiButton.setToolTipText("Open the OSRS Wiki page for " + selected.getDisplayName());
+	}
+
+	/** Automatic target changes keep a matching full raid selected. */
+	public void selectActiveMonster(MonsterSummary monster)
+	{
+		selectingRaid = getRaidType() != RaidPlanType.SINGLE && data != null && getRaidType().encounters(data).stream()
+			.anyMatch(e -> e.getTarget().getId() == monster.getId());
+		try { selectMonster(monster, false); plugin.findActiveSetup(monster); }
+		finally { selectingRaid = false; }
+	}
+
 	/** Select one variant of a searched group; the group's other variants are offered as versions. */
 	private void select(MonsterGroup group, MonsterSummary monster, boolean run)
 	{
-		searchField.setText(group == null ? monster.getDisplayName() : group.getDisplayName());
+		if (!selectingRaid)
+		{
+			raidType = RaidPlanType.SINGLE;
+			encounterBox.setVisible(false);
+			monsterLabel.setVisible(true);
+			versionRow.remove(raidVersionBox);
+			versionRow.add(versionBox, BorderLayout.CENTER);
+		}
+		searchField.setText(raidType == RaidPlanType.SINGLE ? group == null ? monster.getDisplayName() : group.getDisplayName() : raidType.toString());
 		showVersions(group, monster);
 		selected = monster;
 		wikiButton.setEnabled(true);
@@ -671,6 +753,11 @@ public class BestGearSetupPanel extends PluginPanel
 		progressRow.setVisible(true);
 	}
 
+	public void showEncounterProgress(String message)
+	{
+		showStatus(message);
+	}
+
 	/** Advance the running search's bar; updates from different search threads may arrive out of order. */
 	public void showProgress(int percent)
 	{
@@ -680,6 +767,11 @@ public class BestGearSetupPanel extends PluginPanel
 	/** Clear recommendations when the search or account they belong to is no longer current. */
 	public void clearResults(String message)
 	{
+		RaidResultView.detachSelector(encounterBox);
+		RaidResultView.detachSelector(raidVersionBox);
+		encounterBox.setModel(new DefaultComboBoxModel<>());
+		encounterBox.setVisible(false);
+		monsterLabel.setVisible(true);
 		progressRow.setVisible(false);
 		assumptionsLabel.setText("");
 		assumptionsLabel.setToolTipText(null);
@@ -698,6 +790,44 @@ public class BestGearSetupPanel extends PluginPanel
 			.map(lock -> escape(lock.getSlot().getDisplayName()) + " lock can't be used: " + escape(lock.getProblem())
 				+ ". Remove it under Gear.")
 			.collect(Collectors.joining("<br>"));
+	}
+
+	public void showRaidResults(RaidPlan plan, MonsterSummary active)
+	{
+		showRaidResults(plan, active, null);
+	}
+
+	public void showRaidResults(RaidPlan plan, MonsterSummary active, SearchResults activeResult)
+	{
+		progressRow.setVisible(false);
+		findButton.setEnabled(true);
+		resultsPanel.removeAll();
+		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		SearchResults first = plan.getResults().get(0);
+		versionRow.remove(versionBox);
+		versionRow.add(raidVersionBox, BorderLayout.CENTER);
+		statusLabel.setText(html(escape(plan.getType().toString()) + ": " + plan.getEncounters().size() + " encounter setups"
+			+ (first.isAssumedLevels() ? "<br>Assuming 99 combat stats." : first.isRememberedLevels() ? "<br>Using remembered account levels." : "")));
+		resultsPanel.add(left(new RaidResultView(plan, active, activeResult, plugin, itemManager, sprites, skillIcons,
+			config.ammoCount(), encounterBox, raidVersionBox, this::showDisplayedEncounter)));
+		monsterLabel.setVisible(false);
+		encounterBox.setVisible(true);
+		List<String> warnings = plan.getResults().stream().flatMap(r -> r.getWarnings().stream()).distinct().collect(Collectors.toList());
+		if (activeResult != null) { warnings.addAll(activeResult.getWarnings()); }
+		if (!warnings.isEmpty())
+		{
+			JLabel warningLabel = new JLabel(html(warnings.stream().distinct().map(BestGearSetupPanel::escape).collect(Collectors.joining("<br>"))));
+			warningLabel.setName("assumptionWarnings");
+			setSmall(warningLabel, WARNING_COLOR);
+			resultsPanel.add(left(warningLabel));
+		}
+		JLabel notes = new JLabel(html("Raid kits use a bounded search over valid setups; lower equipment limits share more armour."
+			+ "<br>Runes are packed into your pouch; hover it to see its contents. Extra rune types stay in free inventory slots. Food, healing and utility supplies are not planned."
+			+ "<br>In-raid boosts are omitted from the bank. Dawnbringer is obtained at Verzik. Loaded darts must be loaded before entry."));
+		setSmall(notes, ColorScheme.LIGHT_GRAY_COLOR);
+		resultsPanel.add(left(notes));
+		resultsPanel.revalidate();
+		resultsPanel.repaint();
 	}
 
 	public void showResults(SearchResults found)
@@ -898,12 +1028,14 @@ public class BestGearSetupPanel extends PluginPanel
 		boolean none = false;
 		if (data != null)
 		{
-			List<MonsterGroup> matches = data.searchMonsterGroups(query, MAX_SUGGESTIONS, bossesButton.isSelected());
+			List<RaidPlanType> raids = RaidPlanType.search(query);
+			for (RaidPlanType raid : raids) { suggestions.add(raidSuggestionRow(raid)); }
+			List<MonsterGroup> matches = data.searchMonsterGroups(query, MAX_SUGGESTIONS - raids.size(), bossesButton.isSelected());
 			for (MonsterGroup group : matches)
 			{
 				suggestions.add(suggestionRow(group));
 			}
-			none = matches.isEmpty() && !query.trim().isEmpty();
+			none = matches.isEmpty() && raids.isEmpty() && !query.trim().isEmpty();
 		}
 		if (none)
 		{
@@ -923,6 +1055,27 @@ public class BestGearSetupPanel extends PluginPanel
 		String message = hiddenByFilter ? "No bosses match. <u>Search all monsters</u> instead."
 			: "No matching monsters.";
 		return target == null ? message : message + " Still targeting <b>" + escape(target) + "</b>.";
+	}
+
+	private JPanel raidSuggestionRow(RaidPlanType raid)
+	{
+		JPanel row = new JPanel(new BorderLayout());
+		row.setName("raidSearch:" + raid.name());
+		row.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		row.setBorder(new EmptyBorder(3, 6, 3, 6));
+		JLabel name = new JLabel(html(escape(raid.toString())));
+		name.setFont(FontManager.getRunescapeSmallFont());
+		name.setForeground(ColorScheme.BRAND_ORANGE);
+		row.add(name, BorderLayout.CENTER);
+		row.setToolTipText("Full raid with a shared equipment kit and inventory");
+		row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		row.addMouseListener(new MouseAdapter()
+		{
+			@Override public void mouseEntered(MouseEvent e) { row.setBackground(Controls.ROW_HOVER); }
+			@Override public void mouseExited(MouseEvent e) { row.setBackground(ColorScheme.DARKER_GRAY_COLOR); }
+			@Override public void mouseClicked(MouseEvent e) { selectRaid(raid); }
+		});
+		return row;
 	}
 
 	private JPanel suggestionRow(MonsterGroup group)

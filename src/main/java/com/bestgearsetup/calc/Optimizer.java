@@ -4,6 +4,7 @@ import com.bestgearsetup.Budget;
 import com.bestgearsetup.DiaryRewards;
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.OwnershipRules;
+import com.bestgearsetup.SpellRunes;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
@@ -1225,7 +1226,8 @@ public class Optimizer
 	/** Mandatory protection and the optional atlatl cape requirement are enforced throughout the search. */
 	private boolean protectedSetup(Loadout l)
 	{
-		return (!fireProtectionRequired || DragonfireProtection.protects(monster, l, settings, levels))
+		return SpellRunes.suppliesAllowed(l, Collections.emptySet(), settings.getExcludedSupplies())
+			&& (!fireProtectionRequired || DragonfireProtection.protects(monster, l, settings, levels))
 			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l))
 			&& (!settings.isRequireAtlatlAmmoRecovery() || !WeaponRules.isAtlatl(l.getWeapon())
 				|| WeaponRules.isAmmoRecoveryCape(l.get(Slot.CAPE)));

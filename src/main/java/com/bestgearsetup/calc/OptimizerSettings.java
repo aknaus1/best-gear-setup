@@ -103,4 +103,7 @@ public class OptimizerSettings
 	Map<Slot, SlotLock> locks = Collections.emptyMap();
 	@Builder.Default
 	Set<Integer> excluded = Collections.emptySet();
+	/** User supply exclusions, separate from the extra equipment restrictions used during raid consolidation. */
+	@Builder.Default
+	Set<Integer> excludedSupplies = Collections.emptySet();
 }

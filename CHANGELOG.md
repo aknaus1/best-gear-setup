@@ -3,6 +3,35 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Move fight settings (active encounter, thralls, special attacks, raid equipment slots and raid
+  spellbook) from Settings into the Fight editor.
+- Keep raid ammunition worn in otherwise empty ammo slots, including the starting setup, and reflect it
+  in inventory capacity and the bank layout. Loaded blowpipe darts appear in the pipe's tooltip instead.
+- Add loaded-dart exclusions to worn, special and inventory blowpipe menus. Inventory gear uses the
+  same tooltips and lock, exclusion and ownership actions as equipped gear; supplies retain pouch contents
+  and gain exclusion and ownership menus.
+- Derive Olm hand repetitions from raid party scale and use every required hand phase when comparing
+  shared kits and equipment reductions; keep the head as one fight and displayed HP per phase.
+- Raid consolidation compares the fight time lost by removing switches instead of discarding less-used
+  armour; prevent unnecessary downgrades of owned Blue Moon armour and imbued god capes in CM CoX.
+- Full raids are searchable by name or CM CoX / ToA / ToB; remove the Encounter plan selector.
+- Sidebar order is search, current boss/monster, Version, gear source, buttons, equipment and collapsible
+  inventory. The boss selector stays synchronized with the raid equipment currently shown.
+- Search progress covers the entire raid, including kit selection and equipment consolidation; it never
+  resets between encounters or reaches 100% before results are ready.
+- Pack raid runes into owned regular/divine pouches, count the pouch as one inventory slot and list
+  its planned contents on hover. Move the sidebar inventory below worn equipment.
+- Full CoX Challenge Mode, ToA and normal ToB plans with encounter and boss-phase setups, starting gear
+  for Tekton / Ba-Ba / Maiden, a shared inventory and worn-equipment / inventory bank layout.
+- Raid equipment-slot limit and one spellbook for the raid; the shared kit must fit the entire gear budget
+  and 28 inventory slots, including after equipment switches.
+- Optional active encounter targeting of the NPC you are in combat with (not one merely clicked or nearby),
+  with tracked defence drains matched to the actual NPC instance.
+  Combat updates stay inside an existing raid kit instead of re-planning every room.
+- When the setup needs runes, the bank layout and highlights include your rune pouch or divine rune pouch.
+
 ## 1.1.0 (2026-10-10)
 
 - New *Inventory + equipped only* mode: searches use only what you carry and wear, ignoring the bank.

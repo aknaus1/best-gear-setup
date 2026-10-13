@@ -193,6 +193,12 @@ public final class RaidScaling
 		return 100 + isqrt(extraMembers) + extraMembers * 7 / 10;
 	}
 
+	/** Olm repeats both hands three times, plus one additional hand phase for every eight players. */
+	public static int olmHandPhases(Settings s)
+	{
+		return 3 + clamp(s.getPartySize(), 1, 100) / 8;
+	}
+
 	private static void cox(Monster m, Settings s)
 	{
 		boolean magicDefends = coxMagicIsDefensive(m);

@@ -4,6 +4,7 @@ import com.bestgearsetup.Budget;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.OwnedItems;
+import com.bestgearsetup.RaidPlan;
 import com.bestgearsetup.calc.CosmeticVariants;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.Loadout;
@@ -23,6 +24,7 @@ import java.awt.RenderingHints;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -89,17 +91,21 @@ class EquipmentGrid extends JPanel
 				continue;
 			}
 			GearItem item = l.get(slot);
-			boolean darts = false;
-			if (slot == Slot.AMMO && item == null && l.getLoadedAmmo() != null)
-			{
-				// Blowpipe darts are shown in the ammo slot.
-				item = l.getLoadedAmmo();
-				darts = true;
-			}
-			add(new SlotBox(slot, item, darts, filled.contains(slot), locks.get(slot), plugin, itemManager, sprites,
-				ammoCount));
+			List<RaidPlan.InventoryItem> contents = slot == Slot.WEAPON && l.getLoadedAmmo() != null
+				? Collections.singletonList(new RaidPlan.InventoryItem(l.getLoadedAmmo().getName(),
+					Collections.singletonList(l.getLoadedAmmo().getId()), false)) : Collections.emptyList();
+			add(new SlotBox(slot, item, filled.contains(slot), locks.get(slot), plugin, itemManager, sprites, ammoCount, contents));
 		}
 		setMaximumSize(getPreferredSize());
+	}
+
+	/** The same gear tile, tooltip and menu in an inventory cell. */
+	static JComponent inventoryCell(GearItem item, List<RaidPlan.InventoryItem> contents, BestGearSetupPlugin plugin,
+		ItemManager images, SpriteCache sprites, int ammoCount)
+	{
+		com.bestgearsetup.calc.SlotLock locked = plugin.getLocks().get(item.getSlot());
+		LockStatus status = locked == null ? null : new LockStatus(item.getSlot(), locked, item, null, null);
+		return new SlotBox(item.getSlot(), item, false, status, plugin, images, sprites, ammoCount, contents);
 	}
 
 	/** The empty-slot icon the equipment screen shows for this slot. */
@@ -144,13 +150,13 @@ class EquipmentGrid extends JPanel
 		private final AsyncBufferedImage ghost;
 		private final Color marker;
 		private final BestGearSetupPlugin plugin;
-		/** False for blowpipe darts, which are loaded rather than worn. */
+		/** Inventory gear and worn gear share live worn-state information. */
 		private final boolean wearable;
 		/** The item tooltip without its footer; the worn status is added when it is shown. */
 		private String itemTip;
 
-		SlotBox(Slot slot, GearItem item, boolean darts, boolean filled, LockStatus lock, BestGearSetupPlugin plugin,
-			ItemManager itemManager, SpriteCache sprites, int ammoCount)
+		SlotBox(Slot slot, GearItem item, boolean filled, LockStatus lock, BestGearSetupPlugin plugin,
+			ItemManager itemManager, SpriteCache sprites, int ammoCount, List<RaidPlan.InventoryItem> contents)
 		{
 			this.slot = slot;
 			this.item = item;
@@ -158,7 +164,7 @@ class EquipmentGrid extends JPanel
 			this.lock = lock;
 			this.sprites = sprites;
 			this.plugin = plugin;
-			this.wearable = item != null && !darts;
+			this.wearable = item != null;
 			setPreferredSize(new Dimension(SLOT_SIZE, SLOT_SIZE));
 			boolean locked = lock != null;
 			GearItem lockedItem = locked ? lock.getItem() : null;
@@ -192,10 +198,8 @@ class EquipmentGrid extends JPanel
 				marker = owned ? OWNED : !item.isTradeable() ? UNTRADEABLE : BUY;
 				StringBuilder tip = new StringBuilder("<html><b>").append(BestGearSetupPanel.escape(GameData.titleCase(item.getName())))
 					.append("</b>");
-				if (darts)
-				{
-					tip.append(" (loaded in blowpipe)");
-				}
+				for (RaidPlan.InventoryItem loaded : contents)
+				{ tip.append("<br>Loaded darts: ").append(BestGearSetupPanel.escape(GameData.titleCase(loaded.getName()))); }
 				tip.append("<br>");
 				boolean countedAmmo = WeaponRules.consumedPerAttack(item) && ammoCount > 0;
 				long held = countedAmmo && owned ? plugin.heldQuantity(item) : 0;
@@ -249,7 +253,8 @@ class EquipmentGrid extends JPanel
 				itemTip = tip.toString();
 				setToolTipText(itemTip + TIP_FOOTER);
 			}
-			setComponentPopupMenu(ItemMenus.create(item, darts ? null : slot, locked, plugin));
+			setComponentPopupMenu(ItemMenus.create(item, slot, locked, plugin));
+			ItemMenus.addContents(getComponentPopupMenu(), contents, plugin);
 		}
 
 		private boolean worn()
@@ -333,7 +338,7 @@ class EquipmentGrid extends JPanel
 			int w = getWidth();
 			int h = getHeight();
 
-			BufferedImage tile = sprites.get(SpriteID.Miscgraphics.EQUIPMENT_SLOT_TILE, this::repaint);
+			BufferedImage tile = sprites == null ? null : sprites.get(SpriteID.Miscgraphics.EQUIPMENT_SLOT_TILE, this::repaint);
 			if (tile != null)
 			{
 				g2.drawImage(tile, 0, 0, w, h, null);
@@ -367,7 +372,7 @@ class EquipmentGrid extends JPanel
 			}
 			else
 			{
-				BufferedImage ph = sprites.get(placeholderSprite(slot), this::repaint);
+				BufferedImage ph = sprites == null ? null : sprites.get(placeholderSprite(slot), this::repaint);
 				if (ph != null)
 				{
 					g2.drawImage(ph, (w - ph.getWidth()) / 2, (h - ph.getHeight()) / 2, null);

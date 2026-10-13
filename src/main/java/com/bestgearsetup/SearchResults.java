@@ -4,6 +4,7 @@ import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.Thrall;
+import com.bestgearsetup.calc.WeaponRules;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.OffensivePrayer;
@@ -11,6 +12,7 @@ import com.bestgearsetup.data.Potion;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -29,7 +31,7 @@ public class SearchResults
 	Map<AttackStyle.Type, List<SetupResult>> byType;
 	List<String> notes;
 	Map<CombatClass, OffensivePrayer> prayers;
-	/** Potions used per combat class (melee may use one for Attack and another for Strength). */
+	/** Boost entries per combat class and skill; combined potions can have multiple entries with the same item ID. */
 	Map<CombatClass, List<Potion>> potions;
 	boolean assumedLevels;
 	/** How each slot lock affected the search; empty when nothing is locked. */
@@ -72,5 +74,36 @@ public class SearchResults
 	public boolean isEmpty()
 	{
 		return byType.isEmpty();
+	}
+
+	/** Only show the setup chosen from the shared raid kit. */
+	public SearchResults withSetup(SetupResult setup)
+	{
+		return withCandidates(Collections.singletonMap(setup.getAttackType(), Collections.singletonList(setup)));
+	}
+
+	SearchResults withCandidates(Map<AttackStyle.Type, List<SetupResult>> candidates)
+	{
+		return new SearchResults(monster, startingHitpoints, candidates, notes, prayers, potions,
+			assumedLevels, locks, markOfDarkness, rememberedLevels, warnings, thrall, raidScaling, baseDefence);
+	}
+
+	/** Boosts required by a setup, including Strength for atlatls and hunter's spears. */
+	public List<Potion> potionsForSetup(SetupResult setup)
+	{
+		List<Potion> candidates = new ArrayList<>(potions.getOrDefault(setup.getCombatClass(), Collections.emptyList()));
+		if (setup.getCombatClass() == CombatClass.RANGED && WeaponRules.scalesWithStrength(setup.getLoadout().getWeapon()))
+		{
+			for (Potion potion : potions.getOrDefault(CombatClass.MELEE, Collections.emptyList()))
+			{
+				if ("strength".equalsIgnoreCase(potion.getSkill())) { candidates.add(potion); }
+			}
+		}
+		List<Potion> used = new ArrayList<>();
+		for (Potion potion : candidates)
+		{
+			if (used.stream().noneMatch(other -> other.getId() == potion.getId())) { used.add(potion); }
+		}
+		return used;
 	}
 }

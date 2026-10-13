@@ -25,6 +25,7 @@ class FightOptionsPanel extends JPanel
 {
 	/** The settings shown here and their getters; {@link SettingRows} builds their editors. */
 	private static final List<Setting> SETTINGS = Arrays.asList(
+		setting("activeEncounter", BestGearSetupConfig::activeEncounter),
 		setting("taskMode", BestGearSetupConfig::taskMode),
 		setting("autoRaid", BestGearSetupConfig::autoRaid),
 		setting("currentHitpoints", BestGearSetupConfig::currentHitpoints),
@@ -36,11 +37,17 @@ class FightOptionsPanel extends JPanel
 		setting("expensiveItemThreshold", BestGearSetupConfig::expensiveItemThreshold),
 		setting("forinthrySurge", BestGearSetupConfig::forinthrySurge),
 		setting("soulreaperStacks", BestGearSetupConfig::soulreaperStacks),
+		setting("thrall", BestGearSetupConfig::thrall),
+		setting("killSpecials", BestGearSetupConfig::killSpecials),
+		setting("specEnergy", BestGearSetupConfig::specEnergy),
+		setting("drainSpecs", BestGearSetupConfig::drainSpecs),
 		setting("miningLevel", BestGearSetupConfig::miningLevel),
 		setting("raidPartySize", BestGearSetupConfig::raidPartySize),
 		setting("toaRaidLevel", BestGearSetupConfig::toaRaidLevel),
 		setting("toaPathLevel", BestGearSetupConfig::toaPathLevel),
 		setting("coxChallengeMode", BestGearSetupConfig::coxChallengeMode),
+		setting("raidEquipmentLimit", BestGearSetupConfig::raidEquipmentLimit),
+		setting("raidSpellbook", BestGearSetupConfig::raidSpellbook),
 		setting("autoSpecs", BestGearSetupConfig::autoSpecs),
 		setting("specVulnerability", BestGearSetupConfig::specVulnerability),
 		setting("specTomeOfWater", BestGearSetupConfig::specTomeOfWater),
@@ -82,13 +89,18 @@ class FightOptionsPanel extends JPanel
 		}
 		wildernessTip = control("wilderness").getToolTipText();
 		SidebarSection conditions = accordion.create("fightConditions", "Fight conditions");
-		addRows(conditions, "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
-			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks");
+		addRows(conditions, "activeEncounter", "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
+			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "thrall");
 		conditions.showAsEditor();
 		add(BestGearSetupPanel.left(conditions));
-		raidSection = accordion.create("raidScaling", "Raid scaling");
+		SidebarSection specials = accordion.create("specialAttacks", "Special attacks");
+		specials.showAsEditor();
+		addRows(specials, "killSpecials", "specEnergy", "drainSpecs");
+		add(BestGearSetupPanel.left(specials));
+		raidSection = accordion.create("raidScaling", "Raid");
 		raidSection.showAsEditor();
-		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel");
+		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel",
+			"raidEquipmentLimit", "raidSpellbook");
 		add(BestGearSetupPanel.left(raidSection));
 		// Collapsed by default: most searches start from the target's full stats.
 		preparationSection = accordion.create("preparation", "Pre-fight preparation");
@@ -139,6 +151,8 @@ class FightOptionsPanel extends JPanel
 		settingRows.row("coxChallengeMode").setVisible(raid == RaidScaling.Raid.COX);
 		settingRows.row("miningLevel").setVisible(raid == RaidScaling.Raid.COX && target.getName().contains("guardian"));
 		settingRows.row("aoeTargets").setVisible(selected("aoe"));
+		settingRows.row("specEnergy").setVisible(selected("killSpecials"));
+		settingRows.row("drainSpecs").setVisible(selected("killSpecials"));
 		settingRows.row("limitWildernessRisk").setVisible(selected("wilderness"));
 		boolean riskLimited = selected("wilderness") && selected("limitWildernessRisk");
 		settingRows.row("maxExpensiveItems").setVisible(riskLimited);

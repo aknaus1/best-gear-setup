@@ -38,6 +38,9 @@ public class SearchAssumptionsTest
 
 	static
 	{
+		GETTERS.put("activeEncounter", BestGearSetupConfig::activeEncounter);
+		GETTERS.put("raidSpellbook", BestGearSetupConfig::raidSpellbook);
+		GETTERS.put("raidEquipmentLimit", BestGearSetupConfig::raidEquipmentLimit);
 		GETTERS.put("showMenuOption", BestGearSetupConfig::showMenuOption);
 		GETTERS.put("highlightBankGear", BestGearSetupConfig::highlightBankGear);
 		GETTERS.put("bankHighlightColor", BestGearSetupConfig::bankHighlightColor);

@@ -140,6 +140,17 @@ public class RaidScalingTest
 	}
 
 	@Test
+	public void olmHandRepetitionsFollowPartyScaleInBothModes()
+	{
+		int[][] cases = {{0, 3}, {1, 3}, {7, 3}, {8, 4}, {15, 4}, {16, 5}, {50, 9}, {100, 15}, {101, 15}};
+		for (int[] test : cases)
+		{
+			for (boolean cm : new boolean[]{false, true})
+			{ assertEquals(test[1], RaidScaling.olmHandPhases(party(test[0]).coxChallengeMode(cm).build())); }
+		}
+	}
+
+	@Test
 	public void olmReplacesHpByPartyPhasesAndHalvesMageHandMagic()
 	{
 		Monster head = raidMonster(7551, "great olm (head)", "xerician", 400, 150, 250, 250, 250, 250);

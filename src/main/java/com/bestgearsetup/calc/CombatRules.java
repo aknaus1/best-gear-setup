@@ -34,6 +34,11 @@ final class CombatRules
 	{
 		switch (phase)
 		{
+			case AKKHA_IMMUNE_MELEE:
+			case AKKHA_IMMUNE_RANGED:
+			case AKKHA_IMMUNE_MAGIC:
+			case AKKHA_ENRAGE:
+				return EncounterDamage.named(m, "akkha");
 			case HUEYCOATL_PILLAR:
 				return hueycoatlPillarTarget(m);
 			case ROYAL_TITANS_OUT_OF_MELEE:

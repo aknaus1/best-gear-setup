@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
@@ -44,7 +45,8 @@ class BestGearSetupBankView
 {
 	// Equipment silhouette on the bank's eight-column grid, matching the sidebar.
 	private static final int[] CELLS = {1, 8, 9, 10, 16, 17, 18, 25, 32, 33, 34};
-	// Right of the silhouette: spell runes (and a thrall's Book of the dead), then potions and hearts.
+	// Right of the silhouette: an owned rune pouch and the spell runes (and a thrall's Book of the dead), then
+	// potions and hearts.
 	private static final int[] SPELL_CELLS = {4, 5, 6, 7, 12, 13, 14, 15};
 	private static final int[] BOOST_CELLS = {20, 21, 22, 23, 28, 29, 30, 31};
 	// Below the runes and boosts: a spec weapon and off-hand to switch to, then its own ammunition or a spec
@@ -83,13 +85,55 @@ class BestGearSetupBankView
 
 	void setSelection(SetupResult setup, List<Potion> potions)
 	{
-		setSelection(setup, potions, BestGearSetupBankView::itemIds);
+		setSelection(setup, potions, BestGearSetupBankView::itemIds, id -> false);
 	}
 
-	/** As {@link #setSelection(SetupResult, List)}, with each item's ids in the order they may take its cell. */
-	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds)
+	/**
+	 * As {@link #setSelection(SetupResult, List)}, with each item's ids in the order they may take its cell and
+	 * the player's ownership, which decides whether a rune pouch joins the spell runes.
+	 */
+	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
+		IntPredicate owns)
 	{
-		selection = layoutFor(setup, potions, itemIds);
+		selection = layoutFor(setup, potions, itemIds, owns);
+	}
+
+	void setRaidSelection(RaidPlan plan, Function<GearItem, List<Integer>> itemIds)
+	{
+		selection = layoutForRaid(plan, itemIds);
+	}
+
+	static Layout layoutForRaid(RaidPlan plan, Function<GearItem, List<Integer>> itemIds)
+	{
+		Layout layout = new Layout();
+		Loadout worn = plan.getStartingSetup().getLoadout();
+		for (Slot slot : Slot.values()) { addItem(layout, itemIds, worn.get(slot), CELLS[slot.ordinal()]); }
+		for (int i = 0; i < plan.getInventory().size(); i++)
+		{
+			RaidPlan.InventoryItem item = plan.getInventory().get(i);
+			GearItem gear = plan.getEquipment().stream().filter(g -> g.getId() == item.getIds().get(0)).findFirst().orElse(null);
+			layout.add(gear == null ? item.getIds() : itemIds.apply(gear), inventoryCell(i), item.isEquipment() ? GEAR : SPELL);
+		}
+		// Darts already loaded into blowpipes need bank withdrawal but occupy no carried switch slot.
+		int loadingCell = 56;
+		// Pouch contents are shown below the kit for loading; they are not extra carried slots.
+		for (RaidPlan.InventoryItem item : plan.getInventory())
+		{
+			for (RaidPlan.InventoryItem rune : item.getContents()) { layout.add(rune.getIds(), loadingCell++, SPELL); }
+		}
+		for (SetupResult setup : plan.getSetups())
+		{
+			addItem(layout, itemIds, setup.getLoadout().getLoadedAmmo(), loadingCell++);
+			if (setup.getSpecial() != null) { addItem(layout, itemIds, setup.getSpecial().getLoadedAmmo(), loadingCell++); }
+		}
+		return layout;
+	}
+
+	static int inventoryCell(int index) { return (index / 4) * 8 + 4 + index % 4; }
+
+	static Map<Integer, Integer> raidCellsFor(RaidPlan plan)
+	{
+		return Collections.unmodifiableMap(layoutForRaid(plan, BestGearSetupBankView::itemIds).cells);
 	}
 
 	static Map<Integer, Integer> cellsFor(SetupResult setup)
@@ -99,10 +143,16 @@ class BestGearSetupBankView
 
 	static Map<Integer, Integer> cellsFor(SetupResult setup, List<Potion> potions)
 	{
-		return Collections.unmodifiableMap(layoutFor(setup, potions, BestGearSetupBankView::itemIds).cells);
+		return cellsFor(setup, potions, id -> false);
 	}
 
-	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds)
+	static Map<Integer, Integer> cellsFor(SetupResult setup, List<Potion> potions, IntPredicate owns)
+	{
+		return Collections.unmodifiableMap(layoutFor(setup, potions, BestGearSetupBankView::itemIds, owns).cells);
+	}
+
+	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
+		IntPredicate owns)
 	{
 		Layout layout = new Layout();
 		if (setup != null)
@@ -121,13 +171,10 @@ class BestGearSetupBankView
 				addItem(layout, itemIds, special.getAmmo(), SPEC_AMMO_CELL);
 				addItem(layout, itemIds, special.getLoadedAmmo(), SPEC_AMMO_CELL);
 			}
-			List<Integer> spellItems = SpellRunes.required(setup);
+			List<List<Integer>> spellItems = SpellRunes.bankItems(setup, owns);
 			for (int i = 0; i < spellItems.size(); i++)
 			{
-				List<Integer> ids = new ArrayList<>();
-				ids.add(spellItems.get(i));
-				ids.addAll(SpellRunes.substitutes(spellItems.get(i)));
-				layout.add(ids, reservedCell(SPELL_CELLS, i), SPELL);
+				layout.add(spellItems.get(i), reservedCell(SPELL_CELLS, i), SPELL);
 			}
 			int cell = 0;
 			for (Potion potion : potions)

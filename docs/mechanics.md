@@ -3,6 +3,75 @@
 This page covers what the plugin assumes and what it enforces. For installation and a quick tour, see the
 [README](../README.md). For the calculation audit, sources and known gaps, see [COMBAT_AUDIT.md](../COMBAT_AUDIT.md).
 
+## Complete raids and active encounters
+
+The ordinary search includes **Challenge Mode: Chambers of Xeric**, **Tombs of Amascut** and
+**Theatre of Blood**, also matched by CM CoX / CoX CM, ToA and ToB. The first setup is Tekton, Ba-Ba or
+Maiden respectively. Each combat room and major boss phase has a setup, including the three Olm targets,
+Akkha's required attack styles, both Warden branches, Nylocas styles and Verzik phases. Puzzle actions,
+role-specific utility rotations and movement are not simulated.
+
+Candidates come from the existing optimizer with the same ownership, levels, locks, exclusions, protection
+and experience rules. CoX plans force CM scaling. Live ToA path levels are applied to their own bosses.
+The starting encounter omits automatic raid boosts; subsequent fights follow **Include raid potions**.
+Named potion overrides still apply and their warnings remain visible. Dawnbringer is available for Verzik
+P1 and is obtained in the raid, so it is not a bank withdrawal or an entry inventory slot.
+
+One **Raid spellbook** is used throughout, subject to the existing allowed spellbooks. Thralls are only
+assumed on Arceuus. A bounded beam search chooses a shared kit across encounter candidates; when needed,
+the optimizer compares removing each unlocked switch, re-searches affected rooms and chooses the smallest
+increase in total estimated fight time per slot saved. Consolidation stays within gear from the original
+best room setups, so it cannot repeatedly replace strong magic gear with unrelated weaker pieces merely
+because fewer rooms use magic. This is a heuristic, not a proof of the best possible complete-raid kit.
+Failure to find a kit shows an error without publishing partial setups.
+
+Both kit selection and consolidation count Olm's melee and mage hands for all required hand phases:
+three plus one per eight players, using the same selected or detected party size as stat scaling.
+The head is counted once. The phase count multiplies estimated combat time (phase HP / DPS), preserving
+per-phase HP, damage calculations and inventory quantities. See the
+[Olm phase rules](https://oldschool.runescape.wiki/w/Olm_strategy).
+
+Required ammunition stays worn during encounters that leave the ammo slot free. A single ammo type is
+used throughout; with several types, empty slots use the most-used type while existing ammunition and
+ammo-slot locks are retained. This changes the actual worn kit and inventory capacity, including the
+starting bank layout. Loaded blowpipe darts remain internal and appear in the pipe's tooltip and exclusion
+menu, including special switches and inventory blowpipes.
+
+Inventory gear reuses worn gear's ownership/cost tooltip, locks, exclusions and manual ownership controls.
+Supplies have ownership and exclusion menus, and pouch menus include their rune contents. Excluded
+pouches are omitted or replaced by another owned pouch; excluded runes prevent spell setups that need
+them unless the equipment supplies those runes. Excluding thrall supplies removes the assumed thrall.
+Automatic boosts skip excluded potions; an explicitly selected excluded potion must be changed to produce
+setups using that boost.
+
+**Raid equipment slots** counts unique equipment carried at entry after subtracting the starting worn
+gear, including special weapons, off-hands and spare ammo stacks. Starting worn gear and loaded blowpipe
+darts do not consume that limit. Spell supplies and boost items must also fit in 28 inventory slots, and
+capacity is checked after encounter switches. Required rune stacks are packed into an owned rune pouch
+(three types) or divine rune pouch (four types), preferring the divine pouch when available. The pouch
+occupies one inventory slot; overflow types remain loose. Hovering the pouch lists its planned contents.
+The sidebar runs from search input to current boss/monster, Version, gear source, action buttons, worn
+equipment and inventory. In a raid, the current boss selector updates both the shown gear and Version.
+The inventory heading minimizes or expands the grid, retaining its state when raid results refresh.
+Food, healing, extra potion doses and utility supplies
+are left to the player. The bank's equipment
+silhouette is followed by the four-column inventory on its right; loaded darts appear below for loading.
+Pouch contents also appear below the bank kit so they can be withdrawn and loaded.
+The gear budget applies once to the entire unique kit, with owned ammunition quantities deducted.
+
+**Active encounter**, off by default, follows the attackable NPC the player is in combat with, checked once
+per game tick. Combat starts when one of the player's own hitsplats (including blocked hits) lands on the NPC,
+or when the NPC attacks back while the player targets it; clicking, walking up to or standing near an NPC
+does not. With several NPCs hit at once (AoE, chinning) the targeted one leads. Combat lapses after 16 ticks
+without either signal, or when the NPC dies or despawns.
+New NPC instances and transformed IDs trigger a search; non-combat interactions and dead targets do not.
+The last target stays visible between fights. With **Use active defence**, the existing own/party special
+tracker supplies landed drains for the actual NPC instance. Unobserved drains and Vulnerability are not
+inferred. A new spawn or phase starts a fresh tracked state. Saved pre-fight values are not overwritten.
+In an existing raid plan, combat updates optimize one encounter using the selected kit and its supplies;
+changes to search preferences or ownership re-plan the full raid. Automatic combat targeting does not
+open the sidebar or perform any game action.
+
 ## Items, ownership and prices
 
 - **Owned items**: the plugin remembers your bank (once you've opened it), inventory and worn equipment,
@@ -57,7 +126,7 @@ This page covers what the plugin assumes and what it enforces. For installation 
   considers that raid's own supplies (overloads, smelling salts) without needing you to own them, and
   leaves them out of the bank layout. Turn off **Include raid potions** under **Combat boosts** to plan for
   the start of a raid, before you have them. A potion you pick by name is always used.
-- **Thralls** are on by default. Each setup adds the strongest thrall your base Magic level can cast:
+- **Thralls** are on by default (under **Fight**). Each setup adds the strongest thrall your base Magic level can cast:
   lesser (38, +0.208 DPS), superior (57, +0.417) or greater (76, +0.625). Thralls always hit, rolling 0 to
   their max hit of 1, 2 or 3 every 2.4 seconds. They need the Arceuus spellbook allowed under
   **Spellbooks** and A Kingdom Divided, which is read from your account while you're logged in and assumed
@@ -89,7 +158,8 @@ This page covers what the plugin assumes and what it enforces. For installation 
   - If the setup casts a spell, its runes appear to the right of the head slot, along with runes for any
     Mark of Darkness, Charge or thrall the DPS assumes (plus the Book of the dead for a thrall).
     Elemental runes that the equipped staff or tome provides are left out, and combination, sunfire and
-    aether runes count as substitutes.
+    aether runes count as substitutes. If you own a rune pouch, it takes the first of these cells and is
+    highlighted too (a divine rune pouch ahead of a regular one).
   - The setup's potions and hearts sit below the runes. Any dose and the divine version count, and a
     (super) combat potion stands in for the matching attack and strength potions, and the other way round.
   - A special attack weapon switch (with its off-hand and ammunition) goes below the potions.
@@ -115,8 +185,8 @@ This page covers what the plugin assumes and what it enforces. For installation 
 - **Clear search**, next to **Find best setup**, cancels the current search and clears its target,
   recommendations, bank and inventory highlights, and bank gear layout. Your saved settings stay.
 - **Inventory highlights** outline the same setup's gear and ammunition in your inventory, including while
-  the bank is open. **Highlight inventory gear** and **Inventory color** under **Display & interaction**
-  control them separately from the bank highlights.
+  the bank is open. They're off by default; turn on **Highlight inventory gear** under **Display &
+  interaction**, where **Inventory color** sets their colour separately from the bank highlights.
 
 ## Side panel
 
@@ -156,10 +226,13 @@ as in the results and buttons to remove or reset each one. RuneLite's Best Gear 
 groups the remaining preferences into
 **Search options**, **Attack styles**, **Equipment**, **Spellbooks**, **Combat boosts**, **Dragonfire**,
 **Experience filters**, **Fill empty slots** and **Display & interaction**. Combat boosts includes the
-potion dropdowns for each style, thralls, poison and rune assumptions. Each highlight toggle sits next to
-its colour.
+potion dropdowns for each style, poison and rune assumptions. Each highlight toggle sits next to its
+colour.
 
-**Fight** also has a collapsed **Pre-fight preparation** section for Vulnerability (with the tome of water
+**Fight** groups **Fight conditions** (active encounter, Slayer task, HP, AoE, Wilderness and thralls),
+**Special attacks** (whether to use them, spec energy and how drain specs are ranked) and, for raid
+targets, **Raid** (scaling, raid equipment slots and raid spellbook). It also has a collapsed
+**Pre-fight preparation** section for Vulnerability (with the tome of water
 option once it's on), landed special attacks and damage from defence-draining attacks. Its heading counts
 how many are set.
 
@@ -195,14 +268,15 @@ follows the raid you're in.
 
 These preferences are in RuneLite's configuration for the plugin (**Settings** in the side panel opens it):
 
-- **Search options**: one-handed or two-handed weapons only; optimise for DPS, accuracy, max hit or average
-  hit; search depth (fast, normal or best).
+- **Search options**: optimise for DPS, accuracy, max hit or average hit; search depth (fast, normal or
+  best); one-handed or two-handed weapons only; bosses-only monster search; and ammo to price. Fight
+  settings (active encounter, thralls, special attacks and the raid kit limits) are under **Fight**.
 - **Attack styles**: toggles for stab, slash, crush, ranged, magic and atlatl (the eclipse atlatl gets its
   own tab: ranged accuracy, Strength-based damage and Eclipse Moon burns).
 - **Equipment** and **Spellbooks**: Members, DMM, Beta and BH equipment, and the spellbooks allowed for
   autocasting.
-- **Combat boosts**: potions (including whether raid potions count), prayers, thralls and other reusable
-  combat assumptions.
+- **Combat boosts**: offensive prayers, potions (including whether raid potions count), weapon poison,
+  Charge, Mark of Darkness and sunfire runes.
 - **Dragonfire**: whether fire protection is required, and the antifire potion and Protect from Magic
   assumed.
 - **Experience filters**: rule out styles that give Attack, Strength or Defence XP (for pures). Turn off the
@@ -210,7 +284,8 @@ These preferences are in RuneLite's configuration for the plugin (**Settings** i
 - **Fill empty slots**: fill slots that don't add damage with prayer or defence items (by defence type, or
   weighted by the target's own attacks), optionally giving up a little DPS to do so.
 - **Display & interaction**: the **Right-click option** that adds **Best setup** to the menu of attackable
-  NPCs (on by default), and the bank and inventory highlights with their colours.
+  NPCs (on by default), and the bank and inventory highlights with their colours (inventory highlights are
+  off by default).
 
 ## Encounter rules
 
@@ -437,7 +512,7 @@ and **CoX Challenge Mode**.
 
 ### Special attacks
 
-**Use special attacks** (in Search options, on by default) works specials into every normal search.
+**Use special attacks** (under **Special attacks** in **Fight**, on by default) works specials into every normal search.
 
 Once a setup's equipment is chosen, the plugin tries that weapon's own special and every other usable
 weapon of the same combat style with a damaging special, keeping the same armour (so a two-handed spec

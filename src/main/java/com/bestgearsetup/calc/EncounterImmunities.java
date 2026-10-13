@@ -18,6 +18,13 @@ final class EncounterImmunities
 	static boolean classAllowed(Monster monster, CombatClass cls)
 	{
 		int id = monster.getId();
+		if (CombatRules.phase(monster, EncounterPhase.AKKHA_IMMUNE_MELEE) && cls == CombatClass.MELEE
+			|| CombatRules.phase(monster, EncounterPhase.AKKHA_IMMUNE_RANGED) && cls == CombatClass.RANGED
+			|| CombatRules.phase(monster, EncounterPhase.AKKHA_IMMUNE_MAGIC) && cls == CombatClass.MAGIC
+			|| CombatRules.phase(monster, EncounterPhase.AKKHA_ENRAGE) && cls != CombatClass.MELEE)
+		{
+			return false;
+		}
 		if (CombatRules.eclipseClone(monster))
 		{
 			return cls == CombatClass.MELEE;

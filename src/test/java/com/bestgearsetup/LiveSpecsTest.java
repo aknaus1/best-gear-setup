@@ -96,9 +96,14 @@ public class LiveSpecsTest
 		Map<String, Object> values = specs.overrides("verzik vitur (phase 2)");
 		assertEquals(1, values.get("specDwh"));
 		assertEquals(40, values.get("specBgsDamage"));
+		assertEquals(40, specs.overrides(boss).get("specBgsDamage"));
 		assertEquals(0, values.get("specElderMaul"));
 		assertTrue(specs.overrides("xarpus").isEmpty());
 		assertEquals(Arrays.asList("verzik vitur", "verzik vitur", "verzik vitur"), changes);
+		when(boss.getId()).thenReturn(8374);
+		assertTrue(specs.overrides(boss).isEmpty());
+		specs.trackTarget(boss);
+		assertEquals(0, specs.overrides(boss).get("specBgsDamage"));
 
 		NpcDespawned died = mock(NpcDespawned.class);
 		when(died.getNpc()).thenReturn(boss);
@@ -112,5 +117,29 @@ public class LiveSpecsTest
 		SpecialCounterUpdate update = new SpecialCounterUpdate(7, weapon, hit, 330, 99);
 		update.setMemberId(member);
 		return update;
+	}
+
+	@Test public void activeDefenceUsesNpcIdentityAndResetsOnSpawnOrPhaseChange()
+	{
+		Client client = mock(Client.class);
+		ClientThread thread = mock(ClientThread.class);
+		BestGearSetupConfig config = new BestGearSetupConfig() { };
+		LiveSpecs specs = new LiveSpecs(client, thread, config, name -> { });
+		NPC first = mock(NPC.class);
+		NPC other = mock(NPC.class);
+		when(first.getName()).thenReturn("Tekton"); when(first.getIndex()).thenReturn(7); when(first.getId()).thenReturn(7540);
+		when(other.getName()).thenReturn("Tekton"); when(other.getIndex()).thenReturn(7); when(other.getId()).thenReturn(7540);
+		specs.trackTarget(first);
+		assertEquals(0, specs.overrides(first).get("specDwh"));
+		assertTrue(specs.overrides(other).isEmpty());
+		when(first.getId()).thenReturn(7543);
+		assertTrue(specs.overrides(first).isEmpty());
+		specs.trackTarget(first);
+		assertEquals(0, specs.overrides(first).get("specBgsDamage"));
+		specs.trackTarget(other);
+		assertTrue(specs.overrides(first).isEmpty());
+		assertEquals(0, specs.overrides(other).get("specDwh"));
+		specs.end();
+		assertTrue(specs.overrides(other).isEmpty());
 	}
 }
