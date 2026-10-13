@@ -34,7 +34,12 @@ public class RaidEncounter
 	Set<AttackStyle.Type> usableStyles;
 	/** What Auto means here, e.g. ranged or magic for bosses that are not fought in melee range. */
 	RaidStyle preferredStyle;
-	/** The player's saved choice for this boss. */
+	/**
+	 * The key a style choice is saved under: the label, or one shared by the phases of a single fight (Tekton and
+	 * enraged Tekton, the Akkha phases...). Separate targets such as the Olm parts never share one.
+	 */
+	String styleKey;
+	/** The player's saved choice for {@link #styleKey}. */
 	RaidStyle styleChoice;
 	/** The saved choice can't damage this phase (e.g. melee against Akkha immune to melee), so Auto is used. */
 	boolean styleFallback;
@@ -53,11 +58,11 @@ public class RaidEncounter
 
 	public RaidEncounter(String label, MonsterSummary target, int repetitions, EncounterPhase phase, AttackStyle.Type... styles)
 	{
-		this(label, target, repetitions, phase, required(styles), RaidStyle.AUTO, RaidStyle.AUTO, true);
+		this(label, target, repetitions, phase, required(styles), RaidStyle.AUTO, label, RaidStyle.AUTO, true);
 	}
 
 	private RaidEncounter(String label, MonsterSummary target, int repetitions, EncounterPhase phase,
-		Set<AttackStyle.Type> required, RaidStyle preferred, RaidStyle choice, boolean raidSupplies)
+		Set<AttackStyle.Type> required, RaidStyle preferred, String styleKey, RaidStyle choice, boolean raidSupplies)
 	{
 		if (repetitions < 1) { throw new IllegalArgumentException("Encounter repetitions must be positive"); }
 		this.label = label;
@@ -67,6 +72,7 @@ public class RaidEncounter
 		this.requiredStyles = required;
 		this.usableStyles = usable(target, phase, required);
 		this.preferredStyle = preferred;
+		this.styleKey = styleKey;
 		this.styleChoice = choice;
 		this.raidSupplies = raidSupplies;
 		this.styleFallback = choice != RaidStyle.AUTO && within(choice).isEmpty();
@@ -140,17 +146,23 @@ public class RaidEncounter
 
 	RaidEncounter withPreferredStyle(RaidStyle preferred)
 	{
-		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferred, styleChoice, raidSupplies);
+		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferred, styleKey, styleChoice, raidSupplies);
 	}
 
 	RaidEncounter withStyleChoice(RaidStyle choice)
 	{
-		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferredStyle, choice, raidSupplies);
+		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferredStyle, styleKey, choice, raidSupplies);
+	}
+
+	/** Share a style choice with the other phases of the same fight. */
+	RaidEncounter withStyleKey(String key)
+	{
+		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferredStyle, key, styleChoice, raidSupplies);
 	}
 
 	RaidEncounter withRaidSupplies(boolean available)
 	{
-		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferredStyle, styleChoice, available);
+		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferredStyle, styleKey, styleChoice, available);
 	}
 
 	/**

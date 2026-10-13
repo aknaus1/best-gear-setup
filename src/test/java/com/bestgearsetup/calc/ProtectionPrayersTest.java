@@ -121,8 +121,15 @@ public class ProtectionPrayersTest
 		Advice low = ProtectionPrayers.recommend(graardor, CombatClass.MELEE, 42);
 		assertEquals(Overhead.MISSILES, low.getPrayer());
 		assertTrue(low.getNote().contains("Protect from Melee needs 43 Prayer"));
-		Advice none = ProtectionPrayers.recommend(graardor, CombatClass.MELEE, 36);
-		assertNull(none.getPrayer());
+		// With none of them unlocked, the advice still names the prayer and the level it needs.
+		Advice locked = ProtectionPrayers.recommend(graardor, CombatClass.MELEE, 30);
+		assertEquals(Overhead.MELEE, locked.getPrayer());
+		assertTrue(locked.isLocked());
+		assertEquals("Switch: Melee / Missiles (needs 40 Prayer)", locked.summary());
+		assertTrue(locked.getNote().contains("you have 30"));
+		Advice demon = ProtectionPrayers.recommend(attacking("abyssal demon (standard)", "stab", 8), CombatClass.MELEE, 30);
+		assertEquals("Protect from Melee (needs 43 Prayer)", demon.summary());
+		assertFalse(ProtectionPrayers.recommend(graardor, CombatClass.MELEE, 99).isLocked());
 		assertEquals(37, Overhead.MAGIC.getLevel());
 		assertEquals(40, Overhead.MISSILES.getLevel());
 	}
@@ -187,9 +194,34 @@ public class ProtectionPrayersTest
 	}
 
 	@Test
-	public void akkhasShadowsUseTheirOwnData() throws Exception
+	public void akkhasShadowsGetCuratedAdviceInsteadOfUnknown() throws Exception
 	{
 		Monster shadow = bundled("akkha's shadow");
-		assertEquals(ProtectionPrayers.fromAttackStyles(shadow, true), ProtectionPrayers.recommend(shadow, CombatClass.MELEE, 99));
+		assertTrue("The Wiki data alone is unreadable", ProtectionPrayers.fromAttackStyles(shadow, true).isUnknown());
+		Advice close = ProtectionPrayers.recommend(shadow, CombatClass.MELEE, 99);
+		assertFalse(close.isUnknown());
+		assertEquals(Arrays.asList(Overhead.MELEE, Overhead.MISSILES, Overhead.MAGIC), close.getSwitches());
+		assertEquals(Arrays.asList(Overhead.MISSILES, Overhead.MAGIC),
+			ProtectionPrayers.recommend(shadow, CombatClass.RANGED, 99).getSwitches());
+		// Akkha herself keeps her own advice.
+		assertTrue(ProtectionPrayers.recommend(bundled("akkha"), CombatClass.MELEE, 99).getNote().startsWith("Akkha cycles"));
+	}
+
+	@Test
+	public void everyPlannedRaidEncounterHasAdvice() throws Exception
+	{
+		com.bestgearsetup.data.GameData data = loader.loadGameData();
+		for (com.bestgearsetup.RaidPlanType type : new com.bestgearsetup.RaidPlanType[]{com.bestgearsetup.RaidPlanType.COX_CM,
+			com.bestgearsetup.RaidPlanType.TOA, com.bestgearsetup.RaidPlanType.TOB})
+		{
+			for (com.bestgearsetup.RaidEncounter encounter : type.encounters(data))
+			{
+				Monster target = loader.getMonster(encounter.getTarget());
+				for (CombatClass cls : CombatClass.values())
+				{
+					assertFalse(encounter.getLabel(), ProtectionPrayers.recommend(target, cls, 99).isUnknown());
+				}
+			}
+		}
 	}
 }

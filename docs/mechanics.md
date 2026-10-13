@@ -32,21 +32,26 @@ follow **Include raid potions**. Named potion overrides still apply and their wa
 Dawnbringer is available for Verzik P1 and is obtained in the raid, so it is not a bank withdrawal or an
 entry inventory slot.
 
-**Attack style** (under the boss selector) restricts the displayed boss's search to melee, ranged, magic or
-ranged-or-magic. *Auto* keeps each encounter's default: ranged or magic for bosses fought from distance in
+**Attack style** (under the boss selector) restricts the displayed encounter's search to melee, ranged, magic
+or ranged-or-magic. *Auto* keeps each encounter's default: ranged or magic for bosses fought from distance in
 practice even when melee is higher DPS (Skeletal Mystics, the large Muttadile and Zebak, who can't be tanked
 in melee range), and any style elsewhere. Only styles the displayed phase can be damaged by are offered (no
 ranged for Tekton or the Vasa crystal, no melee for Vespula, only melee for Guardians, and so on), and
 encounters with a fixed style (Vanguards, Warden P2 phases, Maiden's nylocas, and each colour of Nylocas
-and Vasilias form) don't offer a choice. The choice is saved per raid and boss and covers every phase and
-version of that boss; a phase the chosen style can't damage (e.g. Akkha while immune to it) keeps Auto.
-Changing it re-plans the raid and reopens the encounter you were looking at.
+and Vasilias form) don't offer a choice. The choice is saved per raid and encounter. Only the phases of one
+fight share it: Tekton and enraged Tekton, Zebak and enraged Zebak, Kephri's shielded and aggressive forms,
+the Akkha phases, and each Warden's P3 with its core. Separate fights, such as Olm's hands and head, the two
+Muttadiles and Verzik's phases, are chosen on their own. A phase the shared style can't damage (e.g. Akkha
+while immune to it) silently keeps Auto, which the selector shows for that phase. Changing a style re-plans
+the raid and reopens the encounter you were looking at.
 
-A choice never stops the raid being planned. When its styles are all turned off under **Attack styles**,
-the encounter uses Auto; when Auto's default is turned off too, every style the encounter allows. When a
-chosen or default style finds no usable setup (e.g. no ranged gear owned), the encounter is searched with
-every style it allows. Each case is listed as a warning beside the results. If a raid still can't be
-planned, the error offers **Reset raid attack styles to Auto**.
+A style choice on its own shouldn't stop the raid being planned. When its styles are all turned off under
+**Attack styles**, the encounter uses Auto, with a warning; when Auto's default is turned off too, every
+style the encounter allows. When a chosen or default style finds no usable setup (e.g. no ranged gear
+owned), the encounter is searched with every style it allows and a warning names the styles that found
+nothing; combat updates inside a planned raid do the same within the kit. A raid can still fail, for
+example on a blocking lock or when no style finds a setup; the error then offers **Reset raid attack styles
+to Auto** if any are saved.
 
 **Theatre of Blood roles** (under **Fight → Raid** while planning ToB) change the encounters:
 
@@ -188,7 +193,8 @@ open the sidebar or perform any game action.
   styles: the protectable style with the highest max hit comes first, "all" means all three, and typeless,
   dragonfire and prayer-piercing attacks are left out. *None needed* only appears when the monster has no
   protectable attack; attack data that can't be read shows *Unknown*. Overheads above your Prayer level
-  (Magic 37, Missiles 40, Melee 43) are dropped and the note says why. It is advice only and doesn't change
+  (Magic 37, Missiles 40, Melee 43) are dropped and the note says why; when none of the recommended ones is
+  unlocked, the advice still names them with the level needed, e.g. *Protect from Melee (needs 43 Prayer)*. It is advice only and doesn't change
   the DPS calculation.
 - **Potions** are set per combat style with the dropdowns under **Combat boosts**: *Best available* (the
   strongest potion you can use anywhere, leaving out raid, NMZ and Deadman potions and brews), *None*, or

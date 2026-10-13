@@ -62,18 +62,32 @@ public final class ProtectionPrayers
 		String note;
 		/** The Wiki data couldn't be read, so no prayer is recommended either way. */
 		boolean unknown;
+		/** The Prayer level the recommendation needs when none of its overheads is unlocked yet; 0 otherwise. */
+		int requiredLevel;
 
 		public Advice(Overhead prayer, List<Overhead> switches, String note)
 		{
-			this(prayer, switches, note, false);
+			this(prayer, switches, note, false, 0);
 		}
 
 		public Advice(Overhead prayer, List<Overhead> switches, String note, boolean unknown)
+		{
+			this(prayer, switches, note, unknown, 0);
+		}
+
+		public Advice(Overhead prayer, List<Overhead> switches, String note, boolean unknown, int requiredLevel)
 		{
 			this.prayer = prayer;
 			this.switches = switches;
 			this.note = note;
 			this.unknown = unknown;
+			this.requiredLevel = requiredLevel;
+		}
+
+		/** Whether the player can't use any of the recommended overheads yet. */
+		public boolean isLocked()
+		{
+			return requiredLevel > 0;
 		}
 
 		public boolean isSwitching()
@@ -84,12 +98,13 @@ public final class ProtectionPrayers
 		/** Short form for the result view, such as "Protect from Magic" or "Switch: Magic / Missiles". */
 		public String summary()
 		{
+			String locked = isLocked() ? " (needs " + requiredLevel + " Prayer)" : "";
 			if (isSwitching())
 			{
 				return "Switch: " + switches.stream().map(o -> o.toString().replace("Protect from ", ""))
-					.collect(Collectors.joining(" / "));
+					.collect(Collectors.joining(" / ")) + locked;
 			}
-			return prayer != null ? prayer.toString() : unknown ? "Unknown \u2013 check the Wiki" : "None needed";
+			return prayer != null ? prayer + locked : unknown ? "Unknown \u2013 check the Wiki" : "None needed";
 		}
 	}
 
@@ -130,8 +145,11 @@ public final class ProtectionPrayers
 			+ "The hands' attacks aren't prayable.", Overhead.MAGIC, Overhead.MISSILES));
 		// Tombs of Amascut
 		both("ba-ba", advice("Ba-Ba's attacks are melee; dodge her boulders and falling rocks.", Overhead.MELEE));
-		// No curated advice: keeps "akkha" from matching her shadows, which use their Wiki attack styles.
-		raid("akkha's shadow", null, null);
+		// Listed before "akkha" so the shadows get their own advice; the Wiki gives them no attack style.
+		raid("akkha's shadow", advice("Akkha's shadows attack with her switching styles: pray against the incoming "
+			+ "attack.", Overhead.MELEE, Overhead.MISSILES, Overhead.MAGIC), advice("Akkha's shadows attack with her "
+			+ "switching styles: pray against the incoming ranged or magic attack (melee only next to them).",
+			Overhead.MISSILES, Overhead.MAGIC));
 		raid("akkha", advice("Akkha cycles melee, ranged and magic attacks: pray against the incoming style.",
 			Overhead.MELEE, Overhead.MISSILES, Overhead.MAGIC), advice("Akkha alternates ranged and magic at distance "
 			+ "(melee only next to her): pray against the incoming style.", Overhead.MISSILES, Overhead.MAGIC));
@@ -368,6 +386,12 @@ public final class ProtectionPrayers
 		String needs = missing.stream().map(o -> o + " needs " + o.getLevel() + " Prayer")
 			.collect(Collectors.joining(", ")) + " (you have " + prayerLevel + ").";
 		String note = advice.getNote() == null ? needs : advice.getNote() + " " + needs;
-		return new Advice(usable.isEmpty() ? null : usable.get(0), Collections.unmodifiableList(usable), note);
+		if (usable.isEmpty())
+		{
+			// Still name what the fight calls for, rather than suggesting nothing is needed.
+			int level = advice.getSwitches().stream().mapToInt(Overhead::getLevel).min().orElse(0);
+			return new Advice(advice.getPrayer(), advice.getSwitches(), note, false, level);
+		}
+		return new Advice(usable.get(0), Collections.unmodifiableList(usable), note);
 	}
 }

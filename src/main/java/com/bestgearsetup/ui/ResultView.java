@@ -600,7 +600,7 @@ class ResultView extends JPanel
 		{
 			return null;
 		}
-		boolean explain = advice.getNote() != null && (advice.isSwitching() || advice.getPrayer() == null);
+		boolean explain = advice.getNote() != null && (advice.isSwitching() || advice.getPrayer() == null || advice.isLocked());
 		JLabel label = new JLabel(BestGearSetupPanel.html("Overhead: <font color='#FF9F40'>"
 			+ BestGearSetupPanel.escape(advice.summary()) + "</font>"
 			+ (explain ? "<br>" + BestGearSetupPanel.escape(advice.getNote()) : "")));

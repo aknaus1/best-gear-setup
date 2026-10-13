@@ -368,8 +368,9 @@ public class BestGearSetupPanel extends PluginPanel
 		raidStyleBox.setFocusable(false);
 		Controls.field(raidStyleBox);
 		raidStyleBox.setName("raidStyle");
-		raidStyleBox.setToolTipText("Attack style planned for every phase of this raid boss. Auto uses ranged or magic "
-			+ "where the boss is fought from distance; phases the style can't damage keep Auto. Changing it re-plans the raid.");
+		raidStyleBox.setToolTipText("Attack style planned for this encounter and the other phases of the same fight. Auto "
+			+ "uses ranged or magic where the boss is fought from distance; phases the style can't damage keep Auto. "
+			+ "Changing it re-plans the raid.");
 		raidStyleBox.setRenderer(new DefaultListCellRenderer()
 		{
 			@Override public java.awt.Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index,
@@ -388,10 +389,10 @@ public class BestGearSetupPanel extends PluginPanel
 			RaidStyle style = (RaidStyle) raidStyleBox.getSelectedItem();
 			if (!syncing && encounter != null && style != null && style != encounter.getDisplayedStyleChoice())
 			{
-				// One choice covers every phase of the boss; the re-planned raid reopens this encounter.
+				// Phases of one fight share the choice; the re-planned raid reopens this encounter.
 				pendingRaidEncounter = encounter.getLabel();
 				plugin.setConfig(BestGearSetupConfig.RAID_STYLES_KEY,
-					RaidOptions.withStyle(config.raidStyles(), raidType, encounter.getBossName(), style));
+					RaidOptions.withStyle(config.raidStyles(), raidType, encounter.getStyleKey(), style));
 			}
 		});
 		raidStyleRow.add(raidStyleLabel, BorderLayout.NORTH);
@@ -614,6 +615,7 @@ public class BestGearSetupPanel extends PluginPanel
 		statusLabel.setForeground(new Color(0xFF6B6B));
 		statusLabel.setText(html(escape(message)));
 		findButton.setEnabled(selected != null && data != null);
+		pendingRaidEncounter = null;
 		// Saved attack styles are hidden settings, so a raid that can't be planned offers to clear them.
 		if (raidType != RaidPlanType.SINGLE && RaidOptions.hasStyles(config.raidStyles(), raidType))
 		{
@@ -697,6 +699,7 @@ public class BestGearSetupPanel extends PluginPanel
 	{
 		if (data == null || raid == RaidPlanType.SINGLE) { return; }
 		plugin.clearGearSearch();
+		pendingRaidEncounter = null;
 		raidType = raid;
 		selectingRaid = true;
 		try { selectMonster(raidEncounters(raid).get(0).getTarget(), true); }

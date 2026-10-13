@@ -9,14 +9,16 @@ is what the Plugin Hub shows.
   curated raid advice with a reason where the fight switches styles, otherwise the Wiki attack styles.
   Ranged and magic setups fight from distance, where melee attacks are dropped unless the monster only melees
   (then Protect from Melee, or none if you safespot it). Unreadable attack data shows Unknown, and overheads
-  above your Prayer level are left out.
+  above your Prayer level are left out, or named with the level needed when none is unlocked.
 - Raid encounters follow the order the rooms appear: ToB from Maiden to Verzik P3, the common CM CoX rotation
   with Olm last, and a new **ToA path order** (Ba-Ba first or Zebak first) with the Wardens last.
 - Raid boosts follow the raid: CoX overloads after Tekton (including enraged Tekton), ToA smelling salts after
   the first two paths, and none in ToB.
-- Choose each raid boss's **Attack style**; Auto plans Skeletal Mystics, the large Muttadile and Zebak
-  from distance. Only styles the phase can be damaged by are offered. The choice is saved per boss, falls
-  back to Auto (with a warning) when it can't be searched, and can be reset from a failed raid's error.
+- Choose each raid encounter's **Attack style**; Auto plans Skeletal Mystics, the large Muttadile and Zebak
+  from distance. Only styles the phase can be damaged by are offered, and phases of one fight (Tekton,
+  Zebak, Kephri, Akkha, each Warden's P3 and core) share the choice. A phase the style can't damage keeps
+  Auto; a style turned off under Attack styles falls back to Auto with a warning, and one with no usable
+  setup searches every style with a warning. Saved styles can be reset from a failed raid's error.
 - **ToB Maiden role** (DPS, freezer or both) and **ToB Nylocas role** (the wave colour you kill). Wave
   nylocas and Vasilias forms are planned with their own style only.
 - Move fight settings (active encounter, thralls, special attacks, raid equipment slots and raid

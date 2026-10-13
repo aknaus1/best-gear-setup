@@ -175,12 +175,30 @@ public enum RaidPlanType
 		}
 		for (int index = 0; index < out.size(); index++)
 		{
-			RaidEncounter encounter = out.get(index);
-			out.set(index, encounter.withRaidSupplies(index >= supplied)
-				// One choice per boss covers all of its phases and versions; a phase it can't damage keeps Auto.
-				.withStyleChoice(options.style(this, encounter.getBossName())));
+			RaidEncounter encounter = out.get(index).withRaidSupplies(index >= supplied);
+			encounter = encounter.withStyleKey(styleKey(encounter.getLabel()));
+			// A phase the shared choice can't damage keeps Auto.
+			out.set(index, encounter.withStyleChoice(options.style(this, encounter.getStyleKey())));
 		}
 		return out;
+	}
+
+	/**
+	 * Phases of one fight share a style choice; everything else, including the Olm parts, the two Muttadiles and
+	 * Verzik's phases (each fought with different gear), is chosen on its own.
+	 */
+	static String styleKey(String label)
+	{
+		if (label.startsWith("Akkha: ")) { return "Akkha"; }
+		switch (label)
+		{
+			case "Tekton Enraged": return "Tekton";
+			case "Zebak Enraged": return "Zebak";
+			case "Kephri Shield": return "Kephri";
+			case "Elidinis Core": return "Elidinis P3";
+			case "Tumeken Core": return "Tumeken P3";
+			default: return label;
+		}
 	}
 
 	private static void distance(List<RaidEncounter> out, GameData data, String label, String name)

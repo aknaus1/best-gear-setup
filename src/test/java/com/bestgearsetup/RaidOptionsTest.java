@@ -140,11 +140,11 @@ public class RaidOptionsTest
 	}
 
 	@Test
-	public void savedStyleChoicesApplyToEveryPhaseOfTheBossAndRoundTrip()
+	public void savedStyleChoicesApplyToEveryPhaseOfTheFightAndRoundTrip()
 	{
 		String saved = RaidOptions.withStyle("", RaidPlanType.TOA, "Zebak", RaidStyle.MAGIC);
-		saved = RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Skeletal Mystic", RaidStyle.MELEE);
-		saved = RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Vanguard", RaidStyle.RANGED);
+		saved = RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Mystics", RaidStyle.MELEE);
+		saved = RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Vanguard: Melee", RaidStyle.RANGED);
 		RaidOptions options = RaidOptions.builder().styles(RaidOptions.parse(saved)).build();
 		assertEquals(RaidStyle.MAGIC, options.style(RaidPlanType.TOA, "Zebak"));
 		assertEquals(RaidStyle.AUTO, options.style(RaidPlanType.TOB, "Zebak"));
@@ -161,8 +161,8 @@ public class RaidOptionsTest
 		assertEquals(Collections.singletonList(RaidStyle.AUTO), vanguard.getStyleChoices());
 		assertEquals(RaidStyle.AUTO, vanguard.getDisplayedStyleChoice());
 		// Auto removes the saved entry; unknown entries are ignored.
-		assertEquals(RaidOptions.withStyle(RaidOptions.withStyle("", RaidPlanType.COX_CM, "Skeletal Mystic", RaidStyle.MELEE),
-			RaidPlanType.TOA, "Zebak", RaidStyle.MAGIC), RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Vanguard", RaidStyle.AUTO));
+		assertEquals(RaidOptions.withStyle(RaidOptions.withStyle("", RaidPlanType.COX_CM, "Mystics", RaidStyle.MELEE),
+			RaidPlanType.TOA, "Zebak", RaidStyle.MAGIC), RaidOptions.withStyle(saved, RaidPlanType.COX_CM, "Vanguard: Melee", RaidStyle.AUTO));
 		assertEquals(Collections.singletonMap("TOA|Zebak", RaidStyle.MAGIC), RaidOptions.parse("TOA|Zebak=MAGIC;bad;TOB|Maiden=NOPE"));
 		assertTrue(RaidOptions.hasStyles(saved, RaidPlanType.COX_CM));
 		assertFalse(RaidOptions.hasStyles(saved, RaidPlanType.TOB));
@@ -194,9 +194,44 @@ public class RaidOptionsTest
 	}
 
 	@Test
+	public void onlyPhasesOfOneFightShareAStyleChoice()
+	{
+		List<RaidEncounter> cox = encounters(RaidPlanType.COX_CM, RaidOptions.DEFAULT);
+		assertEquals("Tekton", find(cox, "Tekton Enraged").getStyleKey());
+		List<RaidEncounter> toa = encounters(RaidPlanType.TOA, RaidOptions.DEFAULT);
+		assertEquals("Zebak", find(toa, "Zebak Enraged").getStyleKey());
+		assertEquals("Kephri", find(toa, "Kephri Shield").getStyleKey());
+		assertEquals("Akkha", find(toa, "Akkha: Final Stand (Melee Only)").getStyleKey());
+		assertEquals("Akkha Shadows", find(toa, "Akkha Shadows").getStyleKey());
+		assertEquals("Tumeken P3", find(toa, "Tumeken Core").getStyleKey());
+
+		// Olm's parts are separate fights: ranged on the head leaves both hands on Auto.
+		List<RaidEncounter> olm = encounters(RaidPlanType.COX_CM,
+			RaidOptions.builder().styles(RaidOptions.parse("COX_CM|Olm Head=RANGED")).build());
+		assertEquals(EnumSet.of(AttackStyle.Type.RANGED, AttackStyle.Type.ATLATL), find(olm, "Olm Head").getStyles());
+		assertEquals(RaidStyle.AUTO, find(olm, "Olm Melee Hand").getStyleChoice());
+		assertEquals(RaidStyle.AUTO, find(olm, "Olm Mage Hand").getStyleChoice());
+		assertTrue(find(olm, "Olm Melee Hand").getStyles().isEmpty());
+
+		// Melee on the small Muttadile keeps the large one's distance default.
+		List<RaidEncounter> mutta = encounters(RaidPlanType.COX_CM,
+			RaidOptions.builder().styles(RaidOptions.parse("COX_CM|Small Muttadile=MELEE")).build());
+		assertEquals(EnumSet.of(AttackStyle.Type.STAB, AttackStyle.Type.SLASH, AttackStyle.Type.CRUSH),
+			find(mutta, "Small Muttadile").getStyles());
+		assertEquals(DISTANCE, find(mutta, "Large Muttadile").getStyles());
+
+		// Melee on Verzik P3 leaves P1 (Dawnbringer) and P2 on Auto.
+		List<RaidEncounter> verzik = encounters(RaidPlanType.TOB,
+			RaidOptions.builder().styles(RaidOptions.parse("TOB|Verzik P3=MELEE")).build());
+		assertEquals(RaidStyle.MELEE, find(verzik, "Verzik P3").getStyleChoice());
+		assertTrue(find(verzik, "Verzik P1").getStyles().isEmpty());
+		assertTrue(find(verzik, "Verzik P2").getStyles().isEmpty());
+	}
+
+	@Test
 	public void aSavedChoiceThatMatchesAutoIsShownAsAuto()
 	{
-		RaidOptions magic = RaidOptions.builder().styles(RaidOptions.parse("TOB|The Maiden Of Sugadinti=MAGIC")).build();
+		RaidOptions magic = RaidOptions.builder().styles(RaidOptions.parse("TOB|Maiden=MAGIC")).build();
 		RaidEncounter dps = find(encounters(RaidPlanType.TOB, magic), "Maiden");
 		assertEquals(RaidStyle.MAGIC, dps.getDisplayedStyleChoice());
 		RaidEncounter freezer = find(encounters(RaidPlanType.TOB, magic.toBuilder().maidenRole(RaidOptions.MaidenRole.FREEZER).build()), "Maiden");

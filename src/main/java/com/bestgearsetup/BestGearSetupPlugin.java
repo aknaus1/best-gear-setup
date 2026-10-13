@@ -1413,22 +1413,54 @@ public class BestGearSetupPlugin extends Plugin
 		overrides.put("wilderness", false);
 		if (!encounter.isRaidSupplies()) { overrides.put("raidPotions", false); }
 		List<String> styleWarnings = new ArrayList<>();
+		Set<AttackStyle.Type> styles = raidStyles(encounter, config, styleWarnings);
+		BestGearSetupConfig assumptions = SearchAssumptions.capture(config, overrides);
 		SearchResults searched = computeSearch(data, summary, levels, remembered, prayerUnlocks, diary, false, mining,
-			quotes, encounterOwned, quantities, generation, SearchAssumptions.capture(config, overrides), liveRaid, notes,
-			raidStyles(encounter, config, styleWarnings), excluded, config.raidSpellbook(), publishProgress);
-		SearchResults found = searched == null ? null : searched.withWarnings(styleWarnings);
-		if (found == null) { return true; }
-		if (found.hasBlockingLock()) { return false; }
-		SetupResult best = found.getByType().values().stream().flatMap(Collection::stream)
+			quotes, encounterOwned, quantities, generation, assumptions, liveRaid, notes,
+			styles, excluded, config.raidSpellbook(), publishProgress);
+		if (searched == null) { return true; }
+		if (searched.hasBlockingLock()) { return false; }
+		SetupResult best = bestInKit(plan, searched, owned);
+		if (best == null && !styles.equals(encounter.getRequiredStyles()))
+		{
+			// The plan may have widened this encounter when its chosen style found nothing; do the same within the kit.
+			styleWarnings.add(widenedWarning(encounter, styles));
+			searched = computeSearch(data, summary, levels, remembered, prayerUnlocks, diary, false, mining,
+				quotes, encounterOwned, quantities, generation, assumptions, liveRaid, notes,
+				encounter.getRequiredStyles(), excluded, config.raidSpellbook(), publishProgress);
+			if (searched == null) { return true; }
+			if (searched.hasBlockingLock()) { return false; }
+			best = bestInKit(plan, searched, owned);
+		}
+		if (best == null) { return false; }
+		SearchResults found = searched.withWarnings(styleWarnings);
+		SetupResult shown = best;
+		SwingUtilities.invokeLater(() ->
+		{
+			if (panel != null && generation == searchGeneration.get()) { panel.showProgress(100); panel.showRaidResults(plan, summary, found.withSetup(shown)); }
+		});
+		return true;
+	}
+
+	/** The fastest of a search's setups that the selected kit's ammunition and supplies support, or null. */
+	private static SetupResult bestInKit(RaidPlan plan, SearchResults found, Set<Integer> owned)
+	{
+		return found.getByType().values().stream().flatMap(Collection::stream)
 			.map(setup -> plan.fillAmmoFor(setup, found))
 			.filter(setup -> plan.supportsSupplies(setup, found, owned::contains))
 			.max(java.util.Comparator.comparingDouble(setup -> setup.getDps().getPrimaryDps())).orElse(null);
-		if (best == null) { return false; }
-		SwingUtilities.invokeLater(() ->
-		{
-			if (panel != null && generation == searchGeneration.get()) { panel.showProgress(100); panel.showRaidResults(plan, summary, found.withSetup(best)); }
-		});
-		return true;
+	}
+
+	/** Why an encounter was searched with every style it allows: the styles actually tried found no setup. */
+	static String widenedWarning(RaidEncounter encounter, Set<AttackStyle.Type> tried)
+	{
+		List<String> classes = new ArrayList<>();
+		if (tried.contains(AttackStyle.Type.STAB) || tried.contains(AttackStyle.Type.SLASH) || tried.contains(AttackStyle.Type.CRUSH))
+		{ classes.add("melee"); }
+		if (tried.contains(AttackStyle.Type.RANGED) || tried.contains(AttackStyle.Type.ATLATL)) { classes.add("ranged"); }
+		if (tried.contains(AttackStyle.Type.MAGIC)) { classes.add("magic"); }
+		return encounter.getLabel() + ": no usable " + String.join(" or ", classes)
+			+ " setup, so every attack style it allows was searched.";
 	}
 
 	/**
@@ -1502,7 +1534,8 @@ public class BestGearSetupPlugin extends Plugin
 				data.getItems(Slot.WEAPON).stream().filter(RaidPlan::providedInRaid).forEach(item -> encounterOwned.add(item.getId()));
 			}
 			List<String> styleWarnings = new ArrayList<>();
-			Set<AttackStyle.Type> styles = widened[index] != null ? encounter.getRequiredStyles() : raidStyles(encounter, config, styleWarnings);
+			Set<AttackStyle.Type> chosen = raidStyles(encounter, config, styleWarnings);
+			Set<AttackStyle.Type> styles = widened[index] != null ? encounter.getRequiredStyles() : chosen;
 			BestGearSetupConfig assumptions = SearchAssumptions.capture(config, overrides);
 			List<String> notes = same ? detectedNotes : Collections.emptyList();
 			SearchResults result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
@@ -1512,10 +1545,7 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				// A chosen (or default distance) style without a usable setup, e.g. no ranged gear owned, must not
 				// fail the whole raid: search every style the raid allows here and say so.
-				widened[index] = encounter.getLabel() + ": no usable " + (encounter.getStyleChoice() == RaidStyle.AUTO
-					? encounter.getPreferredStyle() : encounter.getStyleChoice()).toString().toLowerCase(Locale.ROOT)
-					+ " setup, so every attack style was searched.";
-				styleWarnings.clear();
+				widened[index] = widenedWarning(encounter, styles);
 				result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
 					false, mining, quotes, encounterOwned, quantities, generation, assumptions,
 					liveRaid, notes, encounter.getRequiredStyles(), excluded, config.raidSpellbook(), progress.encounter(pass, index));

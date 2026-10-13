@@ -24,7 +24,7 @@ public class RaidOptions
 	MaidenRole maidenRole = MaidenRole.BOTH;
 	@Builder.Default
 	NylocasRole nylocasRole = NylocasRole.ALL;
-	/** Saved style choices by {@link #key} (raid and boss); bosses without one use Auto. */
+	/** Saved style choices by {@link #key} (raid and {@link RaidEncounter#getStyleKey}); others use Auto. */
 	@Builder.Default
 	Map<String, RaidStyle> styles = Collections.emptyMap();
 
@@ -64,18 +64,18 @@ public class RaidOptions
 			.nylocasRole(config.tobNylocasRole()).styles(parse(config.raidStyles())).build();
 	}
 
-	/** The saved choice for a boss, by {@link RaidEncounter#getBossName}. */
-	public RaidStyle style(RaidPlanType type, String boss)
+	/** The saved choice for an encounter's {@link RaidEncounter#getStyleKey}. */
+	public RaidStyle style(RaidPlanType type, String styleKey)
 	{
-		return styles.getOrDefault(key(type, boss), RaidStyle.AUTO);
+		return styles.getOrDefault(key(type, styleKey), RaidStyle.AUTO);
 	}
 
-	static String key(RaidPlanType type, String boss)
+	static String key(RaidPlanType type, String styleKey)
 	{
-		return type.name() + "|" + boss;
+		return type.name() + "|" + styleKey;
 	}
 
-	/** Saved choices, such as "COX_CM|Skeletal Mystic=MELEE;TOA|Zebak=MAGIC"; unknown entries are ignored. */
+	/** Saved choices, such as "COX_CM|Mystics=MELEE;TOA|Zebak=MAGIC"; unknown entries are ignored. */
 	public static Map<String, RaidStyle> parse(String saved)
 	{
 		Map<String, RaidStyle> styles = new LinkedHashMap<>();
@@ -97,12 +97,12 @@ public class RaidOptions
 		return styles;
 	}
 
-	/** The saved value with one boss's choice replaced; Auto removes it. Entries are sorted for stable values. */
-	public static String withStyle(String saved, RaidPlanType type, String boss, RaidStyle style)
+	/** The saved value with one style key's choice replaced; Auto removes it. Entries are sorted for stable values. */
+	public static String withStyle(String saved, RaidPlanType type, String styleKey, RaidStyle style)
 	{
 		Map<String, RaidStyle> styles = new TreeMap<>(parse(saved));
-		if (style == null || style == RaidStyle.AUTO) { styles.remove(key(type, boss)); }
-		else { styles.put(key(type, boss), style); }
+		if (style == null || style == RaidStyle.AUTO) { styles.remove(key(type, styleKey)); }
+		else { styles.put(key(type, styleKey), style); }
 		return format(styles);
 	}
 
