@@ -134,7 +134,8 @@ public class RaidPlan
 		if (item != null && !providedInRaid(item)) { out.putIfAbsent(item.getId(), item); }
 	}
 
-	static boolean providedInRaid(GearItem item) { return "dawnbringer".equalsIgnoreCase(item.getCombatName()); }
+	/** Picked up inside the raid (the Dawnbringer, passed around at Verzik P1 for its special): never banked or carried in. */
+	public static boolean providedInRaid(GearItem item) { return "dawnbringer".equalsIgnoreCase(item.getCombatName()); }
 
 	static List<InventoryItem> inventory(List<SetupResult> setups, List<SearchResults> results, IntPredicate owns)
 	{

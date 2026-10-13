@@ -28,7 +28,6 @@ final class SearchAssumptions implements BestGearSetupConfig
 	private final RaidOptions.ToaPathOrder toaPathOrder;
 	private final RaidOptions.MaidenRole tobMaidenRole;
 	private final RaidOptions.NylocasRole tobNylocasRole;
-	private final boolean tobDawnbringer;
 	private final String raidStyles;
 	private final boolean showMenuOption;
 	private final boolean highlightBankGear;
@@ -120,7 +119,6 @@ final class SearchAssumptions implements BestGearSetupConfig
 		toaPathOrder = o.get("toaPathOrder", source.toaPathOrder());
 		tobMaidenRole = o.get("tobMaidenRole", source.tobMaidenRole());
 		tobNylocasRole = o.get("tobNylocasRole", source.tobNylocasRole());
-		tobDawnbringer = o.get("tobDawnbringer", source.tobDawnbringer());
 		raidStyles = o.get("raidStyles", source.raidStyles());
 		raidEquipmentLimit = o.get("raidEquipmentLimit", source.raidEquipmentLimit());
 		showMenuOption = o.get("showMenuOption", source.showMenuOption());
@@ -220,7 +218,6 @@ final class SearchAssumptions implements BestGearSetupConfig
 	@Override public RaidOptions.ToaPathOrder toaPathOrder() { return toaPathOrder; }
 	@Override public RaidOptions.MaidenRole tobMaidenRole() { return tobMaidenRole; }
 	@Override public RaidOptions.NylocasRole tobNylocasRole() { return tobNylocasRole; }
-	@Override public boolean tobDawnbringer() { return tobDawnbringer; }
 	@Override public String raidStyles() { return raidStyles; }
 	@Override public int raidEquipmentLimit() { return raidEquipmentLimit; }
 	@Override public boolean showMenuOption() { return showMenuOption; }

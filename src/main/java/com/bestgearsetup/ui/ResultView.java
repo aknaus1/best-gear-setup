@@ -424,7 +424,8 @@ class ResultView extends JPanel
 		}
 		GearItem ring = worn.get(Slot.RING);
 		boolean lightbearer = ring != null && ring.getId() == ItemID.LIGHTBEARER;
-		String uses = newWeapon ? "switch" : plan.getOffhand() != null ? "add off-hand" : "same weapon";
+		boolean provided = RaidPlan.providedInRaid(plan.getWeapon());
+		String uses = provided ? "provided in the raid" : newWeapon ? "switch" : plan.getOffhand() != null ? "add off-hand" : "same weapon";
 		DpsResult drained = plan.getDrained();
 		DpsResult spec = plan.getSpec();
 		// The spec's detail opens with its own description, already shown by name and energy.
@@ -450,7 +451,9 @@ class ResultView extends JPanel
 			+ (plan.getAmmo() == null ? "" : (newWeapon || plan.getOffhand() != null ? ", firing " : "<br>Equip ")
 			+ BestGearSetupPanel.escape(GameData.titleCase(plan.getAmmo().getName())))
 			+ (plan.isSwitch(worn) ? "; the rest of the setup stays on." : "")
-			+ (lightbearer ? "<br>Lightbearer doubles energy regeneration." : "") + "</html>");
+			+ (lightbearer ? "<br>Lightbearer doubles energy regeneration." : "")
+			+ (provided ? "<br>Provided in the raid: picked up in the room and passed between players, so it isn't "
+			+ "banked, bought or carried in." : "") + "</html>");
 		box.add(label, BorderLayout.CENTER);
 		return box;
 	}
@@ -472,7 +475,8 @@ class ResultView extends JPanel
 		if (special != null && special.getWeapon() != l.getWeapon())
 		{
 			// The spec weapon (and a spec blowpipe's darts) are carried in the inventory.
-			extras.add(special.getWeapon());
+			// A raid-provided spec weapon (the Dawnbringer) is picked up in the room and costs nothing.
+			extras.add(RaidPlan.providedInRaid(special.getWeapon()) ? null : special.getWeapon());
 			extras.add(special.getLoadedAmmo());
 		}
 		if (special != null)

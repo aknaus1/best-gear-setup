@@ -166,7 +166,8 @@ class BestGearSetupBankView
 			SpecialPlan special = setup.getSpecial();
 			if (special != null && special.isSwitch(loadout))
 			{
-				addItem(layout, itemIds, special.getWeapon(), SPEC_WEAPON_CELL);
+				// A raid-provided spec weapon (the Dawnbringer) is picked up in the room, not withdrawn.
+				if (!RaidPlan.providedInRaid(special.getWeapon())) { addItem(layout, itemIds, special.getWeapon(), SPEC_WEAPON_CELL); }
 				addItem(layout, itemIds, special.getOffhand(), SPEC_OFFHAND_CELL);
 				addItem(layout, itemIds, special.getAmmo(), SPEC_AMMO_CELL);
 				addItem(layout, itemIds, special.getLoadedAmmo(), SPEC_AMMO_CELL);

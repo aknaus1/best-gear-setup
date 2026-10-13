@@ -969,7 +969,7 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 		JLabel notes = new JLabel(html("Raid kits use a bounded search over valid setups; lower equipment limits share more armour."
 			+ "<br>Runes are packed into your pouch; hover it to see its contents. Extra rune types stay in free inventory slots. Food, healing and utility supplies are not planned."
-			+ "<br>In-raid boosts are omitted from the bank: CoX overloads are assumed after Tekton and ToA smelling salts after the first two paths. Dawnbringer is only planned at Verzik P1 for its holder (Fight, Raid). Loaded darts must be loaded before entry."));
+			+ "<br>In-raid boosts are omitted from the bank: CoX overloads are assumed after Tekton and ToA smelling salts after the first two paths. The Dawnbringer is picked up at Verzik P1 and only used for its special. Loaded darts must be loaded before entry."));
 		setSmall(notes, ColorScheme.LIGHT_GRAY_COLOR);
 		resultsPanel.add(left(notes));
 		resultsPanel.revalidate();

@@ -415,7 +415,8 @@ public final class SpecialAttack
 		}
 		if (n.equals("dawnbringer"))
 		{
-			return spec("Dawnbringer", 30, Kind.DAWNBRINGER, 1, 1, 1, null, 1, 1).alwaysHits();
+			// Pulsate: 35% energy (Wiki "Dawnbringer").
+			return spec("Dawnbringer", 35, Kind.DAWNBRINGER, 1, 1, 1, null, 1, 1).alwaysHits();
 		}
 		return null;
 	}

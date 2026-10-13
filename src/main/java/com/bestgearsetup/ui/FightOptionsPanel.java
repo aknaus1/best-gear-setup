@@ -52,7 +52,6 @@ class FightOptionsPanel extends JPanel
 		setting("toaPathOrder", BestGearSetupConfig::toaPathOrder),
 		setting("tobMaidenRole", BestGearSetupConfig::tobMaidenRole),
 		setting("tobNylocasRole", BestGearSetupConfig::tobNylocasRole),
-		setting("tobDawnbringer", BestGearSetupConfig::tobDawnbringer),
 		setting("autoSpecs", BestGearSetupConfig::autoSpecs),
 		setting("specVulnerability", BestGearSetupConfig::specVulnerability),
 		setting("specTomeOfWater", BestGearSetupConfig::specTomeOfWater),
@@ -107,8 +106,7 @@ class FightOptionsPanel extends JPanel
 		raidSection = accordion.create("raidScaling", "Raid");
 		raidSection.showAsEditor();
 		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel",
-			"raidEquipmentLimit", "raidSpellbook", "toaPathOrder", "tobMaidenRole", "tobNylocasRole",
-			"tobDawnbringer");
+			"raidEquipmentLimit", "raidSpellbook", "toaPathOrder", "tobMaidenRole", "tobNylocasRole");
 		add(BestGearSetupPanel.left(raidSection));
 		// Collapsed by default: most searches start from the target's full stats.
 		preparationSection = accordion.create("preparation", "Pre-fight preparation");
@@ -170,7 +168,6 @@ class FightOptionsPanel extends JPanel
 		settingRows.row("toaPathOrder").setVisible(raidPlan == RaidPlanType.TOA);
 		settingRows.row("tobMaidenRole").setVisible(raidPlan == RaidPlanType.TOB);
 		settingRows.row("tobNylocasRole").setVisible(raidPlan == RaidPlanType.TOB);
-		settingRows.row("tobDawnbringer").setVisible(raidPlan == RaidPlanType.TOB);
 		settingRows.row("aoeTargets").setVisible(selected("aoe"));
 		settingRows.row("specEnergy").setVisible(selected("killSpecials"));
 		settingRows.row("drainSpecs").setVisible(selected("killSpecials"));

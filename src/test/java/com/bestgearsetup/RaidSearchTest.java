@@ -32,18 +32,6 @@ import org.junit.Test;
 /** Exercise the real raid search pipeline with a small, real owned kit instead of synthetic DPS. */
 public class RaidSearchTest
 {
-	@Test public void dawnbringerIsOnlyPlannedForItsHolderAtVerzikP1() throws Exception
-	{
-		GameData data = new GameDataLoader(new Gson()).loadGameData();
-		List<RaidEncounter> tob = RaidPlanType.TOB.encounters(data);
-		RaidEncounter p1 = tob.stream().filter(e -> e.getLabel().equals("Verzik P1")).findFirst().get();
-		RaidEncounter p2 = tob.stream().filter(e -> e.getLabel().equals("Verzik P2")).findFirst().get();
-		BestGearSetupConfig holder = new BestGearSetupConfig() { @Override public boolean tobDawnbringer() { return true; } };
-		assertTrue(!BestGearSetupPlugin.usesDawnbringer(p1, new BestGearSetupConfig() { }));
-		assertTrue(BestGearSetupPlugin.usesDawnbringer(p1, holder));
-		assertTrue(!BestGearSetupPlugin.usesDawnbringer(p2, holder));
-	}
-
 	@Test public void allThreeRaidsProduceCompleteKitsUsingBundledCombatData() throws Exception
 	{
 		GameDataLoader loader = new GameDataLoader(new Gson());
@@ -106,14 +94,29 @@ public class RaidSearchTest
 			assertEquals(0, result[0].getBuyCost());
 			if (type == RaidPlanType.TOB)
 			{
-				// Only the Dawnbringer holder (off by default) uses it at Verzik P1; P1 still gets a setup without it.
-				for (int i = 0; i < result[0].getEncounters().size(); i++)
-				{
-					SetupResult setup = result[0].getSetups().get(i);
-					assertTrue(result[0].getEncounters().get(i).getLabel(), !RaidPlan.providedInRaid(setup.getLoadout().getWeapon())
-						&& (setup.getSpecial() == null || !RaidPlan.providedInRaid(setup.getSpecial().getWeapon())));
-				}
-				assertTrue(result[0].getEncounters().stream().anyMatch(e -> e.getLabel().equals("Verzik P1")));
+				// The Dawnbringer is never a worn weapon, and the kit never carries it: it's picked up in the room.
+				RaidPlan plan = result[0];
+				plan.getSetups().forEach(setup -> assertTrue(!RaidPlan.providedInRaid(setup.getLoadout().getWeapon())));
+				assertTrue(plan.getEquipment().stream().noneMatch(RaidPlan::providedInRaid));
+				assertTrue(plan.getInventory().stream().noneMatch(item -> item.getIds().stream()
+					.anyMatch(id -> data.findItem(id) != null && RaidPlan.providedInRaid(data.findItem(id)))));
+				// With specials on, P1 keeps the player's own weapon and specs with the Dawnbringer.
+				RaidEncounter p1 = plan.getEncounters().stream().filter(e -> e.getLabel().equals("Verzik P1")).findFirst().get();
+				SearchResults[] active = {null};
+				doAnswer(call -> { active[0] = call.getArgument(2); return null; }).when(plugin.panel)
+					.showRaidResults(any(RaidPlan.class), any(), any(SearchResults.class));
+				Method refresh = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods()).filter(m -> m.getName().equals("refreshRaidEncounter")).findFirst().get();
+				refresh.setAccessible(true);
+				BestGearSetupConfig specs = SearchAssumptions.capture(config, Collections.singletonMap("killSpecials", true));
+				assertEquals(true, refresh.invoke(plugin, plan, data, p1.getTarget(), PlayerLevels.maxed(),
+					false, Collections.emptySet(), true, 99, Collections.emptyMap(), owned, quantities, 0, specs, new LiveRaid(), Collections.emptyList(), (java.util.function.IntConsumer) percent -> { }));
+				SwingUtilities.invokeAndWait(() -> { });
+				assertNotNull(active[0]);
+				SetupResult shown = active[0].getByType().values().iterator().next().get(0);
+				assertTrue(!RaidPlan.providedInRaid(shown.getLoadout().getWeapon()));
+				assertNotNull(shown.getSpecial());
+				assertTrue(RaidPlan.providedInRaid(shown.getSpecial().getWeapon()));
+				assertEquals(35, shown.getSpecial().getSpecial().getEnergy());
 			}
 			if (type == RaidPlanType.COX_CM)
 			{

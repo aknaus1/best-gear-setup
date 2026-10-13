@@ -222,6 +222,11 @@ public class BestGearSetupPlugin extends Plugin
 	volatile boolean searchedLandedSpecs;
 	/** The latest search failed, so engaging its target again should retry it. */
 	volatile boolean searchFailed;
+	/**
+	 * The latest search read a live NPC (engaged or right-clicked): live raid scaling, the Slayer task's location
+	 * and Karuulm. One planned from the panel alone didn't, so the first live engagement still searches.
+	 */
+	volatile boolean searchedLive;
 	private volatile RaidPlan raidPlan;
 	/** Equipment ids and their variants: the only ownership changes that can alter a result. */
 	volatile Set<Integer> gearIds = Collections.emptySet();
@@ -875,14 +880,15 @@ public class BestGearSetupPlugin extends Plugin
 
 	/**
 	 * Whether the results already shown (or being searched) are for this type of monster: the same variant, the
-	 * same live Akkha phase, and nothing specific to the NPC instance they were found for, such as specs landed on
-	 * it. Another NPC of the same type, e.g. the next abyssal demon or wave nylocas, then needs no new search.
+	 * same live Akkha phase, found for a live NPC (so live raid scaling and the task location were read), and
+	 * nothing specific to that NPC instance, such as specs landed on it. Another NPC of the same type, e.g. the
+	 * next abyssal demon or wave nylocas, then needs no new search.
 	 */
 	boolean showsSameType(MonsterSummary match, com.bestgearsetup.data.EncounterPhase phase)
 	{
 		MonsterSummary last = lastSearched;
 		return last != null && last.getId() == match.getId() && last.getName().equals(match.getName())
-			&& searchedPhase == phase && !searchedLandedSpecs && !searchFailed;
+			&& searchedPhase == phase && searchedLive && !searchedLandedSpecs && !searchFailed;
 	}
 
 	/** Your own hits, blocked or not, mark the NPC you are fighting. */
@@ -960,6 +966,7 @@ public class BestGearSetupPlugin extends Plugin
 		lastSearched = summary;
 		searchFailed = false;
 		searchedLandedSpecs = false;
+		searchedLive = false;
 		if (cached == null) { raidPlan = null; }
 		int generation = searchGeneration.incrementAndGet();
 		if (search != null)
@@ -1008,6 +1015,7 @@ public class BestGearSetupPlugin extends Plugin
 				}
 			}
 			NPC npc = matchingLiveTarget(summary);
+			searchedLive = npc != null;
 			com.bestgearsetup.data.EncounterPhase livePhase = LiveRaid.akkhaPhase(npc);
 			if (livePhase != null) { detected.put("encounterPhase", livePhase); }
 			searchedPhase = livePhase;
@@ -1426,8 +1434,9 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			for (GearItem item : data.getItems(slot))
 			{
-				if (RaidPlan.providedInRaid(item) && usesDawnbringer(encounter, config)) { encounterOwned.add(item.getId()); }
-				else if (!allowed.contains(item.getId())) { excluded.add(item.getId()); }
+				// The kit never carries raid-provided items (the Dawnbringer, picked up at Verzik P1 for its special),
+				// so they aren't excluded for being missing from it.
+				if (!RaidPlan.providedInRaid(item) && !allowed.contains(item.getId())) { excluded.add(item.getId()); }
 			}
 		}
 		Map<String, Object> overrides = new HashMap<>();
@@ -1474,15 +1483,6 @@ public class BestGearSetupPlugin extends Plugin
 			.map(setup -> plan.fillAmmoFor(setup, found))
 			.filter(setup -> plan.supportsSupplies(setup, found, owned::contains))
 			.max(java.util.Comparator.comparingDouble(setup -> setup.getDps().getPrimaryDps())).orElse(null);
-	}
-
-	/**
-	 * Whether this encounter may use the raid-provided Dawnbringer: only at Verzik P1, and only when the player
-	 * says they pick it up there. Planning it for everyone would assume a weapon only one player holds.
-	 */
-	static boolean usesDawnbringer(RaidEncounter encounter, BestGearSetupConfig config)
-	{
-		return config.tobDawnbringer() && encounter.getTarget().getName().equals("verzik vitur (phase 1)");
 	}
 
 	/** Why an encounter was searched with every style it allows: the styles actually tried found no setup. */
@@ -1562,28 +1562,24 @@ public class BestGearSetupPlugin extends Plugin
 				overrides.put("specVulnerability", false);
 				overrides.put("specTomeOfWater", false);
 			}
-			Set<Integer> encounterOwned = new HashSet<>(owned);
-			Set<Integer> encounterExcluded = new HashSet<>(excluded);
-			// Only the Dawnbringer holder picks it up at Verzik P1; everyone else fights P1 with their own gear.
-			boolean dawnbringer = usesDawnbringer(encounter, config);
-			data.getItems(Slot.WEAPON).stream().filter(RaidPlan::providedInRaid)
-				.forEach(item -> (dawnbringer ? encounterOwned : encounterExcluded).add(item.getId()));
+			// The Dawnbringer is passed around at Verzik P1: the optimizer offers it to everyone there as a spec-only
+			// weapon, and the kit never carries it (RaidPlan.providedInRaid).
 			List<String> styleWarnings = new ArrayList<>();
 			Set<AttackStyle.Type> chosen = raidStyles(encounter, config, styleWarnings);
 			Set<AttackStyle.Type> styles = widened[index] != null ? encounter.getRequiredStyles() : chosen;
 			BestGearSetupConfig assumptions = SearchAssumptions.capture(config, overrides);
 			List<String> notes = same ? detectedNotes : Collections.emptyList();
 			SearchResults result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
-				false, mining, quotes, encounterOwned, quantities, generation, assumptions,
-				liveRaid, notes, styles, encounterExcluded, config.raidSpellbook(), progress.encounter(pass, index));
+				false, mining, quotes, owned, quantities, generation, assumptions,
+				liveRaid, notes, styles, excluded, config.raidSpellbook(), progress.encounter(pass, index));
 			if (result != null && result.isEmpty() && pass == 0 && !styles.equals(encounter.getRequiredStyles()))
 			{
 				// A chosen (or default distance) style without a usable setup, e.g. no ranged gear owned, must not
 				// fail the whole raid: search every style the raid allows here and say so.
 				widened[index] = widenedWarning(encounter, styles);
 				result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
-					false, mining, quotes, encounterOwned, quantities, generation, assumptions,
-					liveRaid, notes, encounter.getRequiredStyles(), encounterExcluded, config.raidSpellbook(), progress.encounter(pass, index));
+					false, mining, quotes, owned, quantities, generation, assumptions,
+					liveRaid, notes, encounter.getRequiredStyles(), excluded, config.raidSpellbook(), progress.encounter(pass, index));
 			}
 			if (widened[index] != null) { styleWarnings.add(widened[index]); }
 			return result == null ? null : result.withWarnings(styleWarnings);
@@ -1663,7 +1659,8 @@ public class BestGearSetupPlugin extends Plugin
 			addBankHighlightItem(ids, setup.getLoadout().getLoadedAmmo());
 			if (setup.getSpecial() != null)
 			{
-				addBankHighlightItem(ids, setup.getSpecial().getWeapon());
+				// A raid-provided spec weapon (the Dawnbringer) is picked up in the room, not withdrawn.
+				if (!RaidPlan.providedInRaid(setup.getSpecial().getWeapon())) { addBankHighlightItem(ids, setup.getSpecial().getWeapon()); }
 				addBankHighlightItem(ids, setup.getSpecial().getOffhand());
 				addBankHighlightItem(ids, setup.getSpecial().getAmmo());
 				addBankHighlightItem(ids, setup.getSpecial().getLoadedAmmo());

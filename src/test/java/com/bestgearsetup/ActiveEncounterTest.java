@@ -154,8 +154,9 @@ public class ActiveEncounterTest
 	@Test public void anotherNpcOfTheShownTypeKeepsTheResults() throws Exception
 	{
 		Fixture f = new Fixture();
-		// The boss's results are already shown (its search set lastSearched).
+		// The boss's results are already shown, from a search of a live NPC.
 		f.plugin.lastSearched = f.boss;
+		f.plugin.searchedLive = true;
 		NPC first = f.npc(200, "Boss");
 		when(f.player.getInteracting()).thenReturn(first);
 		f.plugin.onHitsplatApplied(f.hit(first, true));
@@ -180,6 +181,7 @@ public class ActiveEncounterTest
 	{
 		Fixture f = new Fixture();
 		f.plugin.lastSearched = f.boss;
+		f.plugin.searchedLive = true;
 		// Specs landed on the last NPC don't apply to a new one.
 		f.plugin.searchedLandedSpecs = true;
 		NPC first = f.npc(200, "Boss");
@@ -201,6 +203,28 @@ public class ActiveEncounterTest
 		org.junit.Assert.assertFalse(f.plugin.showsSameType(f.add, null));
 		f.plugin.lastSearched = null;
 		org.junit.Assert.assertFalse(f.plugin.showsSameType(f.boss, null));
+	}
+
+	@Test public void resultsPlannedWithoutALiveNpcAreSearchedOnTheFirstEngagement() throws Exception
+	{
+		Fixture f = new Fixture();
+		// Picked from the panel (e.g. a raid's first room): no live raid scaling or task location was read.
+		f.plugin.lastSearched = f.boss;
+		f.plugin.searchedLive = false;
+		NPC first = f.npc(200, "Boss");
+		when(f.player.getInteracting()).thenReturn(first);
+		f.plugin.onHitsplatApplied(f.hit(first, true));
+		f.tick();
+		verify(f.plugin.panel).selectActiveMonster(f.boss);
+		verify(f.plugin.panel, never()).showActiveMonster(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+		org.junit.Assert.assertFalse(f.plugin.showsSameType(f.boss, null));
+		// Once that live search has run, the next NPC of the type keeps its results.
+		f.plugin.searchedLive = true;
+		NPC second = f.npc(200, "Boss");
+		when(f.player.getInteracting()).thenReturn(second);
+		f.plugin.onHitsplatApplied(f.hit(second, true));
+		f.tick();
+		verify(f.plugin.panel).showActiveMonster(f.boss, null);
 	}
 
 	/** An active-encounter plugin with two known monsters, ids 200 and 201. */

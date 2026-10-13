@@ -29,10 +29,11 @@ potions brewed in the raid aren't in the potion table), and every later room may
 the first two paths are fought without smelling salts and the third and fourth paths and the Wardens may use
 them. ToB hands out no boosts, so every room uses the potions you bring. Rooms where raid boosts are available
 follow **Include raid potions**. Named potion overrides still apply and their warnings remain visible.
-The Dawnbringer is picked up in the raid by one player for Verzik P1, so it is never a bank withdrawal or an
-entry inventory slot, and it is only planned for P1 when **Dawnbringer holder at Verzik P1** (under
-**Fight → Raid** while planning ToB) is on. By default P1 uses your own gear under her random per-hit caps
-(0–10 for melee, 0–3 for ranged and magic), which usually favours melee.
+The Dawnbringer is picked up at Verzik P1 and passed between players for its special attack, so it is never a
+worn weapon, a bank withdrawal, a purchase or an entry inventory slot. P1 is planned with your own setup under
+her random per-hit caps (0–10 for melee, 0–3 for ranged and magic); with special attacks on, every player's
+P1 setup also specs with the Dawnbringer (35% energy, always hits for 75–150, past the caps). The special is
+labelled as provided in the raid.
 
 **Attack style** (under the boss selector) restricts the displayed encounter's search to melee, ranged, magic
 or ranged-or-magic. *Auto* keeps each encounter's default: ranged or magic for bosses fought from distance in
@@ -114,7 +115,10 @@ or when the NPC attacks back while the player targets it; clicking, walking up t
 does not. With several NPCs hit at once (AoE, chinning) the targeted one leads. Combat lapses after 16 ticks
 without either signal, or when the NPC dies or despawns.
 New NPC instances and transformed IDs trigger a search, unless the results already shown (or being searched)
-are for the same monster: the same variant (NPC id and version) and, for Akkha, the same protection prayer.
+are for the same monster: the same variant (NPC id and version) and, for Akkha, the same protection prayer, and
+they came from a live engagement or a right-click on the NPC. Results planned from the panel alone (such as a
+raid's first room) didn't read the live raid scaling, Slayer task location or Karuulm, so the first live
+engagement still searches.
 Fighting the next abyssal demon, or another wave nylocas of the same colour, keeps the results; in a raid the
 plan's matching encounter is shown again without searching or re-planning. A new instance is still searched
 when the shown results used specs landed on the previous NPC, or when the last search failed. Non-combat
@@ -416,7 +420,7 @@ effect is explained above the results and in the max-hit tooltip.
   capping the max hit.
 - **Fragment of Seren:** each hit is capped at a random 22–24.
 - **Verzik P1:** random caps of 0–10 for melee and 0–3 for Ranged and Magic, at every raid difficulty.
-  The Dawnbringer's normal attacks get past these caps; its damaging special isn't part of sustained DPS.
+  The Dawnbringer is only used for its special, which always hits for 75–150 past these caps.
   P2 and P3 don't have the P1 cap.
 - **Tekton:** immune to Ranged and takes a fifth of Magic damage, with any hit that does damage still doing
   at least one.
