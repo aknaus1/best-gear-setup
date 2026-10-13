@@ -25,6 +25,10 @@ final class SearchAssumptions implements BestGearSetupConfig
 	private final boolean activeEncounter;
 	private final int raidEquipmentLimit;
 	private final RaidSpellbook raidSpellbook;
+	private final RaidOptions.ToaPathOrder toaPathOrder;
+	private final RaidOptions.MaidenRole tobMaidenRole;
+	private final RaidOptions.NylocasRole tobNylocasRole;
+	private final String raidStyles;
 	private final boolean showMenuOption;
 	private final boolean highlightBankGear;
 	private final Color bankHighlightColor;
@@ -112,6 +116,10 @@ final class SearchAssumptions implements BestGearSetupConfig
 	{
 		activeEncounter = o.get("activeEncounter", source.activeEncounter());
 		raidSpellbook = o.get("raidSpellbook", source.raidSpellbook());
+		toaPathOrder = o.get("toaPathOrder", source.toaPathOrder());
+		tobMaidenRole = o.get("tobMaidenRole", source.tobMaidenRole());
+		tobNylocasRole = o.get("tobNylocasRole", source.tobNylocasRole());
+		raidStyles = o.get("raidStyles", source.raidStyles());
 		raidEquipmentLimit = o.get("raidEquipmentLimit", source.raidEquipmentLimit());
 		showMenuOption = o.get("showMenuOption", source.showMenuOption());
 		highlightBankGear = o.get("highlightBankGear", source.highlightBankGear());
@@ -207,6 +215,10 @@ final class SearchAssumptions implements BestGearSetupConfig
 
 	@Override public boolean activeEncounter() { return activeEncounter; }
 	@Override public RaidSpellbook raidSpellbook() { return raidSpellbook; }
+	@Override public RaidOptions.ToaPathOrder toaPathOrder() { return toaPathOrder; }
+	@Override public RaidOptions.MaidenRole tobMaidenRole() { return tobMaidenRole; }
+	@Override public RaidOptions.NylocasRole tobNylocasRole() { return tobNylocasRole; }
+	@Override public String raidStyles() { return raidStyles; }
 	@Override public int raidEquipmentLimit() { return raidEquipmentLimit; }
 	@Override public boolean showMenuOption() { return showMenuOption; }
 	@Override public boolean highlightBankGear() { return highlightBankGear; }

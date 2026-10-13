@@ -5,11 +5,15 @@ import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.calc.EncounterPhases;
 import com.bestgearsetup.calc.LockStatus;
+import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.SearchResults;
 import com.bestgearsetup.RaidPlan;
 import com.bestgearsetup.RaidEncounter;
+import com.bestgearsetup.RaidOptions;
 import com.bestgearsetup.RaidPlanType;
+import com.bestgearsetup.RaidSpellbook;
+import com.bestgearsetup.RaidStyle;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
@@ -85,6 +89,15 @@ public class BestGearSetupPanel extends PluginPanel
 	final JComboBox<RaidEncounter> raidVersionBox = new JComboBox<>();
 	final JPanel versionRow = new JPanel(new BorderLayout(0, 2));
 	final JComboBox<EncounterPhase> phaseBox = new JComboBox<>();
+	/** Attack style of the displayed raid encounter; a change is saved and re-plans the raid. */
+	final JComboBox<RaidStyle> raidStyleBox = new JComboBox<>();
+	final JPanel raidStyleRow = new JPanel(new BorderLayout(0, 2));
+	/** The raid encounter the style selector edits. */
+	private RaidEncounter styledEncounter;
+	/** The raid plan on screen, or null when none is; active-encounter switches select its encounters. */
+	private RaidPlan shownPlan;
+	/** Label of the encounter whose style was just changed, shown again once the raid is re-planned. */
+	private String pendingRaidEncounter;
 	final JPanel phaseRow = new JPanel(new BorderLayout(0, 2));
 	private final JLabel monsterLabel = new JLabel();
 	final JButton wikiButton = new JButton("Open Wiki");
@@ -349,6 +362,45 @@ public class BestGearSetupPanel extends PluginPanel
 		phaseRow.add(phaseBox, BorderLayout.CENTER);
 		phaseRow.setVisible(false);
 		content.add(left(phaseRow));
+
+		raidStyleRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		raidStyleRow.setBorder(new EmptyBorder(3, 0, 0, 0));
+		JLabel raidStyleLabel = Controls.caption("Attack style");
+		raidStyleLabel.setLabelFor(raidStyleBox);
+		raidStyleBox.setFocusable(false);
+		Controls.field(raidStyleBox);
+		raidStyleBox.setName("raidStyle");
+		raidStyleBox.setToolTipText("Attack style planned for this encounter and the other phases of the same fight. Auto "
+			+ "uses ranged or magic where the boss is fought from distance; phases the style can't damage keep Auto. "
+			+ "Changing it re-plans the raid.");
+		raidStyleBox.setRenderer(new DefaultListCellRenderer()
+		{
+			@Override public java.awt.Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index,
+				boolean isSelected, boolean cellHasFocus)
+			{
+				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				RaidEncounter encounter = styledEncounter;
+				if (value == RaidStyle.AUTO && encounter != null && encounter.getPreferredStyle() != RaidStyle.AUTO)
+				{ setText("Auto (" + encounter.getPreferredStyle().toString().toLowerCase(java.util.Locale.ROOT) + ")"); }
+				return this;
+			}
+		});
+		raidStyleBox.addActionListener(e ->
+		{
+			RaidEncounter encounter = styledEncounter;
+			RaidStyle style = (RaidStyle) raidStyleBox.getSelectedItem();
+			if (!syncing && encounter != null && style != null && style != encounter.getDisplayedStyleChoice())
+			{
+				// Phases of one fight share the choice; the re-planned raid reopens this encounter.
+				pendingRaidEncounter = encounter.getLabel();
+				plugin.setConfig(BestGearSetupConfig.RAID_STYLES_KEY,
+					RaidOptions.withStyle(config.raidStyles(), raidType, encounter.getStyleKey(), style));
+			}
+		});
+		raidStyleRow.add(raidStyleLabel, BorderLayout.NORTH);
+		raidStyleRow.add(raidStyleBox, BorderLayout.CENTER);
+		raidStyleRow.setVisible(false);
+		content.add(left(raidStyleRow));
 		content.add(spacer(6));
 
 
@@ -565,6 +617,21 @@ public class BestGearSetupPanel extends PluginPanel
 		statusLabel.setForeground(new Color(0xFF6B6B));
 		statusLabel.setText(html(escape(message)));
 		findButton.setEnabled(selected != null && data != null);
+		pendingRaidEncounter = null;
+		// Saved attack styles are hidden settings, so a raid that can't be planned offers to clear them.
+		if (raidType != RaidPlanType.SINGLE && RaidOptions.hasStyles(config.raidStyles(), raidType))
+		{
+			RaidPlanType raid = raidType;
+			JButton reset = new JButton("Reset raid attack styles to Auto");
+			reset.setName("resetRaidStyles");
+			Controls.secondary(reset);
+			reset.addActionListener(e -> plugin.setConfig(BestGearSetupConfig.RAID_STYLES_KEY,
+				RaidOptions.withoutStyles(config.raidStyles(), raid)));
+			resultsPanel.removeAll();
+			resultsPanel.add(left(reset));
+			resultsPanel.revalidate();
+			resultsPanel.repaint();
+		}
 	}
 
 	/** A neutral status message, e.g. while the data is still loading. */
@@ -604,6 +671,8 @@ public class BestGearSetupPanel extends PluginPanel
 	public void clearSearch()
 	{
 		raidType = RaidPlanType.SINGLE;
+		pendingRaidEncounter = null;
+		fightOptions.setRaidPlan(raidType);
 		selected = null;
 		showVersions(null, null);
 		searchField.setText("");
@@ -632,10 +701,17 @@ public class BestGearSetupPanel extends PluginPanel
 	{
 		if (data == null || raid == RaidPlanType.SINGLE) { return; }
 		plugin.clearGearSearch();
+		pendingRaidEncounter = null;
 		raidType = raid;
 		selectingRaid = true;
-		try { selectMonster(raid.encounters(data).get(0).getTarget(), true); }
+		try { selectMonster(raidEncounters(raid).get(0).getTarget(), true); }
 		finally { selectingRaid = false; }
+	}
+
+	/** The raid's encounters in the saved path order and roles, so the first is the planned starting fight. */
+	private List<RaidEncounter> raidEncounters(RaidPlanType raid)
+	{
+		return raid.encounters(data, RaidScaling.Settings.SOLO, RaidOptions.of(config));
 	}
 
 	private void showDisplayedEncounter(RaidEncounter encounter)
@@ -645,14 +721,45 @@ public class BestGearSetupPanel extends PluginPanel
 			+ "</b> (lvl " + selected.getCombatLevel() + ")</div></html>");
 		versionRow.setVisible(raidVersionBox.getItemCount() > 1);
 		phaseRow.setVisible(false);
+		showRaidStyles(encounter);
 		fightOptions.setTarget(selected);
 		wikiButton.setToolTipText("Open the OSRS Wiki page for " + selected.getDisplayName());
+	}
+
+	/**
+	 * The player engaged another NPC of the type already shown, so its results stand: in a raid, show that
+	 * encounter of the plan again (the player may have browsed to another) without searching or re-planning.
+	 */
+	public void showActiveMonster(MonsterSummary monster, EncounterPhase phase)
+	{
+		RaidPlan plan = shownPlan;
+		if (raidType == RaidPlanType.SINGLE || plan == null || !encounterBox.isVisible()) { return; }
+		RaidEncounter shown = (RaidEncounter) raidVersionBox.getSelectedItem();
+		if (shown != null && shown.getTarget().getId() == monster.getId() && (phase == null || shown.getPhase() == phase)) { return; }
+		RaidEncounter match = null;
+		for (RaidEncounter encounter : plan.getEncounters())
+		{
+			if (encounter.getTarget().getId() == monster.getId()
+				&& (match == null || phase != null && encounter.getPhase() == phase && match.getPhase() != phase))
+			{ match = encounter; }
+		}
+		if (match != null) { showEncounter(match); }
+	}
+
+	/** Select an encounter of the shown raid plan through the boss and version selectors. */
+	private void showEncounter(RaidEncounter encounter)
+	{
+		for (int i = 0; i < encounterBox.getItemCount(); i++)
+		{
+			if (encounterBox.getItemAt(i).getBossName().equals(encounter.getBossName())) { encounterBox.setSelectedIndex(i); break; }
+		}
+		raidVersionBox.setSelectedItem(encounter);
 	}
 
 	/** Automatic target changes keep a matching full raid selected. */
 	public void selectActiveMonster(MonsterSummary monster)
 	{
-		selectingRaid = getRaidType() != RaidPlanType.SINGLE && data != null && getRaidType().encounters(data).stream()
+		selectingRaid = getRaidType() != RaidPlanType.SINGLE && data != null && raidEncounters(getRaidType()).stream()
 			.anyMatch(e -> e.getTarget().getId() == monster.getId());
 		try { selectMonster(monster, false); plugin.findActiveSetup(monster); }
 		finally { selectingRaid = false; }
@@ -668,7 +775,10 @@ public class BestGearSetupPanel extends PluginPanel
 			monsterLabel.setVisible(true);
 			versionRow.remove(raidVersionBox);
 			versionRow.add(versionBox, BorderLayout.CENTER);
+			showRaidStyles(null);
+			pendingRaidEncounter = null;
 		}
+		fightOptions.setRaidPlan(raidType);
 		searchField.setText(raidType == RaidPlanType.SINGLE ? group == null ? monster.getDisplayName() : group.getDisplayName() : raidType.toString());
 		showVersions(group, monster);
 		selected = monster;
@@ -687,6 +797,35 @@ public class BestGearSetupPanel extends PluginPanel
 		if (run)
 		{
 			plugin.findBestSetup(monster);
+		}
+	}
+
+	/** After a style change re-plans the raid, show the encounter that was being edited instead of the first. */
+	private void reopenPendingEncounter(RaidPlan plan)
+	{
+		String label = pendingRaidEncounter;
+		pendingRaidEncounter = null;
+		RaidEncounter edited = label == null ? null
+			: plan.getEncounters().stream().filter(e -> e.getLabel().equals(label)).findFirst().orElse(null);
+		if (edited != null) { showEncounter(edited); }
+	}
+
+	/** Offer the displayed raid encounter's attack styles; hidden outside raids and where the style is fixed. */
+	private void showRaidStyles(RaidEncounter encounter)
+	{
+		boolean previous = syncing;
+		syncing = true;
+		try
+		{
+			styledEncounter = encounter;
+			List<RaidStyle> choices = encounter == null ? java.util.Collections.emptyList() : encounter.getStyleChoices();
+			raidStyleBox.setModel(new DefaultComboBoxModel<>(choices.toArray(new RaidStyle[0])));
+			if (encounter != null) { raidStyleBox.setSelectedItem(encounter.getDisplayedStyleChoice()); }
+			raidStyleRow.setVisible(choices.size() > 1);
+		}
+		finally
+		{
+			syncing = previous;
 		}
 	}
 
@@ -771,6 +910,8 @@ public class BestGearSetupPanel extends PluginPanel
 		RaidResultView.detachSelector(raidVersionBox);
 		encounterBox.setModel(new DefaultComboBoxModel<>());
 		encounterBox.setVisible(false);
+		shownPlan = null;
+		showRaidStyles(null);
 		monsterLabel.setVisible(true);
 		progressRow.setVisible(false);
 		assumptionsLabel.setText("");
@@ -808,12 +949,17 @@ public class BestGearSetupPanel extends PluginPanel
 		versionRow.add(raidVersionBox, BorderLayout.CENTER);
 		statusLabel.setText(html(escape(plan.getType().toString()) + ": " + plan.getEncounters().size() + " encounter setups"
 			+ (first.isAssumedLevels() ? "<br>Assuming 99 combat stats." : first.isRememberedLevels() ? "<br>Using remembered account levels." : "")));
+		shownPlan = plan;
 		resultsPanel.add(left(new RaidResultView(plan, active, activeResult, plugin, itemManager, sprites, skillIcons,
 			config.ammoCount(), encounterBox, raidVersionBox, this::showDisplayedEncounter)));
+		reopenPendingEncounter(plan);
 		monsterLabel.setVisible(false);
 		encounterBox.setVisible(true);
 		List<String> warnings = plan.getResults().stream().flatMap(r -> r.getWarnings().stream()).distinct().collect(Collectors.toList());
 		if (activeResult != null) { warnings.addAll(activeResult.getWarnings()); }
+		if (plan.getType() == RaidPlanType.TOB && config.tobMaidenRole() != RaidOptions.MaidenRole.DPS
+			&& plan.getSpellbook() != RaidSpellbook.ANCIENT)
+		{ warnings.add("Freezing the Maiden nylocas needs Ice or Blood Barrage: set Raid spellbook to Ancient."); }
 		if (!warnings.isEmpty())
 		{
 			JLabel warningLabel = new JLabel(html(warnings.stream().distinct().map(BestGearSetupPanel::escape).collect(Collectors.joining("<br>"))));
@@ -823,7 +969,7 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 		JLabel notes = new JLabel(html("Raid kits use a bounded search over valid setups; lower equipment limits share more armour."
 			+ "<br>Runes are packed into your pouch; hover it to see its contents. Extra rune types stay in free inventory slots. Food, healing and utility supplies are not planned."
-			+ "<br>In-raid boosts are omitted from the bank. Dawnbringer is obtained at Verzik. Loaded darts must be loaded before entry."));
+			+ "<br>In-raid boosts are omitted from the bank: CoX overloads are assumed after Tekton and ToA smelling salts after the first two paths. The Dawnbringer is picked up at Verzik P1 and only used for its special. Loaded darts must be loaded before entry."));
 		setSmall(notes, ColorScheme.LIGHT_GRAY_COLOR);
 		resultsPanel.add(left(notes));
 		resultsPanel.revalidate();
@@ -887,7 +1033,9 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 		if (!found.isEmpty())
 		{
-			ResultView resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount());
+			// The boss selector outlives every result, so it keeps the inventory's minimized state for raids too.
+			ResultView resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount(),
+				true, null, encounterBox);
 			resultsPanel.add(left(resultView));
 		}
 		List<String> detailLines = new ArrayList<>();

@@ -75,6 +75,16 @@ public final class WeaponRules
 			&& !name.contains("blowpipe") && !name.startsWith("tonalztics of ralos") && !name.equals("hunter's spear");
 	}
 
+	/**
+	 * Weapons used only for their special attack, never as the worn weapon: the Dawnbringer, which ToB players pass
+	 * around at Verzik P1 (where alone it can be used) for its special. It is picked up in the room, so every player
+	 * there may spec with it and it is never bought, banked or carried in.
+	 */
+	public static boolean specOnly(GearItem weapon)
+	{
+		return weapon != null && EncounterDamage.lower(weapon).equals("dawnbringer");
+	}
+
 	public static boolean isPoweredStaff(GearItem weapon)
 	{
 		return weapon != null && weapon.getSubcategory().equals("powered staff");

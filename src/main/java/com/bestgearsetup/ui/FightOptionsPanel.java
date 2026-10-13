@@ -3,6 +3,7 @@ package com.bestgearsetup.ui;
 import static com.bestgearsetup.ui.SettingRows.setting;
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
+import com.bestgearsetup.RaidPlanType;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.Monster;
@@ -48,6 +49,9 @@ class FightOptionsPanel extends JPanel
 		setting("coxChallengeMode", BestGearSetupConfig::coxChallengeMode),
 		setting("raidEquipmentLimit", BestGearSetupConfig::raidEquipmentLimit),
 		setting("raidSpellbook", BestGearSetupConfig::raidSpellbook),
+		setting("toaPathOrder", BestGearSetupConfig::toaPathOrder),
+		setting("tobMaidenRole", BestGearSetupConfig::tobMaidenRole),
+		setting("tobNylocasRole", BestGearSetupConfig::tobNylocasRole),
 		setting("autoSpecs", BestGearSetupConfig::autoSpecs),
 		setting("specVulnerability", BestGearSetupConfig::specVulnerability),
 		setting("specTomeOfWater", BestGearSetupConfig::specTomeOfWater),
@@ -69,6 +73,8 @@ class FightOptionsPanel extends JPanel
 	private final SidebarSection preparationSection;
 	private final String wildernessTip;
 	private Monster target = new Monster();
+	/** The complete raid being planned; path order and roles only change complete raid plans. */
+	private RaidPlanType raidPlan = RaidPlanType.SINGLE;
 
 	/** @param items the config's item descriptors, from {@link net.runelite.client.config.ConfigManager#getConfigDescriptor} */
 	FightOptionsPanel(BestGearSetupPlugin plugin, BestGearSetupConfig config, Collection<ConfigItemDescriptor> items)
@@ -100,7 +106,7 @@ class FightOptionsPanel extends JPanel
 		raidSection = accordion.create("raidScaling", "Raid");
 		raidSection.showAsEditor();
 		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel",
-			"raidEquipmentLimit", "raidSpellbook");
+			"raidEquipmentLimit", "raidSpellbook", "toaPathOrder", "tobMaidenRole", "tobNylocasRole");
 		add(BestGearSetupPanel.left(raidSection));
 		// Collapsed by default: most searches start from the target's full stats.
 		preparationSection = accordion.create("preparation", "Pre-fight preparation");
@@ -126,6 +132,13 @@ class FightOptionsPanel extends JPanel
 		refresh();
 	}
 
+	/** Show the path order or role choices that the complete raid being planned uses. */
+	void setRaidPlan(RaidPlanType type)
+	{
+		raidPlan = type == null ? RaidPlanType.SINGLE : type;
+		updateVisibility();
+	}
+
 	/** The id, name and tags the encounter rules read, without loading the variant's full stats. */
 	static Monster targetOf(MonsterSummary summary)
 	{
@@ -144,12 +157,17 @@ class FightOptionsPanel extends JPanel
 	private void updateVisibility()
 	{
 		RaidScaling.Raid raid = RaidScaling.raid(target);
-		raidSection.getParent().setVisible(raid != RaidScaling.Raid.NONE);
-		settingRows.row("raidPartySize").setVisible(raid != RaidScaling.Raid.NONE);
-		settingRows.row("toaRaidLevel").setVisible(raid == RaidScaling.Raid.TOA);
+		// A complete raid keeps its settings visible even on unscaled puzzle targets such as the ToA baboons.
+		boolean planned = raidPlan != RaidPlanType.SINGLE;
+		raidSection.getParent().setVisible(raid != RaidScaling.Raid.NONE || planned);
+		settingRows.row("raidPartySize").setVisible(raid != RaidScaling.Raid.NONE || planned);
+		settingRows.row("toaRaidLevel").setVisible(raid == RaidScaling.Raid.TOA || raidPlan == RaidPlanType.TOA);
 		settingRows.row("toaPathLevel").setVisible(raid == RaidScaling.Raid.TOA && RaidScaling.toaPath(target));
 		settingRows.row("coxChallengeMode").setVisible(raid == RaidScaling.Raid.COX);
 		settingRows.row("miningLevel").setVisible(raid == RaidScaling.Raid.COX && target.getName().contains("guardian"));
+		settingRows.row("toaPathOrder").setVisible(raidPlan == RaidPlanType.TOA);
+		settingRows.row("tobMaidenRole").setVisible(raidPlan == RaidPlanType.TOB);
+		settingRows.row("tobNylocasRole").setVisible(raidPlan == RaidPlanType.TOB);
 		settingRows.row("aoeTargets").setVisible(selected("aoe"));
 		settingRows.row("specEnergy").setVisible(selected("killSpecials"));
 		settingRows.row("drainSpecs").setVisible(selected("killSpecials"));

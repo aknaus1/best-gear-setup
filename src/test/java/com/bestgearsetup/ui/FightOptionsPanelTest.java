@@ -108,6 +108,27 @@ public class FightOptionsPanelTest
 			assertTrue(control(panel, "toaPathLevelRow").isVisible());
 			assertTrue(control(panel, "raidPartySizeRow").isVisible());
 			assertFalse(control(panel, "coxChallengeModeRow").isVisible());
+			// Path order and roles only change complete raid plans.
+			assertFalse(control(panel, "toaPathOrderRow").isVisible());
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.TOA);
+			assertTrue(control(panel, "toaPathOrderRow").isVisible());
+			assertFalse(control(panel, "tobMaidenRoleRow").isVisible());
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.TOB);
+			assertFalse(control(panel, "toaPathOrderRow").isVisible());
+			assertTrue(control(panel, "tobMaidenRoleRow").isVisible());
+			assertTrue(control(panel, "tobNylocasRoleRow").isVisible());
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.SINGLE);
+			assertFalse(control(panel, "tobNylocasRoleRow").isVisible());
+			// ToA plans start on the Apmeken baboons, which the raid doesn't scale: the Raid section stays open.
+			panel.setTarget(target("baboon brawler (level 56)", "tombs of amascut"));
+			assertFalse(control(panel, "raidScalingSection").getParent().isVisible());
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.TOA);
+			assertTrue(control(panel, "raidScalingSection").getParent().isVisible());
+			assertTrue(control(panel, "toaPathOrderRow").isVisible());
+			assertTrue(control(panel, "raidPartySizeRow").isVisible());
+			assertTrue(control(panel, "toaRaidLevelRow").isVisible());
+			assertTrue(control(panel, "raidSpellbookRow").isVisible());
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.SINGLE);
 			panel.setTarget(target("elidinis' warden", "tombs of amascut"));
 			assertTrue(control(panel, "toaRaidLevelRow").isVisible());
 			assertFalse(control(panel, "toaPathLevelRow").isVisible());

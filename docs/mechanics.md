@@ -6,16 +6,65 @@ This page covers what the plugin assumes and what it enforces. For installation 
 ## Complete raids and active encounters
 
 The ordinary search includes **Challenge Mode: Chambers of Xeric**, **Tombs of Amascut** and
-**Theatre of Blood**, also matched by CM CoX / CoX CM, ToA and ToB. The first setup is Tekton, Ba-Ba or
-Maiden respectively. Each combat room and major boss phase has a setup, including the three Olm targets,
-Akkha's required attack styles, both Warden branches, Nylocas styles and Verzik phases. Puzzle actions,
-role-specific utility rotations and movement are not simulated.
+**Theatre of Blood**, also matched by CM CoX / CoX CM, ToA and ToB. Each combat room and major boss phase has a
+setup, including the three Olm targets, Akkha's required attack styles, both Warden branches, Nylocas styles
+and Verzik phases. Puzzle actions, utility rotations beyond the roles below and movement are not simulated.
+
+Encounters, and the boss selector, follow the order the rooms appear in the raid, and the first one is the
+starting worn setup:
+
+- **ToB:** Maiden, Bloat, Nylocas, Sotetseg, Xarpus, then Verzik P1, P2 and P3.
+- **CM CoX:** Challenge Mode layouts are fixed for each raid, so no single order is exact. The plan uses the
+  common rotation of combat rooms (Tekton, Muttadile, Guardians, Vespula, Shamans, Vasa, Vanguards, Mystics)
+  with the scavengers, ice demon and tightrope between them and Olm always last.
+- **ToA:** **ToA path order** (under **Fight → Raid**) picks *Ba-Ba, Kephri, Akkha, Zebak* or *Zebak, Kephri,
+  Akkha, Ba-Ba*; the Wardens are always last. Each path's puzzle comes before its boss, so the Apmeken
+  baboons come before Ba-Ba.
 
 Candidates come from the existing optimizer with the same ownership, levels, locks, exclusions, protection
 and experience rules. CoX plans force CM scaling. Live ToA path levels are applied to their own bosses.
-The starting encounter omits automatic raid boosts; subsequent fights follow **Include raid potions**.
-Named potion overrides still apply and their warnings remain visible. Dawnbringer is available for Verzik
-P1 and is obtained in the raid, so it is not a bank withdrawal or an entry inventory slot.
+Raid-handed boosts follow the raid: in CM CoX, Tekton (both phases) is fought before overloads, with the
+boosts you bring in (the potion settings' *Best* choice without raid supplies; the elder, twisted and kodai
+potions brewed in the raid aren't in the potion table), and every later room may use overload (+). In ToA,
+the first two paths are fought without smelling salts and the third and fourth paths and the Wardens may use
+them. ToB hands out no boosts, so every room uses the potions you bring. Rooms where raid boosts are available
+follow **Include raid potions**. Named potion overrides still apply and their warnings remain visible.
+The Dawnbringer is picked up at Verzik P1 and passed between players for its special attack, so it is never a
+worn weapon, a bank withdrawal, a purchase or an entry inventory slot. P1 is planned with your own setup under
+her random per-hit caps (0–10 for melee, 0–3 for ranged and magic); with special attacks on, every player's
+P1 setup also specs with the Dawnbringer (35% energy, always hits for 75–150, past the caps). The special is
+labelled as provided in the raid.
+
+**Attack style** (under the boss selector) restricts the displayed encounter's search to melee, ranged, magic
+or ranged-or-magic. *Auto* keeps each encounter's default: ranged or magic for bosses fought from distance in
+practice even when melee is higher DPS (Skeletal Mystics, the large Muttadile and Zebak, who can't be tanked
+in melee range), and any style elsewhere. Only styles the displayed phase can be damaged by are offered (no
+ranged for Tekton or the Vasa crystal, no melee for Vespula, only melee for Guardians, and so on), and
+encounters with a fixed style (Vanguards, Warden P2 phases, Maiden's nylocas, and each colour of Nylocas
+and Vasilias form) don't offer a choice. The choice is saved per raid and encounter. Only the phases of one
+fight share it: Tekton and enraged Tekton, Zebak and enraged Zebak, Kephri's shielded and aggressive forms,
+the Akkha phases, and each Warden's P3 with its core. Separate fights, such as Olm's hands and head, the two
+Muttadiles and Verzik's phases, are chosen on their own. A phase the shared style can't damage (e.g. Akkha
+while immune to it) silently keeps Auto, which the selector shows for that phase. Changing a style re-plans
+the raid and reopens the encounter you were looking at.
+
+A style choice on its own shouldn't stop the raid being planned. When its styles are all turned off under
+**Attack styles**, the encounter uses Auto, with a warning; when Auto's default is turned off too, every
+style the encounter allows. When a chosen or default style finds no usable setup (e.g. no ranged gear
+owned), the encounter is searched with every style it allows and a warning names the styles that found
+nothing; combat updates inside a planned raid do the same within the kit. A raid can still fail, for
+example on a blocking lock or when no style finds a setup; the error then offers **Reset raid attack styles
+to Auto** if any are saved.
+
+**Theatre of Blood roles** (under **Fight → Raid** while planning ToB) change the encounters:
+
+- **ToB Maiden role:** *DPS and freeze* (the default, for solo and small teams) plans the boss and the
+  Nylocas Matomenos. *DPS* leaves the nylocas to the freezers. *Freezer* stays on magic at Maiden as well as
+  on the nylocas. Freezing needs Ice or Blood Barrage, so with *Freezer* or *DPS and freeze* the results
+  warn unless **Raid spellbook** is Ancient.
+- **ToB Nylocas role:** *All styles* plans every colour of wave nylocas; *Melee*, *Ranged* and *Magic* plan
+  only the grey, green or blue waves. Each colour only takes damage from its own style. Every role still
+  plans each Vasilias form with that form's style.
 
 One **Raid spellbook** is used throughout, subject to the existing allowed spellbooks. Thralls are only
 assumed on Arceuus. A bounded beam search chooses a shared kit across encounter candidates; when needed,
@@ -52,7 +101,8 @@ capacity is checked after encounter switches. Required rune stacks are packed in
 occupies one inventory slot; overflow types remain loose. Hovering the pouch lists its planned contents.
 The sidebar runs from search input to current boss/monster, Version, gear source, action buttons, worn
 equipment and inventory. In a raid, the current boss selector updates both the shown gear and Version.
-The inventory heading minimizes or expands the grid, retaining its state when raid results refresh.
+The inventory starts minimized; its heading expands or minimizes the grid, and that choice carries over to
+new searches, raid encounter switches and re-plans.
 Food, healing, extra potion doses and utility supplies
 are left to the player. The bank's equipment
 silhouette is followed by the four-column inventory on its right; loaded darts appear below for loading.
@@ -64,7 +114,15 @@ per game tick. Combat starts when one of the player's own hitsplats (including b
 or when the NPC attacks back while the player targets it; clicking, walking up to or standing near an NPC
 does not. With several NPCs hit at once (AoE, chinning) the targeted one leads. Combat lapses after 16 ticks
 without either signal, or when the NPC dies or despawns.
-New NPC instances and transformed IDs trigger a search; non-combat interactions and dead targets do not.
+New NPC instances and transformed IDs trigger a search, unless the results already shown (or being searched)
+are for the same monster: the same variant (NPC id and version) and, for Akkha, the same protection prayer, and
+they came from a live engagement or a right-click on the NPC. Results planned from the panel alone (such as a
+raid's first room) didn't read the live raid scaling, Slayer task location or Karuulm, so the first live
+engagement still searches.
+Fighting the next abyssal demon, or another wave nylocas of the same colour, keeps the results; in a raid the
+plan's matching encounter is shown again without searching or re-planning. A new instance is still searched
+when the shown results used specs landed on the previous NPC, or when the last search failed. Non-combat
+interactions and dead targets don't trigger a search.
 The last target stays visible between fights. With **Use active defence**, the existing own/party special
 tracker supplies landed drains for the actual NPC instance. Unobserved drains and Vulnerability are not
 inferred. A new spawn or phase starts a fresh tracked state. Saved pre-fight values are not overwritten.
@@ -136,6 +194,20 @@ open the sidebar or perform any game action.
 - Demonbane spells assume Mark of Darkness is active (in the Combat boosts settings), and its icon appears
   next to the prayer and potions when a setup uses it. With it turned off, elemental weaknesses such as
   Yama's weakness to water can outrank demonbane spells.
+- **Protection prayer:** each result names the overhead to use with the shown setup, as *Protect from Magic*,
+  *Switch: Magic / Missiles*, *None needed* or *Unknown – check the Wiki*. Melee setups stand in the target's
+  melee range; ranged and magic setups are assumed to fight from distance, where a monster's melee attacks
+  are dropped if it has others. A melee-only monster still gets *Protect from Melee*, since it walks up to
+  you; the note says none is needed if you safespot it. Raid bosses use curated advice with a short reason
+  where the fight switches (Olm, Akkha, Zebak, Vasa, Sotetseg, Verzik P2 and P3, the Wardens and Vasilias
+  forms). Attacks no overhead blocks are called out: Xarpus's spit and Verzik P3's melee are typeless, so
+  Xarpus needs none and Verzik P3 is Magic / Missiles even for her tank. Other monsters use the Wiki's attack
+  styles: the protectable style with the highest max hit comes first, "all" means all three, and typeless,
+  dragonfire and prayer-piercing attacks are left out. *None needed* only appears when the monster has no
+  protectable attack; attack data that can't be read shows *Unknown*. Overheads above your Prayer level
+  (Magic 37, Missiles 40, Melee 43) are dropped and the note says why; when none of the recommended ones is
+  unlocked, the advice still names them with the level needed, e.g. *Protect from Melee (needs 43 Prayer)*. It is advice only and doesn't change
+  the DPS calculation.
 - **Potions** are set per combat style with the dropdowns under **Combat boosts**: *Best available* (the
   strongest potion you can use anywhere, leaving out raid, NMZ and Deadman potions and brews), *None*, or
   any potion from the potion table (overloads, smelling salts, ...). A potion picked by name is always used.
@@ -231,7 +303,8 @@ colour.
 
 **Fight** groups **Fight conditions** (active encounter, Slayer task, HP, AoE, Wilderness and thralls),
 **Special attacks** (whether to use them, spec energy and how drain specs are ranked) and, for raid
-targets, **Raid** (scaling, raid equipment slots and raid spellbook). It also has a collapsed
+targets, **Raid** (scaling, raid equipment slots, raid spellbook and, while planning ToA or ToB, the path
+order or roles). It also has a collapsed
 **Pre-fight preparation** section for Vulnerability (with the tome of water
 option once it's on), landed special attacks and damage from defence-draining attacks. Its heading counts
 how many are set.
@@ -347,7 +420,7 @@ effect is explained above the results and in the max-hit tooltip.
   capping the max hit.
 - **Fragment of Seren:** each hit is capped at a random 22–24.
 - **Verzik P1:** random caps of 0–10 for melee and 0–3 for Ranged and Magic, at every raid difficulty.
-  The Dawnbringer's normal attacks get past these caps; its damaging special isn't part of sustained DPS.
+  The Dawnbringer is only used for its special, which always hits for 75–150 past these caps.
   P2 and P3 don't have the P1 cap.
 - **Tekton:** immune to Ranged and takes a fifth of Magic damage, with any hit that does damage still doing
   at least one.

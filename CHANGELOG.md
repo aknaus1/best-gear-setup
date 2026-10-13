@@ -5,6 +5,31 @@ is what the Plugin Hub shows.
 
 ## Unreleased
 
+- Active encounter keeps the shown results when you engage another NPC of the same monster (same variant and,
+  for Akkha, the same prayer), such as the next abyssal demon or wave nylocas; in a raid it shows the plan's
+  encounter again instead of searching. Results that used specs landed on the last NPC, or that were planned
+  without a live NPC (e.g. a raid's first room picked in the panel), are still refreshed.
+- The inventory under worn gear starts minimized, and expanding or minimizing it now carries over to new
+  searches as well as raid encounter switches and re-plans.
+- The Dawnbringer is never planned as a worn weapon. At Verzik P1 it is a special-attack-only weapon every
+  player can use (it is passed around): P1 uses your own setup under her damage caps, plus Dawnbringer specs
+  when special attacks are on. It is never banked, bought or carried in, and its special now costs 35% energy.
+- Recommend an overhead protection prayer with every setup, for single monsters and each raid encounter:
+  curated raid advice with a reason where the fight switches styles, otherwise the Wiki attack styles.
+  Ranged and magic setups fight from distance, where melee attacks are dropped unless the monster only melees
+  (then Protect from Melee, or none if you safespot it). Unreadable attack data shows Unknown, and overheads
+  above your Prayer level are left out, or named with the level needed when none is unlocked.
+- Raid encounters follow the order the rooms appear: ToB from Maiden to Verzik P3, the common CM CoX rotation
+  with Olm last, and a new **ToA path order** (Ba-Ba first or Zebak first) with the Wardens last.
+- Raid boosts follow the raid: CoX overloads after Tekton (including enraged Tekton), ToA smelling salts after
+  the first two paths, and none in ToB.
+- Choose each raid encounter's **Attack style**; Auto plans Skeletal Mystics, the large Muttadile and Zebak
+  from distance. Only styles the phase can be damaged by are offered, and phases of one fight (Tekton,
+  Zebak, Kephri, Akkha, each Warden's P3 and core) share the choice. A phase the style can't damage keeps
+  Auto; a style turned off under Attack styles falls back to Auto with a warning, and one with no usable
+  setup searches every style with a warning. Saved styles can be reset from a failed raid's error.
+- **ToB Maiden role** (DPS, freezer or both) and **ToB Nylocas role** (the wave colour you kill). Wave
+  nylocas and Vasilias forms are planned with their own style only.
 - Move fight settings (active encounter, thralls, special attacks, raid equipment slots and raid
   spellbook) from Settings into the Fight editor.
 - Keep raid ammunition worn in otherwise empty ammo slots, including the starting setup, and reflect it

@@ -16,6 +16,7 @@ import com.bestgearsetup.RaidEncounter;
 import com.bestgearsetup.RaidPlan;
 import com.bestgearsetup.RaidPlanType;
 import com.bestgearsetup.RaidSpellbook;
+import com.bestgearsetup.RaidStyle;
 import com.bestgearsetup.SearchResults;
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.DpsResult;
@@ -83,7 +84,7 @@ public class RaidPanelTest
 			holder[0].searchField.setText("Tombs of Amascut");
 			((javax.swing.JTextField) components(holder[0].searchField).stream().filter(c -> c instanceof javax.swing.JTextField).findFirst().get()).postActionEvent();
 			assertEquals(RaidPlanType.TOA, holder[0].getRaidType());
-			assertEquals("ba-ba", holder[0].selected.getName());
+			assertEquals("baboon brawler (level 56)", holder[0].selected.getName());
 			holder[0].searchField.setText("Theatre of Blood");
 			((javax.swing.JTextField) components(holder[0].searchField).stream().filter(c -> c instanceof javax.swing.JTextField).findFirst().get()).postActionEvent();
 			assertEquals(RaidPlanType.TOB, holder[0].getRaidType());
@@ -120,19 +121,28 @@ public class RaidPanelTest
 			assertTrue(components.indexOf(gear) < components.indexOf(inventory));
 			assertTrue(((javax.swing.JComponent) inventory.getComponent(0)).getToolTipText().contains("Second Weapon"));
 			javax.swing.JButton toggle = (javax.swing.JButton) components.stream().filter(c -> "raidInventoryToggle".equals(c.getName())).findFirst().get();
+			assertTrue("The inventory starts minimized", !inventory.isVisible());
+			toggle.doClick();
+			assertTrue(inventory.isVisible());
+			selector.setSelectedIndex(1);
+			assertTrue("Switching encounters keeps it expanded", inventory.isVisible());
 			toggle.doClick();
 			assertTrue(!inventory.isVisible());
-			selector.setSelectedIndex(1);
+			selector.setSelectedIndex(0);
 			assertTrue(!inventory.isVisible());
+			selector.setSelectedIndex(1);
 			toggle.doClick();
 			assertTrue(inventory.isVisible());
 			assertTrue(components(view).contains(inventory));
 			assertTrue(((javax.swing.JComponent) inventory.getComponent(0)).getToolTipText().contains("First Weapon"));
+			// A re-planned raid keeps the expanded inventory, and then the minimized one.
+			RaidResultView expanded = new RaidResultView(plan, two, null, plugin, images, mock(SpriteCache.class), null, 0, selector, new JComboBox<>(), encounter -> { });
+			assertTrue(((JPanel) components(expanded).stream().filter(c -> "raidInventory".equals(c.getName())).findFirst().get()).isVisible());
 			toggle.doClick();
 			RaidResultView refreshed = new RaidResultView(plan, two, null, plugin, images, mock(SpriteCache.class), null, 0, selector, new JComboBox<>(), encounter -> { });
 			JPanel refreshedInventory = (JPanel) components(refreshed).stream().filter(c -> "raidInventory".equals(c.getName())).findFirst().get();
 			assertTrue(!refreshedInventory.isVisible());
-			verify(plugin, org.mockito.Mockito.times(2)).setBankHighlightedRaid(plan);
+			verify(plugin, org.mockito.Mockito.times(3)).setBankHighlightedRaid(plan);
 			verify(plugin, never()).setBankHighlightedSetup(any(), any());
 		});
 	}
@@ -193,7 +203,8 @@ public class RaidPanelTest
 	{
 		GameData data = new GameDataLoader(new Gson()).loadGameData();
 		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
-		when(plugin.getConfigDescriptor()).thenReturn(ConfigItemsForTests.descriptor());
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
 		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
 		ItemManager images = mock(ItemManager.class);
 		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
@@ -230,6 +241,166 @@ public class RaidPanelTest
 			panel.selectMonster(RaidPlanType.TOB.encounters(data).get(0).getTarget(), false);
 			assertEquals(RaidPlanType.SINGLE, panel.getRaidType());
 			assertEquals(panel.versionRow, panel.versionBox.getParent());
+		});
+	}
+
+	@Test public void attackStyleSelectorSavesTheDisplayedEncountersChoice() throws Exception
+	{
+		GameData data = new GameDataLoader(new Gson()).loadGameData();
+		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
+		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
+		ItemManager images = mock(ItemManager.class);
+		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
+		List<RaidEncounter> encounters = RaidPlanType.TOA.encounters(data);
+		GearItem weapon = new GearItem(); weapon.setId(100); weapon.setName("weapon"); weapon.setSlot(Slot.WEAPON);
+		SetupResult setup = setup(weapon);
+		List<SearchResults> results = new ArrayList<>();
+		for (RaidEncounter encounter : encounters)
+		{
+			SearchResults result = result(setup); result.getMonster().setPhase(encounter.getPhase()); results.add(result);
+		}
+		RaidPlan plan = new RaidPlan(RaidPlanType.TOA, RaidSpellbook.ARCEUUS, encounters, results,
+			Collections.nCopies(encounters.size(), setup), Collections.singletonList(weapon), Collections.emptyList(), 15, 0);
+		SwingUtilities.invokeAndWait(() ->
+		{
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, images, null, null);
+			panel.onDataLoaded(data); panel.selectRaid(RaidPlanType.TOA);
+			panel.showRaidResults(plan, encounters.get(0).getTarget());
+			RaidEncounter zebak = encounters.stream().filter(e -> e.getLabel().equals("Zebak")).findFirst().get();
+			RaidEncounter enraged = encounters.stream().filter(e -> e.getLabel().equals("Zebak Enraged")).findFirst().get();
+			panel.encounterBox.setSelectedItem(zebak);
+			panel.raidVersionBox.setSelectedItem(enraged);
+			assertEquals(enraged.getTarget(), panel.selected);
+			assertTrue(panel.raidStyleRow.isVisible());
+			assertEquals(RaidStyle.AUTO, panel.raidStyleBox.getSelectedItem());
+			verify(plugin, never()).setConfig(org.mockito.ArgumentMatchers.eq(BestGearSetupConfig.RAID_STYLES_KEY), any());
+			// The choice is saved for the boss, so it covers both Zebak phases.
+			panel.raidStyleBox.setSelectedItem(RaidStyle.MELEE);
+			verify(plugin).setConfig(BestGearSetupConfig.RAID_STYLES_KEY, "TOA|Zebak=MELEE");
+			// The re-planned raid reopens the encounter that was being edited, not the first room.
+			panel.showSearching(encounters.get(0).getTarget());
+			panel.showRaidResults(plan, encounters.get(0).getTarget());
+			assertEquals(enraged, panel.raidVersionBox.getSelectedItem());
+			assertEquals(enraged.getTarget(), panel.selected);
+			// A later re-plan follows the plan again.
+			panel.showRaidResults(plan, encounters.get(0).getTarget());
+			assertEquals(encounters.get(0), panel.raidVersionBox.getSelectedItem());
+			// The Wardens' P2 ranged phase can only be damaged by ranged, so there is nothing to choose.
+			RaidEncounter warden = encounters.stream().filter(e -> e.getLabel().equals("Elidinis P2: Ranged")).findFirst().get();
+			panel.encounterBox.setSelectedItem(warden);
+			assertTrue(!panel.raidStyleRow.isVisible());
+			panel.clearResults("New search");
+			assertTrue(!panel.raidStyleRow.isVisible());
+		});
+	}
+
+	@Test public void engagingTheShownTypeAgainSelectsItsPlannedEncounterWithoutSearching() throws Exception
+	{
+		GameData data = new GameDataLoader(new Gson()).loadGameData();
+		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
+		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
+		ItemManager images = mock(ItemManager.class);
+		AsyncBufferedImage image = mock(AsyncBufferedImage.class);
+		when(images.getImage(anyInt())).thenReturn(image);
+		List<RaidEncounter> encounters = RaidPlanType.TOA.encounters(data);
+		GearItem weapon = new GearItem(); weapon.setId(100); weapon.setName("weapon"); weapon.setSlot(Slot.WEAPON);
+		SetupResult setup = setup(weapon);
+		List<SearchResults> results = new ArrayList<>();
+		for (RaidEncounter encounter : encounters)
+		{
+			SearchResults result = result(setup); result.getMonster().setPhase(encounter.getPhase()); results.add(result);
+		}
+		RaidPlan plan = new RaidPlan(RaidPlanType.TOA, RaidSpellbook.ARCEUUS, encounters, results,
+			Collections.nCopies(encounters.size(), setup), Collections.singletonList(weapon), Collections.emptyList(), 15, 0);
+		RaidEncounter magic = encounters.stream().filter(e -> e.getPhase() == EncounterPhase.AKKHA_IMMUNE_MAGIC).findFirst().get();
+		RaidEncounter zebak = encounters.stream().filter(e -> e.getLabel().equals("Zebak")).findFirst().get();
+		SwingUtilities.invokeAndWait(() ->
+		{
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, images, null, null);
+			panel.onDataLoaded(data); panel.selectRaid(RaidPlanType.TOA);
+			panel.showRaidResults(plan, encounters.get(0).getTarget());
+			panel.showActiveMonster(magic.getTarget(), EncounterPhase.AKKHA_IMMUNE_MAGIC);
+			assertEquals(magic, panel.raidVersionBox.getSelectedItem());
+			assertEquals(magic.getTarget(), panel.selected);
+			panel.showActiveMonster(zebak.getTarget(), null);
+			assertEquals(zebak, panel.raidVersionBox.getSelectedItem());
+			// A monster outside the plan leaves the shown encounter alone.
+			MonsterSummary stranger = new MonsterSummary(); stranger.setId(-5); stranger.setName("stranger");
+			panel.showActiveMonster(stranger, null);
+			assertEquals(zebak, panel.raidVersionBox.getSelectedItem());
+			verify(plugin, never()).findActiveSetup(any());
+			// Outside raid results it does nothing.
+			panel.clearResults("New search");
+			panel.showActiveMonster(zebak.getTarget(), null);
+			assertTrue(!panel.encounterBox.isVisible());
+		});
+	}
+
+	@Test public void inventoryStartsMinimizedAndKeepsItsStateAcrossSearches() throws Exception
+	{
+		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
+		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
+		ItemManager images = mock(ItemManager.class);
+		AsyncBufferedImage image = mock(AsyncBufferedImage.class);
+		when(images.getImage(anyInt())).thenReturn(image);
+		GearItem weapon = new GearItem(); weapon.setId(100); weapon.setName("weapon"); weapon.setSlot(Slot.WEAPON);
+		SetupResult setup = setup(weapon);
+		MonsterSummary boss = new MonsterSummary(); boss.setId(1); boss.setName("boss");
+		RaidPlan plan = new RaidPlan(RaidPlanType.TOB, RaidSpellbook.ARCEUUS,
+			Collections.singletonList(new RaidEncounter("Boss", boss, new AttackStyle.Type[0])), Collections.singletonList(result(setup)),
+			Collections.singletonList(setup), Collections.singletonList(weapon), Collections.emptyList(), 10, 0);
+		SwingUtilities.invokeAndWait(() ->
+		{
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, images, null, null);
+			panel.showResults(result(setup));
+			assertTrue("Minimized by default", !named(panel, "setupInventory").isVisible());
+			((javax.swing.JButton) named(panel, "setupInventoryToggle")).doClick();
+			assertTrue(named(panel, "setupInventory").isVisible());
+			// A new search keeps it expanded, and so does a raid plan.
+			panel.showResults(result(setup));
+			assertTrue(named(panel, "setupInventory").isVisible());
+			panel.showRaidResults(plan, boss);
+			assertTrue(named(panel, "raidInventory").isVisible());
+			((javax.swing.JButton) named(panel, "raidInventoryToggle")).doClick();
+			panel.showResults(result(setup));
+			assertTrue("Minimizing carries over too", !named(panel, "setupInventory").isVisible());
+		});
+	}
+
+	private static Component named(Container root, String name)
+	{
+		return components(root).stream().filter(c -> name.equals(c.getName())).findFirst().get();
+	}
+
+	@Test public void failedRaidPlanOffersToResetSavedAttackStyles() throws Exception
+	{
+		GameData data = new GameDataLoader(new Gson()).loadGameData();
+		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
+		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
+		BestGearSetupConfig config = new BestGearSetupConfig()
+		{
+			@Override public String raidStyles() { return "COX_CM|Tekton=MAGIC;TOA|Zebak=MELEE"; }
+		};
+		SwingUtilities.invokeAndWait(() ->
+		{
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, config, null, null, null);
+			panel.onDataLoaded(data);
+			panel.showError("Search failed");
+			assertTrue("Single searches have no raid styles", components(panel).stream().noneMatch(c -> "resetRaidStyles".equals(c.getName())));
+			panel.selectRaid(RaidPlanType.TOA);
+			panel.showError("Search failed: No usable setup for Zebak.");
+			javax.swing.JButton reset = (javax.swing.JButton) components(panel).stream()
+				.filter(c -> "resetRaidStyles".equals(c.getName())).findFirst().get();
+			reset.doClick();
+			verify(plugin).setConfig(BestGearSetupConfig.RAID_STYLES_KEY, "COX_CM|Tekton=MAGIC");
 		});
 	}
 

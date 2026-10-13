@@ -2,6 +2,7 @@ package com.bestgearsetup;
 
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.LockStatus;
+import com.bestgearsetup.calc.ProtectionPrayers;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.Thrall;
 import com.bestgearsetup.calc.WeaponRules;
@@ -48,6 +49,8 @@ public class SearchResults
 	String raidScaling;
 	/** The target's Defence level before pre-fight drains. */
 	int baseDefence;
+	/** The player's Prayer level, which decides the protection prayers available. */
+	int prayerLevel;
 
 	public SearchResults(Monster monster, int startingHitpoints, Map<AttackStyle.Type, List<SetupResult>> byType,
 		List<String> notes, Map<CombatClass, OffensivePrayer> prayers, Map<CombatClass, List<Potion>> potions,
@@ -62,7 +65,7 @@ public class SearchResults
 		boolean assumedLevels, List<LockStatus> locks, boolean markOfDarkness, boolean rememberedLevels, List<String> warnings)
 	{
 		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks, markOfDarkness,
-			rememberedLevels, warnings, null, null, monster == null ? 0 : monster.getDefenceLevel());
+			rememberedLevels, warnings, null, null, monster == null ? 0 : monster.getDefenceLevel(), 99);
 	}
 
 	/** Whether a lock could not be honoured. */
@@ -85,7 +88,23 @@ public class SearchResults
 	SearchResults withCandidates(Map<AttackStyle.Type, List<SetupResult>> candidates)
 	{
 		return new SearchResults(monster, startingHitpoints, candidates, notes, prayers, potions,
-			assumedLevels, locks, markOfDarkness, rememberedLevels, warnings, thrall, raidScaling, baseDefence);
+			assumedLevels, locks, markOfDarkness, rememberedLevels, warnings, thrall, raidScaling, baseDefence, prayerLevel);
+	}
+
+	/** The same results with extra warnings shown beside them, e.g. a raid style choice that couldn't be used. */
+	public SearchResults withWarnings(List<String> extra)
+	{
+		if (extra.isEmpty()) { return this; }
+		List<String> all = new ArrayList<>(warnings);
+		extra.stream().filter(w -> !all.contains(w)).forEach(all::add);
+		return new SearchResults(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks,
+			markOfDarkness, rememberedLevels, Collections.unmodifiableList(all), thrall, raidScaling, baseDefence, prayerLevel);
+	}
+
+	/** The overhead to use against this target with a setup, which fights in melee range or from distance. */
+	public ProtectionPrayers.Advice protectionFor(SetupResult setup)
+	{
+		return monster == null ? null : ProtectionPrayers.recommend(monster, setup.getCombatClass(), prayerLevel);
 	}
 
 	/** Boosts required by a setup, including Strength for atlatls and hunter's spears. */

@@ -151,6 +151,82 @@ public class ActiveEncounterTest
 		verify(f.plugin.panel, times(3)).selectActiveMonster(f.boss);
 	}
 
+	@Test public void anotherNpcOfTheShownTypeKeepsTheResults() throws Exception
+	{
+		Fixture f = new Fixture();
+		// The boss's results are already shown, from a search of a live NPC.
+		f.plugin.lastSearched = f.boss;
+		f.plugin.searchedLive = true;
+		NPC first = f.npc(200, "Boss");
+		when(f.player.getInteracting()).thenReturn(first);
+		f.plugin.onHitsplatApplied(f.hit(first, true));
+		f.tick();
+		verify(f.plugin.panel).showActiveMonster(f.boss, null);
+		// A second NPC with the same id, e.g. the next one after a kill, doesn't search again either.
+		NPC second = f.npc(200, "Boss");
+		when(f.player.getInteracting()).thenReturn(second);
+		f.plugin.onHitsplatApplied(f.hit(second, true));
+		f.tick();
+		verify(f.plugin.panel, times(2)).showActiveMonster(f.boss, null);
+		verify(f.plugin.panel, never()).selectActiveMonster(org.mockito.ArgumentMatchers.any());
+		// A different monster does.
+		NPC add = f.npc(201, "Add");
+		when(f.player.getInteracting()).thenReturn(add);
+		f.plugin.onHitsplatApplied(f.hit(add, true));
+		f.tick();
+		verify(f.plugin.panel).selectActiveMonster(f.add);
+	}
+
+	@Test public void instanceSpecificOrFailedResultsAreSearchedAgain() throws Exception
+	{
+		Fixture f = new Fixture();
+		f.plugin.lastSearched = f.boss;
+		f.plugin.searchedLive = true;
+		// Specs landed on the last NPC don't apply to a new one.
+		f.plugin.searchedLandedSpecs = true;
+		NPC first = f.npc(200, "Boss");
+		when(f.player.getInteracting()).thenReturn(first);
+		f.plugin.onHitsplatApplied(f.hit(first, true));
+		f.tick();
+		verify(f.plugin.panel).selectActiveMonster(f.boss);
+		f.plugin.searchedLandedSpecs = false;
+		f.plugin.searchFailed = true;
+		NPC second = f.npc(200, "Boss");
+		when(f.player.getInteracting()).thenReturn(second);
+		f.plugin.onHitsplatApplied(f.hit(second, true));
+		f.tick();
+		verify(f.plugin.panel, times(2)).selectActiveMonster(f.boss);
+		// A different live Akkha phase maps to different stats.
+		f.plugin.searchFailed = false;
+		org.junit.Assert.assertTrue(f.plugin.showsSameType(f.boss, null));
+		org.junit.Assert.assertFalse(f.plugin.showsSameType(f.boss, EncounterPhase.AKKHA_IMMUNE_MAGIC));
+		org.junit.Assert.assertFalse(f.plugin.showsSameType(f.add, null));
+		f.plugin.lastSearched = null;
+		org.junit.Assert.assertFalse(f.plugin.showsSameType(f.boss, null));
+	}
+
+	@Test public void resultsPlannedWithoutALiveNpcAreSearchedOnTheFirstEngagement() throws Exception
+	{
+		Fixture f = new Fixture();
+		// Picked from the panel (e.g. a raid's first room): no live raid scaling or task location was read.
+		f.plugin.lastSearched = f.boss;
+		f.plugin.searchedLive = false;
+		NPC first = f.npc(200, "Boss");
+		when(f.player.getInteracting()).thenReturn(first);
+		f.plugin.onHitsplatApplied(f.hit(first, true));
+		f.tick();
+		verify(f.plugin.panel).selectActiveMonster(f.boss);
+		verify(f.plugin.panel, never()).showActiveMonster(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+		org.junit.Assert.assertFalse(f.plugin.showsSameType(f.boss, null));
+		// Once that live search has run, the next NPC of the type keeps its results.
+		f.plugin.searchedLive = true;
+		NPC second = f.npc(200, "Boss");
+		when(f.player.getInteracting()).thenReturn(second);
+		f.plugin.onHitsplatApplied(f.hit(second, true));
+		f.tick();
+		verify(f.plugin.panel).showActiveMonster(f.boss, null);
+	}
+
 	/** An active-encounter plugin with two known monsters, ids 200 and 201. */
 	private static final class Fixture
 	{

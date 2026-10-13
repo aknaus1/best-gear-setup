@@ -20,13 +20,19 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
 
 - **Any monster or boss**, with versions and phases (Vorkath, Verzik, Yama and so on) in one search.
 - **Complete raid plans:** search for *Challenge Mode: Chambers of Xeric*, *Tombs of Amascut* or
-  *Theatre of Blood* (also `CM CoX`, `ToA` or `ToB`). Start wearing Tekton, Ba-Ba or Maiden gear,
-  with a shared inventory of switches. The boss selector above **Version** changes the equipment shown.
-  The bank shows starting worn gear on the left and
+  *Theatre of Blood* (also `CM CoX`, `ToA` or `ToB`). Start wearing the first room's gear, with a shared
+  inventory of switches. The boss selector above **Version** lists the rooms in raid order and changes the
+  equipment shown. The bank shows starting worn gear on the left and
   the shared inventory in four columns beside it.
+- Pick each raid encounter's **Attack style** (Auto uses ranged or magic for Mystics, the large Muttadile
+  and Zebak), the **ToA path order**, and your **ToB Maiden and Nylocas roles** (freezer, DPS, or the
+  wave colour you kill). Overloads are assumed after Tekton and smelling salts after the first two ToA paths.
+- **Protection prayers:** every result names the overhead to use with that setup (or *Switch* with a short
+  reason, such as Olm, Zebak or Verzik P3), from your attack distance, the boss and your Prayer level.
+  Melee-only monsters still get Protect from Melee at range unless you safespot them.
 - The sidebar shows inventory below worn gear. Runes fill an owned rune pouch (three types) or divine
   rune pouch (four types); hover the pouch to see its planned contents. Overflow rune types stay loose.
-  Click the inventory heading to minimize or expand it.
+  The inventory starts minimized; click its heading to expand it, and it stays that way for later results.
 - Raid setups keep required ammo worn when the slot is free. If several ammo types are needed, empty
   slots use the most-used type; bow and crossbow setups retain their own ammunition. Hover a blowpipe
   to see its loaded darts, and right-click it to exclude those darts. Inventory gear has the same hover
@@ -35,6 +41,7 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
   Empty inventory slots are left for food, healing and utility supplies.
 - **Active encounter** follows the attackable NPC you are in combat with (your hits land on it, or it attacks
   you back), not one you have only clicked or are standing near, including new spawns and phase changes.
+  Another NPC of the monster already shown (the next kill of the same type) keeps the results without searching.
   With **Use active defence** enabled, tracked landed specials update its Defence. In a planned raid,
   recalculations use the selected shared kit.
 - **Four modes:** *Owned items only*, *Inventory + equipped only*, *Owned + budget* (e.g. `50m`) and

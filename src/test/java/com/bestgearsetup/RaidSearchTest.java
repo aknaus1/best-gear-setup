@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.SearchDepth;
 import com.bestgearsetup.calc.SearchMode;
+import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GameDataLoader;
 import com.bestgearsetup.data.GearItem;
@@ -91,6 +92,32 @@ public class RaidSearchTest
 			assertTrue(result[0].getSetups().stream().allMatch(s -> s.getLoadout().getSpell() == null
 				|| s.getLoadout().getSpell().getSpellbook().equals(config.raidSpellbook().key())));
 			assertEquals(0, result[0].getBuyCost());
+			if (type == RaidPlanType.TOB)
+			{
+				// The Dawnbringer is never a worn weapon, and the kit never carries it: it's picked up in the room.
+				RaidPlan plan = result[0];
+				plan.getSetups().forEach(setup -> assertTrue(!RaidPlan.providedInRaid(setup.getLoadout().getWeapon())));
+				assertTrue(plan.getEquipment().stream().noneMatch(RaidPlan::providedInRaid));
+				assertTrue(plan.getInventory().stream().noneMatch(item -> item.getIds().stream()
+					.anyMatch(id -> data.findItem(id) != null && RaidPlan.providedInRaid(data.findItem(id)))));
+				// With specials on, P1 keeps the player's own weapon and specs with the Dawnbringer.
+				RaidEncounter p1 = plan.getEncounters().stream().filter(e -> e.getLabel().equals("Verzik P1")).findFirst().get();
+				SearchResults[] active = {null};
+				doAnswer(call -> { active[0] = call.getArgument(2); return null; }).when(plugin.panel)
+					.showRaidResults(any(RaidPlan.class), any(), any(SearchResults.class));
+				Method refresh = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods()).filter(m -> m.getName().equals("refreshRaidEncounter")).findFirst().get();
+				refresh.setAccessible(true);
+				BestGearSetupConfig specs = SearchAssumptions.capture(config, Collections.singletonMap("killSpecials", true));
+				assertEquals(true, refresh.invoke(plugin, plan, data, p1.getTarget(), PlayerLevels.maxed(),
+					false, Collections.emptySet(), true, 99, Collections.emptyMap(), owned, quantities, 0, specs, new LiveRaid(), Collections.emptyList(), (java.util.function.IntConsumer) percent -> { }));
+				SwingUtilities.invokeAndWait(() -> { });
+				assertNotNull(active[0]);
+				SetupResult shown = active[0].getByType().values().iterator().next().get(0);
+				assertTrue(!RaidPlan.providedInRaid(shown.getLoadout().getWeapon()));
+				assertNotNull(shown.getSpecial());
+				assertTrue(RaidPlan.providedInRaid(shown.getSpecial().getWeapon()));
+				assertEquals(35, shown.getSpecial().getSpecial().getEnergy());
+			}
 			if (type == RaidPlanType.COX_CM)
 			{
 				for (RaidEncounter encounter : result[0].getEncounters())

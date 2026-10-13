@@ -1336,7 +1336,7 @@ public class Optimizer
 			}
 			boolean same = weapon == worn.getWeapon();
 			long weaponCost = same ? 0 : itemCost(weapon) + ammoCost(base.getLoadedAmmo());
-			for (Option o : options(weapon, cls, true))
+			for (Option o : options(weapon, specClass(weapon, cls), true))
 			{
 				base.setStyle(o.getStyle());
 				base.setSpell(o.getSpell());
@@ -1519,7 +1519,10 @@ public class Optimizer
 		return l;
 	}
 
-	/** Usable weapons of the class with a damaging special attack; weapon locks and hand limits apply to the worn weapon only. */
+	/**
+	 * Usable weapons of the class with a damaging special attack; weapon locks and hand limits apply to the worn
+	 * weapon only. Spec-only weapons (the Dawnbringer at Verzik P1) join every class with their own special.
+	 */
 	private List<GearItem> specWeapons(CombatClass cls)
 	{
 		return specWeapons.computeIfAbsent(cls, c ->
@@ -1527,13 +1530,31 @@ public class Optimizer
 			List<GearItem> out = new ArrayList<>();
 			for (GearItem w : data.getItems(Slot.WEAPON))
 			{
-				if (usable(w) && WeaponRules.supports(w, c) && hasSpecialAttack(w, c))
+				CombatClass own = specClass(w, c);
+				if (usable(w) && WeaponRules.supports(w, own) && hasSpecialAttack(w, own))
 				{
 					out.add(w);
 				}
 			}
 			return withoutCosmeticCopies(out);
 		});
+	}
+
+	/** The class a spec weapon attacks with: the setup's, or a spec-only weapon's own (magic for the Dawnbringer). */
+	private static CombatClass specClass(GearItem weapon, CombatClass worn)
+	{
+		if (WeaponRules.specOnly(weapon))
+		{
+			for (String raw : weapon.getStyles() == null ? java.util.Collections.<String>emptyList() : weapon.getStyles())
+			{
+				AttackStyle style = AttackStyle.parse(raw);
+				if (style != null)
+				{
+					return WeaponRules.classOf(style);
+				}
+			}
+		}
+		return worn;
 	}
 
 	// ------------------------------------------------------------ fill phase
@@ -2072,7 +2093,7 @@ public class Optimizer
 		List<GearItem> out = new ArrayList<>();
 		for (GearItem w : data.getItems(Slot.WEAPON))
 		{
-			if (!usable(w))
+			if (!usable(w) || WeaponRules.specOnly(w))
 			{
 				continue;
 			}
@@ -2569,8 +2590,10 @@ public class Optimizer
 
 	boolean available(GearItem item)
 	{
-		// Best in slot has no limit: untradeables and every diary tier are assumed obtainable.
-		if (settings.getMode() == SearchMode.UNLIMITED || isOwned(item) && ammoShortfall(item) == 0)
+		// Best in slot has no limit: untradeables and every diary tier are assumed obtainable. Spec-only weapons are
+		// picked up where they can be used.
+		if (settings.getMode() == SearchMode.UNLIMITED || WeaponRules.specOnly(item)
+			|| isOwned(item) && ammoShortfall(item) == 0)
 		{
 			return true;
 		}
@@ -2740,7 +2763,7 @@ public class Optimizer
 
 	private boolean unpriced(GearItem item)
 	{
-		if (item == null || ItemCosts.isKnown(price(item)))
+		if (item == null || WeaponRules.specOnly(item) || ItemCosts.isKnown(price(item)))
 		{
 			return false;
 		}
@@ -2778,7 +2801,7 @@ public class Optimizer
 
 	private long plainCost(GearItem item)
 	{
-		if (item == null || isOwned(item))
+		if (item == null || isOwned(item) || WeaponRules.specOnly(item))
 		{
 			return 0;
 		}
