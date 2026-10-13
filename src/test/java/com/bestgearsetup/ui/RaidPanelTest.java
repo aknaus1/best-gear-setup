@@ -16,6 +16,7 @@ import com.bestgearsetup.RaidEncounter;
 import com.bestgearsetup.RaidPlan;
 import com.bestgearsetup.RaidPlanType;
 import com.bestgearsetup.RaidSpellbook;
+import com.bestgearsetup.RaidStyle;
 import com.bestgearsetup.SearchResults;
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.DpsResult;
@@ -83,7 +84,7 @@ public class RaidPanelTest
 			holder[0].searchField.setText("Tombs of Amascut");
 			((javax.swing.JTextField) components(holder[0].searchField).stream().filter(c -> c instanceof javax.swing.JTextField).findFirst().get()).postActionEvent();
 			assertEquals(RaidPlanType.TOA, holder[0].getRaidType());
-			assertEquals("ba-ba", holder[0].selected.getName());
+			assertEquals("baboon brawler (level 56)", holder[0].selected.getName());
 			holder[0].searchField.setText("Theatre of Blood");
 			((javax.swing.JTextField) components(holder[0].searchField).stream().filter(c -> c instanceof javax.swing.JTextField).findFirst().get()).postActionEvent();
 			assertEquals(RaidPlanType.TOB, holder[0].getRaidType());
@@ -230,6 +231,45 @@ public class RaidPanelTest
 			panel.selectMonster(RaidPlanType.TOB.encounters(data).get(0).getTarget(), false);
 			assertEquals(RaidPlanType.SINGLE, panel.getRaidType());
 			assertEquals(panel.versionRow, panel.versionBox.getParent());
+		});
+	}
+
+	@Test public void attackStyleSelectorSavesTheDisplayedEncountersChoice() throws Exception
+	{
+		GameData data = new GameDataLoader(new Gson()).loadGameData();
+		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
+		when(plugin.getConfigDescriptor()).thenReturn(ConfigItemsForTests.descriptor());
+		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
+		ItemManager images = mock(ItemManager.class);
+		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
+		List<RaidEncounter> encounters = RaidPlanType.TOA.encounters(data);
+		GearItem weapon = new GearItem(); weapon.setId(100); weapon.setName("weapon"); weapon.setSlot(Slot.WEAPON);
+		SetupResult setup = setup(weapon);
+		List<SearchResults> results = new ArrayList<>();
+		for (RaidEncounter encounter : encounters)
+		{
+			SearchResults result = result(setup); result.getMonster().setPhase(encounter.getPhase()); results.add(result);
+		}
+		RaidPlan plan = new RaidPlan(RaidPlanType.TOA, RaidSpellbook.ARCEUUS, encounters, results,
+			Collections.nCopies(encounters.size(), setup), Collections.singletonList(weapon), Collections.emptyList(), 15, 0);
+		SwingUtilities.invokeAndWait(() ->
+		{
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, images, null, null);
+			panel.onDataLoaded(data); panel.selectRaid(RaidPlanType.TOA);
+			panel.showRaidResults(plan, encounters.get(0).getTarget());
+			RaidEncounter zebak = encounters.stream().filter(e -> e.getLabel().equals("Zebak")).findFirst().get();
+			panel.encounterBox.setSelectedItem(zebak);
+			assertTrue(panel.raidStyleRow.isVisible());
+			assertEquals(RaidStyle.AUTO, panel.raidStyleBox.getSelectedItem());
+			verify(plugin, never()).setConfig(org.mockito.ArgumentMatchers.eq(BestGearSetupConfig.RAID_STYLES_KEY), any());
+			panel.raidStyleBox.setSelectedItem(RaidStyle.MELEE);
+			verify(plugin).setConfig(BestGearSetupConfig.RAID_STYLES_KEY, "TOA|Zebak=MELEE");
+			// The Wardens' P2 ranged phase can only be damaged by ranged, so there is nothing to choose.
+			RaidEncounter warden = encounters.stream().filter(e -> e.getLabel().equals("Elidinis P2: Ranged")).findFirst().get();
+			panel.encounterBox.setSelectedItem(warden);
+			assertTrue(!panel.raidStyleRow.isVisible());
+			panel.clearResults("New search");
+			assertTrue(!panel.raidStyleRow.isVisible());
 		});
 	}
 

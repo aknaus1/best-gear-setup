@@ -6,16 +6,49 @@ This page covers what the plugin assumes and what it enforces. For installation 
 ## Complete raids and active encounters
 
 The ordinary search includes **Challenge Mode: Chambers of Xeric**, **Tombs of Amascut** and
-**Theatre of Blood**, also matched by CM CoX / CoX CM, ToA and ToB. The first setup is Tekton, Ba-Ba or
-Maiden respectively. Each combat room and major boss phase has a setup, including the three Olm targets,
-Akkha's required attack styles, both Warden branches, Nylocas styles and Verzik phases. Puzzle actions,
-role-specific utility rotations and movement are not simulated.
+**Theatre of Blood**, also matched by CM CoX / CoX CM, ToA and ToB. Each combat room and major boss phase has a
+setup, including the three Olm targets, Akkha's required attack styles, both Warden branches, Nylocas styles
+and Verzik phases. Puzzle actions, utility rotations beyond the roles below and movement are not simulated.
+
+Encounters, and the boss selector, follow the order the rooms appear in the raid, and the first one is the
+starting worn setup:
+
+- **ToB:** Maiden, Bloat, Nylocas, Sotetseg, Xarpus, then Verzik P1, P2 and P3.
+- **CM CoX:** Challenge Mode layouts are fixed for each raid, so no single order is exact. The plan uses the
+  common rotation of combat rooms (Tekton, Muttadile, Guardians, Vespula, Shamans, Vasa, Vanguards, Mystics)
+  with the scavengers, ice demon and tightrope between them and Olm always last.
+- **ToA:** **ToA path order** (under **Fight → Raid**) picks *Ba-Ba, Kephri, Akkha, Zebak* or *Zebak, Kephri,
+  Akkha, Ba-Ba*; the Wardens are always last. Each path's puzzle comes before its boss, so the Apmeken
+  baboons come before Ba-Ba.
 
 Candidates come from the existing optimizer with the same ownership, levels, locks, exclusions, protection
 and experience rules. CoX plans force CM scaling. Live ToA path levels are applied to their own bosses.
-The starting encounter omits automatic raid boosts; subsequent fights follow **Include raid potions**.
-Named potion overrides still apply and their warnings remain visible. Dawnbringer is available for Verzik
-P1 and is obtained in the raid, so it is not a bank withdrawal or an entry inventory slot.
+Raid-handed boosts follow the raid: in CM CoX, Tekton (both phases) is fought before overloads, with the
+boosts you bring in (the potion settings' *Best* choice without raid supplies; the elder, twisted and kodai
+potions brewed in the raid aren't in the potion table), and every later room may use overload (+). In ToA,
+the first two paths are fought without smelling salts and the third and fourth paths and the Wardens may use
+them. ToB hands out no boosts, so every room uses the potions you bring. Rooms where raid boosts are available
+follow **Include raid potions**. Named potion overrides still apply and their warnings remain visible.
+Dawnbringer is available for Verzik P1 and is obtained in the raid, so it is not a bank withdrawal or an
+entry inventory slot.
+
+**Attack style** (under the boss selector, for the displayed encounter) restricts that encounter's search to
+melee, ranged, magic or ranged-or-magic. *Auto* keeps the encounter's default: ranged or magic for bosses
+fought from distance in practice even when melee is higher DPS (Skeletal Mystics, the large Muttadile and
+Zebak, who can't be tanked in melee range), and any style elsewhere. Encounters with a fixed style
+(Vanguards, Warden P2 phases, Maiden's nylocas, and each colour of Nylocas and Vasilias form) don't offer a
+choice. When Auto's default shares no style with the enabled **Attack styles**, the encounter falls
+back to every style it can be damaged by. The choice is saved per raid and encounter and re-plans the raid.
+
+**Theatre of Blood roles** (under **Fight → Raid** while planning ToB) change the encounters:
+
+- **ToB Maiden role:** *DPS and freeze* (the default, for solo and small teams) plans the boss and the
+  Nylocas Matomenos. *DPS* leaves the nylocas to the freezers. *Freezer* stays on magic at Maiden as well as
+  on the nylocas; freezing needs Ice or Blood Barrage, so the results warn unless **Raid spellbook** is
+  Ancient.
+- **ToB Nylocas role:** *All styles* plans every colour of wave nylocas; *Melee*, *Ranged* and *Magic* plan
+  only the grey, green or blue waves. Each colour only takes damage from its own style. Every role still
+  plans each Vasilias form with that form's style.
 
 One **Raid spellbook** is used throughout, subject to the existing allowed spellbooks. Thralls are only
 assumed on Arceuus. A bounded beam search chooses a shared kit across encounter candidates; when needed,
@@ -136,6 +169,14 @@ open the sidebar or perform any game action.
 - Demonbane spells assume Mark of Darkness is active (in the Combat boosts settings), and its icon appears
   next to the prayer and potions when a setup uses it. With it turned off, elemental weaknesses such as
   Yama's weakness to water can outrank demonbane spells.
+- **Protection prayer:** each result names the overhead to use with the shown setup, as *Protect from Magic*,
+  *Switch: Magic / Missiles* or *None needed*. Melee setups stand in the target's melee range; ranged and
+  magic setups are assumed to fight from distance, where melee-only attacks don't reach. Raid bosses use
+  curated advice with a short reason where the fight switches (Olm, Akkha, Zebak, Vasa, Sotetseg, Verzik P2
+  and P3, the Wardens and Vasilias forms). Other monsters use the Wiki's attack styles: the protectable style
+  with the highest max hit comes first, and typeless, dragonfire and prayer-piercing attacks are left out.
+  Overheads above your Prayer level (Magic 37, Missiles 40, Melee 43) are dropped and the note says why.
+  It is advice only and doesn't change the DPS calculation.
 - **Potions** are set per combat style with the dropdowns under **Combat boosts**: *Best available* (the
   strongest potion you can use anywhere, leaving out raid, NMZ and Deadman potions and brews), *None*, or
   any potion from the potion table (overloads, smelling salts, ...). A potion picked by name is always used.
@@ -231,7 +272,8 @@ colour.
 
 **Fight** groups **Fight conditions** (active encounter, Slayer task, HP, AoE, Wilderness and thralls),
 **Special attacks** (whether to use them, spec energy and how drain specs are ranked) and, for raid
-targets, **Raid** (scaling, raid equipment slots and raid spellbook). It also has a collapsed
+targets, **Raid** (scaling, raid equipment slots, raid spellbook and, while planning ToA or ToB, the path
+order or roles). It also has a collapsed
 **Pre-fight preparation** section for Vulnerability (with the tome of water
 option once it's on), landed special attacks and damage from defence-draining attacks. Its heading counts
 how many are set.

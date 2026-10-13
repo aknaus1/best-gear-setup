@@ -1363,7 +1363,7 @@ public class BestGearSetupPlugin extends Plugin
 			potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
 			rememberedLevels, assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config),
 			monster.isImmuneThrall() ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
-			scaled.getDefenceLevel());
+			scaled.getDefenceLevel(), levels.getPrayer());
 		if (cancelled.getAsBoolean()) { return null; }
 		progress.complete();
 		Map<AttackStyle.Type, List<SetupResult>> supplied = new LinkedHashMap<>();
@@ -1411,10 +1411,10 @@ public class BestGearSetupPlugin extends Plugin
 		overrides.put("onSlayerTask", false);
 		overrides.put("aoe", false);
 		overrides.put("wilderness", false);
-		if (encounter == plan.getEncounters().get(0)) { overrides.put("raidPotions", false); }
+		if (!encounter.isRaidSupplies()) { overrides.put("raidPotions", false); }
 		SearchResults found = computeSearch(data, summary, levels, remembered, prayerUnlocks, diary, false, mining,
 			quotes, encounterOwned, quantities, generation, SearchAssumptions.capture(config, overrides), liveRaid, notes,
-			encounter.getStyles(), excluded, config.raidSpellbook(), publishProgress);
+			raidStyles(encounter, config), excluded, config.raidSpellbook(), publishProgress);
 		if (found == null) { return true; }
 		if (found.hasBlockingLock()) { return false; }
 		SetupResult best = found.getByType().values().stream().flatMap(Collection::stream)
@@ -1429,13 +1429,29 @@ public class BestGearSetupPlugin extends Plugin
 		return true;
 	}
 
+	/**
+	 * The attack types an encounter is searched with. When Auto's default (e.g. ranged or magic for Zebak) shares
+	 * no type with the enabled attack styles, the encounter falls back to the types it can be damaged by.
+	 */
+	private Set<AttackStyle.Type> raidStyles(RaidEncounter encounter, BestGearSetupConfig config)
+	{
+		Set<AttackStyle.Type> styles = encounter.getStyles();
+		if (encounter.getStyleChoice() == RaidStyle.AUTO && !styles.isEmpty()
+			&& Collections.disjoint(styles, buildSettings(config).getStyles()))
+		{
+			return encounter.getRequiredStyles();
+		}
+		return styles;
+	}
+
 	/** Search every raid target, then consolidate switches when the independent setups exceed the limit. */
 	private void runRaidSearch(GameData data, MonsterSummary active, PlayerLevels levels, boolean remembered,
 		Set<String> prayerUnlocks, Boolean diary, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
 		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid,
 		List<String> detectedNotes, RaidPlanType type, IntConsumer publishProgress) throws IOException
 	{
-		List<RaidEncounter> encounters = type.encounters(data, raidSettings(levels == null ? PlayerLevels.maxed() : levels, mining, config));
+		List<RaidEncounter> encounters = type.encounters(data, raidSettings(levels == null ? PlayerLevels.maxed() : levels, mining, config),
+			RaidOptions.of(config));
 		RaidSearchProgress progress = new RaidSearchProgress(encounters.size(), publishProgress);
 		BooleanSupplier cancelled = () -> generation != searchGeneration.get();
 		RaidConsolidator.Search search = (index, excluded, pass) ->
@@ -1462,8 +1478,8 @@ public class BestGearSetupPlugin extends Plugin
 				}
 				overrides.put("toaPathLevel", path);
 			}
-			// Tekton / Maiden / Ba-Ba are fought before raid boosts become available.
-			if (encounter == encounters.get(0)) { overrides.put("raidPotions", false); }
+			// CoX overloads come after Tekton and ToA smelling salts after the first two paths; ToB hands out none.
+			if (!encounter.isRaidSupplies()) { overrides.put("raidPotions", false); }
 			boolean same = encounter.getTarget().getId() == active.getId();
 			if (!same)
 			{
@@ -1479,7 +1495,7 @@ public class BestGearSetupPlugin extends Plugin
 			}
 			SearchResults result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
 				false, mining, quotes, encounterOwned, quantities, generation, SearchAssumptions.capture(config, overrides),
-				liveRaid, same ? detectedNotes : Collections.emptyList(), encounter.getStyles(), excluded, config.raidSpellbook(), progress.encounter(pass, index));
+				liveRaid, same ? detectedNotes : Collections.emptyList(), raidStyles(encounter, config), excluded, config.raidSpellbook(), progress.encounter(pass, index));
 			return result;
 		};
 		List<SearchResults> results = new ArrayList<>();

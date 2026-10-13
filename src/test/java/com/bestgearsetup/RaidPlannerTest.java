@@ -38,7 +38,8 @@ public class RaidPlannerTest
 		GameDataLoader loader = new GameDataLoader(new Gson());
 		GameData data = loader.loadGameData();
 		assertEquals("tekton (normal)", RaidPlanType.COX_CM.encounters(data).get(0).getTarget().getName());
-		assertEquals("ba-ba", RaidPlanType.TOA.encounters(data).get(0).getTarget().getName());
+		// ToA starts on the first path's puzzle: the Apmeken baboons before Ba-Ba.
+		assertEquals("baboon brawler (level 56)", RaidPlanType.TOA.encounters(data).get(0).getTarget().getName());
 		assertEquals("the maiden of sugadinti (normal)", RaidPlanType.TOB.encounters(data).get(0).getTarget().getName());
 		for (RaidPlanType type : RaidPlanType.values())
 		{

@@ -38,6 +38,24 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 11, hidden = true)
 	default RaidSpellbook raidSpellbook() { return RaidSpellbook.ARCEUUS; }
 
+	@ConfigItem(keyName = "toaPathOrder", name = "ToA path order",
+		description = "Order of the Tombs of Amascut paths. Smelling salts are only assumed after the first two paths.",
+		section = searchSection, position = 32, hidden = true)
+	default RaidOptions.ToaPathOrder toaPathOrder() { return RaidOptions.ToaPathOrder.BA_BA_FIRST; }
+
+	@ConfigItem(keyName = "tobMaidenRole", name = "ToB Maiden role",
+		description = "Freezers stay on magic at Maiden and barrage the nylocas; DPS players leave the nylocas to them.",
+		section = searchSection, position = 33, hidden = true)
+	default RaidOptions.MaidenRole tobMaidenRole() { return RaidOptions.MaidenRole.BOTH; }
+
+	@ConfigItem(keyName = "tobNylocasRole", name = "ToB Nylocas role",
+		description = "The wave nylocas you kill: each colour only takes damage from its own style. Every role fights each Vasilias form.",
+		section = searchSection, position = 34, hidden = true)
+	default RaidOptions.NylocasRole tobNylocasRole() { return RaidOptions.NylocasRole.ALL; }
+
+	@ConfigItem(keyName = RAID_STYLES_KEY, name = "", description = "", hidden = true)
+	default String raidStyles() { return ""; }
+
 	String GROUP = "bestgearsetup";
 	String MODE_KEY = "mode";
 	String BUDGET_KEY = "budget";
@@ -47,6 +65,8 @@ public interface BestGearSetupConfig extends Config
 	String POTION_KEY_PREFIX = "potion";
 	String LOCKS_KEY = "locks";
 	String EXCLUDED_KEY = "excluded";
+	/** Per-encounter raid attack styles, managed from the side panel; see {@link RaidOptions#parse}. */
+	String RAID_STYLES_KEY = "raidStyles";
 	String MEMBERS_ITEMS_KEY = "membersItems";
 	String DMM_ITEMS_KEY = "dmmItems";
 	String BETA_ITEMS_KEY = "betaItems";

@@ -5,6 +5,18 @@ is what the Plugin Hub shows.
 
 ## Unreleased
 
+- Recommend an overhead protection prayer with every setup, for single monsters and each raid encounter:
+  curated raid advice with a reason where the fight switches styles, otherwise the Wiki attack styles.
+  Ranged and magic setups fight from distance, so melee-only attacks need no prayer; overheads above your
+  Prayer level are left out.
+- Raid encounters follow the order the rooms appear: ToB from Maiden to Verzik P3, the common CM CoX rotation
+  with Olm last, and a new **ToA path order** (Ba-Ba first or Zebak first) with the Wardens last.
+- Raid boosts follow the raid: CoX overloads after Tekton (including enraged Tekton), ToA smelling salts after
+  the first two paths, and none in ToB.
+- Choose each raid encounter's **Attack style**; Auto plans Skeletal Mystics, the large Muttadile and Zebak
+  from distance. The choice is saved and restricts that encounter's search.
+- **ToB Maiden role** (DPS, freezer or both) and **ToB Nylocas role** (the wave colour you kill). Wave
+  nylocas and Vasilias forms are planned with their own style only.
 - Move fight settings (active encounter, thralls, special attacks, raid equipment slots and raid
   spellbook) from Settings into the Fight editor.
 - Keep raid ammunition worn in otherwise empty ammo slots, including the starting setup, and reflect it

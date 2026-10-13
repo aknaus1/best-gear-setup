@@ -41,6 +41,10 @@ public class SearchAssumptionsTest
 		GETTERS.put("activeEncounter", BestGearSetupConfig::activeEncounter);
 		GETTERS.put("raidSpellbook", BestGearSetupConfig::raidSpellbook);
 		GETTERS.put("raidEquipmentLimit", BestGearSetupConfig::raidEquipmentLimit);
+		GETTERS.put("toaPathOrder", BestGearSetupConfig::toaPathOrder);
+		GETTERS.put("tobMaidenRole", BestGearSetupConfig::tobMaidenRole);
+		GETTERS.put("tobNylocasRole", BestGearSetupConfig::tobNylocasRole);
+		GETTERS.put("raidStyles", BestGearSetupConfig::raidStyles);
 		GETTERS.put("showMenuOption", BestGearSetupConfig::showMenuOption);
 		GETTERS.put("highlightBankGear", BestGearSetupConfig::highlightBankGear);
 		GETTERS.put("bankHighlightColor", BestGearSetupConfig::bankHighlightColor);

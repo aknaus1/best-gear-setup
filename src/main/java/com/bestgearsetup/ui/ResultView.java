@@ -10,6 +10,7 @@ import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.DpsResult;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.LockStatus;
+import com.bestgearsetup.calc.ProtectionPrayers;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SpecialPlan;
 import com.bestgearsetup.calc.SupportSpell;
@@ -63,7 +64,7 @@ import net.runelite.client.util.AsyncBufferedImage;
 /**
  * Search result: one tab per attack type (showing that style's best weapon), the worn
  * equipment grid, a stats box, the special attack used during the kill, a cost box ("total - owned = to buy"), the attack style with the
- * prayers and potions used, and the other setups found for the selected tab.
+ * prayers and potions used, the overhead protection prayer, and the other setups found for the selected tab.
  */
 class ResultView extends JPanel
 {
@@ -301,6 +302,12 @@ class ResultView extends JPanel
 		body.add(BestGearSetupPanel.left(costBox(l, selected.getSpecial())));
 		body.add(spacer(6));
 		body.add(BestGearSetupPanel.left(styleRow(l)));
+		JComponent protection = protectionRow(results.protectionFor(selected));
+		if (protection != null)
+		{
+			body.add(spacer(4));
+			body.add(BestGearSetupPanel.left(protection));
+		}
 
 		List<SetupResult> others = results.getByType().getOrDefault(selectedType, Collections.emptyList());
 		if (others.size() > 1)
@@ -581,6 +588,27 @@ class ResultView extends JPanel
 		}
 		row.add(boosts, BorderLayout.CENTER);
 		return row;
+	}
+
+	/**
+	 * The overhead protection prayer for the selected setup's distance: melee setups stand in melee range, ranged
+	 * and magic setups fight from distance. Switching fights and fights without a prayer show their reason too.
+	 */
+	static JComponent protectionRow(ProtectionPrayers.Advice advice)
+	{
+		if (advice == null)
+		{
+			return null;
+		}
+		boolean explain = advice.getNote() != null && (advice.isSwitching() || advice.getPrayer() == null);
+		JLabel label = new JLabel(BestGearSetupPanel.html("Overhead: <font color='#FF9F40'>"
+			+ BestGearSetupPanel.escape(advice.summary()) + "</font>"
+			+ (explain ? "<br>" + BestGearSetupPanel.escape(advice.getNote()) : "")));
+		BestGearSetupPanel.setSmall(label, ColorScheme.LIGHT_GRAY_COLOR);
+		label.setName("protectionPrayer");
+		label.setToolTipText(advice.getNote() == null ? "Overhead protection prayer for this setup's attack distance"
+			: BestGearSetupPanel.html(BestGearSetupPanel.escape(advice.getNote())));
+		return label;
 	}
 
 	/** Potions and hearts a setup assumes; Strength-based ranged weapons also use Strength boosts. */

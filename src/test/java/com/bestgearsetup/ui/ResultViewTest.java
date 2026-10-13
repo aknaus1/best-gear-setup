@@ -11,6 +11,7 @@ import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.Thrall;
 import com.bestgearsetup.calc.PlayerLevels;
+import com.bestgearsetup.calc.ProtectionPrayers;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
@@ -55,6 +56,27 @@ public class ResultViewTest
 		view = potionView(Collections.singletonList(overload), Arrays.asList(
 			potion(20996, "overload (+)", "attack"), potion(20996, "overload (+)", "strength")));
 		assertEquals(Collections.singletonList(overload), view.potionsFor(setup("eclipse atlatl", CombatClass.RANGED)));
+	}
+
+	@Test
+	public void protectionRowNamesTheOverheadAndExplainsSwitches()
+	{
+		JLabel single = (JLabel) ResultView.protectionRow(new ProtectionPrayers.Advice(ProtectionPrayers.Overhead.MAGIC,
+			Collections.singletonList(ProtectionPrayers.Overhead.MAGIC), "Maiden's blood attacks are magic."));
+		assertEquals("protectionPrayer", single.getName());
+		assertTrue(single.getText().contains("Protect from Magic"));
+		assertTrue("A single prayer keeps its reason in the tooltip", !single.getText().contains("blood"));
+		assertTrue(single.getToolTipText().contains("blood"));
+		JLabel switching = (JLabel) ResultView.protectionRow(new ProtectionPrayers.Advice(ProtectionPrayers.Overhead.MAGIC,
+			Arrays.asList(ProtectionPrayers.Overhead.MAGIC, ProtectionPrayers.Overhead.MISSILES), "Olm alternates."));
+		assertTrue(switching.getText().contains("Switch: Magic / Missiles"));
+		assertTrue(switching.getText().contains("Olm alternates."));
+		assertEquals(null, ResultView.protectionRow(null));
+		Monster maiden = new Monster();
+		maiden.setName("the maiden of sugadinti (normal)");
+		SearchResults results = new SearchResults(maiden, 100, Collections.emptyMap(), Collections.emptyList(),
+			Collections.emptyMap(), Collections.emptyMap(), false);
+		assertEquals(ProtectionPrayers.Overhead.MAGIC, results.protectionFor(setup("sanguinesti staff", CombatClass.MAGIC)).getPrayer());
 	}
 
 	private static Potion potion(int id, String name, String skill)
