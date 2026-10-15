@@ -158,4 +158,4 @@ Code is under the [BSD 2-Clause licence](LICENSE). Monster, equipment and immuni
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Not affiliated with Jagex or the OSRS Wiki.
 To build from source, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-<a href="https://www.buymeacoffee.com/aknaus" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="140" height="39"></a>
+<a href="https://www.buymeacoffee.com/aknaus" target="_blank"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20beer&amp;emoji=%F0%9F%8D%BA&amp;slug=aknaus&amp;button_colour=FFDD00&amp;font_colour=000000&amp;font_family=Cookie&amp;outline_colour=000000&amp;coffee_colour=ffffff" alt="Buy me a beer" height="39"></a>
