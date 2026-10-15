@@ -1,7 +1,9 @@
 package com.bestgearsetup;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
@@ -9,8 +11,9 @@ import lombok.Builder;
 import lombok.Value;
 
 /**
- * Raid planning choices that change the encounter list: the ToA path order, Theatre of Blood roles and
- * per-encounter attack styles. All are saved in the plugin configuration.
+ * Raid planning choices that change the encounter list: the ToA path order and More Overlords invocation, Theatre
+ * of Blood roles, per-encounter attack styles and the quick-switch swap limit. All are saved in the plugin
+ * configuration.
  */
 @Value
 @Builder(toBuilder = true)
@@ -19,49 +22,65 @@ public class RaidOptions
 	public static final RaidOptions DEFAULT = RaidOptions.builder().build();
 
 	@Builder.Default
-	ToaPathOrder toaPathOrder = ToaPathOrder.BA_BA_FIRST;
+	ToaPathOrder toaPathOrder = ToaPathOrder.AUTO;
 	@Builder.Default
-	MaidenRole maidenRole = MaidenRole.BOTH;
-	@Builder.Default
-	NylocasRole nylocasRole = NylocasRole.ALL;
+	TobRole tobRole = TobRole.MELEE_DPS;
+	/** The More Overlords invocation, which doubles Kephri's soldier and spitting scarabs. */
+	boolean toaMoreOverlords;
 	/** Saved style choices by {@link #key} (raid and {@link RaidEncounter#getStyleKey}); others use Auto. */
 	@Builder.Default
 	Map<String, RaidStyle> styles = Collections.emptyMap();
+	/** Most swaps a switch group's quick switches may make, weapon included; see {@link RaidEncounter#getSwitchLimit}. */
+	@Builder.Default
+	int switchLimit = RaidEncounter.DEFAULT_SWITCH_LIMIT;
 
-	/** The two common ToA path orders; the Wardens are always last. */
+	/**
+	 * The two common ToA path orders; the Wardens are always last. Auto plans the raid in each order and keeps the
+	 * faster kit; before that search it lists the encounters Ba-Ba first.
+	 */
 	public enum ToaPathOrder
 	{
-		BA_BA_FIRST("Ba-Ba, Kephri, Akkha, Zebak"), ZEBAK_FIRST("Zebak, Kephri, Akkha, Ba-Ba");
+		AUTO("Auto (fastest)"), BA_BA_FIRST("Ba-Ba, Kephri, Akkha, Zebak"), ZEBAK_FIRST("Zebak, Kephri, Akkha, Ba-Ba");
 		private final String label;
 		ToaPathOrder(String label) { this.label = label; }
+
+		/** The fixed orders a raid search plans: both for Auto, otherwise just this one. */
+		public List<ToaPathOrder> candidates()
+		{
+			return this == AUTO ? Arrays.asList(BA_BA_FIRST, ZEBAK_FIRST) : Collections.singletonList(this);
+		}
+
 		@Override public String toString() { return label; }
 	}
 
 	/**
-	 * Theatre of Blood Maiden role. Freezers barrage the Nylocas Matomenos and stay on magic; DPS players leave the
-	 * nylocas to them; Both (solo and small teams) plans the boss and the nylocas.
+	 * One Theatre role determines both Maiden duties and the wave colour killed in the Nylocas room.
+	 * Every role still fights Maiden and each Vasilias form.
 	 */
-	public enum MaidenRole
+	public enum TobRole
 	{
-		BOTH("DPS and freeze"), DPS("DPS"), FREEZER("Freezer (magic)");
+		SOUTH_FREEZE("South freeze"), NORTH_FREEZE("North freeze"), RANGED_DPS("Range DPS"), MELEE_DPS("Melee DPS");
 		private final String label;
-		MaidenRole(String label) { this.label = label; }
-		@Override public String toString() { return label; }
-	}
+		TobRole(String label) { this.label = label; }
 
-	/** Theatre of Blood Nylocas role: the wave nylocas the player kills. Every player fights each Vasilias form. */
-	public enum NylocasRole
-	{
-		ALL("All styles"), MELEE("Melee"), RANGED("Ranged"), MAGIC("Magic");
-		private final String label;
-		NylocasRole(String label) { this.label = label; }
+		/** Whether the role barrages Maiden's nylocas, which needs Ancient Magicks. */
+		public boolean freezes() { return this == SOUTH_FREEZE || this == NORTH_FREEZE; }
+
+		/** North freeze melees waves in smaller teams and mages them in a five-player team. */
+		public RaidStyle waveStyle(int partySize)
+		{
+			if (this == SOUTH_FREEZE || this == NORTH_FREEZE && partySize >= 5) { return RaidStyle.MAGIC; }
+			return this == RANGED_DPS ? RaidStyle.RANGED : RaidStyle.MELEE;
+		}
+
 		@Override public String toString() { return label; }
 	}
 
 	public static RaidOptions of(BestGearSetupConfig config)
 	{
-		return RaidOptions.builder().toaPathOrder(config.toaPathOrder()).maidenRole(config.tobMaidenRole())
-			.nylocasRole(config.tobNylocasRole()).styles(parse(config.raidStyles())).build();
+		return RaidOptions.builder().toaPathOrder(config.toaPathOrder()).tobRole(config.tobRole())
+			.toaMoreOverlords(config.toaMoreOverlords())
+			.styles(parse(config.raidStyles())).switchLimit(config.quickSwitchLimit()).build();
 	}
 
 	/** The saved choice for an encounter's {@link RaidEncounter#getStyleKey}. */

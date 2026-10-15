@@ -3,7 +3,7 @@ package com.bestgearsetup;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.IntConsumer;
+import java.util.function.DoubleConsumer;
 import java.util.function.LongSupplier;
 
 /**
@@ -20,19 +20,19 @@ final class SearchProgress
 	private final AtomicIntegerArray tabs;
 	private final AtomicInteger published = new AtomicInteger(-1);
 	private final AtomicLong lastPublished;
-	private final IntConsumer publish;
+	private final DoubleConsumer publish;
 	private final LongSupplier clock;
 
 	/**
 	 * @param tabs    number of result tabs searched
-	 * @param publish receives the overall percentage (0 to 100); may be called from any search thread
+	 * @param publish receives the fractional overall percentage (0 to 100); may be called from any search thread
 	 */
-	SearchProgress(int tabs, IntConsumer publish)
+	SearchProgress(int tabs, DoubleConsumer publish)
 	{
 		this(tabs, publish, System::nanoTime);
 	}
 
-	SearchProgress(int tabs, IntConsumer publish, LongSupplier clock)
+	SearchProgress(int tabs, DoubleConsumer publish, LongSupplier clock)
 	{
 		this.tabs = new AtomicIntegerArray(Math.max(1, tabs));
 		this.publish = publish;
@@ -43,37 +43,41 @@ final class SearchProgress
 	/** Record one tab's fraction done (0 to 1). */
 	void update(int tab, double fraction)
 	{
-		tabs.set(tab, (int) Math.round(Math.max(0, Math.min(1, fraction)) * 10_000));
+		if (!Double.isFinite(fraction)) { return; }
+		int value = (int) Math.round(Math.max(0, Math.min(1, fraction)) * 10_000);
+		int previous;
+		do { previous = tabs.get(tab); }
+		while (value > previous && !tabs.compareAndSet(tab, previous, value));
 		long now = clock.getAsLong();
 		long last = lastPublished.get();
 		if (now - last >= INTERVAL_NANOS && lastPublished.compareAndSet(last, now))
 		{
-			offer(percent());
+			offer(Math.min(9999, (int) Math.floor(percent() * 100)));
 		}
 	}
 
 	/** Publish 100%, whatever the throttle; the search is finishing up. */
 	void complete()
 	{
-		offer(100);
+		offer(10_000);
 	}
 
-	int percent()
+	double percent()
 	{
 		long sum = 0;
 		for (int i = 0; i < tabs.length(); i++)
 		{
 			sum += tabs.get(i);
 		}
-		return (int) (sum / tabs.length() / 100);
+		return (double) sum / tabs.length() / 100;
 	}
 
-	private void offer(int percent)
+	private synchronized void offer(int percent)
 	{
 		int previous = published.getAndAccumulate(percent, Math::max);
 		if (percent > previous)
 		{
-			publish.accept(percent);
+			publish.accept(percent / 100.0);
 		}
 	}
 }

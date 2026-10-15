@@ -5,12 +5,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import com.bestgearsetup.calc.SearchMode;
 import lombok.Getter;
+import lombok.Value;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.gameval.InventoryID;
@@ -19,10 +23,9 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.ItemVariationMapping;
 
 /**
- * Tracks which items the player owns across bank, inventory and worn equipment, with stack sizes so
- * ammunition can be priced by the shortfall. Each container is persisted per RuneScape profile so the
- * bank is remembered after it has been opened once. Inventory + equipped only searches see just the carried
- * containers: no bank and no items marked owned by hand.
+ * Tracks bank, inventory, equipment and optional DWMS storage, with stack sizes for ammunition shortfalls.
+ * Native containers are persisted per RuneScape profile; DWMS supplies its own remembered storage each session.
+ * Inventory + equipped only searches see just the carried containers, excluding other storage and manual entries.
  */
 @Singleton
 public class OwnedItems
@@ -46,15 +49,25 @@ public class OwnedItems
 	 * {@link #worn} it is never persisted, so remembered equipment doesn't show as equipped while logged out.
 	 */
 	volatile Set<Integer> equipped = Collections.emptySet();
-	/** Items the player marked as owned by hand (e.g. stored in the POH costume room); no quantity is known. */
+	/** Items the player marked as owned by hand (e.g. an untracked storage); no quantity is known. */
 	private volatile Set<Integer> manual = Collections.emptySet();
-	/** Owned ids and reviewed equivalent charge states. */
-	private volatile Set<Integer> expanded = Collections.emptySet();
-	/** Total quantity per id across containers; {@link #UNLIMITED} for items marked owned by hand. */
-	private volatile Map<Integer, Long> quantities = Collections.emptyMap();
-	/** {@link #expanded} and {@link #quantities} for the inventory and worn equipment alone. */
-	private volatile Set<Integer> carriedExpanded = Collections.emptySet();
-	private volatile Map<Integer, Long> carriedQuantities = Collections.emptyMap();
+	/** One atomic, location-independent ownership category, shared by availability, pricing and cache keys. */
+	@Value
+	public static class Snapshot
+	{
+		Set<Integer> ids;
+		Map<Integer, Long> quantities;
+	}
+	private static final Snapshot EMPTY = new Snapshot(Collections.emptySet(), Collections.emptyMap());
+	private volatile Snapshot owned = EMPTY;
+	private volatile Snapshot carried = EMPTY;
+	/** Candidates must agree on two consecutive ticks; a bank transfer may straddle a tick boundary. */
+	private Map<Integer, Long> pendingOwned;
+	private Map<Integer, Long> pendingCarried;
+	@Getter
+	private volatile List<StoredLocation> storedLocations = Collections.emptyList();
+	@Getter
+	private volatile boolean storageConnected;
 
 	@Getter
 	private volatile boolean bankKnown;
@@ -69,6 +82,8 @@ public class OwnedItems
 	/** Reload the persisted containers for the current profile. */
 	public void load()
 	{
+		storedLocations = Collections.emptyList();
+		storageConnected = false;
 		bank = readQuantities(BANK_KEY);
 		inventory = readQuantities(INVENTORY_KEY);
 		worn = readQuantities(WORN_KEY);
@@ -119,9 +134,6 @@ public class OwnedItems
 		{
 			return;
 		}
-		// Firing ammunition only changes stack sizes; the owned set is re-expanded only when items come or go.
-		boolean itemsChanged = !ids.keySet().equals(previous.keySet());
-
 		if (containerId == InventoryID.BANK)
 		{
 			bank = ids;
@@ -136,7 +148,7 @@ public class OwnedItems
 			worn = ids;
 		}
 		configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, key, serialize(ids));
-		rebuild(itemsChanged);
+		// Location and worn markers update immediately. Publish calculation ownership only after transfers settle.
 	}
 
 	public Set<Integer> getManual()
@@ -164,7 +176,7 @@ public class OwnedItems
 
 	public boolean owns(int itemId)
 	{
-		return expanded.contains(itemId);
+		return owned.getIds().contains(itemId);
 	}
 
 	/** Whether the item (canonical id) is equipped right now; always false while logged out. */
@@ -182,34 +194,87 @@ public class OwnedItems
 	/** Immutable view of the owned ids at this moment, unaffected by later container changes. */
 	public Set<Integer> snapshot()
 	{
-		return expanded;
+		return owned.getIds();
 	}
 
 	/** Immutable quantities at this moment: held stacks per id, {@link #UNLIMITED} for manual entries. */
 	public Map<Integer, Long> quantitySnapshot()
 	{
-		return quantities;
+		return owned.getQuantities();
 	}
 
 	/** {@link #snapshot()}, or only the carried items for an Inventory + equipped only search. */
 	public Set<Integer> snapshot(SearchMode mode)
 	{
-		return mode == SearchMode.INVENTORY_ONLY ? carriedExpanded : expanded;
+		return capture(mode).getIds();
 	}
 
 	/** {@link #quantitySnapshot()}, or only the carried stacks for an Inventory + equipped only search. */
 	public Map<Integer, Long> quantitySnapshot(SearchMode mode)
 	{
-		return mode == SearchMode.INVENTORY_ONLY ? carriedQuantities : quantities;
+		return capture(mode).getQuantities();
 	}
 
-	/** Distinct items seen in the bank, inventory and worn equipment, excluding manual entries. */
+	/** Read ids and stack totals from the same immutable combined snapshot. */
+	public Snapshot capture(SearchMode mode)
+	{
+		return mode == SearchMode.INVENTORY_ONLY ? carried : owned;
+	}
+
+	/** Distinct tracked items, including connected storage, excluding manual entries. */
 	public int count()
 	{
 		Set<Integer> all = new HashSet<>(bank.keySet());
 		all.addAll(inventory.keySet());
 		all.addAll(worn.keySet());
+		for (StoredLocation location : storedLocations) { all.addAll(location.getItems().keySet()); }
 		return all.size();
+	}
+
+	/** Replace the entire provider snapshot, including removals. It is not separately persisted. */
+	boolean setStoredLocations(List<StoredLocation> locations, boolean connected)
+	{
+		boolean statusChanged = storageConnected != connected;
+		storageConnected = connected;
+		if (storedLocations.equals(locations)) { return statusChanged; }
+		// A newer DWMS timestamp alone moves no items: keep it, but don't report a change.
+		boolean itemsChanged = !contents(storedLocations).equals(contents(locations));
+		storedLocations = Collections.unmodifiableList(new ArrayList<>(locations));
+		return statusChanged || itemsChanged;
+	}
+
+	private static List<List<Object>> contents(List<StoredLocation> locations)
+	{
+		List<List<Object>> contents = new ArrayList<>();
+		for (StoredLocation location : locations)
+		{
+			contents.add(java.util.Arrays.asList(location.getCategory(), location.getName(), location.getItems()));
+		}
+		return contents;
+	}
+
+	/** Locations matching the exact item or one of its reviewed ownership equivalents. */
+	public Set<String> locations(int itemId, Collection<Integer> variants)
+	{
+		Set<Integer> ids = new HashSet<>(variants);
+		ids.add(itemId);
+		Set<String> names = new LinkedHashSet<>();
+		if (!Collections.disjoint(ids, worn.keySet())) { names.add("Equipment"); }
+		if (!Collections.disjoint(ids, inventory.keySet())) { names.add("Inventory"); }
+		if (!Collections.disjoint(ids, bank.keySet())) { names.add("Bank"); }
+		for (StoredLocation location : storedLocations)
+		{
+			if (!Collections.disjoint(ids, location.getItems().keySet())) { names.add(location.displayName()); }
+		}
+		if (!Collections.disjoint(ids, manual)) { names.add("Marked as owned by hand"); }
+		return names;
+	}
+
+	private List<Map<Integer, Long>> allContainers()
+	{
+		List<Map<Integer, Long>> containers = new ArrayList<>(java.util.Arrays.asList(bank, inventory, worn));
+		for (StoredLocation location : storedLocations) { containers.add(location.getItems()); }
+		return containers;
 	}
 
 	private void rebuild()
@@ -217,17 +282,37 @@ public class OwnedItems
 		rebuild(true);
 	}
 
+	/** Force a complete initial/manual snapshot; deltas are based on the combined category, never a source container. */
 	void rebuild(boolean itemsChanged)
 	{
-		Map<Integer, Long> total = combine(java.util.Arrays.asList(bank, inventory, worn), manual);
-		Map<Integer, Long> carried = combine(java.util.Arrays.asList(inventory, worn), Collections.emptySet());
-		if (itemsChanged)
-		{
-			expanded = expand(total.keySet());
-			carriedExpanded = expand(carried.keySet());
-		}
-		quantities = Collections.unmodifiableMap(total);
-		carriedQuantities = Collections.unmodifiableMap(carried);
+		Map<Integer, Long> total = combine(allContainers(), manual);
+		Map<Integer, Long> held = combine(java.util.Arrays.asList(inventory, worn), Collections.emptySet());
+		owned = snapshot(owned, total);
+		carried = snapshot(carried, held);
+		pendingOwned = null;
+		pendingCarried = null;
+	}
+
+	/** Client thread, once per completed tick (after the optional storage reply). */
+	boolean settle()
+	{
+		Map<Integer, Long> total = combine(allContainers(), manual);
+		Map<Integer, Long> held = combine(java.util.Arrays.asList(inventory, worn), Collections.emptySet());
+		Snapshot before = owned;
+		Snapshot carriedBefore = carried;
+		if (total.equals(pendingOwned)) { owned = snapshot(owned, total); }
+		if (held.equals(pendingCarried)) { carried = snapshot(carried, held); }
+		pendingOwned = total;
+		pendingCarried = held;
+		return before != owned || carriedBefore != carried;
+	}
+
+	private static Snapshot snapshot(Snapshot previous, Map<Integer, Long> quantities)
+	{
+		if (previous.getQuantities().equals(quantities)) { return previous; }
+		Set<Integer> ids = previous.getQuantities().keySet().equals(quantities.keySet())
+			? previous.getIds() : expand(quantities.keySet());
+		return new Snapshot(ids, Collections.unmodifiableMap(quantities));
 	}
 
 	/** Sum stacks across containers; a manual entry has no known quantity, so it covers any stack. */
@@ -245,7 +330,7 @@ public class OwnedItems
 		return total;
 	}
 
-	private static long saturatedAdd(long a, long b)
+	static long saturatedAdd(long a, long b)
 	{
 		long sum = a + b;
 		return sum < 0 ? UNLIMITED : sum;

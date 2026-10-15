@@ -12,6 +12,44 @@ public class SpecialRotationTest
 	private static final DpsResult ORDINARY = new DpsResult(5, 30, 0.8, 4, 12, null);
 	private static final DpsResult SPEC = new DpsResult(10, 60, 0.9, 4, 24, null);
 
+	// 10 DPS ordinary attacks averaging 24 a hit, a 30% spec dealing 60 every 7 ticks (4.2s) and a 50% spec dealing 120
+	// every 4 ticks (2.4s).
+	private static final DpsResult STEADY = new DpsResult(10, 48, 1, 4, 24, null);
+	private static final SpecialRotation.Damage HALBERD =
+		new SpecialRotation.Damage(new DpsResult(60 / 4.2, 60, 1, 7, 60, null), 30);
+	private static final SpecialRotation.Damage CLAWS =
+		new SpecialRotation.Damage(new DpsResult(50, 120, 1, 4, 120, null), 50);
+
+	@Test
+	public void everyDamageSpecialPaysItsFullInterval()
+	{
+		SpecialRotation.Rotation r = SpecialRotation.rotation(STEADY, 50, 500, 100, 0,
+			java.util.Collections.singletonList(HALBERD), 1);
+		assertEquals(3, r.getSpecs()[0], EPS);
+		assertEquals(90, r.getOpeningEnergy(), EPS);
+		assertEquals(500 / (50 - (3 * 18 + 24) / 10.0), r.getResult().getPrimaryDps(), EPS);
+	}
+
+	@Test
+	public void aSlowSpecLosingDamageNeverBecomesAFinalAttackException()
+	{
+		SpecialRotation.Damage slow = new SpecialRotation.Damage(new DpsResult(8, 60, 1, 7, 33.6, null), 30);
+		SpecialRotation.Rotation r = SpecialRotation.rotation(STEADY, 50, 500, 100, 1,
+			java.util.Collections.singletonList(slow), 1);
+		assertEquals(0, r.getSpecs()[0], EPS);
+		assertEquals(500 / (50 - 24 / 10.0), r.getResult().getPrimaryDps(), EPS);
+	}
+
+	@Test
+	public void regenerationUsesDamageGainedAfterTheEntireInterval()
+	{
+		SpecialRotation.Rotation r = SpecialRotation.rotation(STEADY, 50, 500, 0, 1,
+			java.util.Collections.singletonList(HALBERD), 0);
+		double time = 50 / (1 + 18 / 300.0);
+		assertEquals(time / 30, r.getSpecs()[0], EPS);
+		assertEquals(500 / time, r.getResult().getPrimaryDps(), EPS);
+	}
+
 	@Test
 	public void regeneratedEnergySpecsForItsShareOfTheFight()
 	{
@@ -71,7 +109,7 @@ public class SpecialRotationTest
 		@Override
 		public DpsResult ordinary(SpecialAttacks drains)
 		{
-			int dps = new int[]{5, 8, 10}[drains.getDragonWarhammer()];
+			int dps = new int[]{5, 8, 10}[Math.min(2, drains.getDragonWarhammer())];
 			return new DpsResult(dps, 30, 0.8, 4, dps * 2.4, null);
 		}
 
@@ -81,6 +119,133 @@ public class SpecialRotationTest
 			return new DpsResult(5, 50, 0.5, 4, 12, null);
 		}
 	};
+
+	@Test
+	public void sharedDrainKeepsTeammatesAttackingAndOnlyThePlayersSpecDrains()
+	{
+		// Four equal teammates: during the 2.4s opening three deal 36 total. A hit adds 24 from the
+		// player's hammer, then all four attack at 8 DPS each; a miss leaves all four at 5 DPS each.
+		double[] shared = SpecialRotation.drainOpenedShared(WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER,
+			50, 1, 2000, false, 4);
+		assertEquals(2.4 + 0.5 * (2000 - 36 - 24) / 32 + 0.5 * (2000 - 36) / 20, shared[0], EPS);
+		assertEquals(1, shared[1], EPS);
+		double[] solo = SpecialRotation.drainOpened(WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 1, 500, false);
+		assertTrue(shared[0] < solo[0]);
+	}
+
+	@Test
+	public void teammatesCanEndTheTargetDuringAMissedSpecWithoutSpendingAnother()
+	{
+		double[] shared = SpecialRotation.drainOpenedShared(WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER,
+			50, 2, 20, true, 4);
+		assertEquals(20 / 15.0, shared[0], EPS);
+		assertEquals(1, shared[1], EPS);
+	}
+
+	@Test
+	public void teamOpenerWithSoloPartyIsTheUnchangedSoloSimulation()
+	{
+		double[] solo = SpecialRotation.drainOpened(WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 1, 500, false);
+		double[] team = SpecialRotation.drainOpenedTeam(WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 1,
+			500, false, 1, WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER);
+		assertEquals(solo[0], team[0], EPS);
+		assertEquals(solo[1], team[1], EPS);
+	}
+
+	@Test
+	public void teammatesMissesCostTheirOwnAttackIntervalsButNoPersonalEnergy()
+	{
+		double[] team = SpecialRotation.drainOpenedTeam(WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 0,
+			2000, true, 4, WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER);
+		assertEquals(3 * 2.4 + (2000 - 3 * 36) / 20.0, team[0], EPS);
+		assertEquals(0, team[1], EPS);
+	}
+
+	@Test
+	public void teamHitAndMissBranchesShareTheNoPersonalSpecBaseline()
+	{
+		// One teammate: 50% hits, 24 conditional damage, the other player keeps ordinary attacks going.
+		double[] team = SpecialRotation.drainOpenedTeam(WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 0,
+			2000, false, 2, WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER);
+		assertEquals(2.4 + .5 * (2000 - 12 - 24) / 16 + .5 * (2000 - 12) / 10, team[0], EPS);
+		assertEquals(0, team[1], EPS);
+	}
+
+	@Test
+	public void successfulTeammateDrainsReduceTheMarginalValueOfSpendingAnotherPersonalSpec()
+	{
+		SpecialRotation.Fight certain = new SpecialRotation.Fight()
+		{
+			@Override public DpsResult ordinary(SpecialAttacks drains) { return WARHAMMER.ordinary(drains); }
+			@Override public DpsResult spec(SpecialAttacks drains) { return new DpsResult(10, 24, 1, 4, 24, null); }
+		};
+		double[] zero = SpecialRotation.drainOpenedShared(certain, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 0, 2000, false, 4);
+		double[] one = SpecialRotation.drainOpenedShared(certain, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 1, 2000, false, 4);
+		double[] teamZero = SpecialRotation.drainOpenedTeam(certain, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 0, 2000, false, 4, certain, SpecialAttack.Drain.DRAGON_WARHAMMER);
+		double[] teamOne = SpecialRotation.drainOpenedTeam(certain, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 1, 2000, false, 4, certain, SpecialAttack.Drain.DRAGON_WARHAMMER);
+		assertTrue(zero[0] - one[0] > teamZero[0] - teamOne[0]);
+		assertEquals(1, teamOne[1], EPS);
+	}
+
+	/**
+	 * An Olm-hand-like target: Defence 260 against a 30000 attack roll, so each landed hammer (30% of current Defence)
+	 * raises the accuracy of every attack. 40 max hit every 2.4s; the hammer hits 60 every 3.6s.
+	 */
+	private static final SpecialRotation.Fight DEFENSIVE = new SpecialRotation.Fight()
+	{
+		@Override public DpsResult ordinary(SpecialAttacks drains) { return attack(drains, 40, 4); }
+		@Override public DpsResult spec(SpecialAttacks drains) { return attack(drains, 60, 6); }
+
+		private DpsResult attack(SpecialAttacks drains, int max, int ticks)
+		{
+			int defence = 260;
+			for (int i = 0; i < drains.getDragonWarhammer(); i++) { defence -= defence * 30 / 100; }
+			double attackRoll = 30000;
+			double defenceRoll = (defence + 9) * 124.0;
+			double accuracy = attackRoll > defenceRoll ? 1 - (defenceRoll + 2) / (2 * (attackRoll + 1))
+				: attackRoll / (2 * (defenceRoll + 1));
+			return new DpsResult(accuracy * max / 2.0 / (ticks * 0.6), max, accuracy, ticks, accuracy * max / 2.0, null);
+		}
+	};
+
+	@Test
+	public void theTeammatesHammerRollsAgainstTheDrainedDefence()
+	{
+		com.bestgearsetup.data.Monster target = new com.bestgearsetup.data.Monster();
+		target.setName("test boss");
+		target.setDefenceLevel(200);
+		target.setDefCrush(50);
+		SpecialRotation.Fight hammer = SpecialRotation.teammateHammer(target);
+		SpecialAttacks once = SpecialAttacks.builder().dragonWarhammer(1).build();
+		assertEquals(HitChance.single(SpecialRotation.TEAMMATE_ATTACK_ROLL, 209L * 114), hammer.spec(SpecialAttacks.NONE).getAccuracy(), EPS);
+		// 200 Defence less 30% is 140.
+		assertEquals(HitChance.single(SpecialRotation.TEAMMATE_ATTACK_ROLL, 149L * 114), hammer.spec(once).getAccuracy(), EPS);
+		assertTrue(hammer.spec(once).getAccuracy() > hammer.spec(SpecialAttacks.NONE).getAccuracy());
+	}
+
+	@Test
+	public void inAPartyOfFourTeammatesAttemptsShrinkWhatEachOwnHammerSaves()
+	{
+		double[] seconds = new double[3];
+		double[] shared = new double[3];
+		for (int own = 0; own <= 2; own++)
+		{
+			seconds[own] = SpecialRotation.drainOpenedTeam(DEFENSIVE, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, own, 2400,
+				false, 4, DEFENSIVE, SpecialAttack.Drain.DRAGON_WARHAMMER)[0];
+			shared[own] = SpecialRotation.drainOpenedShared(DEFENSIVE, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, own, 2400,
+				false, 4)[0];
+		}
+		double first = seconds[0] - seconds[1];
+		double second = seconds[1] - seconds[2];
+		double sharedFirst = shared[0] - shared[1];
+		double sharedSecond = shared[1] - shared[2];
+		String values = "team " + first + "/" + second + ", shared " + sharedFirst + "/" + sharedSecond;
+		assertTrue(values, second > 0 && second < first);
+		// Without teammates' attempts the player's own hammers were credited with the whole drain benefit.
+		assertTrue(values, first < sharedFirst / 1.5 && second < sharedSecond / 1.5);
+		// The team baseline already includes the other three attempts, whether or not this player specs.
+		assertTrue(seconds[0] < shared[0]);
+	}
 
 	@Test
 	public void fullBarDrainsOpenTheKillAndEachOutcomeFinishesAtItsStats()

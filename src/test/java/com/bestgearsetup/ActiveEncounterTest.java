@@ -30,6 +30,7 @@ public class ActiveEncounterTest
 	@Test public void tracksAkkhaOverheadChangesWithoutAnNpcIdChange() throws Exception
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
+		plugin.ownedItems = new OwnedItems(null, null);
 		Client client = mock(Client.class); Player player = mock(Player.class); NPC npc = mock(NPC.class);
 		NPCComposition composition = mock(NPCComposition.class);
 		when(client.getGameState()).thenReturn(GameState.LOGGED_IN); when(client.getLocalPlayer()).thenReturn(player);
@@ -61,6 +62,7 @@ public class ActiveEncounterTest
 	@Test public void followsNewNpcAndTransformedPhaseOnceEachAndHonoursDisable() throws Exception
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
+		plugin.ownedItems = new OwnedItems(null, null);
 		Client client = mock(Client.class);
 		Player player = mock(Player.class);
 		NPC npc = mock(NPC.class);
@@ -238,6 +240,7 @@ public class ActiveEncounterTest
 
 		Fixture() throws Exception
 		{
+			plugin.ownedItems = new OwnedItems(null, null);
 			when(client.getGameState()).thenReturn(GameState.LOGGED_IN);
 			when(client.getLocalPlayer()).thenReturn(player);
 			boss.setId(200); boss.setName("boss");

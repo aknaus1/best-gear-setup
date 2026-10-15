@@ -43,8 +43,8 @@ import net.runelite.client.util.AsyncBufferedImage;
  *        legs
  *  hands feet  ring
  * </pre>
- * Slots filled for defence / prayer are highlighted blue, locked slots get an orange frame and padlock
- * (red when the lock could not be applied, with the locked item shown faded), and a corner marker shows
+ * Slots filled for defence / prayer, or with a carried raid switch, are highlighted blue, locked slots get an orange
+ * frame and padlock (red when the lock could not be applied, with the locked item shown faded), and a corner marker shows
  * whether the item is owned (green), to buy (yellow) or untradeable (orange). A tick in the top-right corner
  * marks items currently worn, so a missing piece stands out; it is read when painted and follows the worn
  * equipment live.
@@ -99,13 +99,18 @@ class EquipmentGrid extends JPanel
 		setMaximumSize(getPreferredSize());
 	}
 
-	/** The same gear tile, tooltip and menu in an inventory cell. */
+	/**
+	 * The same gear tile, tooltip and menu in an inventory cell.
+	 * @param backdrop whether to draw the slot tile; off where the item sits on the inventory's own background
+	 */
 	static JComponent inventoryCell(GearItem item, List<RaidPlan.InventoryItem> contents, BestGearSetupPlugin plugin,
-		ItemManager images, SpriteCache sprites, int ammoCount)
+		ItemManager images, SpriteCache sprites, int ammoCount, boolean backdrop)
 	{
 		com.bestgearsetup.calc.SlotLock locked = plugin.getLocks().get(item.getSlot());
 		LockStatus status = locked == null ? null : new LockStatus(item.getSlot(), locked, item, null, null);
-		return new SlotBox(item.getSlot(), item, false, status, plugin, images, sprites, ammoCount, contents);
+		SlotBox box = new SlotBox(item.getSlot(), item, false, status, plugin, images, sprites, ammoCount, contents);
+		box.backdrop = backdrop;
+		return box;
 	}
 
 	/** The empty-slot icon the equipment screen shows for this slot. */
@@ -154,6 +159,8 @@ class EquipmentGrid extends JPanel
 		private final boolean wearable;
 		/** The item tooltip without its footer; the worn status is added when it is shown. */
 		private String itemTip;
+		/** Draws the slot tile behind the item; inventory cells leave it off. */
+		private boolean backdrop = true;
 
 		SlotBox(Slot slot, GearItem item, boolean filled, LockStatus lock, BestGearSetupPlugin plugin,
 			ItemManager itemManager, SpriteCache sprites, int ammoCount, List<RaidPlan.InventoryItem> contents)
@@ -239,7 +246,7 @@ class EquipmentGrid extends JPanel
 				}
 				if (filled)
 				{
-					tip.append("<br>Filled for defence / prayer (no DPS)");
+					tip.append("<br>Not chosen for DPS: filled for defence / prayer, or a raid switch worn so it isn't carried");
 				}
 				tip.append(sameStatsVariants(item, plugin));
 				if (variantOfExcluded(item, plugin))
@@ -269,7 +276,10 @@ class EquipmentGrid extends JPanel
 			{
 				return super.getToolTipText(event);
 			}
-			return itemTip + (wearable ? (worn() ? "<br>Equipped" : "<br>Not equipped") : "") + TIP_FOOTER;
+			java.util.Set<String> locations = plugin.itemLocations(item);
+			String locationTip = locations == null || locations.isEmpty() ? "" : "<br>Location: "
+				+ BestGearSetupPanel.escape(String.join("; ", locations));
+			return itemTip + locationTip + (wearable ? (worn() ? "<br>Equipped" : "<br>Not equipped") : "") + TIP_FOOTER;
 		}
 
 		/** Ornamented, kitted or recoloured copies that fight the same; owned ones first, as any can be worn instead. */
@@ -338,12 +348,13 @@ class EquipmentGrid extends JPanel
 			int w = getWidth();
 			int h = getHeight();
 
-			BufferedImage tile = sprites == null ? null : sprites.get(SpriteID.Miscgraphics.EQUIPMENT_SLOT_TILE, this::repaint);
+			BufferedImage tile = !backdrop || sprites == null ? null
+				: sprites.get(SpriteID.Miscgraphics.EQUIPMENT_SLOT_TILE, this::repaint);
 			if (tile != null)
 			{
 				g2.drawImage(tile, 0, 0, w, h, null);
 			}
-			else
+			else if (backdrop)
 			{
 				g2.setColor(TILE);
 				g2.fillRoundRect(0, 0, w - 1, h - 1, 8, 8);

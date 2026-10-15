@@ -27,7 +27,7 @@ public class AttackStyle
 
 	String name;
 	Type type;
-	/** accurate, aggressive, controlled, defensive, rapid, longrange or magic (autocast). */
+	/** accurate, aggressive, controlled, defensive, rapid, longrange, magic (autocast) or manual. */
 	String stance;
 
 	public static AttackStyle parse(String raw)
@@ -89,6 +89,18 @@ public class AttackStyle
 	public boolean isAutocast()
 	{
 		return type == Type.MAGIC && "magic".equals(stance);
+	}
+
+	/** A spell selected from the spellbook, independent of the weapon's autocast options. */
+	public boolean isManualCast()
+	{
+		return type == Type.MAGIC && "manual".equals(stance);
+	}
+
+	/** An explicit spell, rather than a weapon's built-in magic attack. */
+	public boolean isSpellCast()
+	{
+		return isAutocast() || isManualCast();
 	}
 
 	@Override

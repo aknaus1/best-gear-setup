@@ -43,7 +43,7 @@ public final class SpellRunes
 	private static final Map<Integer, List<Integer>> SUBSTITUTES = new HashMap<>();
 	private static final Map<String, List<Integer>> STAFF_ELEMENTS = new HashMap<>();
 	// Best first: a divine pouch takes the cell ahead of a regular one, each before its locked (l) copy.
-	private static final List<Integer> RUNE_POUCHES = Arrays.asList(ItemID.DIVINE_RUNE_POUCH,
+	static final List<Integer> RUNE_POUCHES = Arrays.asList(ItemID.DIVINE_RUNE_POUCH,
 		ItemID.DIVINE_RUNE_POUCH_TROUVER, ItemID.BH_RUNE_POUCH, ItemID.BH_RUNE_POUCH_TROUVER);
 	// "air battlestaff", "mystic dust staff", "staff of fire"; sceptres and other staves supply nothing.
 	private static final Pattern ELEMENTAL_STAFF = Pattern.compile("(?:mystic )?(\\w+) (?:battle)?staff\\b.*");

@@ -34,9 +34,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -51,6 +54,7 @@ import javax.swing.JProgressBar;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.Scrollable;
+import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -79,7 +83,7 @@ public class BestGearSetupPanel extends PluginPanel
 	private final ItemManager itemManager;
 
 	final IconTextField searchField = new IconTextField();
-	private RaidPlanType raidType = RaidPlanType.SINGLE;
+	private volatile RaidPlanType raidType = RaidPlanType.SINGLE;
 	final JComboBox<RaidEncounter> encounterBox = new JComboBox<>();
 	private boolean selectingRaid;
 	final JToggleButton bossesButton = new JToggleButton("Bosses");
@@ -106,6 +110,11 @@ public class BestGearSetupPanel extends PluginPanel
 	final JPanel budgetRow = new JPanel(new BorderLayout(4, 0));
 	private final CardLayout views = new CardLayout();
 	private final JButton gearButton = new JButton("Gear rules");
+	final JButton fightButton = new JButton("Fight");
+	/** Target-specific Fight options already shown to the player, so the Fight button stops flagging them. */
+	private final Set<String> seenFightOptions = new LinkedHashSet<>();
+	private boolean fightFlagged;
+	private String view = "results";
 	private final JLabel assumptionsLabel = new JLabel();
 	private final JButton filterBadge = new JButton("Bosses");
 	private JButton editorOrigin;
@@ -115,7 +124,9 @@ public class BestGearSetupPanel extends PluginPanel
 	final JButton findButton = new JButton("Find best setup");
 	private final JButton clearSearchButton = new JButton("Clear search");
 	final JLabel statusLabel = new JLabel();
-	private final JProgressBar progressBar = new JProgressBar(0, 100);
+	private final JLabel raidProgressLabel = new JLabel();
+	private final JProgressBar progressBar = new JProgressBar(0, 10_000);
+	private final SearchActivity searchActivity = new SearchActivity();
 	/** Holds the bar with its top gap; hidden whenever no search is running. */
 	private final JPanel progressRow = left(progressBar);
 	private final JLabel ownedLabel = new JLabel();
@@ -476,8 +487,8 @@ public class BestGearSetupPanel extends PluginPanel
 		content.add(spacer(4));
 		JPanel actions = new JPanel(new GridLayout(1, 3, 4, 0));
 		actions.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		JButton fightButton = new JButton("Fight");
 		fightButton.setName("fightEditorButton");
+		fightButton.setHorizontalTextPosition(SwingConstants.LEADING);
 		fightButton.addActionListener(e -> { editorOrigin = fightButton; openEditor("fight"); });
 		gearButton.setName("gearEditorButton");
 		gearButton.addActionListener(e -> { editorOrigin = gearButton; openEditor("gear"); });
@@ -491,6 +502,8 @@ public class BestGearSetupPanel extends PluginPanel
 			action.setMargin(new java.awt.Insets(3, 0, 3, 0));
 			actions.add(action);
 		}
+		updateFightButton();
+		fightOptions.onTargetOptionsChanged(this::updateFightButton);
 		content.add(left(actions));
 		content.add(spacer(4));
 		assumptionsLabel.setName("assumptionsSummary");
@@ -505,6 +518,11 @@ public class BestGearSetupPanel extends PluginPanel
 		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		statusLabel.setText(html("Loading bundled Wiki data..."));
 		content.add(left(statusLabel));
+		raidProgressLabel.setName("raidProgress");
+		raidProgressLabel.setFont(FontManager.getRunescapeSmallFont());
+		raidProgressLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		raidProgressLabel.setVisible(false);
+		content.add(left(raidProgressLabel));
 		progressBar.setName("searchProgress");
 		progressBar.setStringPainted(true);
 		progressBar.setFont(FontManager.getRunescapeSmallFont());
@@ -515,11 +533,24 @@ public class BestGearSetupPanel extends PluginPanel
 		progressRow.setVisible(false);
 		progressRow.setBorder(new EmptyBorder(4, 0, 0, 0));
 		content.add(progressRow);
+		content.add(left(searchActivity));
 		content.add(spacer(6));
 
 		resultsPanel.setLayout(new BoxLayout(resultsPanel, BoxLayout.Y_AXIS));
 		resultsPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		content.add(left(resultsPanel));
+		content.add(spacer(12));
+		JButton coffeeButton = new JButton("Support development");
+		Controls.ghost(coffeeButton);
+		coffeeButton.setHorizontalAlignment(SwingConstants.CENTER);
+		coffeeButton.setName("buyMeACoffee");
+		coffeeButton.setToolTipText("Support Best Gear Setup on Buy Me a Coffee");
+		coffeeButton.getAccessibleContext().setAccessibleName("Buy Me a Coffee");
+		coffeeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		coffeeButton.setBorder(BorderFactory.createEmptyBorder(3, 4, 3, 4));
+		coffeeButton.setContentAreaFilled(false);
+		coffeeButton.addActionListener(e -> LinkBrowser.browse("https://www.buymeacoffee.com/aknaus"));
+		content.add(left(coffeeButton));
 
 		JPanel north = new SidebarContent();
 		north.setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -574,11 +605,44 @@ public class BestGearSetupPanel extends PluginPanel
 
 	private void openEditor(String key)
 	{
+		view = key;
 		views.show(this, key);
+		updateFightButton();
 		JButton back = editorBackButtons.get(key);
 		if (back != null) { back.requestFocusInWindow(); }
 		revalidate();
 		repaint();
+	}
+
+	/**
+	 * Flag the Fight button while it holds target-specific options, such as a raid's party size or ToB role,
+	 * that the player has not seen there yet: nothing else tells new players these options exist.
+	 */
+	private void updateFightButton()
+	{
+		Map<String, String> shown = fightOptions.targetOptions();
+		seenFightOptions.addAll(Arrays.asList(config.seenFightOptions().split(",")));
+		if ("fight".equals(view) && !seenFightOptions.containsAll(shown.keySet()))
+		{
+			seenFightOptions.addAll(shown.keySet());
+			seenFightOptions.remove("");
+			plugin.setConfig(BestGearSetupConfig.SEEN_FIGHT_OPTIONS_KEY, String.join(",", seenFightOptions));
+		}
+		List<String> unseen = shown.entrySet().stream().filter(e -> !seenFightOptions.contains(e.getKey()))
+			.map(Map.Entry::getValue).collect(Collectors.toList());
+		boolean flag = !unseen.isEmpty();
+		if (flag != fightFlagged)
+		{
+			if (flag) { Controls.badge(fightButton); }
+			else { Controls.secondary(fightButton); }
+			fightButton.setMargin(new java.awt.Insets(3, 0, 3, 0));
+			fightButton.setIcon(flag ? new Controls.Dot() : null);
+			fightButton.setIconTextGap(4);
+		}
+		fightButton.setToolTipText(flag
+			? html("New options for this fight: <b>" + escape(String.join(", ", unseen)) + "</b>")
+			: "Fight conditions, special attacks and raid scaling");
+		fightFlagged = flag;
 	}
 
 	/** Open the Gear view at its lock search, limited to this slot (null for any). */
@@ -594,6 +658,7 @@ public class BestGearSetupPanel extends PluginPanel
 	{
 		assumptionsLabel.setText(summary);
 		assumptionsLabel.setToolTipText(detail);
+		assumptionsLabel.setVisible(raidType == RaidPlanType.SINGLE);
 	}
 
 	// ------------------------------------------------------------ state updates (Swing thread)
@@ -613,7 +678,7 @@ public class BestGearSetupPanel extends PluginPanel
 
 	public void showError(String message)
 	{
-		progressRow.setVisible(false);
+		stopSearchActivity();
 		statusLabel.setForeground(new Color(0xFF6B6B));
 		statusLabel.setText(html(escape(message)));
 		findButton.setEnabled(selected != null && data != null);
@@ -670,6 +735,7 @@ public class BestGearSetupPanel extends PluginPanel
 	/** Reset the current target and recommendations after the plugin cancels outstanding work. */
 	public void clearSearch()
 	{
+		raidProgressLabel.setVisible(false);
 		raidType = RaidPlanType.SINGLE;
 		pendingRaidEncounter = null;
 		fightOptions.setRaidPlan(raidType);
@@ -700,7 +766,9 @@ public class BestGearSetupPanel extends PluginPanel
 	public void selectRaid(RaidPlanType raid)
 	{
 		if (data == null || raid == RaidPlanType.SINGLE) { return; }
-		plugin.clearGearSearch();
+		// Unlike Clear, the shown results and bank layout stay up until the raid plan replaces them.
+		plugin.cancelGearSearch();
+		raidProgressLabel.setVisible(false);
 		pendingRaidEncounter = null;
 		raidType = raid;
 		selectingRaid = true;
@@ -711,7 +779,7 @@ public class BestGearSetupPanel extends PluginPanel
 	/** The raid's encounters in the saved path order and roles, so the first is the planned starting fight. */
 	private List<RaidEncounter> raidEncounters(RaidPlanType raid)
 	{
-		return raid.encounters(data, RaidScaling.Settings.SOLO, RaidOptions.of(config));
+		return raid.encounters(data, RaidScaling.Settings.builder().partySize(config.raidPartySize()).build(), RaidOptions.of(config));
 	}
 
 	private void showDisplayedEncounter(RaidEncounter encounter)
@@ -732,18 +800,51 @@ public class BestGearSetupPanel extends PluginPanel
 	 */
 	public void showActiveMonster(MonsterSummary monster, EncounterPhase phase)
 	{
-		RaidPlan plan = shownPlan;
-		if (raidType == RaidPlanType.SINGLE || plan == null || !encounterBox.isVisible()) { return; }
+		if (shownPlan != null && encounterBox.isVisible()) { selectRaidMonster(monster, phase); }
+	}
+
+	/** Right-click lookup within the selected raid browses its existing kit without starting another search. */
+	public boolean selectRaidMonster(MonsterSummary monster, EncounterPhase phase)
+	{
+		if (raidType == RaidPlanType.SINGLE || data == null) { return false; }
+		RaidPlan plan = shownPlan != null && shownPlan.getType() == raidType ? shownPlan : null;
+		List<RaidEncounter> encounters = plan == null ? raidEncounters(raidType) : plan.getEncounters();
 		RaidEncounter shown = (RaidEncounter) raidVersionBox.getSelectedItem();
-		if (shown != null && shown.getTarget().getId() == monster.getId() && (phase == null || shown.getPhase() == phase)) { return; }
+		if (plan != null && encounterBox.isVisible() && shown != null && shown.getTarget().getId() == monster.getId()
+			&& (phase == null || shown.getPhase() == phase)) { return true; }
 		RaidEncounter match = null;
-		for (RaidEncounter encounter : plan.getEncounters())
+		for (RaidEncounter encounter : encounters)
 		{
-			if (encounter.getTarget().getId() == monster.getId()
+			if ((encounter.getTarget().getId() == monster.getId() || encounter.getTarget().getName().equals(monster.getName()))
 				&& (match == null || phase != null && encounter.getPhase() == phase && match.getPhase() != phase))
 			{ match = encounter; }
 		}
-		if (match != null) { showEncounter(match); }
+		if (match == null) { return false; }
+		if (plan != null && encounterBox.isVisible())
+		{
+			if (!match.equals(shown)) { showEncounter(match); }
+		}
+		else
+		{
+			// Keep the running raid search; open this encounter when the completed plan is published.
+			pendingRaidEncounter = match.getLabel();
+		}
+		return true;
+	}
+
+	/** Show tracked progress and its exact saved encounter, including repeated phases, without searching. */
+	public void showRaidProgress(RaidPlanType type, String label, String status)
+	{
+		if (raidType == RaidPlanType.SINGLE || type == RaidPlanType.SINGLE)
+		{ raidProgressLabel.setVisible(false); return; }
+		if (raidType != type) { return; }
+		raidProgressLabel.setText(html(escape(status)));
+		raidProgressLabel.setVisible(!status.isEmpty());
+		if (label == null) { return; }
+		RaidEncounter match = shownPlan == null ? null : shownPlan.getEncounters().stream()
+			.filter(fight -> fight.getLabel().equals(label)).findFirst().orElse(null);
+		if (match != null && encounterBox.isVisible()) { showEncounter(match); }
+		else { pendingRaidEncounter = label; }
 	}
 
 	/** Select an encounter of the shown raid plan through the boss and version selectors. */
@@ -770,6 +871,7 @@ public class BestGearSetupPanel extends PluginPanel
 	{
 		if (!selectingRaid)
 		{
+			raidProgressLabel.setVisible(false);
 			raidType = RaidPlanType.SINGLE;
 			encounterBox.setVisible(false);
 			monsterLabel.setVisible(true);
@@ -800,7 +902,7 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 	}
 
-	/** After a style change re-plans the raid, show the encounter that was being edited instead of the first. */
+	/** After planning, reopen the encounter selected by a style edit or an in-raid right-click lookup. */
 	private void reopenPendingEncounter(RaidPlan plan)
 	{
 		String label = pendingRaidEncounter;
@@ -887,9 +989,12 @@ public class BestGearSetupPanel extends PluginPanel
 
 	public void showSearching(MonsterSummary monster)
 	{
-		clearResults("Searching setups for " + monster.getDisplayName() + "...");
+		// The previous results and bank layout stay up until the new results replace them in place.
+		releaseResults("Searching setups for " + monster.getDisplayName() + "...");
 		progressBar.setValue(0);
+		progressBar.setString("0.00%");
 		progressRow.setVisible(true);
+		searchActivity.start();
 	}
 
 	public void showEncounterProgress(String message)
@@ -898,13 +1003,41 @@ public class BestGearSetupPanel extends PluginPanel
 	}
 
 	/** Advance the running search's bar; updates from different search threads may arrive out of order. */
-	public void showProgress(int percent)
+	public void showProgress(double percent)
 	{
-		progressBar.setValue(Math.max(progressBar.getValue(), percent));
+		if (searchActivity.isRunning())
+		{
+			// The worker can finish its progress accounting before final checks and rendering are done.
+			progressBar.setValue(Math.max(progressBar.getValue(), (int) Math.min(9999, Math.floor(percent * 100))));
+			progressBar.setString(String.format(java.util.Locale.ROOT, "%.2f%%", progressBar.getValue() / 100.0));
+		}
+	}
+
+	/** Describe the actual search stage while the activity animation continues independently of percentages. */
+	public void showSearchActivity(String message)
+	{
+		searchActivity.stage(message);
+	}
+
+	/** Stop animation on completion, failure, cancellation or plugin shutdown. Called on the Swing thread. */
+	public void stopSearchActivity()
+	{
+		searchActivity.stop();
+		progressRow.setVisible(false);
 	}
 
 	/** Clear recommendations when the search or account they belong to is no longer current. */
 	public void clearResults(String message)
+	{
+		releaseResults(message);
+		resultsPanel.removeAll();
+		resultsPanel.revalidate();
+		resultsPanel.repaint();
+		plugin.setBankHighlightedSetup(null);
+	}
+
+	/** Detach the shown results from the raid selectors and status, leaving them visible until replaced. */
+	private void releaseResults(String message)
 	{
 		RaidResultView.detachSelector(encounterBox);
 		RaidResultView.detachSelector(raidVersionBox);
@@ -913,15 +1046,11 @@ public class BestGearSetupPanel extends PluginPanel
 		shownPlan = null;
 		showRaidStyles(null);
 		monsterLabel.setVisible(true);
-		progressRow.setVisible(false);
+		stopSearchActivity();
 		assumptionsLabel.setText("");
 		assumptionsLabel.setToolTipText(null);
-		plugin.setBankHighlightedSetup(null);
 		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		statusLabel.setText(html(escape(message)));
-		resultsPanel.removeAll();
-		resultsPanel.revalidate();
-		resultsPanel.repaint();
 	}
 
 	/** One line per lock the search couldn't apply; locked slots are otherwise marked in the equipment grid. */
@@ -940,26 +1069,38 @@ public class BestGearSetupPanel extends PluginPanel
 
 	public void showRaidResults(RaidPlan plan, MonsterSummary active, SearchResults activeResult)
 	{
-		progressRow.setVisible(false);
+		stopSearchActivity();
 		findButton.setEnabled(true);
 		resultsPanel.removeAll();
 		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		SearchResults first = plan.getResults().get(0);
+		assumptionsLabel.setVisible(false);
 		versionRow.remove(versionBox);
 		versionRow.add(raidVersionBox, BorderLayout.CENTER);
 		statusLabel.setText(html(escape(plan.getType().toString()) + ": " + plan.getEncounters().size() + " encounter setups"
 			+ (first.isAssumedLevels() ? "<br>Assuming 99 combat stats." : first.isRememberedLevels() ? "<br>Using remembered account levels." : "")));
 		shownPlan = plan;
+		if (plan.getType() == RaidPlanType.TOA)
+		{
+			String order = plan.getEncounters().stream().map(RaidEncounter::getBossName)
+				.filter(label -> Arrays.asList("Ba-Ba", "Kephri", "Akkha", "Zebak").contains(label))
+				.distinct().map(BestGearSetupPanel::escape).collect(Collectors.joining(" → "));
+			JLabel layout = new JLabel(html("Path order: " + order));
+			layout.setName("raidPathOrder");
+			setSmall(layout, ColorScheme.LIGHT_GRAY_COLOR);
+			resultsPanel.add(left(layout));
+		}
 		resultsPanel.add(left(new RaidResultView(plan, active, activeResult, plugin, itemManager, sprites, skillIcons,
 			config.ammoCount(), encounterBox, raidVersionBox, this::showDisplayedEncounter)));
 		reopenPendingEncounter(plan);
 		monsterLabel.setVisible(false);
 		encounterBox.setVisible(true);
-		List<String> warnings = plan.getResults().stream().flatMap(r -> r.getWarnings().stream()).distinct().collect(Collectors.toList());
+		List<String> warnings = new ArrayList<>(plan.getWarnings());
+		plan.getResults().stream().flatMap(r -> r.getWarnings().stream()).forEach(warnings::add);
 		if (activeResult != null) { warnings.addAll(activeResult.getWarnings()); }
-		if (plan.getType() == RaidPlanType.TOB && config.tobMaidenRole() != RaidOptions.MaidenRole.DPS
+		if (plan.getType() == RaidPlanType.TOB && config.tobRole().freezes()
 			&& plan.getSpellbook() != RaidSpellbook.ANCIENT)
-		{ warnings.add("Freezing the Maiden nylocas needs Ice or Blood Barrage: set Raid spellbook to Ancient."); }
+		{ warnings.add("Freezing the Maiden nylocas needs Ice Barrage: set Raid spellbook to Ancient."); }
 		if (!warnings.isEmpty())
 		{
 			JLabel warningLabel = new JLabel(html(warnings.stream().distinct().map(BestGearSetupPanel::escape).collect(Collectors.joining("<br>"))));
@@ -967,19 +1108,22 @@ public class BestGearSetupPanel extends PluginPanel
 			setSmall(warningLabel, WARNING_COLOR);
 			resultsPanel.add(left(warningLabel));
 		}
-		JLabel notes = new JLabel(html("Raid kits use a bounded search over valid setups; lower equipment limits share more armour."
-			+ "<br>Runes are packed into your pouch; hover it to see its contents. Extra rune types stay in free inventory slots. Food, healing and utility supplies are not planned."
-			+ "<br>In-raid boosts are omitted from the bank: CoX overloads are assumed after Tekton and ToA smelling salts after the first two paths. The Dawnbringer is picked up at Verzik P1 and only used for its special. Loaded darts must be loaded before entry."));
-		setSmall(notes, ColorScheme.LIGHT_GRAY_COLOR);
-		resultsPanel.add(left(notes));
+		List<String> detailLines = new ArrayList<>();
+		if (plugin.getOwnedItems().isBankKnown() || plugin.getOwnedItems().count() > 0) { detailLines.add(ownedSummary()); }
+		detailLines.addAll(plan.getNotes());
+		detailLines.add("Raid kits use a bounded search over valid setups; lower equipment limits share more armour.");
+		detailLines.add("Runes are packed into your pouch; hover it to see its contents. Extra rune types stay in free inventory slots. Food, healing and utility supplies are not planned.");
+		detailLines.add("In-raid boosts are omitted from the bank: CoX overloads are assumed after Tekton and ToA smelling salts after the first two paths. The Dawnbringer is picked up at Verzik P1 and only used for its special. Loaded darts must be loaded before entry.");
+		addSearchDetails(detailLines);
 		resultsPanel.revalidate();
 		resultsPanel.repaint();
 	}
 
 	public void showResults(SearchResults found)
 	{
-		progressRow.setVisible(false);
-		plugin.setBankHighlightedSetup(null);
+		stopSearchActivity();
+		// A found setup replaces the bank layout in place (ResultView publishes it); with none there is nothing to show.
+		if (found.isEmpty()) { plugin.setBankHighlightedSetup(null); }
 		resultsPanel.removeAll();
 		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 
@@ -1039,16 +1183,24 @@ public class BestGearSetupPanel extends PluginPanel
 			resultsPanel.add(left(resultView));
 		}
 		List<String> detailLines = new ArrayList<>();
-		if (plugin.getOwnedItems().isBankKnown())
+		if (plugin.getOwnedItems().isBankKnown() || plugin.getOwnedItems().count() > 0)
 		{
 			detailLines.add(ownedSummary());
 		}
 		detailLines.addAll(found.getNotes());
+		addSearchDetails(detailLines);
+		resultsPanel.revalidate();
+		resultsPanel.repaint();
+	}
+
+	private void addSearchDetails(List<String> detailLines)
+	{
 		if (!detailLines.isEmpty())
 		{
 			JPanel details = new JPanel(new BorderLayout());
 			details.setBackground(ColorScheme.DARK_GRAY_COLOR);
 			JButton toggle = new JButton("Search details");
+			toggle.setName("searchDetailsToggle");
 			toggle.setFocusable(false);
 			Controls.ghost(toggle);
 			toggle.setIcon(new Controls.Chevron(Controls.Chevron.RIGHT, null));
@@ -1068,8 +1220,6 @@ public class BestGearSetupPanel extends PluginPanel
 			});
 			resultsPanel.add(left(details));
 		}
-		resultsPanel.revalidate();
-		resultsPanel.repaint();
 	}
 
 	/** Raid party scaling, when the target has any, and the Defence the setups were ranked against. */
@@ -1084,11 +1234,15 @@ public class BestGearSetupPanel extends PluginPanel
 	private String ownedSummary()
 	{
 		int manual = plugin.getOwnedItems().getManual().size();
+		int locations = plugin.getOwnedItems().getStoredLocations().size();
 		return "Owned items: " + plugin.getOwnedItems().count() + " tracked from bank, inventory and equipment"
-			+ (manual == 0 ? "" : " + " + manual + " marked by hand") + ".";
+			+ (locations == 0 ? "" : " and " + locations + " other storage locations")
+			+ (manual == 0 ? "" : " + " + manual + " marked by hand") + ". "
+			+ (plugin.getOwnedItems().isStorageConnected() ? "Other storage supplied by Dude, Where's My Stuff?"
+				: "Enable or update Dude, Where's My Stuff? to include its tracked storage.");
 	}
 
-	/** An item was marked or unmarked as owned by hand. */
+	/** Owned items or their recorded storage locations changed. */
 	public void onManualOwnedChanged()
 	{
 		updateOwnedStatus();
@@ -1099,7 +1253,9 @@ public class BestGearSetupPanel extends PluginPanel
 	{
 		// The tracked count is listed under Search details; only the missing bank needs a standing prompt.
 		boolean known = plugin.getOwnedItems().isBankKnown();
-		ownedLabel.setText(known ? "" : html("Open your bank once to use your owned items."));
+		ownedLabel.setText(known ? "" : html(plugin.getOwnedItems().isStorageConnected()
+			? "Other storage connected. Open your bank once to include bank items."
+			: "Open your bank once to use your owned items."));
 		ownedLabel.setVisible(!known);
 		// Equipped markers are read when painted, so equipping an item updates the shown setup.
 		resultsPanel.repaint();

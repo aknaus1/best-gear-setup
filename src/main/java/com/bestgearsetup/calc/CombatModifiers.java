@@ -25,6 +25,8 @@ public class CombatModifiers
 	WeaponPoison weaponPoison = WeaponPoison.NONE;
 	/** Score each weapon's special attack instead of its ordinary attack. */
 	boolean specialAttack;
+	/** Every cast freezes a target that isn't frozen (a raid freeze duty), so freeze accuracy bonuses always apply. */
+	boolean freezeCasts;
 	int soulreaperStacks;
 	@Builder.Default
 	int miningLevel = 99;

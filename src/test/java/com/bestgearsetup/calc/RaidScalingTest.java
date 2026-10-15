@@ -34,6 +34,27 @@ public class RaidScalingTest
 		return RaidScaling.Settings.builder().partySize(size);
 	}
 
+	@Test public void walkThePathAveragesRoundedOutcomesForEveryStartingLevelAndPosition()
+	{
+		Monster boss = raidMonster(11789, "akkha", "tombs of amascut", 400, 80, 100, 100, 140, 100);
+		// At start 0, ordinary HP at path levels 0/1/2/3 is 400/430/450/470 after rounding.
+		int[][] expected = {{400, 420, 432, 453}, {430, 443, 453, 473},
+			{450, 463, 473, 493}, {470, 483, 493, 513}};
+		for (int start = 0; start <= 3; start++)
+		{
+			for (int completed = 0; completed <= 3; completed++)
+			{
+				RaidScaling.Settings settings = party(1).toaPathLevel(start).toaWalkThePath(true).toaCompletedPaths(completed).build();
+				Monster scaled = RaidScaling.apply(boss, settings);
+				assertEquals("start " + start + ", completed " + completed, expected[start][completed], scaled.getHitpoints());
+				org.junit.Assert.assertTrue(RaidScaling.describe(boss, scaled, settings).contains("expected HP"));
+			}
+		}
+		assertEquals(400, boss.getHitpoints());
+		Monster core = raidMonster(11758, "tumeken's warden (core-ejected)", "tombs of amascut", 4500, 100, 190, 1, 1, 1);
+		assertEquals(4500, RaidScaling.apply(core, party(1).toaPathLevel(3).toaWalkThePath(true).toaCompletedPaths(3).build()).getHitpoints());
+	}
+
 	@Test
 	public void toaScalesPathBossHpWithRaidPathAndPartyThenRounds()
 	{

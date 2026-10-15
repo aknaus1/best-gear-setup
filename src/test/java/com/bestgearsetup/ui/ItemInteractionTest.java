@@ -1,5 +1,6 @@
 package com.bestgearsetup.ui;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -97,6 +98,38 @@ public class ItemInteractionTest
 			option(pouch.getComponentPopupMenu(), "Mark as owned").doClick();
 			verify(plugin).setManualOwned(12791, true);
 			assertTrue(((JComponent) findGrid(inventory).getComponent(1)).getComponentPopupMenu() == null);
+		});
+	}
+
+	@Test public void carriedBoostSaysItIsAlsoPrepot() throws Exception
+	{
+		BestGearSetupPlugin plugin = plugin();
+		SwingUtilities.invokeAndWait(() ->
+		{
+			InventoryView inventory = new InventoryView(images(), new JPanel(), "testInventory", plugin, null, 0);
+			RaidPlan.InventoryItem potion = new RaidPlan.InventoryItem("Super combat potion(4)", Collections.singletonList(12695),
+				false, Collections.emptyList(), RaidPlan.InventoryGroup.BOOSTS);
+			inventory.showItems(Collections.singletonList(potion), item -> item == potion ? RaidPlan.PotionUse.BOTH : null);
+			JComponent cell = (JComponent) findGrid(inventory).getComponent(0);
+			assertEquals("potion:BOTH", cell.getName());
+			assertTrue(cell.getToolTipText().contains(RaidPlan.PotionUse.BOTH.getDescription()));
+		});
+	}
+
+	@Test public void gearHoverShowsEscapedStorageLocationsAndFollowsWithdrawals() throws Exception
+	{
+		BestGearSetupPlugin plugin = plugin();
+		when(plugin.itemLocations(body)).thenReturn(Collections.singleton("STASH: Bob's <tower> & bank"));
+		SwingUtilities.invokeAndWait(() ->
+		{
+			InventoryView inventory = new InventoryView(images(), new JPanel(), "testInventory", plugin, null, 0);
+			inventory.showItems(Collections.singletonList(new RaidPlan.InventoryItem("blue moon chestplate",
+				Collections.singletonList(29013), true)));
+			JComponent cell = (JComponent) findGrid(inventory).getComponent(0);
+			assertTrue(cell.getToolTipText(hover(cell)).contains("Location: STASH: Bob's &lt;tower&gt; &amp; bank"));
+			when(plugin.itemLocations(body)).thenReturn(Collections.singleton("Inventory"));
+			assertTrue(cell.getToolTipText(hover(cell)).contains("Location: Inventory"));
+			assertTrue(!cell.getToolTipText(hover(cell)).contains("STASH:"));
 		});
 	}
 

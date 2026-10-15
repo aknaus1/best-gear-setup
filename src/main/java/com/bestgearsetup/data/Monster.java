@@ -41,6 +41,11 @@ public class Monster
 	private int rangedLevel;
 	@SerializedName("agg_magic")
 	private int magicAttackBonus;
+	/** Null when the snapshot doesn't supply the NPC's melee / ranged accuracy bonuses. */
+	@SerializedName("agg_melee")
+	private Integer meleeAttackBonus;
+	@SerializedName("agg_ranged")
+	private Integer rangedAttackBonus;
 
 	@SerializedName("def_stab")
 	private int defStab;
@@ -118,6 +123,8 @@ public class Monster
 		m.magicLevel = magicLevel;
 		m.rangedLevel = rangedLevel;
 		m.magicAttackBonus = magicAttackBonus;
+		m.meleeAttackBonus = meleeAttackBonus;
+		m.rangedAttackBonus = rangedAttackBonus;
 		m.defStab = defStab;
 		m.defSlash = defSlash;
 		m.defCrush = defCrush;

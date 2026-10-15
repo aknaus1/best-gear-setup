@@ -24,10 +24,10 @@ final class SearchAssumptions implements BestGearSetupConfig
 {
 	private final boolean activeEncounter;
 	private final int raidEquipmentLimit;
+	private final int quickSwitchLimit;
 	private final RaidSpellbook raidSpellbook;
 	private final RaidOptions.ToaPathOrder toaPathOrder;
-	private final RaidOptions.MaidenRole tobMaidenRole;
-	private final RaidOptions.NylocasRole tobNylocasRole;
+	private final RaidOptions.TobRole tobRole;
 	private final String raidStyles;
 	private final boolean showMenuOption;
 	private final boolean highlightBankGear;
@@ -61,6 +61,11 @@ final class SearchAssumptions implements BestGearSetupConfig
 	private final int raidPartySize;
 	private final int toaRaidLevel;
 	private final int toaPathLevel;
+	private final int toaStartingPathLevel;
+	private final boolean toaWalkThePath;
+	private final boolean toaMoreOverlords;
+	private final int raidKillShare;
+	private final int raidFinalBlowPercent;
 	private final boolean coxChallengeMode;
 	private final EncounterPhase encounterPhase;
 	private final boolean aoe;
@@ -100,6 +105,8 @@ final class SearchAssumptions implements BestGearSetupConfig
 	private final boolean usePrayers;
 	private final boolean thrall;
 	private final boolean raidPotions;
+	private final boolean divinePotions;
+	private final int repotBelow;
 	private final AutoState taskMode;
 	private final boolean autoRaid;
 	private final boolean autoSpecs;
@@ -111,16 +118,17 @@ final class SearchAssumptions implements BestGearSetupConfig
 	private final String potionMagic;
 	private final String locks;
 	private final String excluded;
+	private final String seenFightOptions;
 
 	private SearchAssumptions(BestGearSetupConfig source, Overrides o)
 	{
 		activeEncounter = o.get("activeEncounter", source.activeEncounter());
 		raidSpellbook = o.get("raidSpellbook", source.raidSpellbook());
 		toaPathOrder = o.get("toaPathOrder", source.toaPathOrder());
-		tobMaidenRole = o.get("tobMaidenRole", source.tobMaidenRole());
-		tobNylocasRole = o.get("tobNylocasRole", source.tobNylocasRole());
+		tobRole = o.get("tobRole", source.tobRole());
 		raidStyles = o.get("raidStyles", source.raidStyles());
 		raidEquipmentLimit = o.get("raidEquipmentLimit", source.raidEquipmentLimit());
+		quickSwitchLimit = o.get("quickSwitchLimit", source.quickSwitchLimit());
 		showMenuOption = o.get("showMenuOption", source.showMenuOption());
 		highlightBankGear = o.get("highlightBankGear", source.highlightBankGear());
 		bankHighlightColor = o.get("bankHighlightColor", source.bankHighlightColor());
@@ -153,6 +161,11 @@ final class SearchAssumptions implements BestGearSetupConfig
 		raidPartySize = o.get("raidPartySize", source.raidPartySize());
 		toaRaidLevel = o.get("toaRaidLevel", source.toaRaidLevel());
 		toaPathLevel = o.get("toaPathLevel", source.toaPathLevel());
+		toaStartingPathLevel = o.get("toaStartingPathLevel", source.toaStartingPathLevel());
+		toaWalkThePath = o.get("toaWalkThePath", source.toaWalkThePath());
+		toaMoreOverlords = o.get("toaMoreOverlords", source.toaMoreOverlords());
+		raidKillShare = o.get("raidKillShare", source.raidKillShare());
+		raidFinalBlowPercent = o.get("raidFinalBlowPercent", source.raidFinalBlowPercent());
 		coxChallengeMode = o.get("coxChallengeMode", source.coxChallengeMode());
 		encounterPhase = o.get("encounterPhase", source.encounterPhase());
 		aoe = o.get("aoe", source.aoe());
@@ -192,6 +205,8 @@ final class SearchAssumptions implements BestGearSetupConfig
 		usePrayers = o.get("usePrayers", source.usePrayers());
 		thrall = o.get("thrall", source.thrall());
 		raidPotions = o.get("raidPotions", source.raidPotions());
+		divinePotions = o.get("divinePotions", source.divinePotions());
+		repotBelow = o.get("repotBelow", source.repotBelow());
 		taskMode = o.get("taskMode", source.taskMode());
 		autoRaid = o.get("autoRaid", source.autoRaid());
 		autoSpecs = o.get("autoSpecs", source.autoSpecs());
@@ -203,6 +218,7 @@ final class SearchAssumptions implements BestGearSetupConfig
 		potionMagic = o.get("potionMagic", source.potionMagic());
 		locks = o.get("locks", source.locks());
 		excluded = o.get("excluded", source.excluded());
+		seenFightOptions = o.get("seenFightOptions", source.seenFightOptions());
 	}
 
 	static BestGearSetupConfig capture(BestGearSetupConfig source, Map<String, Object> overrides)
@@ -216,10 +232,10 @@ final class SearchAssumptions implements BestGearSetupConfig
 	@Override public boolean activeEncounter() { return activeEncounter; }
 	@Override public RaidSpellbook raidSpellbook() { return raidSpellbook; }
 	@Override public RaidOptions.ToaPathOrder toaPathOrder() { return toaPathOrder; }
-	@Override public RaidOptions.MaidenRole tobMaidenRole() { return tobMaidenRole; }
-	@Override public RaidOptions.NylocasRole tobNylocasRole() { return tobNylocasRole; }
+	@Override public RaidOptions.TobRole tobRole() { return tobRole; }
 	@Override public String raidStyles() { return raidStyles; }
 	@Override public int raidEquipmentLimit() { return raidEquipmentLimit; }
+	@Override public int quickSwitchLimit() { return quickSwitchLimit; }
 	@Override public boolean showMenuOption() { return showMenuOption; }
 	@Override public boolean highlightBankGear() { return highlightBankGear; }
 	@Override public Color bankHighlightColor() { return bankHighlightColor; }
@@ -252,6 +268,11 @@ final class SearchAssumptions implements BestGearSetupConfig
 	@Override public int raidPartySize() { return raidPartySize; }
 	@Override public int toaRaidLevel() { return toaRaidLevel; }
 	@Override public int toaPathLevel() { return toaPathLevel; }
+	@Override public int toaStartingPathLevel() { return toaStartingPathLevel; }
+	@Override public boolean toaWalkThePath() { return toaWalkThePath; }
+	@Override public boolean toaMoreOverlords() { return toaMoreOverlords; }
+	@Override public int raidKillShare() { return raidKillShare; }
+	@Override public int raidFinalBlowPercent() { return raidFinalBlowPercent; }
 	@Override public boolean coxChallengeMode() { return coxChallengeMode; }
 	@Override public EncounterPhase encounterPhase() { return encounterPhase; }
 	@Override public boolean aoe() { return aoe; }
@@ -291,6 +312,8 @@ final class SearchAssumptions implements BestGearSetupConfig
 	@Override public boolean usePrayers() { return usePrayers; }
 	@Override public boolean thrall() { return thrall; }
 	@Override public boolean raidPotions() { return raidPotions; }
+	@Override public boolean divinePotions() { return divinePotions; }
+	@Override public int repotBelow() { return repotBelow; }
 	@Override public AutoState taskMode() { return taskMode; }
 	@Override public boolean autoRaid() { return autoRaid; }
 	@Override public boolean autoSpecs() { return autoSpecs; }
@@ -302,6 +325,7 @@ final class SearchAssumptions implements BestGearSetupConfig
 	@Override public String potionMagic() { return potionMagic; }
 	@Override public String locks() { return locks; }
 	@Override public String excluded() { return excluded; }
+	@Override public String seenFightOptions() { return seenFightOptions; }
 
 	@Override
 	public String toString()

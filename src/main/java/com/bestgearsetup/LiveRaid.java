@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Locale;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
+import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.gameval.VarbitID;
 
@@ -19,6 +21,49 @@ final class LiveRaid
 	final Map<String, Integer> pathLevels = new HashMap<>();
 	int maxCombat;
 	boolean raidDetected;
+
+	/** Instanced source region, rather than the raid's allocated world coordinates. */
+	static int region(Client client)
+	{
+		LocalPoint point = client.getLocalPlayer() == null ? null : client.getLocalPlayer().getLocalLocation();
+		return point == null ? -1 : WorldPoint.fromLocalInstance(client, point).getRegionID();
+	}
+
+	/** Party membership alone is insufficient: don't start a raid while the player is preparing in the lobby. */
+	static boolean inProgress(Client client, RaidPlanType type, int region)
+	{
+		switch (type)
+		{
+			case COX_CM:
+				return client.getVarbitValue(VarbitID.RAIDS_CLIENT_INDUNGEON) == 1
+					&& client.getVarbitValue(VarbitID.RAIDS_CLIENT_PROGRESS) > 0
+					&& client.getVarbitValue(VarbitID.RAIDS_CHALLENGE_MODE) == 1;
+			case TOB:
+				int status = client.getVarbitValue(VarbitID.TOB_CLIENT_PARTYSTATUS);
+				return status == 2 || status == 3;
+			case TOA: return toaRoom(region) != null || region == 14160 || region == 14672;
+			default: return false;
+		}
+	}
+
+	/** ToA template regions identify the actual path even if the player chooses a different order from the plan. */
+	static String toaRoom(int region)
+	{
+		switch (region)
+		{
+			case 15186: case 15188: return "apmeken";
+			case 14162: case 14164: return "scabaras";
+			case 14674: case 14676: return "het";
+			case 15698: case 15700: return "crondis";
+			case 15184: case 15696: return "wardens";
+			default: return null;
+		}
+	}
+
+	static boolean toaPuzzle(int region)
+	{
+		return region == 15186 || region == 14162 || region == 14674 || region == 15698;
+	}
 
 	/** Read Akkha's actual protection prayer; other bosses and missing icons have no phase override. */
 	static EncounterPhase akkhaPhase(NPC npc)
@@ -75,9 +120,8 @@ final class LiveRaid
 			live.pathLevels.put("kephri", Math.max(0, Math.min(6, client.getVarbitValue(VarbitID.TOA_CLIENT_SCABARAS_LEVEL))));
 			live.pathLevels.put("akkha", Math.max(0, Math.min(6, client.getVarbitValue(VarbitID.TOA_CLIENT_HET_LEVEL))));
 			live.pathLevels.put("ba-ba", Math.max(0, Math.min(6, client.getVarbitValue(VarbitID.TOA_CLIENT_APMEKEN_LEVEL))));
-			int path = name.contains("zebak") ? VarbitID.TOA_CLIENT_CRONDIS_LEVEL : name.contains("kephri") ? VarbitID.TOA_CLIENT_SCABARAS_LEVEL
-				: name.contains("akkha") ? VarbitID.TOA_CLIENT_HET_LEVEL : name.contains("ba-ba") ? VarbitID.TOA_CLIENT_APMEKEN_LEVEL : -1;
-			if (path >= 0) { live.values.put("toaPathLevel", Math.max(0, Math.min(6, client.getVarbitValue(path)))); }
+			Integer path = live.pathLevels.get(ToaPathLevels.pathKey(name));
+			if (path != null) { live.values.put("toaPathLevel", path); }
 		}
 		else if ((raid == RaidScaling.Raid.TOB || raid == RaidScaling.Raid.TOB_ENTRY)
 			&& client.getVarbitValue(VarbitID.TOB_CLIENT_PARTYSTATUS) > 0)

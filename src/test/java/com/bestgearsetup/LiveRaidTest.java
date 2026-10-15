@@ -15,6 +15,34 @@ import org.junit.Test;
 
 public class LiveRaidTest
 {
+	@Test public void progressNeedsAStartedRaidInsteadOfLobbyPartyMembership()
+	{
+		Map<Integer, Integer> bits = new HashMap<>(); Client client = client(bits);
+		bits.put(VarbitID.TOB_CLIENT_PARTYSTATUS, 1);
+		assertFalse(LiveRaid.inProgress(client, RaidPlanType.TOB, -1));
+		bits.put(VarbitID.TOB_CLIENT_PARTYSTATUS, 2);
+		assertTrue(LiveRaid.inProgress(client, RaidPlanType.TOB, -1));
+		bits.put(VarbitID.TOB_CLIENT_PARTYSTATUS, 3);
+		assertTrue("Death while spectating the party does not reset completed rooms", LiveRaid.inProgress(client, RaidPlanType.TOB, -1));
+		bits.put(VarbitID.RAIDS_CLIENT_INDUNGEON, 1); bits.put(VarbitID.RAIDS_CHALLENGE_MODE, 1);
+		assertFalse(LiveRaid.inProgress(client, RaidPlanType.COX_CM, -1));
+		bits.put(VarbitID.RAIDS_CLIENT_PROGRESS, 1);
+		assertTrue(LiveRaid.inProgress(client, RaidPlanType.COX_CM, -1));
+		bits.put(VarbitID.RAIDS_CHALLENGE_MODE, 0);
+		assertFalse("A normal CoX run cannot advance the CM plan", LiveRaid.inProgress(client, RaidPlanType.COX_CM, -1));
+	}
+
+	@Test public void toaProgressUsesTheActualInstanceRoom()
+	{
+		Client client = client(new HashMap<>());
+		assertFalse(LiveRaid.inProgress(client, RaidPlanType.TOA, 13454));
+		assertTrue(LiveRaid.inProgress(client, RaidPlanType.TOA, 14160));
+		assertTrue(LiveRaid.inProgress(client, RaidPlanType.TOA, 15700));
+		assertEquals("crondis", LiveRaid.toaRoom(15700));
+		assertFalse(LiveRaid.toaPuzzle(15700));
+		assertTrue(LiveRaid.toaPuzzle(15698));
+	}
+
 	private Client client(Map<Integer, Integer> bits)
 	{
 		Client client = mock(Client.class);

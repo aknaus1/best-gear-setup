@@ -231,6 +231,22 @@ public class DpsCalculatorTest
 	}
 
 	@Test
+	public void scytheHitsTheEjectedWardenCoreOnce()
+	{
+		GearItem scythe = weapon(22325, "scythe of vitur", "scythe", 5, "chop,slash,aggressive");
+		scythe.setMeleeStr(75);
+		Monster small = monster(1, 0);
+		Monster core = monster(1, 0);
+		core.setName("elidinis' warden (core-ejected)");
+		core.setSize(5);
+		Loadout l = meleeLoadout(scythe, "chop,slash,aggressive");
+		DpsResult one = DpsCalculator.calculate(l, new CombatContext(small, MAXED, false, true, piety()));
+		DpsResult hit = DpsCalculator.calculate(l, new CombatContext(core, MAXED, false, true, piety()));
+		// One hit: a 5x5 target would add the 50% and 25% hits to the shown max.
+		assertEquals(one.getMaxHit(), hit.getMaxHit());
+	}
+
+	@Test
 	public void poweredStaffAndAutocast()
 	{
 		GearItem sang = weapon(22323, "sanguinesti staff", "powered staff", 4, "accurate,magic,accurate");

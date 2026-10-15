@@ -79,10 +79,10 @@ public class SpellRunesTest
 		Loadout loadout = loadout("dark demonbane", "magic staff", null);
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MAGIC, loadout, null,
 			0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.MARK_OF_DARKNESS, SupportSpell.THRALL)));
-		assertEquals(Integer.valueOf(7), cells.get(ItemID.BLOODRUNE));
-		assertEquals(Integer.valueOf(12), cells.get(ItemID.BOOK_OF_THE_DEAD));
+		assertEquals(Integer.valueOf(12), cells.get(ItemID.BLOODRUNE));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID.BOOK_OF_THE_DEAD));
 		// Aether replaces soul and cosmic; it sits with the first of those (soul).
-		assertEquals(Integer.valueOf(5), cells.get(ItemID.AETHERRUNE));
+		assertEquals(Integer.valueOf(6), cells.get(ItemID.AETHERRUNE));
 		Map<Integer, Integer> thrall = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
 			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.THRALL)));
 		assertEquals(thrall.get(ItemID.COSMICRUNE), thrall.get(ItemID.AETHERRUNE));
@@ -107,7 +107,7 @@ public class SpellRunesTest
 	}
 
 	@Test
-	public void bankLayoutPlacesBoostsBelowTheSpellRunesWithEveryDose()
+	public void bankLayoutPlacesBoostsBeforeRunesWithEveryDose()
 	{
 		Potion combat = new Potion();
 		combat.setId(ItemID._4DOSE2COMBAT);
@@ -143,12 +143,13 @@ public class SpellRunesTest
 		Map<Integer, Integer> none = BestGearSetupBankView.cellsFor(barrage, Collections.emptyList(), id -> false);
 		assertFalse(none.containsKey(ItemID.BH_RUNE_POUCH));
 		assertEquals(Integer.valueOf(4), none.get(ItemID.DEATHRUNE));
-		// Both pouches owned: the divine one takes the cell, the regular one only fills it in its absence.
+		// Keep the bank consistent with the packed inventory: choose the best owned pouch capacity.
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(barrage, Collections.emptyList(),
 			id -> id == ItemID.DIVINE_RUNE_POUCH || id == ItemID.BH_RUNE_POUCH_TROUVER);
 		assertEquals(Integer.valueOf(4), cells.get(ItemID.DIVINE_RUNE_POUCH));
-		assertEquals(Integer.valueOf(4), cells.get(ItemID.BH_RUNE_POUCH_TROUVER));
+		assertFalse(cells.containsKey(ItemID.BH_RUNE_POUCH_TROUVER));
 		assertFalse(cells.containsKey(ItemID.BH_RUNE_POUCH));
+		// Without equipment switches, packed runes stay beside the pouch.
 		assertEquals(Integer.valueOf(5), cells.get(ItemID.DEATHRUNE));
 		// No runes needed, no pouch.
 		assertFalse(BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MAGIC,

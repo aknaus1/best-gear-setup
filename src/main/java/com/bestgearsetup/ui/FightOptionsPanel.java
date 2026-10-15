@@ -4,20 +4,26 @@ import static com.bestgearsetup.ui.SettingRows.setting;
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.RaidPlanType;
+import com.bestgearsetup.RaidOptions;
+import com.bestgearsetup.RaidSpellbook;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.ui.SettingRows.Setting;
+import java.awt.Component;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JComboBox;
 import net.runelite.client.config.ConfigItemDescriptor;
 import net.runelite.client.ui.ColorScheme;
 
@@ -46,12 +52,15 @@ class FightOptionsPanel extends JPanel
 		setting("raidPartySize", BestGearSetupConfig::raidPartySize),
 		setting("toaRaidLevel", BestGearSetupConfig::toaRaidLevel),
 		setting("toaPathLevel", BestGearSetupConfig::toaPathLevel),
+		setting("toaStartingPathLevel", BestGearSetupConfig::toaStartingPathLevel),
+		setting("toaWalkThePath", BestGearSetupConfig::toaWalkThePath),
+		setting("toaMoreOverlords", BestGearSetupConfig::toaMoreOverlords),
 		setting("coxChallengeMode", BestGearSetupConfig::coxChallengeMode),
 		setting("raidEquipmentLimit", BestGearSetupConfig::raidEquipmentLimit),
 		setting("raidSpellbook", BestGearSetupConfig::raidSpellbook),
 		setting("toaPathOrder", BestGearSetupConfig::toaPathOrder),
-		setting("tobMaidenRole", BestGearSetupConfig::tobMaidenRole),
-		setting("tobNylocasRole", BestGearSetupConfig::tobNylocasRole),
+		setting("tobRole", BestGearSetupConfig::tobRole),
+		setting("quickSwitchLimit", BestGearSetupConfig::quickSwitchLimit),
 		setting("autoSpecs", BestGearSetupConfig::autoSpecs),
 		setting("specVulnerability", BestGearSetupConfig::specVulnerability),
 		setting("specTomeOfWater", BestGearSetupConfig::specTomeOfWater),
@@ -66,15 +75,26 @@ class FightOptionsPanel extends JPanel
 	/** Pre-fight drains, counted in the collapsed section's heading when any is set. */
 	private static final String[] PREPARATION = {"specVulnerability", "specTomeOfWater", "specElderMaul", "specDwh",
 		"specEmberlight", "specArclight", "specTonalztics", "specBgsDamage", "specSeercullDamage", "specAyakDamage"};
+	/**
+	 * Options that only appear for some targets or complete raids. Players who don't open Fight would never
+	 * learn they exist, so the Fight button flags them until they have been shown.
+	 */
+	private static final String[] TARGET_OPTIONS = {"autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel",
+		"toaStartingPathLevel", "toaWalkThePath", "toaMoreOverlords", "coxChallengeMode", "miningLevel", "raidEquipmentLimit",
+		"raidSpellbook", "toaPathOrder", "tobRole", "quickSwitchLimit", "forinthrySurge"};
 	/** Wide enough for the largest maximum shown here (2000 damage). */
 	private static final int SPINNER_COLUMNS = 4;
 	private final SettingRows settingRows;
+	private final BestGearSetupConfig config;
 	private final SidebarSection raidSection;
 	private final SidebarSection preparationSection;
 	private final String wildernessTip;
+	private final String spellbookTip;
+	private boolean freezeSpellbookLocked;
 	private Monster target = new Monster();
 	/** The complete raid being planned; path order and roles only change complete raid plans. */
 	private RaidPlanType raidPlan = RaidPlanType.SINGLE;
+	private Runnable targetOptionsListener;
 
 	/** @param items the config's item descriptors, from {@link net.runelite.client.config.ConfigManager#getConfigDescriptor} */
 	FightOptionsPanel(BestGearSetupPlugin plugin, BestGearSetupConfig config, Collection<ConfigItemDescriptor> items)
@@ -86,6 +106,7 @@ class FightOptionsPanel extends JPanel
 		SidebarSection.Accordion accordion)
 	{
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+		this.config = config;
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		// Build the controls first, then place them in one-level sections by purpose.
 		settingRows = new SettingRows(plugin, config, items, SPINNER_COLUMNS, this::updateVisibility);
@@ -94,6 +115,7 @@ class FightOptionsPanel extends JPanel
 			settingRows.add(entry);
 		}
 		wildernessTip = control("wilderness").getToolTipText();
+		spellbookTip = control("raidSpellbook").getToolTipText();
 		SidebarSection conditions = accordion.create("fightConditions", "Fight conditions");
 		addRows(conditions, "activeEncounter", "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
 			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "thrall");
@@ -105,8 +127,9 @@ class FightOptionsPanel extends JPanel
 		add(BestGearSetupPanel.left(specials));
 		raidSection = accordion.create("raidScaling", "Raid");
 		raidSection.showAsEditor();
-		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel",
-			"raidEquipmentLimit", "raidSpellbook", "toaPathOrder", "tobMaidenRole", "tobNylocasRole");
+		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "toaStartingPathLevel", "toaWalkThePath",
+			"toaMoreOverlords", "coxChallengeMode", "miningLevel",
+			"raidEquipmentLimit", "raidSpellbook", "toaPathOrder", "tobRole", "quickSwitchLimit");
 		add(BestGearSetupPanel.left(raidSection));
 		// Collapsed by default: most searches start from the target's full stats.
 		preparationSection = accordion.create("preparation", "Pre-fight preparation");
@@ -162,12 +185,24 @@ class FightOptionsPanel extends JPanel
 		raidSection.getParent().setVisible(raid != RaidScaling.Raid.NONE || planned);
 		settingRows.row("raidPartySize").setVisible(raid != RaidScaling.Raid.NONE || planned);
 		settingRows.row("toaRaidLevel").setVisible(raid == RaidScaling.Raid.TOA || raidPlan == RaidPlanType.TOA);
-		settingRows.row("toaPathLevel").setVisible(raid == RaidScaling.Raid.TOA && RaidScaling.toaPath(target));
-		settingRows.row("coxChallengeMode").setVisible(raid == RaidScaling.Raid.COX);
-		settingRows.row("miningLevel").setVisible(raid == RaidScaling.Raid.COX && target.getName().contains("guardian"));
+		settingRows.row("toaPathLevel").setVisible(raidPlan == RaidPlanType.SINGLE && raid == RaidScaling.Raid.TOA && RaidScaling.toaPath(target));
+		settingRows.row("toaStartingPathLevel").setVisible(raidPlan == RaidPlanType.TOA);
+		settingRows.row("toaWalkThePath").setVisible(raidPlan == RaidPlanType.TOA);
+		settingRows.row("toaMoreOverlords").setVisible(raidPlan == RaidPlanType.TOA);
+		settingRows.row("coxChallengeMode").setVisible(raidPlan == RaidPlanType.SINGLE && raid == RaidScaling.Raid.COX);
+		settingRows.row("miningLevel").setVisible(raidPlan == RaidPlanType.COX_CM
+			|| (raid == RaidScaling.Raid.COX && target.getName().contains("guardian")));
 		settingRows.row("toaPathOrder").setVisible(raidPlan == RaidPlanType.TOA);
-		settingRows.row("tobMaidenRole").setVisible(raidPlan == RaidPlanType.TOB);
-		settingRows.row("tobNylocasRole").setVisible(raidPlan == RaidPlanType.TOB);
+		settingRows.row("tobRole").setVisible(raidPlan == RaidPlanType.TOB);
+		// Only these raids have quick-switch groups: the ToB Vasilias forms and the ToA baboons.
+		settingRows.row("quickSwitchLimit").setVisible(raidPlan == RaidPlanType.TOB || raidPlan == RaidPlanType.TOA);
+		boolean freeze = raidPlan == RaidPlanType.TOB
+			&& ((RaidOptions.TobRole) ((JComboBox<?>) control("tobRole")).getSelectedItem()).freezes();
+		if (freeze) { settingRows.showChoice("raidSpellbook", RaidSpellbook.ANCIENT); }
+		else if (freezeSpellbookLocked) { settingRows.showChoice("raidSpellbook", config.raidSpellbook()); }
+		freezeSpellbookLocked = freeze;
+		control("raidSpellbook").setEnabled(!freeze);
+		control("raidSpellbook").setToolTipText(freeze ? "Ancient is required for this role's Ice Barrage freezes." : spellbookTip);
 		settingRows.row("aoeTargets").setVisible(selected("aoe"));
 		settingRows.row("specEnergy").setVisible(selected("killSpecials"));
 		settingRows.row("drainSpecs").setVisible(selected("killSpecials"));
@@ -188,6 +223,40 @@ class FightOptionsPanel extends JPanel
 		}
 		preparationSection.setSummary(prepared);
 		revalidate();
+		if (targetOptionsListener != null) { targetOptionsListener.run(); }
+	}
+
+	/** Run whenever the shown options may have changed, e.g. to flag {@link #targetOptions()} elsewhere. */
+	void onTargetOptionsChanged(Runnable listener)
+	{
+		targetOptionsListener = listener;
+	}
+
+	/** The target-specific options shown for the current target or raid plan: display names by setting key. */
+	Map<String, String> targetOptions()
+	{
+		Map<String, String> shown = new LinkedHashMap<>();
+		for (String key : TARGET_OPTIONS)
+		{
+			if (shown(settingRows.row(key)))
+			{
+				shown.put(key, settingRows.name(key));
+			}
+		}
+		return shown;
+	}
+
+	/** Visible within this panel; isShowing() would also need the sidebar on screen. */
+	private boolean shown(Component row)
+	{
+		for (Component c = row; c != null && c != this; c = c.getParent())
+		{
+			if (!c.isVisible())
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private JComponent control(String key)

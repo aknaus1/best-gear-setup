@@ -1,6 +1,7 @@
 package com.bestgearsetup;
 
 import com.bestgearsetup.calc.SearchMode;
+import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Potion;
 import java.util.Arrays;
 import java.util.Collections;
@@ -80,7 +81,15 @@ final class BoostAccess
 	 */
 	static Set<Integer> itemIds(Potion potion)
 	{
+		return itemIds(potion, false);
+	}
+
+	/** As {@link #itemIds(Potion)}, with the divine version's doses first when {@code divineFirst} and there is one. */
+	static Set<Integer> itemIds(Potion potion, boolean divineFirst)
+	{
 		Set<Integer> ids = new LinkedHashSet<>();
+		Integer divine = divineFirst ? DIVINE.get(potion.getId()) : null;
+		if (divine != null) { addFamily(ids, divine); }
 		addDoses(ids, potion.getId());
 		for (int same : SAME_BOOST.getOrDefault(potion.getId(), Collections.emptyList()))
 		{
@@ -105,6 +114,35 @@ final class BoostAccess
 		ids.add(fourDose);
 		// RuneLite's variation order is unspecified.
 		ids.addAll(new TreeSet<>(ItemVariationMapping.getVariations(ItemVariationMapping.map(fourDose))));
+	}
+
+	/** Every id {@link #owns} can ask about: each boost in the potion table and its divine version. */
+	static Set<Integer> ownershipIds(GameData data)
+	{
+		Set<Integer> ids = new HashSet<>();
+		for (Potion potion : data.getAllPotions())
+		{
+			ids.add(potion.getId());
+			Integer divine = DIVINE.get(potion.getId());
+			if (divine != null)
+			{
+				ids.add(divine);
+			}
+		}
+		return ids;
+	}
+
+	/** The divine version's 4-dose id, or null when the potion has none. */
+	static Integer divine(Potion potion)
+	{
+		return DIVINE.get(potion.getId());
+	}
+
+	/** Whether a bottle entry whose first id is {@code firstId} holds this potion, as its own or its divine version. */
+	static boolean isBottleOf(Potion potion, int firstId)
+	{
+		Integer divine = DIVINE.get(potion.getId());
+		return firstId == potion.getId() || divine != null && divine == firstId;
 	}
 
 	static boolean owns(Potion potion, Set<Integer> owned)

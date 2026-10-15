@@ -12,6 +12,7 @@ import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -19,6 +20,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -31,6 +33,7 @@ import java.util.function.IntToLongFunction;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
 import lombok.Value;
 import net.runelite.api.gameval.ItemID;
 
@@ -71,6 +74,8 @@ public class Optimizer
 	 * options, so an option skipped this way can't have changed which of the others wins a near tie.
 	 */
 	private static final double BOUND_MARGIN = 1e-6;
+	/** Switches of each size a larger raid switch is grown from, one more slot at a time. */
+	private static final int GROWN_SWITCHES = 4;
 	/** Weight that makes the calc-mode metric dominate DPS, which only breaks ties. */
 	private static final double PRIMARY_WEIGHT = 1e6;
 
@@ -145,7 +150,10 @@ public class Optimizer
 		IntToLongFunction ownedQuantity, ToLongFunction<GearItem> priceFn)
 	{
 		this.data = data;
-		this.ctx = ctx.withFightOptions(ctx.getAoeTargets(), settings.getTargetDistance());
+		CombatContext fight = ctx.withFightOptions(ctx.getAoeTargets(), settings.getTargetDistance());
+		// A freeze duty only casts on targets that aren't frozen yet.
+		this.ctx = settings.getRaidLoadout() == RaidLoadout.ICE_BARRAGE
+			? fight.withModifiers(fight.getModifiers().toBuilder().freezeCasts(true).build()) : fight;
 		this.settings = settings;
 		this.owned = owned;
 		this.ownedQuantity = ownedQuantity;
@@ -181,7 +189,7 @@ public class Optimizer
 
 	/**
 	 * As {@link #optimize(CombatClass, BooleanSupplier)}, reporting the fraction of work done (0 to 1, never
-	 * decreasing) on the calling thread. Each weapon swept, refined or finalised counts as one step.
+	 * decreasing) on the calling thread. Weapons count as steps, with fractional updates for seed ascents and pair refinement inside each step.
 	 */
 	public List<SetupResult> optimize(CombatClass cls, BooleanSupplier cancelled, DoubleConsumer progress)
 	{
@@ -189,6 +197,10 @@ public class Optimizer
 		{
 			progress.accept(1);
 			return Collections.emptyList();
+		}
+		if (settings.getSwitchFrom() != null)
+		{
+			return optimizeSwitch(cls, settings.getSwitchFrom(), cancelled, progress);
 		}
 		Map<Slot, List<GearItem>> candidates = candidates(cls);
 		boundCandidates = candidates;
@@ -203,7 +215,7 @@ public class Optimizer
 		List<Seed> seeds = seeds(cls);
 		boolean secondSweep = settings.getDepth() == SearchDepth.BEST || settings.isWildernessRiskLimited();
 		// Until the first sweep ends, assume every weapon survives it; the total only shrinks afterwards.
-		Steps steps = new Steps(progress, weapons.size() * 2 + (secondSweep ? Math.min(15, weapons.size()) : 0));
+		Steps steps = new Steps(progress, weapons.size() * 2 + (secondSweep ? Math.min(15, weapons.size()) : 0) + 1);
 
 		List<Found> found = new ArrayList<>();
 		for (GearItem weapon : weapons)
@@ -212,7 +224,7 @@ public class Optimizer
 			{
 				return Collections.emptyList();
 			}
-			Found f = optimizeWeapon(weapon, cls, candidates, seeds);
+			Found f = optimizeWeapon(weapon, cls, candidates, seeds, steps.part(0, 1));
 			if (f != null)
 			{
 				found.add(f);
@@ -220,7 +232,7 @@ public class Optimizer
 			steps.step();
 		}
 		found.sort(Comparator.comparingDouble((Found f) -> -f.getScore()).thenComparingLong(Found::getCost));
-		steps.total(weapons.size() + found.size() + (secondSweep ? Math.min(15, found.size()) : 0));
+		steps.total(weapons.size() + found.size() + (secondSweep ? Math.min(15, found.size()) : 0) + 1);
 
 		if (secondSweep && !found.isEmpty())
 		{
@@ -249,7 +261,7 @@ public class Optimizer
 				{
 					return Collections.emptyList();
 				}
-				Found r = optimizeWeapon(f.getLoadout().getWeapon(), cls, candidates, extra);
+				Found r = optimizeWeapon(f.getLoadout().getWeapon(), cls, candidates, extra, steps.part(0, 0.25));
 				if (r == null || !r.beats(f))
 				{
 					r = f;
@@ -257,7 +269,7 @@ public class Optimizer
 				// Below Best depth, pairs only move the Wilderness expensive-item allowance between slots.
 				if (refined.size() < PAIR_REFINED_WEAPONS)
 				{
-					r = refinePairs(r, cls, candidates, settings.getDepth() != SearchDepth.BEST, cancelled);
+					r = refinePairs(r, cls, candidates, settings.getDepth() != SearchDepth.BEST, cancelled, steps.part(0.25, 0.75));
 				}
 				refined.add(r.beats(f) ? r : f);
 				steps.step();
@@ -280,7 +292,7 @@ public class Optimizer
 			if (dps.getDps() > 0 && withinWildernessRisk(l))
 			{
 				long cost = cost(l);
-				Specced specced = special(l, cls, dps, cost);
+				Specced specced = special(l, cls, dps, cost, steps.part(0, 1));
 				SpecialPlan plan = specced == null ? null : specced.getPlan();
 				if (specced != null && specced.getWorn() != l)
 				{
@@ -292,9 +304,9 @@ public class Optimizer
 					kept.remove(Slot.RING);
 					filled = kept;
 				}
-				results.add(new SetupResult(cls, l, specced == null ? dps : specced.getResult(),
-					cost + (plan == null ? 0 : plan.getExtraCost()),
-					unpricedItems(l) + (plan == null ? 0 : plan.getUnpricedItems()), filled,
+				results.add(new SetupResult(cls, l, specced == null ? raidOrdinary(l, dps) : specced.getResult(),
+					cost + (plan == null ? 0 : plan.getTotalExtraCost()),
+					unpricedItems(l) + (plan == null ? 0 : plan.getTotalUnpricedItems()), filled,
 					SupportSpell.assumed(l, ctx), plan));
 			}
 			steps.step();
@@ -302,7 +314,263 @@ public class Optimizer
 		// Filling can lower different setups by different amounts; rank the equipment actually returned.
 		results.sort(Comparator.comparingDouble((SetupResult r) -> -metric(r.getDps()))
 			.thenComparingLong(SetupResult::getBuyCost));
-		return new ArrayList<>(results.subList(0, Math.min(Math.max(0, settings.getResultsPerClass()), results.size())));
+		List<SetupResult> selected = new ArrayList<>(results.subList(0,
+			Math.min(Math.max(0, settings.getResultsPerClass()), results.size())));
+		if (settings.getRaidKillShare() > 0)
+		{
+			List<SetupResult> alternatives = new ArrayList<>();
+			for (SetupResult setup : selected)
+			{
+				long ordinaryCost = cost(setup.getLoadout());
+				for (Specced variant : raidSpecVariants.getOrDefault(setup.getLoadout(), Collections.emptyList()))
+				{
+					SpecialPlan plan = variant.getPlan();
+					alternatives.add(new SetupResult(cls, setup.getLoadout(), variant.getResult(),
+						ordinaryCost + plan.getTotalExtraCost(), unpricedItems(setup.getLoadout()) + plan.getTotalUnpricedItems(),
+						setup.getFilledSlots(), setup.getSupportSpells(), plan));
+				}
+				if (setup.getSpecial() != null)
+				{
+					alternatives.add(new SetupResult(cls, setup.getLoadout(), raidOrdinary(setup.getLoadout(), calculate(setup.getLoadout())),
+						ordinaryCost, unpricedItems(setup.getLoadout()), setup.getFilledSlots(), setup.getSupportSpells(), null));
+				}
+			}
+			selected.addAll(alternatives);
+		}
+		steps.step();
+		return selected;
+	}
+
+	/**
+	 * Raid switches into the class from {@code worn}: each weapon, with at most {@code switchLimit - 1} other slots
+	 * changed (a shield removed by a two-handed weapon doesn't count). Ammunition the weapon fires is a slot like any
+	 * other, so a bow whose ammunition isn't already worn takes a change; darts loaded into a blowpipe aren't worn and
+	 * are free. Every single extra change is scored exactly; larger switches grow the best few switches of each size
+	 * one slot at a time. A switch is only kept when it beats every smaller switch of its weapon that it contains, so
+	 * the limit is a most, never a target. Empty slots stay empty unless changed, and special attacks aren't planned:
+	 * either would be another switch. A freeze duty ({@link OptimizerSettings#freezeAccuracy}) stops growing a weapon's
+	 * switches once one lands often enough, and ranks them by {@link FreezeDuty#preference}.
+	 */
+	private List<SetupResult> optimizeSwitch(CombatClass cls, Loadout worn, BooleanSupplier cancelled, DoubleConsumer progress)
+	{
+		int limit = Math.max(1, settings.getSwitchLimit());
+		Map<Slot, List<GearItem>> candidates = candidates(cls);
+		List<GearItem> weapons = weapons(cls);
+		if (weapons.size() > maxWeapons)
+		{
+			weapons = preselectWeapons(weapons, cls);
+		}
+		Steps steps = new Steps(progress, weapons.size() + 1);
+		List<Found> found = new ArrayList<>();
+		for (GearItem weapon : weapons)
+		{
+			if (cancelled.getAsBoolean())
+			{
+				return Collections.emptyList();
+			}
+			List<Option> options = options(weapon, cls);
+			// Insertion order keeps equal switches in a stable order between runs.
+			Map<Set<Slot>, Found> best = new LinkedHashMap<>();
+			List<Loadout> starts = options.isEmpty() ? Collections.emptyList() : switchStarts(worn, weapon);
+			int startIndex = 0;
+			for (Loadout start : starts)
+			{
+				keepSwitchTrial(start, options, worn, limit, best);
+				// Keeping the worn weapon (it already attacks with this class) leaves one more change free.
+				if (start.switchesFrom(worn) < limit)
+				{
+					changeOneSlot(start, weapon, candidates, options, worn, limit, best,
+					range(steps.part(0, 0.25), (double) startIndex / starts.size(), 1.0 / starts.size()));
+				}
+				startIndex++;
+			}
+			steps.part(0, 1).accept(0.25);
+			for (int size = 2; size < limit; size++)
+			{
+				// Fewer items are the freeze's goal: once a smaller switch lands often enough, larger ones can't help.
+				if (reachesFreezeTarget(best.values())) { break; }
+				int smaller = size - 1;
+				List<Found> parents = new ArrayList<>();
+				best.forEach((pattern, f) -> { if (pattern.size() == smaller) { parents.add(f); } });
+				parents.sort(Comparator.comparingDouble((Found f) -> -f.getScore()).thenComparingLong(Found::getCost));
+				int parentIndex = 0;
+				int parentCount = Math.min(GROWN_SWITCHES, parents.size());
+				for (Found parent : parents.subList(0, parentCount))
+				{
+					changeOneSlot(parent.getLoadout(), weapon, candidates, options, worn, limit, best,
+						range(steps.part(0.25, 0.7), ((size - 2) + (double) parentIndex++ / parentCount) / Math.max(1, limit - 2),
+							1.0 / parentCount / Math.max(1, limit - 2)));
+				}
+			}
+			found.addAll(worthSwapping(best));
+			steps.step();
+		}
+		List<SetupResult> scored = new ArrayList<>();
+		int scoredIndex = 0;
+		for (Found f : found)
+		{
+			steps.part(0, 0.8).accept((double) scoredIndex++ / Math.max(1, found.size()));
+			Loadout l = f.getLoadout();
+			DpsResult dps = calculate(l);
+			if (dps.getDps() > 0)
+			{
+				// The same raid final blows as a full setup without specs, so the two compare in one fight.
+				scored.add(new SetupResult(cls, l, withFinalBlows(dps), f.getCost(), unpricedItems(l),
+					EnumSet.noneOf(Slot.class), SupportSpell.assumed(l, ctx), null, worn));
+			}
+		}
+		// Final blows favour hard hits over plain DPS; rank the rates actually returned, as full setups are.
+		double freezeTarget = settings.getFreezeAccuracy();
+		scored.sort(freezeTarget > 0 ? FreezeDuty.preference(freezeTarget).thenComparingLong(SetupResult::getBuyCost)
+			: Comparator.comparingDouble((SetupResult r) -> -metric(r.getDps()))
+			.thenComparingInt((SetupResult r) -> r.getLoadout().switchesFrom(worn)).thenComparingLong(SetupResult::getBuyCost));
+		List<SetupResult> results = new ArrayList<>();
+		steps.part(0, 1).accept(0.8);
+		Map<Set<Slot>, Integer> returned = new HashMap<>();
+		for (SetupResult r : scored)
+		{
+			Set<Slot> pattern = switchPattern(r.getLoadout(), worn);
+			if (returned.getOrDefault(pattern, 0) < settings.getResultsPerClass())
+			{
+				returned.merge(pattern, 1, Integer::sum);
+				results.add(r);
+			}
+		}
+		steps.step();
+		return results;
+	}
+
+	/** Whether a freeze duty's switches include one landing each cast often enough. */
+	private boolean reachesFreezeTarget(Collection<Found> switches)
+	{
+		double target = settings.getFreezeAccuracy();
+		return target > 0 && switches.stream().anyMatch(f -> calculate(f.getLoadout()).getAccuracy() >= target - EPS);
+	}
+
+	/** Each switch {@code from} with one more slot changed (or one of its changes made differently), kept by pattern. */
+	private void changeOneSlot(Loadout from, GearItem weapon, Map<Slot, List<GearItem>> candidates, List<Option> options,
+		Loadout worn, int limit, Map<Set<Slot>, Found> best, DoubleConsumer progress)
+	{
+		int totalItems = candidates.values().stream().mapToInt(list -> list.size() + 1).sum();
+		int compared = 0;
+		for (Map.Entry<Slot, List<GearItem>> slot : candidates.entrySet())
+		{
+			if (isLocked(slot.getKey()) || slot.getKey() == Slot.SHIELD && weapon.isTwoHanded())
+			{
+				continue;
+			}
+			List<GearItem> items = new ArrayList<>(slot.getValue());
+			if (settings.getFreezeAccuracy() <= 0 || worn.get(slot.getKey()) == null) { items.add(null); }
+			for (GearItem item : items)
+			{
+				progress.accept((double) ++compared / Math.max(1, totalItems));
+				if (item == from.get(slot.getKey()))
+				{
+					continue;
+				}
+				Loadout l = from.copy();
+				l.set(slot.getKey(), item);
+				keepSwitchTrial(l, options, worn, limit, best);
+			}
+		}
+	}
+
+	/**
+	 * Keep the best switch for every set of extra slots, so a group's other forms can share the same slots. Switches
+	 * changing more than the limit allows are dropped.
+	 */
+	private void keepSwitchTrial(Loadout l, List<Option> options, Loadout worn, int limit, Map<Set<Slot>, Found> best)
+	{
+		if (settings.getFreezeAccuracy() > 0 && !FreezeDuty.keepsWornGear(l, worn)) { return; }
+		Set<Slot> pattern = switchPattern(l, worn);
+		if (pattern.size() > limit - 1) { return; }
+		Found trial = switchTrial(l, options, best.get(pattern));
+		if (trial != null) { best.put(pattern, trial); }
+	}
+
+	/** The slots a switch changes besides the weapon; empty for a weapon-only switch. */
+	private static Set<Slot> switchPattern(Loadout l, Loadout worn)
+	{
+		Set<Slot> changed = l.switchSlotsFrom(worn);
+		changed.remove(Slot.WEAPON);
+		return changed;
+	}
+
+	/**
+	 * The switches worth their swaps: those scoring above every smaller switch of the same weapon whose slots they
+	 * contain. The smaller one is allowed wherever the larger is, so a larger one that doesn't beat it never helps.
+	 * Scores are the plain metric, like the full-setup search; final blows only re-rank the reported switches.
+	 */
+	private static List<Found> worthSwapping(Map<Set<Slot>, Found> best)
+	{
+		List<Found> out = new ArrayList<>();
+		for (Map.Entry<Set<Slot>, Found> larger : best.entrySet())
+		{
+			boolean helps = true;
+			for (Map.Entry<Set<Slot>, Found> smaller : best.entrySet())
+			{
+				if (smaller.getKey().size() < larger.getKey().size() && larger.getKey().containsAll(smaller.getKey())
+					&& larger.getValue().getScore() <= smaller.getValue().getScore() + EPS)
+				{
+					helps = false;
+					break;
+				}
+			}
+			if (helps) { out.add(larger.getValue()); }
+		}
+		return out;
+	}
+
+	/**
+	 * The worn setup holding {@code weapon}: once with each ammunition it fires or loads, or as worn (ammunition slot
+	 * included) when it uses none.
+	 */
+	private List<Loadout> switchStarts(Loadout worn, GearItem weapon)
+	{
+		Loadout start = worn.copy();
+		start.set(Slot.WEAPON, weapon);
+		start.setLoadedAmmo(null);
+		if (weapon.isTwoHanded())
+		{
+			start.set(Slot.SHIELD, null);
+		}
+		boolean firesAmmo = WeaponRules.firesAmmoSlot(weapon);
+		if (!firesAmmo && !WeaponRules.loadsAmmo(weapon))
+		{
+			return Collections.singletonList(start);
+		}
+		List<Loadout> starts = new ArrayList<>();
+		for (GearItem ammo : compatibleAmmo(weapon, firesAmmo))
+		{
+			Loadout l = start.copy();
+			if (firesAmmo)
+			{
+				l.set(Slot.AMMO, ammo);
+			}
+			else
+			{
+				l.setLoadedAmmo(ammo);
+			}
+			starts.add(l);
+		}
+		return starts;
+	}
+
+	/** The better of {@code best} and {@code l} with its best option, when {@code l} deals damage within the budget. */
+	private Found switchTrial(Loadout l, List<Option> options, Found best)
+	{
+		long cost = cost(l);
+		if (!withinBudget(cost))
+		{
+			return best;
+		}
+		double score = scoreBestOption(l, options, false);
+		if (score <= 0)
+		{
+			return best;
+		}
+		Found trial = new Found(l.copy(), score, cost);
+		return best == null || trial.beats(best) ? trial : best;
 	}
 
 	/** Counts finished steps against a total that may only shrink, so the reported fraction never falls. */
@@ -325,6 +593,12 @@ public class Optimizer
 			report();
 		}
 
+		DoubleConsumer part(double start, double span)
+		{
+			int before = done;
+			return fraction -> progress.accept(total <= 0 ? 1 : Math.min(1, (before + start + span * fraction) / total));
+		}
+
 		void total(int total)
 		{
 			this.total = Math.max(done, Math.min(this.total, total));
@@ -335,6 +609,11 @@ public class Optimizer
 		{
 			progress.accept(total <= 0 ? 1 : Math.min(1, (double) done / total));
 		}
+	}
+
+	private static DoubleConsumer range(DoubleConsumer progress, double start, double span)
+	{
+		return fraction -> progress.accept(start + span * fraction);
 	}
 
 	// ------------------------------------------------------------ search
@@ -410,7 +689,7 @@ public class Optimizer
 	}
 
 	private Found optimizeWeapon(GearItem weapon, CombatClass cls, Map<Slot, List<GearItem>> candidates,
-		List<Seed> seeds)
+		List<Seed> seeds, DoubleConsumer progress)
 	{
 		scores.clear();
 		List<Option> options = options(weapon, cls);
@@ -425,11 +704,12 @@ public class Optimizer
 		{
 			return null;
 		}
-		if (settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon))
+		boolean recoveryCape = settings.isRequireAtlatlAmmoRecovery() && WeaponRules.firesRecoverableAmmo(weapon, cls);
+		if (recoveryCape)
 		{
 			// Seed every usable recovery cape, including zero-damage devices that ascent would otherwise drop.
 			List<Seed> recoverySeeds = new ArrayList<>();
-			for (GearItem cape : atlatlRecoveryCapes())
+			for (GearItem cape : ammoRecoveryCapes())
 			{
 				for (Seed seed : seeds)
 				{
@@ -444,8 +724,12 @@ public class Optimizer
 		Loadout best = null;
 		double bestScore = -1;
 		long bestCost = Long.MAX_VALUE;
+		int seedIndex = 0;
 		for (Seed seed : seeds)
 		{
+			int index = seedIndex++;
+			progress.accept((double) index / seeds.size());
+			DoubleConsumer seedProgress = range(progress, (double) index / seeds.size(), 1.0 / seeds.size());
 			if (!seed.appliesTo(weapon))
 			{
 				continue;
@@ -461,8 +745,7 @@ public class Optimizer
 			l.set(Slot.AMMO, null);
 			applyLocks(l, weapon, firesAmmo);
 			SlotLock capeLock = settings.getLocks().get(Slot.CAPE);
-			if (settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon)
-				&& capeLock != null && capeLock.getKind() == SlotLock.Kind.FILL)
+			if (recoveryCape && capeLock != null && capeLock.getKind() == SlotLock.Kind.FILL)
 			{
 				// A fill lock may choose a different recovery cape later, but must start with usable equipment.
 				l.set(Slot.CAPE, seed.getLoadout().get(Slot.CAPE));
@@ -501,9 +784,11 @@ public class Optimizer
 						pieces.add(slot);
 					}
 				}
-				ascend(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, pieces);
+				ascend(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, pieces, range(seedProgress, 0, 0.5));
 			}
-			ascend(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo);
+			ascend(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, Collections.emptySet(),
+				range(seedProgress, seed.isSet() ? 0.5 : 0, seed.isSet() ? 0.5 : 1));
+			seedProgress.accept(1);
 
 			double s = score(l);
 			long c = cost(l);
@@ -527,7 +812,7 @@ public class Optimizer
 	 * @param allowanceOnly only try pairs that move the expensive-item allowance between the two slots
 	 */
 	private Found refinePairs(Found found, CombatClass cls, Map<Slot, List<GearItem>> candidates,
-		boolean allowanceOnly, BooleanSupplier cancelled)
+		boolean allowanceOnly, BooleanSupplier cancelled, DoubleConsumer progress)
 	{
 		if (allowanceOnly && !settings.isWildernessRiskLimited())
 		{
@@ -556,18 +841,21 @@ public class Optimizer
 		List<Option> options = options(weapon, cls);
 		for (int pass = 0; pass < maxPasses && !cancelled.getAsBoolean(); pass++)
 		{
-			if (improvePair(l, pairs, options, allowanceOnly, cancelled))
+			DoubleConsumer passProgress = range(progress, (double) pass / maxPasses, 1.0 / maxPasses);
+			if (improvePair(l, pairs, options, allowanceOnly, cancelled, range(passProgress, 0, 0.5)))
 			{
-				ascend(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo);
+				ascend(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, Collections.emptySet(), range(passProgress, 0.5, 0.5));
+				passProgress.accept(1);
 				continue;
 			}
 			Loadout kicked = allowanceOnly ? null
-				: kick(l, weapon, options, candidates, pairs, ammo, firesAmmo, loadsAmmo, cancelled);
+				: kick(l, weapon, options, candidates, pairs, ammo, firesAmmo, loadsAmmo, cancelled, range(passProgress, 0.5, 0.5));
 			if (kicked == null)
 			{
 				break;
 			}
 			l = kicked;
+			passProgress.accept(1);
 		}
 		return new Found(l, score(l), cost(l));
 	}
@@ -581,16 +869,20 @@ public class Optimizer
 	 */
 	private Loadout kick(Loadout l, GearItem weapon, List<Option> options, Map<Slot, List<GearItem>> candidates,
 		Map<Slot, List<GearItem>> moves, List<GearItem> ammo, boolean firesAmmo, boolean loadsAmmo,
-		BooleanSupplier cancelled)
+		BooleanSupplier cancelled, DoubleConsumer progress)
 	{
 		double bestScore = score(l);
 		long bestCost = cost(l);
 		Loadout best = null;
+		int totalMoves = moves.values().stream().mapToInt(List::size).sum();
+		int move = 0;
 		for (Map.Entry<Slot, List<GearItem>> e : moves.entrySet())
 		{
 			Slot slot = e.getKey();
 			for (GearItem cand : e.getValue())
 			{
+				progress.accept((double) move / Math.max(1, totalMoves));
+				DoubleConsumer moveProgress = range(progress, (double) move++ / Math.max(1, totalMoves), 1.0 / Math.max(1, totalMoves));
 				if (cancelled.getAsBoolean())
 				{
 					return null;
@@ -606,8 +898,8 @@ public class Optimizer
 				{
 					continue;
 				}
-				ascend(trial, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, hold);
-				ascend(trial, weapon, options, candidates, ammo, firesAmmo, loadsAmmo);
+				ascend(trial, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, hold, range(moveProgress, 0, 0.5));
+				ascend(trial, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, Collections.emptySet(), range(moveProgress, 0.5, 0.5));
 				double s = score(trial);
 				long c = cost(trial);
 				if (s > bestScore + EPS || Math.abs(s - bestScore) <= EPS && c < bestCost)
@@ -695,7 +987,7 @@ public class Optimizer
 
 	/** Change two slots together, each pair with its best allowed stance / spell. */
 	private boolean improvePair(Loadout l, Map<Slot, List<GearItem>> candidates, List<Option> options,
-		boolean allowanceOnly, BooleanSupplier cancelled)
+		boolean allowanceOnly, BooleanSupplier cancelled, DoubleConsumer progress)
 	{
 		double bestScore = score(l);
 		long originalCost = cost(l);
@@ -710,12 +1002,16 @@ public class Optimizer
 		Spell bestSpell = originalSpell;
 		List<Slot> slots = new ArrayList<>(candidates.keySet());
 		Map<Slot, Set<GearItem>> plain = pairPlainItems(l.getWeapon(), slots);
+		int pairs = slots.size() * (slots.size() - 1) / 2;
+		int pair = 0;
 		for (int a = 0; a < slots.size(); a++)
 		{
 			Slot left = slots.get(a);
 			GearItem originalLeft = l.get(left);
 			for (int b = a + 1; b < slots.size(); b++)
 			{
+				DoubleConsumer pairProgress = range(progress, (double) pair++ / Math.max(1, pairs), 1.0 / Math.max(1, pairs));
+				pairProgress.accept(0);
 				Slot right = slots.get(b);
 				GearItem originalRight = l.get(right);
 				long base = originalCost - itemCost(originalLeft) - itemCost(originalRight);
@@ -726,8 +1022,10 @@ public class Optimizer
 				// each item in the other (by the right-hand item's position).
 				double[] bothBounds = null;
 				double[][] rightHeld = null;
+				int row = 0;
 				for (GearItem first : candidates.get(left))
 				{
+					pairProgress.accept((double) row++ / Math.max(1, candidates.get(left).size()));
 					if (cancelled.getAsBoolean())
 					{
 						l.set(left, originalLeft);
@@ -922,13 +1220,21 @@ public class Optimizer
 	private void ascend(Loadout l, GearItem weapon, List<Option> options, Map<Slot, List<GearItem>> candidates,
 		List<GearItem> ammo, boolean firesAmmo, boolean loadsAmmo, Set<Slot> held)
 	{
-		climb(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, held, false);
-		climb(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, held, options.size() > 1);
+		ascend(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, held, fraction -> { });
+	}
+
+	private void ascend(Loadout l, GearItem weapon, List<Option> options, Map<Slot, List<GearItem>> candidates,
+		List<GearItem> ammo, boolean firesAmmo, boolean loadsAmmo, Set<Slot> held, DoubleConsumer progress)
+	{
+		climb(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, held, false, range(progress, 0, 0.5));
+		progress.accept(0.5);
+		climb(l, weapon, options, candidates, ammo, firesAmmo, loadsAmmo, held, options.size() > 1, range(progress, 0.5, 0.5));
+		progress.accept(1);
 	}
 
 	/** @param joint score each trial with its best option rather than the current one */
 	private void climb(Loadout l, GearItem weapon, List<Option> options, Map<Slot, List<GearItem>> candidates,
-		List<GearItem> ammo, boolean firesAmmo, boolean loadsAmmo, Set<Slot> held, boolean joint)
+		List<GearItem> ammo, boolean firesAmmo, boolean loadsAmmo, Set<Slot> held, boolean joint, DoubleConsumer progress)
 	{
 		double cur = score(l);
 		long curCost = cost(l);
@@ -995,8 +1301,10 @@ public class Optimizer
 				}
 			}
 
+			int slotIndex = 0;
 			for (Slot slot : SLOTS)
 			{
+				progress.accept((pass + (double) slotIndex++ / SLOTS.length) / maxPasses);
 				if (slot == Slot.WEAPON || held.contains(slot) || (slot == Slot.SHIELD && weapon.isTwoHanded()))
 				{
 					continue;
@@ -1223,14 +1531,27 @@ public class Optimizer
 		return protectedSetup(l) && withinWildernessRisk(l) ? DpsCalculator.calculate(l, ctx) : DpsResult.ZERO;
 	}
 
-	/** Mandatory protection and the optional atlatl cape requirement are enforced throughout the search. */
+	/**
+	 * Mandatory protection, primary raid duties and, when required, an ammunition recovery cape are enforced
+	 * throughout the search.
+	 */
 	private boolean protectedSetup(Loadout l)
+	{
+		return settings.getRaidLoadout().allows(l) && protectedEquipment(l)
+			&& (!settings.isRequireAtlatlAmmoRecovery() || l.getStyle() == null
+				|| !WeaponRules.firesRecoverableAmmo(l.getWeapon(), WeaponRules.classOf(l.getStyle()))
+				|| WeaponRules.isAmmoRecoveryCape(l.get(Slot.CAPE)));
+	}
+
+	/**
+	 * Special switches must meet equipment protection rules; their attack needn't fulfil the primary raid duty or
+	 * wear an ammunition recovery cape.
+	 */
+	private boolean protectedEquipment(Loadout l)
 	{
 		return SpellRunes.suppliesAllowed(l, Collections.emptySet(), settings.getExcludedSupplies())
 			&& (!fireProtectionRequired || DragonfireProtection.protects(monster, l, settings, levels))
-			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l))
-			&& (!settings.isRequireAtlatlAmmoRecovery() || !WeaponRules.isAtlatl(l.getWeapon())
-				|| WeaponRules.isAmmoRecoveryCape(l.get(Slot.CAPE)));
+			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l));
 	}
 
 	private double metric(DpsResult r)
@@ -1269,14 +1590,16 @@ public class Optimizer
 	 * The best special attack to mix into the worn setup's kill, or null when none helps. Also tries the setup
 	 * wearing lightbearer, which doubles energy regeneration at the cost of its ring.
 	 */
-	private Specced special(Loadout worn, CombatClass cls, DpsResult ordinary, long wornCost)
+	private Specced special(Loadout worn, CombatClass cls, DpsResult ordinary, long wornCost, DoubleConsumer progress)
 	{
-		if (!settings.isKillSpecials() || ctx.getModifiers().isSpecialAttack())
+		if (!settings.isKillSpecials() || ctx.getModifiers().isSpecialAttack()
+			|| settings.getRaidKillShare() > 0 && !CombatRules.raidSpecialsAllowed(ctx.getMonster()))
 		{
 			return null;
 		}
 		double regen = SpecialRotation.REGEN_PER_SECOND * (lightbearer(worn) ? 2 : 1);
-		Specced best = special(worn, cls, ordinary, wornCost, regen);
+		Specced best = special(worn, cls, ordinary, wornCost, regen, range(progress, 0, 0.5));
+		progress.accept(0.5);
 		Loadout lit = withLightbearer(worn);
 		if (lit != null)
 		{
@@ -1284,8 +1607,8 @@ public class Optimizer
 			long litCost = cost(lit);
 			if (litOrdinary.getDps() > 0 && withinBudget(litCost))
 			{
-				Specced s = special(lit, cls, litOrdinary, litCost, 2 * SpecialRotation.REGEN_PER_SECOND);
-				if (s != null && (best == null || metric(s.getResult()) > metric(best.getResult()) + EPS))
+				Specced s = special(lit, cls, litOrdinary, litCost, 2 * SpecialRotation.REGEN_PER_SECOND, range(progress, 0.5, 0.5));
+				if (s != null && metric(s.getResult()) > metric(best == null ? raidOrdinary(worn, ordinary) : best.getResult()) + EPS)
 				{
 					best = s;
 				}
@@ -1300,11 +1623,15 @@ public class Optimizer
 		return ring != null && ring.getId() == ItemID.LIGHTBEARER;
 	}
 
-	/** The worn setup with lightbearer in place of its ring, or null when it can't or already does. */
+	/**
+	 * The worn setup with lightbearer in place of its ring, or null when it can't or already does. The Theatre of
+	 * Blood never swaps it in: a ring switch there isn't worth the extra regeneration (lock it to wear it anyway).
+	 */
 	private Loadout withLightbearer(Loadout worn)
 	{
 		GearItem ring = data.getItem(Slot.RING, ItemID.LIGHTBEARER);
-		if (ring == null || lightbearer(worn) || settings.getLocks().containsKey(Slot.RING) || !usable(ring))
+		if (ring == null || lightbearer(worn) || settings.getLocks().containsKey(Slot.RING) || !usable(ring)
+			|| theatre(ctx.getMonster()))
 		{
 			return null;
 		}
@@ -1313,22 +1640,37 @@ public class Optimizer
 		return protectedSetup(lit) && withinWildernessRisk(lit) ? lit : null;
 	}
 
+	private static boolean theatre(Monster m)
+	{
+		RaidScaling.Raid raid = RaidScaling.raid(m);
+		return raid == RaidScaling.Raid.TOB || raid == RaidScaling.Raid.TOB_ENTRY;
+	}
+
 	/**
 	 * Candidates are the worn weapon and every usable weapon of the same combat class with a damaging spec,
 	 * held with the worn armour, plus an off-hand when a one-handed spec weapon leaves the shield slot empty.
 	 * They are bought within what the budget has left.
 	 */
-	private Specced special(Loadout worn, CombatClass cls, DpsResult ordinary, long wornCost, double regen)
+	private Specced special(Loadout worn, CombatClass cls, DpsResult ordinary, long wornCost, double regen, DoubleConsumer progress)
 	{
+		if (settings.getRaidKillShare() > 0)
+		{
+			return raidSpecial(worn, cls, ordinary, wornCost, regen, progress);
+		}
 		CombatContext specCtx = ctx.withModifiers(ctx.getModifiers().toBuilder().specialAttack(true).build());
 		int hp = ctx.getTargetHitpoints();
 		// Ordinary attacks after each set of landed drains, shared by every draining candidate.
 		Map<SpecialAttacks, DpsResult> drainedOrdinary = new HashMap<>();
 		drainedOrdinary.put(SpecialAttacks.NONE, ordinary);
+		// A drain only pays while it lasts: not at all on targets that restore their Defence straight away.
+		boolean drainsLast = settings.getDrainSpecs() != DrainSpecs.DAMAGE_ONLY && CombatRules.drainPersistence(ctx.getMonster()) > 0;
 		Specced best = null;
 		double bestScore = metric(ordinary);
-		for (GearItem weapon : specWeapons(cls))
+		List<GearItem> specialWeapons = specWeapons(cls);
+		int weaponIndex = 0;
+		for (GearItem weapon : specialWeapons)
 		{
+			progress.accept(0.7 * weaponIndex++ / Math.max(1, specialWeapons.size()));
 			Loadout base = specLoadout(worn, weapon);
 			if (base == null)
 			{
@@ -1345,12 +1687,7 @@ public class Optimizer
 				{
 					continue;
 				}
-				// The ammunition, then the off-hand, that make this spec hit hardest (they hardly interact, and
-				// trying every pair would multiply the candidates).
-				Held ammoChoice = strongest(base, Slot.AMMO, specAmmo(worn, weapon), weaponCost, wornCost, specCtx);
-				Held choice = ammoChoice == null ? null
-					: strongest(ammoChoice.getLoadout(), Slot.SHIELD, offhands(worn, weapon), ammoChoice.getCost(), wornCost,
-					specCtx);
+				Held choice = strongestHeld(worn, weapon, base, weaponCost, wornCost, specCtx);
 				if (choice == null)
 				{
 					continue;
@@ -1358,17 +1695,12 @@ public class Optimizer
 				Loadout held = choice.getLoadout();
 				DpsResult opening = choice.getResult();
 				long extra = choice.getCost();
-				SpecialRotation.Blend blend;
+				boolean draining = drainsLast && spec.getDrain() != SpecialAttack.Drain.NONE;
+				SpecialRotation.Fight fight = draining ? drainingFight(worn, held, opening, specCtx, drainedOrdinary) : null;
+				SpecialRotation.Blend blend = rotation(fight, spec, ordinary, opening, hp, regen, settings.getSpecEnergy());
 				DpsResult drained = null;
-				if (spec.getDrain() == SpecialAttack.Drain.NONE || settings.getDrainSpecs() == DrainSpecs.DAMAGE_ONLY)
+				if (draining)
 				{
-					blend = SpecialRotation.blend(ordinary, opening, spec.getEnergy(), hp, settings.getSpecEnergy(), regen);
-				}
-				else
-				{
-					SpecialRotation.Fight fight = drainingFight(worn, held, opening, specCtx, drainedOrdinary);
-					blend = SpecialRotation.draining(fight, spec.getDrain(), spec.getEnergy(), hp,
-						settings.getSpecEnergy(), regen, settings.getDrainSpecs() == DrainSpecs.ALL_MISS);
 					// Shown as the ordinary attacks after one landed spec of average damage.
 					int damage = (int) Math.round(opening.getAccuracy() > 0
 						? opening.getPrimaryDps() * opening.getExpectedSpeedTicks() * 0.6 / opening.getAccuracy() : 0);
@@ -1382,18 +1714,434 @@ public class Optimizer
 				if (score > bestScore + EPS || best != null && Math.abs(score - bestScore) <= EPS
 					&& extra < best.getPlan().getExtraCost())
 				{
-					GearItem offhand = held.get(Slot.SHIELD) == worn.get(Slot.SHIELD) ? null : held.get(Slot.SHIELD);
-					GearItem specAmmo = held.get(Slot.AMMO) == worn.get(Slot.AMMO) ? null : held.get(Slot.AMMO);
-					int unpriced = same ? 0 : (unpriced(weapon) ? 1 : 0) + (unpriced(held.getLoadedAmmo()) ? 1 : 0);
-					unpriced += (unpriced(offhand) ? 1 : 0) + (unpriced(specAmmo) ? 1 : 0);
-					best = new Specced(new SpecialPlan(weapon, offhand, specAmmo, o.getStyle(), o.getSpell(),
-						held.getLoadedAmmo(), spec, opening, ordinary, drained, blend.getSpecsPerKill(), extra, unpriced),
-						blend.getResult(), worn);
+					SpecItems items = specItems(worn, weapon, held);
+					// A raid may not have a full bar for this fight: the same spec on regenerated energy alone.
+					boolean fullBar = settings.getSpecEnergy() == SpecEnergy.FULL_BAR;
+					SpecialRotation.Blend regenerated = fullBar
+						? rotation(fight, spec, ordinary, opening, hp, regen, SpecEnergy.REGENERATION) : null;
+					best = new Specced(new SpecialPlan(weapon, items.getOffhand(), items.getAmmo(), o.getStyle(), o.getSpell(),
+						held.getLoadedAmmo(), spec, opening, ordinary, drained, blend.getSpecsPerKill(), extra, items.getUnpriced(),
+						!fullBar ? null : regenerated == null ? ordinary : regenerated.getResult(),
+						regenerated == null ? 0 : regenerated.getSpecsPerKill()), blend.getResult(), worn);
 					bestScore = score;
 				}
 			}
 		}
 		return best;
+	}
+
+	/** One player's share of each kill in a raid fight, which their own spec energy is spent over. */
+	private int raidShareHp()
+	{
+		return Math.max(1, (int) Math.ceil(ctx.getTargetHitpoints() / (double) Math.max(1, settings.getRaidKillShare())));
+	}
+
+	/** The ordinary attacks with the raid fight's final blows: each kill's last attack doesn't wait out its interval. */
+	private DpsResult withFinalBlows(DpsResult ordinary)
+	{
+		if (settings.getRaidKillShare() <= 0 || settings.getFinalBlows() <= 0 || ordinary.getPrimaryDps() <= 0)
+		{
+			return ordinary;
+		}
+		int hp = raidShareHp();
+		SpecialRotation.Rotation plain = SpecialRotation.rotation(ordinary, hp / ordinary.getPrimaryDps(), hp, 0, 0,
+			Collections.emptyList(), settings.getFinalBlows());
+		return plain == null ? ordinary : plain.getResult();
+	}
+
+	/**
+	 * A raid fight's spec rotation over one player's share of each kill ({@link OptimizerSettings#getRaidKillShare}): a
+	 * draining opener where its drains last, then at most one damage weapon; at most {@link #RAID_SPEC_WEAPONS} spec weapons, bought within what the budget has left. It's planned
+	 * on a full bar, with the best rotation on energy regenerated during the fight alone as its alternative. Null when
+	 * no rotation beats the ordinary attacks with their own final blows.
+	 */
+	private Specced raidSpecial(Loadout worn, CombatClass cls, DpsResult ordinary, long wornCost, double regen, DoubleConsumer progress)
+	{
+		CombatContext specCtx = ctx.withModifiers(ctx.getModifiers().toBuilder().specialAttack(true).build());
+		int hp = raidShareHp();
+		double rate = ordinary.getPrimaryDps();
+		if (rate <= 0)
+		{
+			return null;
+		}
+		boolean drainsLast = settings.getDrainSpecs() != DrainSpecs.DAMAGE_ONLY && CombatRules.drainPersistence(ctx.getMonster()) > 0;
+		Map<SpecialAttacks, DpsResult> drainedOrdinary = new HashMap<>();
+		drainedOrdinary.put(SpecialAttacks.NONE, ordinary);
+		// Each weapon's strongest style, as a damage spec or a draining opener.
+		Map<GearItem, SpecChoice> damage = new LinkedHashMap<>();
+		Map<GearItem, SpecChoice> drains = new LinkedHashMap<>();
+		List<GearItem> specialWeapons = specWeapons(cls);
+		int weaponIndex = 0;
+		for (GearItem weapon : specialWeapons)
+		{
+			progress.accept(0.7 * weaponIndex++ / Math.max(1, specialWeapons.size()));
+			Loadout base = specLoadout(worn, weapon);
+			if (base == null)
+			{
+				continue;
+			}
+			boolean same = weapon == worn.getWeapon();
+			long weaponCost = same ? 0 : itemCost(weapon) + ammoCost(base.getLoadedAmmo());
+			for (Option o : options(weapon, specClass(weapon, cls), true))
+			{
+				base.setStyle(o.getStyle());
+				base.setSpell(o.getSpell());
+				SpecialAttack spec = SpecialAttack.of(base, specCtx);
+				if (spec == null || spec.getEnergy() <= 0)
+				{
+					continue;
+				}
+				Held held = strongestHeld(worn, weapon, base, weaponCost, wornCost, specCtx);
+				if (held == null)
+				{
+					continue;
+				}
+				SpecItems items = specItems(worn, weapon, held.getLoadout());
+				boolean draining = drainsLast && spec.getDrain() != SpecialAttack.Drain.NONE;
+				SpecChoice choice = new SpecChoice(weapon, o, held.getLoadout().copy(), held.getResult(), spec, items.getOffhand(),
+					items.getAmmo(), held.getCost(), items.getUnpriced(), draining
+					? drainingFight(worn, held.getLoadout().copy(), held.getResult(), specCtx, drainedOrdinary) : null);
+				Map<GearItem, SpecChoice> role = draining ? drains : damage;
+				SpecChoice kept = role.get(weapon);
+				if (kept == null || choice.gainPerEnergy(rate) > kept.gainPerEnergy(rate))
+				{
+					role.put(weapon, choice);
+				}
+			}
+		}
+		// The few damage specs gaining the most per energy, and the draining openers that alone finish the kill soonest.
+		List<SpecChoice> damageChoices = new ArrayList<>(damage.values());
+		damageChoices.sort(Comparator.comparingDouble((SpecChoice c) -> -c.gainPerEnergy(rate)));
+		damageChoices = damageChoices.subList(0, Math.min(RAID_DAMAGE_CHOICES, damageChoices.size()));
+		List<SpecChoice> drainChoices = new ArrayList<>(drains.values());
+		// Where teammates open with reducers, a player who can use an elder maul, warhammer or godsword takes their fair
+		// share of the party's reducers with one of them, whatever the kit's class (a ranged or magic kit switches to it
+		// for the spec); teammates no longer cover that share, whatever this player actually spends.
+		List<SpecChoice> sharing = drainChoices.stream().filter(c -> SpecialRotation.sharedReducer(c.getSpec().getDrain())
+			&& withinBudget(wornCost + c.getExtra())).collect(Collectors.toList());
+		// Every kit owes the share whenever the player owns one, even with it left out here (then it can't pay it).
+		boolean owes = !sharing.isEmpty() || settings.isSharedReducerUsable();
+		share = owes ? reducerShare() : 0;
+		if (share > 0) { drainChoices = sharing; }
+		kitShares.put(worn, share);
+		teamOrdinary.remove(worn);
+		drainChoices.sort(Comparator.comparingDouble((SpecChoice c) -> drainedSeconds(c, Math.min(maxSpecs(c), ownReducerLimit()), hp, rate)[0]));
+		drainChoices = drainChoices.subList(0, Math.min(RAID_DRAIN_CHOICES, drainChoices.size()));
+		// Every choice of this worn kit, including no personal specs, follows the same teammates' openers.
+		plainSeconds = plainSeconds(worn, ordinary, hp, share);
+		List<RaidRotation> variants = new ArrayList<>();
+		RaidRotation full = bestRotation(ordinary, hp, rate, regen, SpecialRotation.FULL_ENERGY, damageChoices, drainChoices,
+			wornCost, variants, range(progress, 0.7, 0.2));
+		progress.accept(0.9);
+		DpsResult plain = raidOrdinary(worn, ordinary);
+		if (full == null || metric(full.rotation.getResult()) <= metric(plain) + EPS)
+		{
+			return null;
+		}
+		Map<List<Integer>, RaidRotation> distinct = new LinkedHashMap<>();
+		for (RaidRotation candidate : variants)
+		{
+			if (metric(candidate.rotation.getResult()) <= metric(plain) + EPS) { continue; }
+			List<Integer> key = new ArrayList<>();
+			key.add(candidate.openerSpecs);
+			key.add((int) Math.round(candidate.openingEnergy));
+			if (candidate.opener != null) { key.add(candidate.opener.getWeapon().getId()); }
+			for (int j = 0; j < candidate.damage.size(); j++)
+			{ if (candidate.rotation.getSpecs()[j] > 0) { key.add(candidate.damage.get(j).getWeapon().getId()); } }
+			RaidRotation old = distinct.get(key);
+			if (old == null || metric(candidate.rotation.getResult()) > metric(old.rotation.getResult())) { distinct.put(key, candidate); }
+		}
+		List<Specced> alternatives = new ArrayList<>();
+		int alternativeIndex = 0;
+		for (RaidRotation candidate : distinct.values())
+		{
+			alternatives.add(raidPlan(candidate, ordinary, plain, hp, rate, regen, wornCost, worn));
+			progress.accept(0.9 + 0.1 * ++alternativeIndex / distinct.size());
+		}
+		raidSpecVariants.put(worn, alternatives);
+		return raidPlan(full, ordinary, plain, hp, rate, regen, wornCost, worn);
+	}
+
+	/** Rates without the opening bar retain the same carried spec weapons. */
+	private Specced raidPlan(RaidRotation full, DpsResult ordinary, DpsResult plain, int hp, double rate, double regen,
+		long wornCost, Loadout worn)
+	{
+		RaidRotation regenerated = bestRotation(ordinary, hp, rate, regen, 0, full.damage, Collections.emptyList(), wornCost, null);
+		boolean regenerates = regenerated != null && metric(regenerated.rotation.getResult()) > metric(plain) + EPS;
+		SpecialPlan regeneratedPlan = regenerates ? regenerated.plan(ordinary, null, 0, null) : null;
+		DpsResult regeneratedRates = regenerates ? regenerated.rotation.getResult() : plain;
+		boolean fullBar = settings.getSpecEnergy() == SpecEnergy.FULL_BAR;
+		SpecialPlan plan = full.plan(ordinary, fullBar ? regeneratedRates : null,
+			regenerates ? regenerated.totalSpecs() : 0, regeneratedPlan);
+		return new Specced(plan, full.rotation.getResult(), worn);
+	}
+
+	/** Alternate spec choices for the final worn candidates, so the raid can share one weapon of each role. */
+	private final Map<Loadout, List<Specced>> raidSpecVariants = new IdentityHashMap<>();
+	private final Map<Loadout, DpsResult> teamOrdinary = new IdentityHashMap<>();
+	/** The teammates' reference hammers where the whole party opens with reducers; see {@link #teamFight()}. */
+	private SpecialRotation.Fight teamFight;
+	/** The current worn kit's kill time without personal specs; set before each rotation search. */
+	private double plainSeconds;
+	/** The current worn kit's assigned share of the party's reducers ({@link #reducerShare}); set before each rotation search. */
+	private int share;
+	private final Map<Loadout, Integer> kitShares = new IdentityHashMap<>();
+
+	/** This player's fair share of the party's reducers where teammates' openers apply, else 0. */
+	private int reducerShare()
+	{
+		return teamFight() == null ? 0
+			: SpecialRotation.reducerShare(ctx.getMonster().getLowerName(), settings.getRaidKillShare());
+	}
+
+	/**
+	 * The teammates' reference dragon warhammers ({@link SpecialRotation#teammateHammer}) where every other party
+	 * member opens with one ({@link OptimizerSettings#isTeamOpeners}), or null. The same for every kit and class.
+	 */
+	private SpecialRotation.Fight teamFight()
+	{
+		if (!settings.isTeamOpeners() || settings.getRaidKillShare() <= 1)
+		{
+			return null;
+		}
+		if (teamFight == null)
+		{
+			teamFight = SpecialRotation.teammateHammer(ctx.getMonster());
+		}
+		return teamFight;
+	}
+
+	/** One player's share of each kill without personal specs, after any teammates' openers. */
+	private double plainSeconds(Loadout worn, DpsResult ordinary, int hp, int assigned)
+	{
+		double rate = ordinary.getPrimaryDps();
+		if (teamFight() == null || rate <= 0)
+		{
+			return hp / rate;
+		}
+		Map<SpecialAttacks, DpsResult> states = new HashMap<>();
+		states.put(SpecialAttacks.NONE, ordinary);
+		SpecialRotation.Fight own = new SpecialRotation.Fight()
+		{
+			@Override
+			public DpsResult ordinary(SpecialAttacks drains)
+			{
+				return states.computeIfAbsent(drains, d -> DpsCalculator.calculate(worn, ctx.withDrains(d)));
+			}
+
+			@Override
+			public DpsResult spec(SpecialAttacks drains)
+			{
+				return ordinary(drains);
+			}
+		};
+		return drainedSeconds(own, SpecialAttack.Drain.NONE, 0, 0, hp, rate, assigned)[0];
+	}
+
+	/** The worn kit's ordinary attacks with final blows, after teammates' openers where the party opens with them. */
+	private DpsResult raidOrdinary(Loadout worn, DpsResult ordinary)
+	{
+		if (teamFight() == null || settings.getRaidKillShare() <= 0 || ordinary.getPrimaryDps() <= 0)
+		{
+			return withFinalBlows(ordinary);
+		}
+		return teamOrdinary.computeIfAbsent(worn, w ->
+		{
+			int hp = raidShareHp();
+			SpecialRotation.Rotation baseline = SpecialRotation.rotation(ordinary, plainSeconds(w, ordinary, hp,
+				kitShares.getOrDefault(w, 0)), hp, 0, 0,
+				Collections.emptyList(), settings.getFinalBlows());
+			return baseline == null ? withFinalBlows(ordinary) : baseline.getResult();
+		});
+	}
+
+	/** Opening specs a full bar holds of this spec. */
+	private static int maxSpecs(SpecChoice choice)
+	{
+		return SpecialRotation.FULL_ENERGY / choice.getSpec().getEnergy();
+	}
+
+	/**
+	 * A kill opened by this many of a draining spec, lasting the target's {@link CombatRules#drainPersistence}, then
+	 * finished with ordinary attacks: {seconds, specs used}.
+	 */
+	private double[] drainedSeconds(SpecChoice choice, int specs, int hp, double rate)
+	{
+		return drainedSeconds(choice.getFight(), choice.getSpec().getDrain(), choice.getSpec().getEnergy(), specs, hp, rate,
+			share);
+	}
+
+	/** As above, for a kit assigned this many of the party's reducers ({@link #reducerShare}). */
+	private double[] drainedSeconds(SpecialRotation.Fight fight, SpecialAttack.Drain drain, int energy, int specs, int hp,
+		double rate, int assigned)
+	{
+		SpecialRotation.Fight teammate = teamFight();
+		if (settings.getRaidKillShare() > 0)
+		{
+			int party = Math.max(1, settings.getRaidKillShare());
+			int phases = drainPhases();
+			int own = Math.min(specs, ownReducerLimit());
+			double seconds = 0;
+			double used = 0;
+			for (int phase = 0; phase < phases; phase++)
+			{
+				int phaseHp = hp / phases + (phase < hp % phases ? 1 : 0);
+				int phaseSpecs = phaseSpecs(own, phases, phase);
+				int window = phases > 1 ? phaseHp : drainWindow(phaseHp, rate);
+				boolean allMiss = settings.getDrainSpecs() == DrainSpecs.ALL_MISS;
+				// Each Sotetseg third: the party's two reducers, this player's assigned or own one among them (the
+				// assigned ones in the first thirds); teammates' first.
+				int teammates = phases > 1
+					? SpecialRotation.sotetsegTeammates(party, drain, phaseSpecs, phaseSpecs(assigned, phases, phase))
+					: Math.min(SpecialRotation.MAX_TEAM_OPENERS, party - 1);
+				double[] opened = teammate == null
+					? SpecialRotation.drainOpenedShared(fight, drain, energy, phaseSpecs, window * party, allMiss, party)
+					: SpecialRotation.drainOpenedTeam(fight, drain, energy, phaseSpecs, window * party, allMiss, party,
+						teammates, teammate, SpecialAttack.Drain.DRAGON_WARHAMMER);
+				seconds += opened[0] + (phaseHp - window) / rate;
+				used += opened[1];
+			}
+			return new double[]{seconds, used};
+		}
+		int window = drainWindow(hp, rate);
+		double[] opened = SpecialRotation.drainOpened(fight, drain, energy, specs, window,
+			settings.getDrainSpecs() == DrainSpecs.ALL_MISS);
+		return new double[]{opened[0] + (hp - window) / rate, opened[1]};
+	}
+
+	/**
+	 * This player's opening specs in one of a fight's drain phases (Sotetseg's thirds): spread evenly, the extras in
+	 * the earliest phases. Every third starts at the same restored Defence with the same teammates, so which thirds
+	 * take a party player's one reducer each doesn't change their value.
+	 */
+	static int phaseSpecs(int specs, int phases, int phase)
+	{
+		return specs / phases + (phase < specs % phases ? 1 : 0);
+	}
+
+	/** Defence windows of this fight's HP: Sotetseg restores its Defence after each maze. */
+	private int drainPhases()
+	{
+		return ctx.getMonster().getLowerName().startsWith("sotetseg") ? 3 : 1;
+	}
+
+	/** This player's reducer specs per kill: in a party at Sotetseg, at most one in each third. */
+	private int ownReducerLimit()
+	{
+		return ownReducerLimit(settings.getRaidKillShare(), drainPhases());
+	}
+
+	/** This player's reducer specs per kill: one in each drain phase in a party, else unlimited. */
+	static int ownReducerLimit(int party, int phases)
+	{
+		return party > 1 && phases > 1 ? phases : Integer.MAX_VALUE;
+	}
+
+	/**
+	 * The fastest rotation from these choices on {@code energy} at the start of the kill: no opener or one draining
+	 * opener (with each number of its specs the energy holds), and at most one damage spec, within
+	 * {@link #RAID_SPEC_WEAPONS} weapons and the budget. Null when none can be dealt.
+	 */
+	private RaidRotation bestRotation(DpsResult ordinary, int hp, double rate, double regen, int energy,
+		List<SpecChoice> damage, List<SpecChoice> drains, long wornCost, List<RaidRotation> variants)
+	{
+		return bestRotation(ordinary, hp, rate, regen, energy, damage, drains, wornCost, variants, fraction -> { });
+	}
+
+	private RaidRotation bestRotation(DpsResult ordinary, int hp, double rate, double regen, int energy,
+		List<SpecChoice> damage, List<SpecChoice> drains, long wornCost, List<RaidRotation> variants, DoubleConsumer progress)
+	{
+		List<List<SpecChoice>> damageSets = new ArrayList<>();
+		damageSets.add(Collections.emptyList());
+		for (int a = 0; a < damage.size(); a++)
+		{
+			damageSets.add(Collections.singletonList(damage.get(a)));
+		}
+		List<SpecChoice> openers = new ArrayList<>();
+		// An assigned share is made whenever the energy funds a reducer: as many as it funds, up to the share. Sotetseg's
+		// one a third is exactly the share; in a single defence window more may follow.
+		boolean assigned = share > 0 && drains.stream().anyMatch(c -> energy >= c.getSpec().getEnergy());
+		if (!assigned) { openers.add(null); }
+		openers.addAll(drains);
+		RaidRotation best = null;
+		int openerIndex = 0;
+		for (SpecChoice opener : openers)
+		{
+			progress.accept((double) openerIndex++ / openers.size());
+			int most = opener == null ? 0 : Math.min(Math.min(maxSpecs(opener), ownReducerLimit()),
+				energy / opener.getSpec().getEnergy());
+			if (opener != null && most <= 0)
+			{
+				continue;
+			}
+			int fewest = opener == null ? 0 : share > 0 ? Math.min(share, most) : 1;
+			for (int specs = fewest; specs <= (opener == null || share == 0 || drainPhases() < 2 ? most : fewest); specs++)
+			{
+				double[] base = opener == null ? new double[]{plainSeconds, 0} : drainedSeconds(opener, specs, hp, rate);
+				double left = energy - specs * (opener == null ? 0 : opener.getSpec().getEnergy());
+				for (List<SpecChoice> set : damageSets)
+				{
+					if (set.size() + (opener == null ? 0 : 1) > RAID_SPEC_WEAPONS
+						|| opener != null && set.stream().anyMatch(c -> c.getWeapon() == opener.getWeapon()))
+					{
+						continue;
+					}
+					long extra = (opener == null ? 0 : opener.getExtra()) + set.stream().mapToLong(SpecChoice::getExtra).sum();
+					if (!withinBudget(wornCost + extra))
+					{
+						continue;
+					}
+					List<SpecialRotation.Damage> specials = new ArrayList<>();
+					set.forEach(c -> specials.add(new SpecialRotation.Damage(c.getOpening(), c.getSpec().getEnergy())));
+					SpecialRotation.Rotation rotation = SpecialRotation.rotation(ordinary, base[0], hp, left, regen, specials,
+						settings.getFinalBlows());
+					if (rotation == null)
+					{
+						continue;
+					}
+					RaidRotation candidate = new RaidRotation(rotation, opener, specs, base[1], set,
+						specs * (opener == null ? 0 : opener.getSpec().getEnergy()) + rotation.getOpeningEnergy());
+					if (variants != null) { variants.add(candidate); }
+					if (best == null || metric(rotation.getResult()) > metric(best.rotation.getResult()) + EPS
+						|| Math.abs(metric(rotation.getResult()) - metric(best.rotation.getResult())) <= EPS
+						&& candidate.extra() < best.extra())
+					{
+						best = candidate;
+					}
+				}
+			}
+		}
+		return best;
+	}
+
+	/**
+	 * Whole-kill rates with this spec mixed in on the given energy, or null when it never helps. A draining spec
+	 * ({@code fight} not null) opens the kill, and its drains last the target's {@link CombatRules#drainPersistence}.
+	 */
+	private SpecialRotation.Blend rotation(SpecialRotation.Fight fight, SpecialAttack spec, DpsResult ordinary,
+		DpsResult opening, int hp, double regen, SpecEnergy energy)
+	{
+		if (fight == null)
+		{
+			return SpecialRotation.blend(ordinary, opening, spec.getEnergy(), hp, energy, regen);
+		}
+		int window = drainWindow(hp, ordinary.getPrimaryDps());
+		SpecialRotation.Blend blend = SpecialRotation.draining(fight, spec.getDrain(), spec.getEnergy(), window, energy,
+			regen, settings.getDrainSpecs() == DrainSpecs.ALL_MISS);
+		return blend == null || window >= hp ? blend
+			: SpecialRotation.resetAfter(blend, window, ordinary, opening, spec.getEnergy(), hp, regen);
+	}
+
+	/** Hitpoints of a kill dealt while drains last: the target's {@link CombatRules#drainPersistence} of them, at least one. */
+	private int drainWindow(int hp, double rate)
+	{
+		if (ctx.getMonster().getLowerName().startsWith("pestilent bloat"))
+		{
+			// A run-by BGS can help one down; conservatively discard its remaining drain after that down.
+			return Math.max(1, Math.min(hp, (int) Math.round(rate * 18)));
+		}
+		double persistence = CombatRules.drainPersistence(ctx.getMonster());
+		return persistence >= 1 ? hp : Math.max(1, (int) Math.round(hp * persistence));
 	}
 
 	/** Ordinary and spec attacks once drains land; each state is calculated once. */
@@ -1436,6 +2184,28 @@ public class Optimizer
 	}
 
 	/**
+	 * The spec loadout with the ammunition, then the off-hand, that make its spec hit hardest (they hardly interact,
+	 * and trying every pair would multiply the candidates), or null when none is protected and affordable.
+	 */
+	private Held strongestHeld(Loadout worn, GearItem weapon, Loadout base, long weaponCost, long wornCost,
+		CombatContext specCtx)
+	{
+		Held ammoChoice = strongest(base, Slot.AMMO, specAmmo(worn, weapon), weaponCost, wornCost, specCtx);
+		return ammoChoice == null ? null
+			: strongest(ammoChoice.getLoadout(), Slot.SHIELD, offhands(worn, weapon), ammoChoice.getCost(), wornCost, specCtx);
+	}
+
+	/** The off-hand and ammunition a spec loadout holds beyond the worn setup, and how many bought items have no price. */
+	private SpecItems specItems(Loadout worn, GearItem weapon, Loadout held)
+	{
+		GearItem offhand = held.get(Slot.SHIELD) == worn.get(Slot.SHIELD) ? null : held.get(Slot.SHIELD);
+		GearItem ammo = held.get(Slot.AMMO) == worn.get(Slot.AMMO) ? null : held.get(Slot.AMMO);
+		int unpriced = weapon == worn.getWeapon() ? 0 : (unpriced(weapon) ? 1 : 0) + (unpriced(held.getLoadedAmmo()) ? 1 : 0);
+		unpriced += (unpriced(offhand) ? 1 : 0) + (unpriced(ammo) ? 1 : 0);
+		return new SpecItems(offhand, ammo, unpriced);
+	}
+
+	/**
 	 * The spec loadout with the item from {@code items} (null keeps the slot) that makes the spec hit hardest,
 	 * cheapest on ties, or null when none is protected and affordable.
 	 */
@@ -1451,7 +2221,7 @@ public class Optimizer
 				l.set(slot, item);
 			}
 			long c = baseCost + (item == null ? 0 : itemCost(item));
-			if (!protectedSetup(l) || !withinBudget(wornCost + c))
+			if (!protectedEquipment(l) || !withinBudget(wornCost + c))
 			{
 				continue;
 			}
@@ -1521,7 +2291,8 @@ public class Optimizer
 
 	/**
 	 * Usable weapons of the class with a damaging special attack; weapon locks and hand limits apply to the worn
-	 * weapon only. Spec-only weapons (the Dawnbringer at Verzik P1) join every class with their own special.
+	 * weapon only. Spec-only weapons (the Dawnbringer at Verzik P1) join every class with their own special, and so
+	 * do the elder maul, dragon warhammer and Bandos godsword where the player owes a share of the party's reducers.
 	 */
 	private List<GearItem> specWeapons(CombatClass cls)
 	{
@@ -1540,9 +2311,16 @@ public class Optimizer
 		});
 	}
 
-	/** The class a spec weapon attacks with: the setup's, or a spec-only weapon's own (magic for the Dawnbringer). */
-	private static CombatClass specClass(GearItem weapon, CombatClass worn)
+	/**
+	 * The class a spec weapon attacks with: the setup's, a spec-only weapon's own (magic for the Dawnbringer), or melee
+	 * for a shared reducer switched to by a ranged or magic kit that owes the party its share ({@link #reducerShare}).
+	 */
+	private CombatClass specClass(GearItem weapon, CombatClass worn)
 	{
+		if (worn != CombatClass.MELEE && SpecialRotation.sharedReducerName(weapon.getName()) && reducerShare() > 0)
+		{
+			return CombatClass.MELEE;
+		}
 		if (WeaponRules.specOnly(weapon))
 		{
 			for (String raw : weapon.getStyles() == null ? java.util.Collections.<String>emptyList() : weapon.getStyles())
@@ -1879,7 +2657,8 @@ public class Optimizer
 	private boolean plain(GearItem item, GearItem weapon)
 	{
 		if (DragonfireProtection.isProtectiveShield(item) || SlayerEquipment.isRequired(monster, settings, item)
-			|| WeaponRules.isAmmoRecoveryCape(item) && settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon))
+			|| WeaponRules.isAmmoRecoveryCape(item) && settings.isRequireAtlatlAmmoRecovery()
+				&& WeaponRules.firesRecoverableAmmo(weapon, boundClass))
 		{
 			return false;
 		}
@@ -2093,7 +2872,7 @@ public class Optimizer
 		List<GearItem> out = new ArrayList<>();
 		for (GearItem w : data.getItems(Slot.WEAPON))
 		{
-			if (!usable(w) || WeaponRules.specOnly(w))
+			if (!usable(w) || WeaponRules.specOnly(w) || !settings.getRaidLoadout().allowsWeapon(w))
 			{
 				continue;
 			}
@@ -2184,7 +2963,7 @@ public class Optimizer
 	}
 
 	/** Recovery capes that satisfy availability and the cape lock, before combined setup costs are checked. */
-	private List<GearItem> atlatlRecoveryCapes()
+	private List<GearItem> ammoRecoveryCapes()
 	{
 		SlotLock lock = settings.getLocks().get(Slot.CAPE);
 		List<GearItem> capes = new ArrayList<>();
@@ -2341,6 +3120,20 @@ public class Optimizer
 				out.add(new Option(s, null));
 			}
 		}
+		if (!anyType) { out.removeIf(option -> !settings.getRaidLoadout().allowsSpell(option.getSpell())); }
+		// Maiden freezes are manually cast after switches. Owning an Ancient autocast staff isn't required:
+		// keep the owned magic weapon's bonuses, but use Ice Barrage's damage and five-tick cast interval.
+		if (!anyType && cls == CombatClass.MAGIC && settings.getRaidLoadout() == RaidLoadout.ICE_BARRAGE)
+		{
+			AttackStyle manual = AttackStyle.parse("manual cast,magic,manual");
+			if (styleAllowed(weapon, manual))
+			{
+				for (Spell spell : spellsFor(weapon, true))
+				{
+					if (out.stream().noneMatch(option -> option.getSpell() == spell)) { out.add(new Option(manual, spell)); }
+				}
+			}
+		}
 		return out;
 	}
 
@@ -2369,13 +3162,20 @@ public class Optimizer
 
 	private List<Spell> spellsFor(GearItem weapon)
 	{
+		return spellsFor(weapon, false);
+	}
+
+	/** Manual Ice Barrage uses the same spellbook and level gates without the weapon's autocast restriction. */
+	private List<Spell> spellsFor(GearItem weapon, boolean manual)
+	{
 		List<Spell> out = new ArrayList<>();
 		for (Spell spell : data.getSpells())
 		{
 			String name = spell.getName().toLowerCase(Locale.ROOT);
 			String book = spell.getSpellbook() == null ? "" : spell.getSpellbook().toLowerCase(Locale.ROOT);
 			if (spell.getMaxHit() <= 0 || spell.getLevel() > ctx.getMagic()
-				|| !settings.getSpellbooks().contains(book) || !spell.castableWith(weapon.getCombatId()))
+				|| !settings.getRaidLoadout().allowsSpell(spell)
+				|| !settings.getSpellbooks().contains(book) || !manual && !spell.castableWith(weapon.getCombatId()))
 			{
 				continue;
 			}
@@ -2558,8 +3358,31 @@ public class Optimizer
 
 	private boolean equipmentAllowed(GearItem item)
 	{
-		return !settings.getExcluded().contains(item.getId())
-			&& CombatRules.equipmentAllowed(monster, item)
+		return !settings.getExcluded().contains(item.getId()) && equipmentRulesAllow(item);
+	}
+
+	/**
+	 * Whether a melee kit could switch to an elder maul, dragon warhammer or Bandos godsword for its special, by the
+	 * search's own rules (levels, equipment rules, ownership or budget), ignoring these exclusions (the kit planner's).
+	 */
+	public boolean sharedReducerUsable(Set<Integer> ignoredExclusions)
+	{
+		for (GearItem weapon : data.getItems(Slot.WEAPON))
+		{
+			if (SpecialRotation.sharedReducerName(weapon.getName())
+				&& (!settings.getExcluded().contains(weapon.getId()) || ignoredExclusions.contains(weapon.getId()))
+				&& equipmentRulesAllow(weapon) && meetsRequirements(weapon) && available(weapon)
+				&& WeaponRules.supports(weapon, CombatClass.MELEE) && hasSpecialAttack(weapon, CombatClass.MELEE))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean equipmentRulesAllow(GearItem item)
+	{
+		return CombatRules.equipmentAllowed(monster, item)
 			&& (settings.isMembersItems() || !item.isMembers())
 			&& (settings.isDmmItems() || !item.isDmmEquipment())
 			&& (settings.isBetaItems() || !item.isBetaEquipment())
@@ -2687,7 +3510,8 @@ public class Optimizer
 		{
 			return reason;
 		}
-		if (settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon) && atlatlRecoveryCapes().isEmpty())
+		if (settings.isRequireAtlatlAmmoRecovery() && WeaponRules.firesRecoverableAmmo(weapon, CombatClass.RANGED)
+			&& !options(weapon, CombatClass.RANGED).isEmpty() && ammoRecoveryCapes().isEmpty())
 		{
 			return "it requires an Ava's device or Dizana's quiver, but none is usable with your cape lock, "
 				+ "exclusions and availability settings";
@@ -2951,6 +3775,113 @@ public class Optimizer
 		double score;
 	}
 
+	/** Spec weapons combined in one raid rotation at most: a draining opener and one damage spec. */
+	private static final int RAID_SPEC_WEAPONS = 2;
+	/** Damage specs considered for a raid rotation: those gaining the most damage per energy. */
+	private static final int RAID_DAMAGE_CHOICES = 4;
+	/** Draining openers considered for a raid rotation: those that alone finish the kill soonest. */
+	private static final int RAID_DRAIN_CHOICES = 2;
+
+	/** One spec weapon held for a raid rotation: its strongest style, items and one spec at the opening stats. */
+	@Value
+	private static class SpecChoice
+	{
+		GearItem weapon;
+		Option option;
+		Loadout held;
+		DpsResult opening;
+		SpecialAttack spec;
+		GearItem offhand;
+		GearItem ammo;
+		long extra;
+		int unpriced;
+		/** Ordinary and spec attacks once its drains land; null for a damage spec. */
+		SpecialRotation.Fight fight;
+
+		/** Damage gained over the ordinary attacks it replaces, per energy. */
+		double gainPerEnergy(double rate)
+		{
+			double seconds = opening.getExpectedSpeedTicks() * 0.6;
+			return (opening.getPrimaryDps() - rate) * seconds / Math.max(1, spec.getEnergy());
+		}
+	}
+
+	/** A raid rotation and the spec weapons it uses. */
+	@Value
+	private static class RaidRotation
+	{
+		SpecialRotation.Rotation rotation;
+		/** The draining opener, or null. */
+		SpecChoice opener;
+		/** Opening specs of the draining opener. */
+		int openerSpecs;
+		/** Expected specs of the draining opener used per kill, misses included. */
+		double openerUsed;
+		List<SpecChoice> damage;
+		/** Energy spent from the bar at the start of the kill. */
+		double openingEnergy;
+
+		/** GP for the weapons the rotation actually uses. */
+		long extra()
+		{
+			long total = opener == null ? 0 : opener.getExtra();
+			for (int j = 0; j < damage.size(); j++) { if (rotation.getSpecs()[j] > 0) { total += damage.get(j).getExtra(); } }
+			return total;
+		}
+
+		double totalSpecs()
+		{
+			double total = opener == null ? 0 : openerUsed;
+			for (double specs : rotation.getSpecs()) { total += specs; }
+			return total;
+		}
+
+		/**
+		 * The rotation as spec plans, the opener (or the most-used damage spec) first with the rotation's rates; its
+		 * alternative on regenerated energy alone when given.
+		 */
+		SpecialPlan plan(DpsResult ordinary, DpsResult regenerated, double regeneratedSpecs, SpecialPlan regeneratedPlan)
+		{
+			List<SpecialPlan> plans = new ArrayList<>();
+			if (opener != null)
+			{
+				int damageDealt = (int) Math.round(opener.getOpening().getAccuracy() > 0
+					? opener.getOpening().getPrimaryDps() * opener.getOpening().getExpectedSpeedTicks() * 0.6
+					/ opener.getOpening().getAccuracy() : 0);
+				DpsResult drained = opener.getFight().ordinary(SpecialAttacks.NONE.landed(opener.getSpec().getDrain(), damageDealt));
+				plans.add(single(opener, ordinary, drained, openerUsed));
+			}
+			int most = -1;
+			for (int j = 0; j < damage.size(); j++)
+			{
+				if (rotation.getSpecs()[j] <= 0) { continue; }
+				if (most < 0 || rotation.getSpecs()[j] > rotation.getSpecs()[most]) { most = j; }
+			}
+			List<SpecialPlan> used = new ArrayList<>();
+			for (int j = 0; j < damage.size(); j++)
+			{
+				if (rotation.getSpecs()[j] > 0)
+				{
+					SpecialPlan one = single(damage.get(j), ordinary, null, rotation.getSpecs()[j]);
+					if (opener == null && j == most) { plans.add(0, one); } else { used.add(one); }
+				}
+			}
+			plans.addAll(used);
+			SpecialPlan first = plans.get(0);
+			return new SpecialPlan(first.getWeapon(), first.getOffhand(), first.getAmmo(), first.getStyle(), first.getSpell(),
+				first.getLoadedAmmo(), first.getSpecial(), first.getSpec(), ordinary, first.getDrained(), first.getSpecsPerKill(),
+				first.getExtraCost(), first.getUnpricedItems(), regenerated, regeneratedSpecs, plans.subList(1, plans.size()),
+				openingEnergy, regeneratedPlan);
+		}
+
+		private static SpecialPlan single(SpecChoice choice, DpsResult ordinary, DpsResult drained, double specs)
+		{
+			return new SpecialPlan(choice.getWeapon(), choice.getOffhand(), choice.getAmmo(), choice.getOption().getStyle(),
+				choice.getOption().getSpell(), choice.getHeld().getLoadedAmmo(), choice.getSpec(), choice.getOpening(), ordinary,
+				drained, specs, choice.getExtra(), choice.getUnpriced(), null, 0, Collections.emptyList(), -1, null);
+		}
+	}
+
 	/** A spec loadout, one special attack with it, and the GP it adds to the worn setup. */
 	@Value
 	private static class Held
@@ -2958,6 +3889,15 @@ public class Optimizer
 		Loadout loadout;
 		DpsResult result;
 		long cost;
+	}
+
+	/** A spec loadout's off-hand and ammunition beyond the worn setup (null when kept), and its unpriced purchases. */
+	@Value
+	private static class SpecItems
+	{
+		GearItem offhand;
+		GearItem ammo;
+		int unpriced;
 	}
 
 	@Value

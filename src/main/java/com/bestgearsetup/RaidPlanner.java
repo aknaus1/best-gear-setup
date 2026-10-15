@@ -1,27 +1,41 @@
 package com.bestgearsetup;
 
+import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.SpecialRotation;
 import com.bestgearsetup.calc.WeaponRules;
+import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Potion;
+import com.bestgearsetup.data.Slot;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 import java.util.function.IntPredicate;
-import java.util.function.IntConsumer;
+import java.util.function.DoubleConsumer;
 import java.util.function.IntToLongFunction;
 import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
 
 /** Bounded beam search over encounter candidates, enforcing the shared kit's limits before publication. */
 final class RaidPlanner
 {
 	private static final int BEAM = 128;
+	/** Kits left with spec energy within this many percent of each other count as the same kit. */
+	private static final double ENERGY_STEP = 10;
 	private RaidPlanner() { }
 
 	static RaidPlan select(RaidPlanType type, RaidSpellbook spellbook, List<RaidEncounter> encounters, List<SearchResults> results,
@@ -33,89 +47,504 @@ final class RaidPlanner
 
 	static RaidPlan select(RaidPlanType type, RaidSpellbook spellbook, List<RaidEncounter> encounters, List<SearchResults> results,
 		int limit, long budget, IntPredicate owns, ToLongFunction<GearItem> price, int ammoCount,
-		IntToLongFunction quantities, BooleanSupplier cancelled, IntConsumer progress)
+		IntToLongFunction quantities, BooleanSupplier cancelled, DoubleConsumer progress)
 	{
 		return select(type, spellbook, encounters, results, limit, budget, owns, price, ammoCount, quantities, cancelled,
 			progress, Double.POSITIVE_INFINITY);
 	}
 
 	/**
-	 * Only plans faster than {@code bound} seconds are of interest; returns null when none is found. Every
-	 * remaining encounter takes at least its fastest candidate's time, so partial kits that cannot finish under
-	 * the bound are dropped before their (much more expensive) inventory checks.
+	 * Only plans faster than {@code bound} seconds are of interest; returns null when none is found. The kit may be
+	 * worn in for any encounter of the raid's first room ({@link RaidEncounter#starts}): each is planned as the start
+	 * in turn, its encounter searched first so every partial kit already knows what it wears in. A later start must
+	 * be strictly faster, so ties keep the earliest.
 	 */
 	static RaidPlan select(RaidPlanType type, RaidSpellbook spellbook, List<RaidEncounter> encounters, List<SearchResults> results,
 		int limit, long budget, IntPredicate owns, ToLongFunction<GearItem> price, int ammoCount,
-		IntToLongFunction quantities, BooleanSupplier cancelled, IntConsumer progress, double bound)
+		IntToLongFunction quantities, BooleanSupplier cancelled, DoubleConsumer progress, double bound)
+	{
+		// A room without any setup can never be part of a complete kit.
+		if (cancelled.getAsBoolean() || encounters.isEmpty() || results.stream().anyMatch(SearchResults::isEmpty)) { return null; }
+		// Plan first from the start that suits the encounters' fastest setups, so the bound tightens early.
+		int[] starts = RaidEncounter.starts(encounters);
+		int likely = RaidPlan.bestStart(RaidConsolidator.best(results, encounters), results, starts, new RaidPlan.Memo());
+		int[] ordered = java.util.stream.IntStream.concat(java.util.stream.IntStream.of(likely),
+			java.util.Arrays.stream(starts).filter(start -> start != likely)).toArray();
+		return select(type, spellbook, encounters, results, limit, budget, owns, price, ammoCount, quantities, cancelled,
+			progress, bound, ordered);
+	}
+
+	/** As above, trying only these starting encounters, in this order. */
+	static RaidPlan select(RaidPlanType type, RaidSpellbook spellbook, List<RaidEncounter> encounters, List<SearchResults> results,
+		int limit, long budget, IntPredicate owns, ToLongFunction<GearItem> price, int ammoCount,
+		IntToLongFunction quantities, BooleanSupplier cancelled, DoubleConsumer progress, double bound, int[] starts)
+	{
+		RaidPlan best = null;
+		double fastest = bound;
+		for (int run = 0; run < starts.length; run++)
+		{
+			if (cancelled.getAsBoolean()) { return null; }
+			int start = starts[run];
+			List<Integer> order = new ArrayList<>();
+			order.add(start);
+			for (int index = 0; index < encounters.size(); index++) { if (index != start) { order.add(index); } }
+			int done = run;
+			State found = beam(order.stream().map(encounters::get).collect(Collectors.toList()),
+				order.stream().map(results::get).collect(Collectors.toList()), limit, budget, owns, price, ammoCount,
+				quantities, cancelled, percent -> progress.accept((done * 100 + percent) / starts.length), fastest, start);
+			progress.accept((run + 1) * 100.0 / starts.length);
+			if (found == null) { continue; }
+			List<SetupResult> setups = new ArrayList<>(Collections.<SetupResult>nCopies(encounters.size(), null));
+			for (int index = 0; index < order.size(); index++) { setups.set(order.get(index), found.setups.get(index)); }
+			// The caller's bound keeps the beam's rounding slack; another start must be strictly faster.
+			double seconds = RaidConsolidator.seconds(setups, results, encounters);
+			if (seconds >= (best == null ? bound * (1 + 1e-9) : fastest)) { continue; }
+			fastest = seconds;
+			long cost = budget == Long.MAX_VALUE ? cost(setups, owns, price, ammoCount, quantities) : found.cost;
+			RaidPlan.Memo memo = new RaidPlan.Memo();
+			Map<Integer, GearItem> gear = new LinkedHashMap<>();
+			setups.forEach(setup -> gear.putAll(memo.gear(setup)));
+			List<SetupResult> filled = RaidPlan.fill(setups, results, memo, start);
+			List<RaidPlan.InventoryItem> carried = RaidBoostEstimator.replace(RaidPlan.inventory(setups, results, owns, start),
+				encounters, results, filled);
+			best = new RaidPlan(type, spellbook, Collections.unmodifiableList(new ArrayList<>(encounters)),
+				Collections.unmodifiableList(new ArrayList<>(results)), Collections.unmodifiableList(filled),
+				Collections.unmodifiableList(new ArrayList<>(gear.values())),
+				Collections.unmodifiableList(carried), limit, cost, encounters.get(start))
+				.withRaidNotes(Collections.singletonList(RaidBoostEstimator.ASSUMPTIONS),
+					carried.stream().anyMatch(item -> item.getEstimatedDoses() > 0)
+						? Collections.singletonList(RaidBoostEstimator.OWNERSHIP_WARNING) : Collections.emptyList());
+		}
+		return cancelled.getAsBoolean() ? null : best;
+	}
+
+	/**
+	 * The fastest kit, worn in for the first encounter's setup, faster than {@code bound} seconds; null when none is
+	 * found. Every remaining encounter takes at least its fastest candidate's time, so partial kits that cannot
+	 * finish under the bound are dropped before their (much more expensive) inventory checks. The encounters are in
+	 * planning order: the raid's, with the starting encounter moved to the front from {@code start}. Spec energy
+	 * still follows the raid's order.
+	 */
+	private static State beam(List<RaidEncounter> encounters, List<SearchResults> results, int limit, long budget,
+		IntPredicate owns, ToLongFunction<GearItem> price, int ammoCount, IntToLongFunction quantities,
+		BooleanSupplier cancelled, DoubleConsumer progress, double bound, int start)
 	{
 		if (cancelled.getAsBoolean()) { return null; }
+		// Planning positions in the order the fights happen: those before the start, the start, then the rest.
+		int[] fought = new int[results.size()];
+		for (int index = 0; index < fought.length; index++) { fought[index] = index < start ? index + 1 : index == start ? 0 : index; }
 		double[] remaining = new double[results.size() + 1];
+		double[] fastestSeconds = new double[results.size()];
+		// Each usable setup's time, computed once per encounter: it doesn't depend on the kit it joins.
+		List<Map<SetupResult, Double>> secondsOf = new ArrayList<>(Collections.<Map<SetupResult, Double>>nCopies(results.size(), null));
 		for (int index = results.size() - 1; index >= 0; index--)
 		{
 			SearchResults result = results.get(index);
+			RaidEncounter encounter = encounters.get(index);
+			Map<SetupResult, Double> seconds = new IdentityHashMap<>();
+			secondsOf.set(index, seconds);
 			double fastest = Double.POSITIVE_INFINITY;
 			for (List<SetupResult> candidates : result.hasBlockingLock() ? Collections.<List<SetupResult>>emptyList() : result.getByType().values())
 			{
 				for (SetupResult setup : candidates)
 				{
-					if (setup.getDps().getPrimaryDps() > 0) { fastest = Math.min(fastest, encounters.get(index).estimatedSeconds(result, setup)); }
+					if (setup.getDps().getPrimaryDps() > 0)
+					{ fastest = Math.min(fastest, seconds.computeIfAbsent(setup, s -> encounter.estimatedSeconds(result, s))); }
 				}
 			}
 			if (fastest == Double.POSITIVE_INFINITY) { return null; }
+			fastestSeconds[index] = fastest;
 			remaining[index] = remaining[index + 1] + fastest;
+			progress.accept(10.0 * (results.size() - index) / results.size());
 		}
 		// Rounding slack: never drop a kit that could tie or beat the bound.
 		double cutoff = bound * (1 + 1e-9);
 		RaidPlan.Memo memo = new RaidPlan.Memo();
+		// Each encounter's usable setups, fastest first, for the look-ahead in fastestFinish().
+		List<List<Option>> options = new ArrayList<>();
+		for (int index = 0; index < results.size(); index++)
+		{
+			Map<SetupResult, Double> seconds = secondsOf.get(index);
+			options.add(results.get(index).getByType().values().stream().flatMap(List::stream).filter(setup -> setup.getDps().getPrimaryDps() > 0)
+				.map(setup -> new Option(memo.gear(setup).keySet(), seconds.get(setup)))
+				.sorted(Comparator.comparingDouble(option -> option.seconds)).collect(Collectors.toList()));
+		}
 		Map<Integer, Long> prices = new HashMap<>();
 		ToLongFunction<GearItem> itemCost = item -> prices.computeIfAbsent(item.getId(),
 			id -> itemCost(item, owns, price, ammoCount, quantities));
+		Map<SetupResult, Collection<GearItem>> pricedItems = new IdentityHashMap<>();
+		// Without a budget the cost is only shown, so only the chosen kit is priced.
+		Function<SetupResult, Collection<GearItem>> pricing = budget == Long.MAX_VALUE ? null
+			: setup -> pricedItems.computeIfAbsent(setup, s -> priced(s, memo).values());
 		List<State> beam = Collections.singletonList(new State());
+		// One switch group member must wear a full setup the others quick-switch from; checked as each member joins.
+		List<int[]> groups = RaidEncounter.switchGroups(encounters);
+		SwitchGroups switches = new SwitchGroups(encounters, results, groups);
+		long found = 0;
 		for (int index = 0; index < results.size(); index++)
 		{
 			if (cancelled.getAsBoolean()) { return null; }
 			List<State> next = new ArrayList<>();
-			Map<Set<Integer>, State> distinct = new LinkedHashMap<>();
+			Map<List<Object>, State> distinct = new HashMap<>();
 			SearchResults result = results.get(index);
 			List<SearchResults> context = results.subList(0, index + 1);
+			// Only the fastest distinct kits survive (the single best after the last encounter). Once that many are
+			// found, a strictly slower candidate can neither join them nor improve one, so its inventory check is
+			// skipped. Seconds when first found: each is at least its kit's current time, so the bound stays safe.
+			int keep = index == results.size() - 1 ? 1 : BEAM;
+			PriorityQueue<Double> kept = new PriorityQueue<>(keep, Comparator.reverseOrder());
+			long combinations = (long) beam.size() * result.getByType().values().stream().mapToInt(List::size).sum();
+			long compared = 0;
 			for (State previous : beam)
 			{
+				if (cancelled.getAsBoolean()) { return null; }
+				// The beam is sorted, so later kits cannot do better either.
+				if (kept.size() == keep && previous.seconds + fastestSeconds[index] > kept.peek()) { break; }
 				for (List<SetupResult> candidates : result.getByType().values())
 				{
 					for (SetupResult setup : candidates)
 					{
+						progress.accept(10 + 90.0 * (index + (double) ++compared / Math.max(1, combinations)) / results.size());
 						if (setup.getDps().getPrimaryDps() <= 0 || result.hasBlockingLock()) { continue; }
-						double seconds = encounters.get(index).estimatedSeconds(result, setup);
-						if (previous.seconds + seconds + remaining[index + 1] >= cutoff) { continue; }
-						State state = new State(previous, setup, seconds, memo, itemCost);
-						if (state.cost < 0 && budget != Long.MAX_VALUE || state.cost > budget) { continue; }
-						List<SetupResult> filled = RaidPlan.fillAmmo(state.setups, context, memo);
-						List<RaidPlan.InventoryItem> inventory = RaidPlan.filledInventory(filled, context, owns, memo);
-						if (inventory.stream().filter(RaidPlan.InventoryItem::isEquipment).count() > limit
-							|| RaidPlan.filledMaximumInventory(filled, inventory, memo) > 28) { continue; }
+						List<SetupResult> proposed = new ArrayList<>(previous.setups);
+						proposed.add(setup);
+						if (!specialWeaponsAllowed(proposed)) { continue; }
+						double seconds = secondsOf.get(index).get(setup);
+						if (previous.seconds + seconds + remaining[index + 1] >= cutoff
+							|| kept.size() == keep && previous.seconds + seconds > kept.peek()) { continue; }
+						if (!switches.completable(index, proposed)) { continue; }
+						State state = new State(previous, setup, encounters, secondsOf, fought, seconds, memo, pricing, itemCost);
+						if (state.cost < 0 && budget != Long.MAX_VALUE || state.cost > budget || Double.isNaN(state.energy)) { continue; }
+						if (index == results.size() - 1 && !groups.isEmpty()
+							&& fullSetupChoice(encounters, results, state.setups) == null) { continue; }
+						List<SetupResult> filled = RaidPlan.fill(state.setups, context, memo);
+						// Switches alone are the cheap early reject; the packed spell supplies count too.
+						if (RaidPlan.carriedEquipment(state.gear.keySet(), filled.get(0)) > limit) { continue; }
+						List<RaidPlan.InventoryItem> inventory = RaidPlan.packedInventory(filled, context, owns, memo, state.gear, 0);
+						if (RaidPlan.limitedSlots(inventory) > limit) { continue; }
+						if (index < results.size() - 1)
+						{
+							// Prepot coverage can eliminate a later room's carried dose. Zero boost slots is the
+							// safe inexpensive lower bound until the complete chronological timeline is known.
+							inventory.removeIf(item -> item.getGroup() == RaidPlan.InventoryGroup.BOOSTS);
+						}
+						else
+						{
+							// At completion,
+							// count every estimated bottle in fight order before this candidate can displace another.
+							List<RaidEncounter> timeline = new ArrayList<>();
+							List<SearchResults> boostResults = new ArrayList<>();
+							List<SetupResult> boostSetups = new ArrayList<>();
+							for (int position : fought)
+							{
+								timeline.add(encounters.get(position)); boostResults.add(results.get(position));
+								boostSetups.add(filled.get(position));
+							}
+							inventory = RaidBoostEstimator.replace(inventory, timeline, boostResults, boostSetups);
+						}
+						if (RaidPlan.filledMaximumInventory(filled, state.gear.keySet(), inventory, memo) > 28) { continue; }
 						Set<Integer> key = new HashSet<>(state.gear.keySet());
 						// Worn items change capacity; keep different starting setups separate.
 						for (GearItem worn : memo.gear(filled.get(0)).values())
 						{ key.add(-worn.getId()); }
 						// Spells/support and potion choices change inventory capacity too.
 						inventory.forEach(item -> key.add(item.getIds().get(0)));
-						State old = distinct.get(key);
-						if (old == null || state.seconds < old.seconds) { distinct.put(key, state); }
+						List<Object> signature = new ArrayList<>();
+						signature.add(key);
+						// Boost requirements can differ between setups with identical gear. Keep that room order
+						// available for the final dose estimate rather than merging it by physical item IDs.
+						List<List<Integer>> boosts = new ArrayList<>();
+						for (int member = 0; member < state.setups.size(); member++)
+						{
+							boosts.add(results.get(member).potionsForSetup(state.setups.get(member)).stream()
+								.map(Potion::getId).sorted().collect(Collectors.toList()));
+						}
+						signature.add(boosts);
+						Set<Integer> specWeapons = new HashSet<>();
+						state.setups.forEach(s -> s.getSpecials().forEach(p -> specWeapons.add(p.getWeapon().getId())));
+						signature.add(specWeapons);
+						// Kits left with different spec energy can finish differently.
+						signature.add(Math.round(state.energy / ENERGY_STEP));
+						// So can kits whose starting fight, charged only after the fights before it, spends or regenerates differently.
+						if (state.charged < state.setups.size())
+						{ signature.add(energyEffect(encounters.get(0), state.setups.get(0), secondsOf.get(0))); }
+						// The same carried items can belong to different forms, with different valid switch patterns.
+						for (int[] group : groups)
+						{
+							if (group[0] > index || group[group.length - 1] <= index) { continue; }
+							for (int member : group)
+							{
+								if (member <= index)
+								{
+									SetupResult memberSetup = state.setups.get(member);
+									signature.add(java.util.Arrays.asList(memberSetup.getLoadout(), memberSetup.getSwitchFrom() == null));
+								}
+							}
+						}
+						state.found = found++;
+						State old = distinct.get(signature);
+						if (old == null)
+						{
+							distinct.put(signature, state);
+							kept.add(state.seconds);
+							if (kept.size() > keep) { kept.poll(); }
+						}
+						else if (state.seconds < old.seconds) { distinct.put(signature, state); }
 					}
 				}
 			}
 			next.addAll(distinct.values());
-			next.sort(Comparator.comparingDouble(s -> s.seconds));
+			// Equally fast kits keep the order they were found in: from faster earlier kits and higher-ranked setups.
+			next.sort(Comparator.<State>comparingDouble(s -> s.seconds).thenComparingLong(s -> s.found));
 			beam = next.subList(0, Math.min(BEAM, next.size()));
 			if (beam.isEmpty()) { return null; }
-			progress.accept((index + 1) * 100 / results.size());
+			// Only kits grown from the beam can complete the raid: stop once none of them can do so within the bound.
+			int from = index + 1;
+			if (beam.stream().allMatch(state -> fastestFinish(state, options, from, limit) >= cutoff)) { return null; }
+			progress.accept(10 + (index + 1) * 90.0 / results.size());
 		}
-		State best = beam.get(0);
-		List<SetupResult> filled = RaidPlan.fillAmmo(best.setups, results);
-		return new RaidPlan(type, spellbook, Collections.unmodifiableList(new ArrayList<>(encounters)),
-			Collections.unmodifiableList(new ArrayList<>(results)), Collections.unmodifiableList(filled),
-			Collections.unmodifiableList(new ArrayList<>(best.gear.values())),
-			Collections.unmodifiableList(RaidPlan.inventory(filled, results, owns)), limit, best.cost);
+		return beam.get(0);
+	}
+
+	/** The carried kit shares one defence reducer and at most one damage spec weapon per melee/ranged/magic class. */
+	static boolean specialWeaponsAllowed(List<SetupResult> setups)
+	{
+		Set<Integer> drains = new HashSet<>();
+		Map<CombatClass, Integer> damage = new EnumMap<>(CombatClass.class);
+		for (SetupResult setup : setups)
+		{
+			for (com.bestgearsetup.calc.SpecialPlan plan : setup.getSpecials())
+			{
+				if (RaidPlan.providedInRaid(plan.getWeapon())) { continue; }
+				boolean draining = plan.getSpecial() != null
+					&& plan.getSpecial().getDrain() != com.bestgearsetup.calc.SpecialAttack.Drain.NONE;
+				if (draining) { drains.add(plan.getWeapon().getId()); }
+				else
+				{
+					// Use the spec's attacking style, not the worn kit or the defence the spec rolls against.
+					CombatClass style = plan.getStyle() == null ? setup.getCombatClass() : WeaponRules.classOf(plan.getStyle());
+					Integer shared = damage.putIfAbsent(style, plan.getWeapon().getId());
+					if (shared != null && shared != plan.getWeapon().getId()) { return false; }
+				}
+			}
+		}
+		return drains.size() <= 1;
+	}
+
+	/**
+	 * For each switch group, the encounter wearing the full setup the others quick-switch from, chosen so that every
+	 * boost a quick switch assumes is also carried for a full setup outside the prepotted first room (a switch alone
+	 * isn't worth bringing a potion for). Null when no choice does.
+	 */
+	static int[] fullSetupChoice(List<RaidEncounter> encounters, List<SearchResults> results, List<SetupResult> setups)
+	{
+		List<int[]> groups = RaidEncounter.switchGroups(encounters);
+		List<List<Integer>> options = new ArrayList<>();
+		for (int[] group : groups)
+		{
+			List<Integer> full = RaidEncounter.fullSetups(group, setups, encounters);
+			if (full.isEmpty()) { return null; }
+			options.add(full);
+		}
+		int[] choice = new int[groups.size()];
+		return chooseFull(groups, options, 0, choice, results, setups) ? choice : null;
+	}
+
+	private static boolean chooseFull(List<int[]> groups, List<List<Integer>> options, int group, int[] choice,
+		List<SearchResults> results, List<SetupResult> setups)
+	{
+		if (group < groups.size())
+		{
+			for (int full : options.get(group))
+			{
+				choice[group] = full;
+				if (chooseFull(groups, options, group + 1, choice, results, setups)) { return true; }
+			}
+			return false;
+		}
+		Set<Integer> quick = new HashSet<>();
+		for (int g = 0; g < groups.size(); g++)
+		{
+			for (int member : groups.get(g)) { if (member != choice[g]) { quick.add(member); } }
+		}
+		Set<Integer> carried = new HashSet<>();
+		Set<Integer> needed = new HashSet<>();
+		for (int index = 0; index < setups.size(); index++)
+		{
+			for (Potion potion : results.get(index).carriedPotions(setups.get(index)))
+			{
+				if (!potion.isRaidSupply()) { (quick.contains(index) ? needed : carried).add(potion.getId()); }
+			}
+		}
+		return carried.containsAll(needed);
+	}
+
+	/**
+	 * A lower bound on any complete kit grown from this one: each later encounter's fastest setup that alone keeps
+	 * the kit within the equipment limit, or infinity when some encounter has none. Carried equipment is the kit's
+	 * gear minus the starting setup's worn items, so adding setups never lowers it; the only exception is ammunition
+	 * later filled into an empty starting ammunition slot, allowed for with one slot of slack. Seconds are added in
+	 * the planner's order, so rounding cannot lift the bound above a real kit's time.
+	 */
+	private static double fastestFinish(State state, List<List<Option>> options, int from, int limit)
+	{
+		Loadout start = state.setups.get(0).getLoadout();
+		Set<Integer> worn = new HashSet<>();
+		for (Slot slot : Slot.values())
+		{
+			if (start.get(slot) != null) { worn.add(start.get(slot).getId()); }
+		}
+		// Filling may wear a carried item in any empty slot of the starting setup (RaidPlan.fill).
+		int slack = 0;
+		for (Slot slot : Slot.values()) { if (slot != Slot.WEAPON && start.get(slot) == null) { slack++; } }
+		int carried = 0;
+		for (int id : state.gear.keySet()) { if (!worn.contains(id)) { carried++; } }
+		double seconds = state.seconds;
+		for (int index = from; index < options.size(); index++)
+		{
+			double fastest = Double.POSITIVE_INFINITY;
+			for (Option option : options.get(index))
+			{
+				int added = 0;
+				for (int id : option.gear) { if (!state.gear.containsKey(id) && !worn.contains(id)) { added++; } }
+				if (carried + added - slack <= limit) { fastest = option.seconds; break; }
+			}
+			seconds += fastest;
+		}
+		return seconds;
+	}
+
+	/**
+	 * What a setup does to the bar in its fight ({@link RaidEncounter#energyAfter}): the opening a full bar spends,
+	 * keeping the bar while speccing on regenerated energy, or what it leaves of an empty bar without specs.
+	 */
+	private static List<Object> energyEffect(RaidEncounter encounter, SetupResult setup, Map<SetupResult, Double> seconds)
+	{
+		return java.util.Arrays.asList(setup.usesFullBar(), setup.usesFullBar() ? setup.getSpecial().getOpeningEnergy() : 0,
+			Math.round(encounter.energyAfter(100, setup, () -> seconds.get(setup)) / ENERGY_STEP));
+	}
+
+	/**
+	 * Switch group consistency for partial kits ({@link RaidEncounter#fullSetups}): some member wears a full setup,
+	 * already chosen or one of a later member's full candidates, that every chosen other member is a quick switch
+	 * from within the group's shared extra slots, and each later member still has a quick switch that fits them. A
+	 * kit failing this can never complete its group, so it is dropped before it crowds consistent kits out of the
+	 * beam; one passing it may still fail once the group is complete, where the exact check applies.
+	 */
+	private static final class SwitchGroups
+	{
+		private final List<RaidEncounter> encounters;
+		private final int[][] groupAt;
+		/** By planning position: distinct loadouts of usable full setups, and usable quick switches. */
+		private final List<List<Loadout>> bases = new ArrayList<>();
+		private final List<List<SetupResult>> quicks = new ArrayList<>();
+		/** Whether a later member has a quick switch from a base within some extra slots, by member, base and slots. */
+		private final Map<List<Object>, Boolean> reachable = new HashMap<>();
+		/**
+		 * {@link #completable} by planning position (which names the group and its chosen members), then the chosen
+		 * members' loadouts, whether each specs and whether each is a full setup.
+		 */
+		private final Map<List<Object>, Boolean> checked = new HashMap<>();
+
+		SwitchGroups(List<RaidEncounter> encounters, List<SearchResults> results, List<int[]> groups)
+		{
+			this.encounters = encounters;
+			groupAt = new int[encounters.size()][];
+			groups.forEach(group -> java.util.Arrays.stream(group).forEach(member -> groupAt[member] = group));
+			for (int index = 0; index < encounters.size(); index++)
+			{
+				List<SetupResult> usable = groupAt[index] == null || results.get(index).hasBlockingLock() ? Collections.emptyList()
+					: results.get(index).getByType().values().stream().flatMap(List::stream)
+						.filter(setup -> setup.getDps().getPrimaryDps() > 0).collect(Collectors.toList());
+				bases.add(encounters.get(index).isFullSwitchSetup() ? usable.stream().filter(setup -> setup.getSwitchFrom() == null)
+					.map(SetupResult::getLoadout).distinct().collect(Collectors.toList()) : Collections.emptyList());
+				quicks.add(usable.stream().filter(setup -> setup.getSpecial() == null).collect(Collectors.toList()));
+			}
+		}
+
+		/** Whether these setups, by planning position up to {@code index}, can still complete that position's group. */
+		boolean completable(int index, List<SetupResult> setups)
+		{
+			int[] group = groupAt[index];
+			if (group == null) { return true; }
+			if (index == group[group.length - 1]) { return !RaidEncounter.fullSetups(group, setups, encounters).isEmpty(); }
+			// Many kits share their group members' setups; only the group and what the check reads tell those apart.
+			List<Object> key = new ArrayList<>();
+			key.add(index);
+			for (int member : group)
+			{
+				if (member > index) { break; }
+				SetupResult setup = setups.get(member);
+				key.add(java.util.Arrays.asList(setup.getLoadout(), setup.getSpecial() == null, setup.getSwitchFrom() == null));
+			}
+			return checked.computeIfAbsent(key, k -> prefixFits(group, index, setups));
+		}
+
+		private boolean prefixFits(int[] group, int index, List<SetupResult> setups)
+		{
+			for (int full : group)
+			{
+				if (!encounters.get(full).isFullSwitchSetup()) { continue; }
+				if (full <= index)
+				{
+					SetupResult base = setups.get(full);
+					if (base.getSwitchFrom() == null && fits(group, index, full, base.getLoadout(), setups)) { return true; }
+					continue;
+				}
+				for (Loadout base : bases.get(full)) { if (fits(group, index, full, base, setups)) { return true; } }
+			}
+			return false;
+		}
+
+		private boolean fits(int[] group, int index, int full, Loadout base, List<SetupResult> setups)
+		{
+			int limit = encounters.get(full).getSwitchLimit();
+			Set<Slot> extras = EnumSet.noneOf(Slot.class);
+			for (int member : group)
+			{
+				if (member == full || member > index) { continue; }
+				SetupResult setup = setups.get(member);
+				if (setup.getSpecial() != null || !encounters.get(member).switchableFrom(setup, base)) { return false; }
+				Set<Slot> changed = setup.getLoadout().switchSlotsFrom(base);
+				if (changed.size() > limit) { return false; }
+				changed.remove(Slot.WEAPON);
+				extras.addAll(changed);
+				if (extras.size() > limit - 1) { return false; }
+			}
+			for (int member : group)
+			{
+				if (member != full && member > index && !reachable(member, base, extras, limit)) { return false; }
+			}
+			return true;
+		}
+
+		private boolean reachable(int member, Loadout base, Set<Slot> extras, int limit)
+		{
+			return reachable.computeIfAbsent(java.util.Arrays.asList(member, base, extras), key ->
+			{
+				for (SetupResult quick : quicks.get(member))
+				{
+					if (!encounters.get(member).switchableFrom(quick, base)) { continue; }
+					Set<Slot> changed = quick.getLoadout().switchSlotsFrom(base);
+					if (changed.size() > limit) { continue; }
+					changed.remove(Slot.WEAPON);
+					changed.addAll(extras);
+					if (changed.size() <= limit - 1) { return true; }
+				}
+				return false;
+			});
+		}
+	}
+
+	private static final class Option
+	{
+		final Set<Integer> gear;
+		final double seconds;
+		Option(Set<Integer> gear, double seconds)
+		{
+			this.gear = gear;
+			this.seconds = seconds;
+		}
 	}
 
 	/** Price each unique piece once, including loaded darts; unknown purchases cannot fit a finite budget. */
@@ -140,7 +569,7 @@ final class RaidPlanner
 	{
 		Map<Integer, GearItem> items = new LinkedHashMap<>(memo.gear(setup));
 		RaidPlan.put(items, setup.getLoadout().getLoadedAmmo());
-		if (setup.getSpecial() != null) { RaidPlan.put(items, setup.getSpecial().getLoadedAmmo()); }
+		setup.getSpecials().forEach(special -> RaidPlan.put(items, special.getLoadedAmmo()));
 		return items;
 	}
 
@@ -169,22 +598,47 @@ final class RaidPlanner
 	{
 		final List<SetupResult> setups = new ArrayList<>();
 		final Map<Integer, GearItem> gear = new LinkedHashMap<>();
-		/** Items already priced; the kit's cost only grows by pieces new to it. */
+		/** Items already priced (under a budget only); the kit's cost only grows by pieces new to it. */
 		final Set<Integer> priced = new HashSet<>();
 		double seconds;
-		/** Shared kit's purchase cost, or -1 once any unpriced piece must be bought. */
+		/** Search order, which breaks ties between equally fast kits. */
+		long found;
+		/** Shared kit's purchase cost under a budget, or -1 once any unpriced piece must be bought. */
 		long cost;
+		/**
+		 * Spec energy left after the kit's fights so far ({@link RaidEncounter#energyAfter}), from a full bar at the
+		 * raid's start, through the first {@link #charged} fights in the raid's order; NaN once a setup opened on
+		 * more than there was.
+		 */
+		double energy = SpecialRotation.FULL_ENERGY;
+		/**
+		 * Fights, in the raid's order, already charged to {@link #energy}. A later starting encounter is planned first
+		 * but only charged once every fight before it has a setup.
+		 */
+		int charged;
 		State() { }
-		State(State previous, SetupResult setup, double encounterSeconds, RaidPlan.Memo memo, ToLongFunction<GearItem> itemCost)
+		/** {@code secondsOf} holds each encounter's setup times, by planning position. */
+		State(State previous, SetupResult setup, List<RaidEncounter> encounters, List<Map<SetupResult, Double>> secondsOf,
+			int[] fought, double encounterSeconds, RaidPlan.Memo memo, Function<SetupResult, Collection<GearItem>> pricing,
+			ToLongFunction<GearItem> itemCost)
 		{
 			setups.addAll(previous.setups);
 			setups.add(setup);
+			energy = previous.energy;
+			charged = previous.charged;
+			while (charged < fought.length && fought[charged] < setups.size() && !Double.isNaN(energy))
+			{
+				int at = fought[charged++];
+				SetupResult fight = setups.get(at);
+				energy = encounters.get(at).energyAfter(energy, fight, () -> secondsOf.get(at).get(fight));
+			}
 			gear.putAll(previous.gear);
 			gear.putAll(memo.gear(setup));
 			seconds = previous.seconds + encounterSeconds;
+			if (pricing == null) { return; }
 			priced.addAll(previous.priced);
 			cost = previous.cost;
-			for (GearItem item : priced(setup, memo).values())
+			for (GearItem item : pricing.apply(setup))
 			{
 				if (priced.add(item.getId()) && cost >= 0)
 				{

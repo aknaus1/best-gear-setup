@@ -302,4 +302,30 @@ final class Controls
 			return 10;
 		}
 	}
+
+	/** A small filled dot marking something new, drawn in the component's foreground. */
+	static final class Dot implements Icon
+	{
+		@Override
+		public void paintIcon(Component c, Graphics g, int x, int y)
+		{
+			Graphics2D g2 = (Graphics2D) g.create();
+			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g2.setColor(c.getForeground());
+			g2.fillOval(x, y + 1, 6, 6);
+			g2.dispose();
+		}
+
+		@Override
+		public int getIconWidth()
+		{
+			return 6;
+		}
+
+		@Override
+		public int getIconHeight()
+		{
+			return 8;
+		}
+	}
 }

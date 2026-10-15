@@ -8,7 +8,7 @@ import net.runelite.api.widgets.WidgetItem;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.WidgetItemOverlay;
 
-/** Outlines the selected setup's equipment in the inventory, including while banking. */
+/** Outlines the selected setup's worn equipment in the inventory, including while banking. */
 class BestGearSetupInventoryOverlay extends WidgetItemOverlay
 {
 	private final BestGearSetupPlugin plugin;
@@ -27,7 +27,7 @@ class BestGearSetupInventoryOverlay extends WidgetItemOverlay
 	@Override
 	public void renderItemOverlay(Graphics2D graphics, int itemId, WidgetItem widgetItem)
 	{
-		Set<Integer> ids = plugin.getBankHighlightIds();
+		Set<Integer> ids = plugin.getInventoryHighlightIds();
 		if (!config.highlightInventoryGear() || itemId <= 0 || widgetItem.getQuantity() <= 0 || ids.isEmpty())
 		{
 			return;

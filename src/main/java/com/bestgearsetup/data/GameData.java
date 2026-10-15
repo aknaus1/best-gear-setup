@@ -335,6 +335,14 @@ public class GameData
 		return potions.getOrDefault(skill, Collections.emptyList());
 	}
 
+	/** Every boost in the potion table, across skills. */
+	public List<Potion> getAllPotions()
+	{
+		List<Potion> all = new ArrayList<>();
+		potions.values().forEach(all::addAll);
+		return all;
+	}
+
 	/** Finds an item in any slot by id. */
 	public GearItem findItem(int id)
 	{

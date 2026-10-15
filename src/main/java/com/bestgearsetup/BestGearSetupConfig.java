@@ -28,30 +28,31 @@ public interface BestGearSetupConfig extends Config
 	default boolean activeEncounter() { return false; }
 
 	@ConfigItem(keyName = "raidEquipmentLimit", name = "Raid equipment slots",
-		description = "Maximum inventory slots used by equipment switches, including special weapons and spare ammunition. Starting worn gear is excluded. Spell supplies and boosts must also fit in 28 slots.",
+		description = "Most inventory slots the raid kit may use for equipment switches (including special weapons and spare ammunition), the rune pouch, runes outside it and a carried Book of the dead. A limit, not a target: kits may use fewer. Starting worn gear is excluded. Boosts and food don't count but must also fit in 28 slots.",
 		section = searchSection, position = 10, hidden = true)
 	@Range(min = 0, max = 28)
 	default int raidEquipmentLimit() { return 20; }
 
 	@ConfigItem(keyName = "raidSpellbook", name = "Raid spellbook",
-		description = "Use one spellbook throughout the raid. Arceuus permits thralls; Ancient permits ice and blood spells; Standard permits fire spells. The allowed spellbooks settings still apply.",
+		description = "Auto compares complete kits by estimated raid combat time, including thralls and spell damage. ToB freeze roles always use Ancient. A manual choice uses one book throughout the raid. Allowed spellbooks and thrall settings still apply; Vengeance is not modeled.",
 		section = searchSection, position = 11, hidden = true)
-	default RaidSpellbook raidSpellbook() { return RaidSpellbook.ARCEUUS; }
+	default RaidSpellbook raidSpellbook() { return RaidSpellbook.AUTO; }
 
 	@ConfigItem(keyName = "toaPathOrder", name = "ToA path order",
-		description = "Order of the Tombs of Amascut paths. Smelling salts are only assumed after the first two paths.",
+		description = "Order of the Tombs of Amascut paths. Auto plans the raid in both orders and keeps the one with the lower estimated combat time. Smelling salts are only assumed after the first two paths.",
 		section = searchSection, position = 32, hidden = true)
-	default RaidOptions.ToaPathOrder toaPathOrder() { return RaidOptions.ToaPathOrder.BA_BA_FIRST; }
+	default RaidOptions.ToaPathOrder toaPathOrder() { return RaidOptions.ToaPathOrder.AUTO; }
 
-	@ConfigItem(keyName = "tobMaidenRole", name = "ToB Maiden role",
-		description = "Freezers stay on magic at Maiden and barrage the nylocas; DPS players leave the nylocas to them.",
+	@ConfigItem(keyName = "tobRole", name = "ToB role",
+		description = "South freeze: freeze and kill Maiden's clump, mage Nylo. North freeze: freeze, then help the clump or return to Maiden; melee Nylo in 3/4-player teams, mage in 5. Range DPS: chin Maiden's clump, range Nylo. Melee DPS: focus Maiden, melee Nylo.",
 		section = searchSection, position = 33, hidden = true)
-	default RaidOptions.MaidenRole tobMaidenRole() { return RaidOptions.MaidenRole.BOTH; }
+	default RaidOptions.TobRole tobRole() { return RaidOptions.TobRole.MELEE_DPS; }
 
-	@ConfigItem(keyName = "tobNylocasRole", name = "ToB Nylocas role",
-		description = "The wave nylocas you kill: each colour only takes damage from its own style. Every role fights each Vasilias form.",
+	@ConfigItem(keyName = "quickSwitchLimit", name = "Quick switch swaps",
+		description = "Most equipment swaps a raid quick switch may make, weapon included (ToB Nylocas Vasilias forms, ToA baboons). A limit, not a target: a piece is only swapped when it raises DPS (max hit against baboons). Switching between any two forms stays within it.",
 		section = searchSection, position = 34, hidden = true)
-	default RaidOptions.NylocasRole tobNylocasRole() { return RaidOptions.NylocasRole.ALL; }
+	@Range(min = 1, max = RaidEncounter.MAX_SWITCH_LIMIT)
+	default int quickSwitchLimit() { return RaidEncounter.DEFAULT_SWITCH_LIMIT; }
 
 	String GROUP = "bestgearsetup";
 	String MODE_KEY = "mode";
@@ -64,6 +65,8 @@ public interface BestGearSetupConfig extends Config
 	String EXCLUDED_KEY = "excluded";
 	/** Per-encounter raid attack styles, managed from the side panel; see {@link RaidOptions#parse}. */
 	String RAID_STYLES_KEY = "raidStyles";
+	/** Target-specific Fight options the player has opened Fight to see, comma-separated setting keys. */
+	String SEEN_FIGHT_OPTIONS_KEY = "seenFightOptions";
 	String MEMBERS_ITEMS_KEY = "membersItems";
 	String DMM_ITEMS_KEY = "dmmItems";
 	String BETA_ITEMS_KEY = "betaItems";
@@ -156,7 +159,7 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(keyName = HIGHLIGHT_INVENTORY_GEAR_KEY, name = "Highlight inventory gear",
-		description = "Outline equipment and ammunition from the selected setup in your inventory",
+		description = "Outline only the gear to wear for the displayed setup in your inventory; excludes carried switches and supplies",
 		section = displaySection, position = 3)
 	default boolean highlightInventoryGear()
 	{
@@ -441,6 +444,50 @@ public interface BestGearSetupConfig extends Config
 		return 0;
 	}
 
+	@ConfigItem(keyName = "toaStartingPathLevel", name = "ToA starting path level", hidden = true,
+		description = "Starting level of all four paths for a full raid plan (0-3): none, Pathseeker, Pathfinder or Pathmaster.",
+		section = searchSection, position = 29)
+	@Range(max = 3)
+	default int toaStartingPathLevel()
+	{
+		return 0;
+	}
+
+	@ConfigItem(keyName = "toaWalkThePath", name = "Walk the Path", hidden = true,
+		description = "Estimate path boss HP from random level increases in the selected path order. Live path levels take precedence.",
+		section = searchSection, position = 29)
+	default boolean toaWalkThePath()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "toaMoreOverlords", name = "More Overlords", hidden = true,
+		description = "The More Overlords invocation: Kephri summons two soldier and two spitting scarabs instead of one each, "
+			+ "so a full raid plan weighs them twice.",
+		section = searchSection, position = 29)
+	default boolean toaMoreOverlords()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "raidKillShare", name = "Raid kill share", hidden = true,
+		description = "Set by raid planning, never by hand: players sharing each kill of the searched raid fight (0 outside "
+			+ "a raid plan). Specs are planned over one player's share, with spec combinations and final blows.",
+		section = searchSection, position = 29)
+	default int raidKillShare()
+	{
+		return 0;
+	}
+
+	@ConfigItem(keyName = "raidFinalBlowPercent", name = "Raid final blows", hidden = true,
+		description = "Set by raid planning, never by hand: how often (percent) the searched raid fight ends in a kill "
+			+ "followed by a pause, so each player's last attack doesn't wait out its attack interval.",
+		section = searchSection, position = 29)
+	default int raidFinalBlowPercent()
+	{
+		return 0;
+	}
+
 	@ConfigItem(keyName = "coxChallengeMode", name = "CoX Challenge Mode", hidden = true,
 		description = "Apply Challenge Mode scaling to Chambers of Xeric targets.",
 		section = searchSection, position = 30)
@@ -518,9 +565,12 @@ public interface BestGearSetupConfig extends Config
 		return false;
 	}
 
-	@ConfigItem(keyName = "requireAtlatlAmmoRecovery", name = "Require Ava's / quiver for atlatl",
-		description = "Eclipse atlatl setups must equip an Ava's device, an assembler cape, or Dizana's quiver. "
-			+ "Ownership, budget, exclusions and cape locks still apply; without a usable cape, no atlatl setup is returned.",
+	// Retain the original key so existing saved preferences continue to apply.
+	@ConfigItem(keyName = "requireAtlatlAmmoRecovery", name = "Require Ava's / quiver",
+		description = "Ranged attacks firing ammo an Ava's device recovers (arrows, bolts, darts, knives, thrownaxes, "
+			+ "javelins, atlatl darts) must equip an Ava's device, an assembler cape, or Dizana's quiver. Chinchompas and "
+			+ "weapons without ammo are unaffected, and so are special-attack switches. Ownership, budget, exclusions and cape "
+			+ "locks still apply.",
 		section = equipmentSection, position = 4)
 	default boolean requireAtlatlAmmoRecovery()
 	{
@@ -782,6 +832,35 @@ public interface BestGearSetupConfig extends Config
 		return true;
 	}
 
+	@ConfigItem(
+		keyName = "divinePotions",
+		name = "Divine potions",
+		description = "Count raid boost doses as divine potions where one exists (super combat, attack, strength, "
+			+ "ranging, bastion, magic, battlemage): each dose holds the full boost for 5 minutes. Turn off to plan "
+			+ "ordinary doses that drain",
+		section = boostSection,
+		position = 9
+	)
+	default boolean divinePotions()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "repotBelow",
+		name = "Repot below",
+		description = "Ordinary boosts drain one level a minute. Raid dose estimates drink again once the boost falls "
+			+ "below this share of its full amount; 0 lets it run out, 100 repots after every level",
+		section = boostSection,
+		position = 10
+	)
+	@Range(max = 100)
+	@Units(Units.PERCENT)
+	default int repotBelow()
+	{
+		return 50;
+	}
+
 
 	@ConfigItem(keyName = "taskMode", name = "Slayer task", description = "Auto matches your assignment to this target; On and Off override it", hidden = true)
 	default AutoState taskMode() { return AutoState.AUTO; }
@@ -832,6 +911,12 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigItem(keyName = RAID_STYLES_KEY, name = "", description = "", hidden = true)
 	default String raidStyles()
+	{
+		return "";
+	}
+
+	@ConfigItem(keyName = SEEN_FIGHT_OPTIONS_KEY, name = "", description = "", hidden = true)
+	default String seenFightOptions()
 	{
 		return "";
 	}

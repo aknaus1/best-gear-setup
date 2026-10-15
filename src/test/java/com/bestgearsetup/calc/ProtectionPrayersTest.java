@@ -67,8 +67,9 @@ public class ProtectionPrayersTest
 	@Test
 	public void unreadableAttackDataIsUnknownRatherThanNoneNeeded()
 	{
-		Advice all = ProtectionPrayers.recommend(attacking("tormented demon", "all", 30), CombatClass.MELEE, 99);
-		assertEquals(Arrays.asList(Overhead.MISSILES, Overhead.MAGIC, Overhead.MELEE), all.getSwitches());
+		Advice all = ProtectionPrayers.recommend(attacking("unclassified all-style attacker", "all", 30), CombatClass.MELEE, 99);
+		assertEquals(Collections.singletonList(Overhead.MISSILES), all.getSwitches());
+		assertFalse(all.isSwitching());
 		Advice unknown = ProtectionPrayers.recommend(attacking("mystery", "none", 22), CombatClass.MELEE, 99);
 		assertNull(unknown.getPrayer());
 		assertTrue(unknown.isUnknown());
@@ -97,9 +98,9 @@ public class ProtectionPrayersTest
 		assertFalse(far.isSwitching());
 		Advice vorkath = ProtectionPrayers.recommend(attacking("vorkath (post-quest)", "dragonfire", 80, "magic", 30,
 			"ranged", 32, "slash", 32), CombatClass.RANGED, 99);
-		assertEquals(Overhead.MISSILES, vorkath.getPrayer());
-		assertEquals(Arrays.asList(Overhead.MISSILES, Overhead.MAGIC), vorkath.getSwitches());
-		assertEquals("Switch: Missiles / Magic", vorkath.summary());
+		assertEquals(Overhead.MAGIC, vorkath.getPrayer());
+		assertFalse(vorkath.isSwitching());
+		assertEquals("Protect from Magic", vorkath.summary());
 	}
 
 	@Test
@@ -117,7 +118,7 @@ public class ProtectionPrayersTest
 	@Test
 	public void prayerLevelLimitsTheOverheads()
 	{
-		Monster graardor = attacking("general graardor", "crush", 60, "ranged", 35);
+		Monster graardor = attacking("unclassified mixed attacker", "crush", 60, "ranged", 35);
 		Advice low = ProtectionPrayers.recommend(graardor, CombatClass.MELEE, 42);
 		assertEquals(Overhead.MISSILES, low.getPrayer());
 		assertTrue(low.getNote().contains("Protect from Melee needs 43 Prayer"));
@@ -125,7 +126,7 @@ public class ProtectionPrayersTest
 		Advice locked = ProtectionPrayers.recommend(graardor, CombatClass.MELEE, 30);
 		assertEquals(Overhead.MELEE, locked.getPrayer());
 		assertTrue(locked.isLocked());
-		assertEquals("Switch: Melee / Missiles (needs 40 Prayer)", locked.summary());
+		assertEquals("Protect from Melee (needs 43 Prayer)", locked.summary());
 		assertTrue(locked.getNote().contains("you have 30"));
 		Advice demon = ProtectionPrayers.recommend(attacking("abyssal demon (standard)", "stab", 8), CombatClass.MELEE, 30);
 		assertEquals("Protect from Melee (needs 43 Prayer)", demon.summary());
@@ -137,6 +138,9 @@ public class ProtectionPrayersTest
 	@Test
 	public void coxBossesUseCuratedAdvice() throws Exception
 	{
+		Advice ice = ProtectionPrayers.recommend(bundled("ice demon (normal)"), CombatClass.MAGIC, 99);
+		assertEquals(Overhead.MISSILES, ice.getPrayer());
+		assertFalse(ice.isSwitching());
 		assertEquals(Overhead.MELEE, ProtectionPrayers.recommend(bundled("tekton (normal)"), CombatClass.MELEE, 99).getPrayer());
 		assertEquals(Overhead.MELEE, ProtectionPrayers.recommend(bundled("tekton (enraged)"), CombatClass.MELEE, 99).getPrayer());
 		Advice mystics = ProtectionPrayers.recommend(bundled("skeletal mystic (normal)"), CombatClass.RANGED, 99);
@@ -145,7 +149,7 @@ public class ProtectionPrayersTest
 		Monster large = bundled("muttadile (large)");
 		assertEquals(Overhead.MELEE, ProtectionPrayers.recommend(large, CombatClass.MELEE, 99).getPrayer());
 		Advice far = ProtectionPrayers.recommend(large, CombatClass.MAGIC, 99);
-		assertEquals(Arrays.asList(Overhead.MISSILES, Overhead.MAGIC), far.getSwitches());
+		assertEquals(Collections.singletonList(Overhead.MISSILES), far.getSwitches());
 		Monster small = bundled("muttadile (small)");
 		assertEquals(Overhead.MELEE, ProtectionPrayers.recommend(small, CombatClass.MELEE, 99).getPrayer());
 		Advice olm = ProtectionPrayers.recommend(bundled("great olm (melee hand)"), CombatClass.MELEE, 99);
@@ -161,12 +165,15 @@ public class ProtectionPrayersTest
 	@Test
 	public void toaAndTobBossesUseCuratedAdvice() throws Exception
 	{
+		Advice p2 = ProtectionPrayers.recommend(bundled("verzik vitur (phase 2)"), CombatClass.MELEE, 99);
+		assertEquals(Overhead.MISSILES, p2.getPrayer());
+		assertFalse(p2.isSwitching());
 		assertEquals(Overhead.MELEE, ProtectionPrayers.recommend(bundled("ba-ba"), CombatClass.MELEE, 99).getPrayer());
 		Advice zebak = ProtectionPrayers.recommend(bundled("zebak (normal)"), CombatClass.RANGED, 99);
 		assertEquals(Arrays.asList(Overhead.MISSILES, Overhead.MAGIC), zebak.getSwitches());
 		Advice akkha = ProtectionPrayers.recommend(bundled("akkha"), CombatClass.MELEE, 99);
 		assertEquals(3, akkha.getSwitches().size());
-		assertFalse(ProtectionPrayers.recommend(bundled("akkha"), CombatClass.MAGIC, 99).getSwitches().contains(Overhead.MELEE));
+		assertTrue(ProtectionPrayers.recommend(bundled("akkha"), CombatClass.MAGIC, 99).getSwitches().contains(Overhead.MELEE));
 		assertEquals(Overhead.MAGIC, ProtectionPrayers.recommend(bundled("the maiden of sugadinti (normal)"), CombatClass.MAGIC, 99).getPrayer());
 		assertEquals(Overhead.MAGIC, ProtectionPrayers.recommend(bundled("nylocas matomenos (normal mode maiden)"), CombatClass.MAGIC, 99).getPrayer());
 		Monster verzikNylocas = bundled("nylocas matomenos (normal mode verzik)");
@@ -201,7 +208,7 @@ public class ProtectionPrayersTest
 		Advice close = ProtectionPrayers.recommend(shadow, CombatClass.MELEE, 99);
 		assertFalse(close.isUnknown());
 		assertEquals(Arrays.asList(Overhead.MELEE, Overhead.MISSILES, Overhead.MAGIC), close.getSwitches());
-		assertEquals(Arrays.asList(Overhead.MISSILES, Overhead.MAGIC),
+		assertEquals(Arrays.asList(Overhead.MELEE, Overhead.MISSILES, Overhead.MAGIC),
 			ProtectionPrayers.recommend(shadow, CombatClass.RANGED, 99).getSwitches());
 		// Akkha herself keeps her own advice.
 		assertTrue(ProtectionPrayers.recommend(bundled("akkha"), CombatClass.MELEE, 99).getNote().startsWith("Akkha cycles"));

@@ -44,7 +44,10 @@ tasks.withType(JavaCompile).configureEach {
 
 // Pass -Dbgs.* options (e.g. -Dbgs.oracle.cases=5000) through to the test JVM.
 test {
+	systemProperty 'bgs.testClasspath', sourceSets.test.runtimeClasspath.asPath
 	systemProperties System.properties.findAll { it.key.toString().startsWith('bgs.') }
+	// Saved-profile raid diagnostics need more than the default test heap, e.g. -Dbgs.heap=6g.
+	if (System.getProperty('bgs.heap')) { maxHeapSize = System.getProperty('bgs.heap') }
 }
 
 // DistributionNoticesTest compares the bundled notices with the repository copies.
