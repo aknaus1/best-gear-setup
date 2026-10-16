@@ -1069,6 +1069,17 @@ public class BestGearSetupPanel extends PluginPanel
 
 	public void showRaidResults(RaidPlan plan, MonsterSummary active, SearchResults activeResult)
 	{
+		showRaidResults(plan, active, activeResult, null);
+	}
+
+	/** Keep the exact live row when several styles share a target, such as the Wardens' P2 shield. */
+	public void showLiveRaidResults(RaidPlan plan, RaidEncounter active, SearchResults activeResult)
+	{
+		showRaidResults(plan, active.getTarget(), activeResult, active);
+	}
+
+	private void showRaidResults(RaidPlan plan, MonsterSummary active, SearchResults activeResult, RaidEncounter exact)
+	{
 		stopSearchActivity();
 		findButton.setEnabled(true);
 		resultsPanel.removeAll();
@@ -1085,13 +1096,13 @@ public class BestGearSetupPanel extends PluginPanel
 			String order = plan.getEncounters().stream().map(RaidEncounter::getBossName)
 				.filter(label -> Arrays.asList("Ba-Ba", "Kephri", "Akkha", "Zebak").contains(label))
 				.distinct().map(BestGearSetupPanel::escape).collect(Collectors.joining(" → "));
-			JLabel layout = new JLabel(html("Path order: " + order));
+			JLabel layout = new JLabel(html((activeResult == null ? "Path order: " : "Pre-raid path order: ") + order));
 			layout.setName("raidPathOrder");
 			setSmall(layout, ColorScheme.LIGHT_GRAY_COLOR);
 			resultsPanel.add(left(layout));
 		}
 		resultsPanel.add(left(new RaidResultView(plan, active, activeResult, plugin, itemManager, sprites, skillIcons,
-			config.ammoCount(), encounterBox, raidVersionBox, this::showDisplayedEncounter)));
+			config.ammoCount(), encounterBox, raidVersionBox, this::showDisplayedEncounter, exact)));
 		reopenPendingEncounter(plan);
 		monsterLabel.setVisible(false);
 		encounterBox.setVisible(true);

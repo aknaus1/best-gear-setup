@@ -60,8 +60,9 @@ final class SearchInputs
 			Arrays.asList(target.getId(), target.getName(), target.getCombatLevel(), target.isBoss(),
 				target.getAttributes(), target.getIds()),
 			levels, remembered, prayers, diary, karuulm, mining, pricesMatter(config) ? prices : null,
-			Arrays.asList(relevantOwned(data, owned), ammunition(data, quantities, config.ammoCount())), settings(config, encounter),
-			live.values, live.pathLevels, live.maxCombat, live.raidDetected, notes), data);
+			Arrays.asList(relevantOwned(data, owned).stream().filter(id -> !live.adaptive() || !SpellRunes.isCarriedSupply(id))
+				.collect(Collectors.toSet()), ammunition(data, quantities, config.ammoCount())), settings(config, encounter),
+			live.values, live.pathLevels, live.maxCombat, live.raidDetected, live.combat, live.spellSupplies, notes), data);
 	}
 
 	SearchInputs with(Object... extra)

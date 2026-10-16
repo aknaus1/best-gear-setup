@@ -139,6 +139,17 @@ final class RaidProgress
 		return true;
 	}
 
+	/** Select P2's exact style row: both shield styles share a catalogue target, unlike the ejected core. */
+	synchronized boolean wardenPhase(String label)
+	{
+		if (!active || finished || plan == null || type != RaidPlanType.TOA || !"wardens".equals(room)
+			|| completed.contains("wardens")) { return false; }
+		RaidEncounter match = rooms.get("wardens").stream().filter(fight -> fight.getLabel().equals(label)).findFirst().orElse(null);
+		if (match == null) { return false; }
+		if (!match.getLabel().equals(encounter)) { choose(match); emit(); }
+		return true;
+	}
+
 	/** ToA room changes follow the player's actual chosen path rather than assuming the planned path order. */
 	synchronized void enteredRoom(String key, boolean puzzle)
 	{

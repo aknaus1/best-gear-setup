@@ -95,6 +95,9 @@ public class OptimizerSettings
 	boolean killSpecials = false;
 	@Builder.Default
 	SpecEnergy specEnergy = SpecEnergy.REGENERATION;
+	/** Percent available now for a live raid rotation; planning starts on a full bar. */
+	@Builder.Default
+	int raidOpeningEnergy = 100;
 	/** How landed stat drains from those specs count. */
 	@Builder.Default
 	DrainSpecs drainSpecs = DrainSpecs.EXPECTED;

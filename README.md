@@ -25,6 +25,8 @@ manage item rules in **Gear**, and set equipment preferences in **Settings**.
 - Compare DPS, max hit, accuracy, estimated kill time and upgrade costs across attack styles.
 - Plan complete **CM CoX, ToA and ToB** kits with shared switches, supplies and encounter setups that
   follow live raid progress. Choose your ToB role, ToA path order and switch limits.
+- Inside the raid, adapt the current encounter to carried gear, actual path levels, current boosts,
+  tracked defence reductions and remaining spec energy. The pre-raid packing plan stays available.
 - In **CM CoX**, red means finished for the raid, yellow means unused for the rest of this floor, and
   green means needed for this floor (or the next floor after completing this one). Chest guidance shows
   red/yellow in inventory and green/yellow in private storage. Inventory also highlights the selected

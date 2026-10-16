@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.runelite.client.config.ConfigItem;
+import net.runelite.api.gameval.ItemID;
 import org.junit.Test;
 
 public class SearchInputsTest
@@ -67,6 +68,7 @@ public class SearchInputsTest
 		live.pathLevels.put("zebak", 2); assertNotEquals(before, key()); live.pathLevels.clear();
 		live.maxCombat = 120; assertNotEquals(before, key()); live.maxCombat = 0;
 		live.raidDetected = true; assertNotEquals(before, key()); live.raidDetected = false;
+		live.combat = List.of(99, 118, 112, 112, 70, 50, 6); assertNotEquals(before, key()); live.combat = List.of();
 		live.values.put("raidPartySize", 4); assertNotEquals(before, key()); live.values.clear();
 		notes.add("unknown diary"); assertNotEquals(before, key()); notes.clear();
 		target.setName("other boss"); assertNotEquals(before, key()); target.setName("boss");
@@ -82,6 +84,49 @@ public class SearchInputsTest
 		assertEquals(before, key());
 		quantities.put(9242, 99L);
 		assertNotEquals(before, key());
+	}
+
+	@Test public void liveSupplyKeysUseCapabilitiesInsteadOfSubstituteIdsAndStackSizes()
+	{
+		RaidPlan plan = org.mockito.Mockito.mock(RaidPlan.class);
+		org.mockito.Mockito.when(plan.getInventory()).thenReturn(Collections.emptyList());
+		live.combat = List.of(99, 99, 99, 99, 99, 0, 10);
+		owned.add(ItemID.FIRERUNE); owned.add(ItemID.SOULRUNE); owned.add(ItemID.COSMICRUNE);
+		live.spellSupplies = SpellRunes.carriedSupplies(plan, owned::contains);
+		SearchInputs before = key();
+		owned.remove(ItemID.FIRERUNE); owned.remove(ItemID.SOULRUNE); owned.remove(ItemID.COSMICRUNE);
+		owned.add(ItemID.SUNFIRERUNE); owned.add(ItemID.AETHERRUNE);
+		quantities.put(ItemID.SUNFIRERUNE, 100L); quantities.put(ItemID.AETHERRUNE, 1L);
+		live.spellSupplies = SpellRunes.carriedSupplies(plan, owned::contains);
+		assertEquals("Sunfire and aether preserve the same spell supplies", before, key());
+		owned.add(ItemID.FIRERUNE); quantities.put(ItemID.SUNFIRERUNE, 1L);
+		live.spellSupplies = SpellRunes.carriedSupplies(plan, owned::contains);
+		assertEquals("A redundant stack and its positive quantity don't change the key", before, key());
+		owned.add(ItemID.DEATHRUNE);
+		live.spellSupplies = SpellRunes.carriedSupplies(plan, owned::contains);
+		assertNotEquals("A newly available rune type changes the key", before, key());
+		SearchInputs death = key();
+		owned.add(ItemID.BOOK_OF_THE_DEAD);
+		live.spellSupplies = SpellRunes.carriedSupplies(plan, owned::contains);
+		assertNotEquals("Thrall book availability changes the key", death, key());
+	}
+
+	@Test public void equivalentCarriedPouchVariantsHaveTheSameLiveKey()
+	{
+		RaidPlan plan = org.mockito.Mockito.mock(RaidPlan.class);
+		RaidPlan.InventoryItem rune = new RaidPlan.InventoryItem("Death runes", List.of(ItemID.DEATHRUNE), false);
+		org.mockito.Mockito.when(plan.getInventory()).thenReturn(List.of(new RaidPlan.InventoryItem("Rune pouch",
+			List.of(ItemID.BH_RUNE_POUCH, ItemID.BH_RUNE_POUCH_TROUVER), false, List.of(rune))));
+		live.combat = List.of(99, 99, 99, 99, 99, 0, 10);
+		owned.add(ItemID.BH_RUNE_POUCH);
+		live.spellSupplies = SpellRunes.carriedSupplies(plan, owned::contains);
+		SearchInputs before = key();
+		owned.remove(ItemID.BH_RUNE_POUCH); owned.add(ItemID.BH_RUNE_POUCH_TROUVER);
+		live.spellSupplies = SpellRunes.carriedSupplies(plan, owned::contains);
+		assertEquals(before, key());
+		owned.remove(ItemID.BH_RUNE_POUCH_TROUVER);
+		live.spellSupplies = SpellRunes.carriedSupplies(plan, owned::contains);
+		assertNotEquals("Leaving the pouch in storage removes its planned runes", before, key());
 	}
 
 	@Test

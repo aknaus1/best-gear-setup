@@ -21,7 +21,9 @@ import static org.mockito.ArgumentMatchers.*;
  * -Dbgs.planker.diagnostic=true. Optional overrides: -Dbgs.planker.type=COX_CM|TOB, -Dbgs.planker.limit=N,
  * -Dbgs.planker.tobRole=MELEE_DPS|..., -Dbgs.planker.party=N, -Dbgs.planker.probe=14,16,18 (re-runs the captured
  * kit planner input at other equipment limits), -Dbgs.planker.label=name (output file build/diagnostics/name.txt),
- * -Dbgs.planker.profile=RS_PROFILE_KEY and -Dbgs.planker.settings=SETTINGS_FILENAME for another saved account.
+ * -Dbgs.planker.profile=RS_PROFILE_KEY and -Dbgs.planker.settings=SETTINGS_FILENAME for another saved account, and
+ * -Dbgs.planker.set.KEY=VALUE for any other setting; -Dbgs.planker.helpers=false searches without the consolidation
+ * helper threads, and -Dbgs.planker.dir=DIRECTORY reads a copy of the RuneLite profiles2 directory.
  */
 public class PlankerCoxDiagnosticTest
 {
@@ -38,10 +40,15 @@ public class PlankerCoxDiagnosticTest
 		if (System.getProperty("bgs.planker.tobRole") != null) { OVERRIDES.put("tobRole", System.getProperty("bgs.planker.tobRole")); }
 		if (System.getProperty("bgs.planker.party") != null) { OVERRIDES.put("raidPartySize", System.getProperty("bgs.planker.party")); }
 		if (System.getProperty("bgs.planker.excluded") != null) { OVERRIDES.put("excluded", System.getProperty("bgs.planker.excluded")); }
+		// Any other setting by its key, e.g. -Dbgs.planker.set.raidSpellbook=AUTO.
+		System.getProperties().stringPropertyNames().stream().filter(name -> name.startsWith("bgs.planker.set."))
+			.forEach(name -> OVERRIDES.put(name.substring("bgs.planker.set.".length()), System.getProperty(name)));
 		OwnershipRules.init(net.runelite.http.api.RuneLiteAPI.GSON);
-		Properties character = pluginProperties(Paths.get(System.getProperty("user.home"), ".runelite", "profiles2", "$rsprofile--1.properties"));
-		Properties saved = pluginProperties(Paths.get(System.getProperty("user.home"), ".runelite", "profiles2",
-			System.getProperty("bgs.planker.settings", "Planker-454709730071000.properties")));
+		// A copy of the profiles directory keeps a comparison's inputs fixed while the client saves the live one.
+		Path profiles = Paths.get(System.getProperty("bgs.planker.dir",
+			Paths.get(System.getProperty("user.home"), ".runelite", "profiles2").toString()));
+		Properties character = pluginProperties(profiles.resolve("$rsprofile--1.properties"));
+		Properties saved = pluginProperties(profiles.resolve(System.getProperty("bgs.planker.settings", "Planker-454709730071000.properties")));
 		BestGearSetupConfig defaults = new BestGearSetupConfig() {};
 		BestGearSetupConfig config = (BestGearSetupConfig) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{BestGearSetupConfig.class}, (proxy, method, args) -> {
 			ConfigItem item = method.getAnnotation(ConfigItem.class);
@@ -92,7 +99,15 @@ public class PlankerCoxDiagnosticTest
 					.append(" pray=").append(cape.getPrayerBonus()).append(" atkReq=").append(cape.getAttackReq()).append('\n');
 			}
 		}
-		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.config = config; plugin.panel = mock(com.bestgearsetup.ui.BestGearSetupPanel.class);
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.config = config; plugin.panel = mock(com.bestgearsetup.ui.BestGearSetupPanel.class, withSettings().stubOnly());
+		// The client's consolidation helpers, unless -Dbgs.planker.helpers=false searches every trial on this thread.
+		if (!"false".equals(System.getProperty("bgs.planker.helpers")))
+		{
+			plugin.searchHelpers = java.util.concurrent.Executors.newFixedThreadPool(BestGearSetupPlugin.SEARCH_HELPERS, r ->
+			{
+				Thread t = new Thread(r, "diagnostic-helper"); t.setDaemon(true); return t;
+			});
+		}
 		Field api = BestGearSetupPlugin.class.getDeclaredField("api"); api.setAccessible(true); api.set(plugin, loader);
 		RaidPlan[] found = {null}; doAnswer(call -> { found[0] = call.getArgument(0); return null; }).when(plugin.panel).showRaidResults(any(RaidPlan.class), any());
 		Method search = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods()).filter(m -> m.getName().equals("runRaidSearch")).findFirst().get(); search.setAccessible(true);

@@ -36,6 +36,8 @@ final class RaidPlanner
 	private static final int BEAM = 128;
 	/** Kits left with spec energy within this many percent of each other count as the same kit. */
 	private static final double ENERGY_STEP = 10;
+	/** Candidates compared between progress reports, less one (a power of two less one, for masking). */
+	private static final int PROGRESS_STEP = 255;
 	private RaidPlanner() { }
 
 	static RaidPlan select(RaidPlanType type, RaidSpellbook spellbook, List<RaidEncounter> encounters, List<SearchResults> results,
@@ -195,6 +197,9 @@ final class RaidPlanner
 			PriorityQueue<Double> kept = new PriorityQueue<>(keep, Comparator.reverseOrder());
 			long combinations = (long) beam.size() * result.getByType().values().stream().mapToInt(List::size).sum();
 			long compared = 0;
+			boolean blocked = result.hasBlockingLock();
+			// Each candidate's boosts, as the kit signature records them; the same for every kit it joins.
+			Map<SetupResult, List<Integer>> boostIds = new IdentityHashMap<>();
 			for (State previous : beam)
 			{
 				if (cancelled.getAsBoolean()) { return null; }
@@ -204,14 +209,18 @@ final class RaidPlanner
 				{
 					for (SetupResult setup : candidates)
 					{
-						progress.accept(10 + 90.0 * (index + (double) ++compared / Math.max(1, combinations)) / results.size());
-						if (setup.getDps().getPrimaryDps() <= 0 || result.hasBlockingLock()) { continue; }
-						List<SetupResult> proposed = new ArrayList<>(previous.setups);
-						proposed.add(setup);
-						if (!specialWeaponsAllowed(proposed)) { continue; }
+						// Reported in steps from the first: the planner compares millions of candidates in a consolidated raid.
+						if ((++compared & PROGRESS_STEP) == 1)
+						{ progress.accept(10 + 90.0 * (index + (double) compared / Math.max(1, combinations)) / results.size()); }
+						if (setup.getDps().getPrimaryDps() <= 0 || blocked) { continue; }
+						// The time bounds are the cheapest rejections, so they come first.
 						double seconds = secondsOf.get(index).get(setup);
 						if (previous.seconds + seconds + remaining[index + 1] >= cutoff
 							|| kept.size() == keep && previous.seconds + seconds > kept.peek()) { continue; }
+						List<SetupResult> proposed = new ArrayList<>(previous.setups);
+						proposed.add(setup);
+						// Every kit in the beam already passed, so only a setup bringing specs can break the rule.
+						if (setup.getSpecial() != null && !specialWeaponsAllowed(proposed)) { continue; }
 						if (!switches.completable(index, proposed)) { continue; }
 						State state = new State(previous, setup, encounters, secondsOf, fought, seconds, memo, pricing, itemCost);
 						if (state.cost < 0 && budget != Long.MAX_VALUE || state.cost > budget || Double.isNaN(state.energy)) { continue; }
@@ -253,16 +262,17 @@ final class RaidPlanner
 						signature.add(key);
 						// Boost requirements can differ between setups with identical gear. Keep that room order
 						// available for the final dose estimate rather than merging it by physical item IDs.
-						List<List<Integer>> boosts = new ArrayList<>();
-						for (int member = 0; member < state.setups.size(); member++)
+						state.boosts = new ArrayList<>(previous.boosts);
+						state.boosts.add(boostIds.computeIfAbsent(setup, s -> result.potionsForSetup(s).stream()
+							.map(Potion::getId).sorted().collect(Collectors.toList())));
+						signature.add(state.boosts);
+						state.specWeapons = previous.specWeapons;
+						if (setup.getSpecial() != null)
 						{
-							boosts.add(results.get(member).potionsForSetup(state.setups.get(member)).stream()
-								.map(Potion::getId).sorted().collect(Collectors.toList()));
+							state.specWeapons = new HashSet<>(previous.specWeapons);
+							setup.getSpecials().forEach(p -> state.specWeapons.add(p.getWeapon().getId()));
 						}
-						signature.add(boosts);
-						Set<Integer> specWeapons = new HashSet<>();
-						state.setups.forEach(s -> s.getSpecials().forEach(p -> specWeapons.add(p.getWeapon().getId())));
-						signature.add(specWeapons);
+						signature.add(state.specWeapons);
 						// Kits left with different spec energy can finish differently.
 						signature.add(Math.round(state.energy / ENERGY_STEP));
 						// So can kits whose starting fight, charged only after the fights before it, spends or regenerates differently.
@@ -601,6 +611,9 @@ final class RaidPlanner
 		/** Items already priced (under a budget only); the kit's cost only grows by pieces new to it. */
 		final Set<Integer> priced = new HashSet<>();
 		double seconds;
+		/** Each setup's boost ids and the kit's spec weapons, for the kit signature; never changed once set. */
+		List<List<Integer>> boosts = Collections.emptyList();
+		Set<Integer> specWeapons = Collections.emptySet();
 		/** Search order, which breaks ties between equally fast kits. */
 		long found;
 		/** Shared kit's purchase cost under a budget, or -1 once any unpriced piece must be bought. */

@@ -254,6 +254,13 @@ public class BestGearSetupPlugin extends Plugin
 	BestGearSetupPanel panel;
 	private NavigationButton navButton;
 	ExecutorService executor;
+	/**
+	 * Fixed helpers for raid consolidation, whose trials are searched at once (RaidConsolidator.Search#helpers).
+	 * A fixed count, as for other Plugin Hub plugins: never sized from the machine's processors.
+	 */
+	volatile ExecutorService searchHelpers;
+	/** Helper threads raid consolidation may use beside the search thread. */
+	static final int SEARCH_HELPERS = 2;
 	volatile GameData gameData;
 	volatile Future<?> search;
 	final AtomicInteger searchGeneration = new AtomicInteger();
@@ -277,6 +284,13 @@ public class BestGearSetupPlugin extends Plugin
 	private final Map<NPC, MonsterSummary> raidNpcTargets = new IdentityHashMap<>();
 	private long publishedRaidProgress = -1;
 	private int raidRegion = -1;
+	private NPC raidLiveTarget;
+	private volatile SearchInputs desiredRaidInputs;
+	/** Only a published result can suppress another refresh with the same inputs. */
+	private volatile SearchInputs publishedRaidInputs;
+	private SearchInputs requestedRaidInputs;
+	private Future<?> raidLiveSearch;
+	private int raidLiveTick = -1000;
 	/** Successful published models are read-only; keep a bounded set for repeated searches in this session. */
 	final SearchCache<SearchInputs, RaidPlan> raidCache = new SearchCache<>(6);
 	final SearchCache<SearchInputs, SearchResults> encounterCache = new SearchCache<>(192);
@@ -344,6 +358,13 @@ public class BestGearSetupPlugin extends Plugin
 			t.setDaemon(true);
 			// On machines with few cores the game's own threads must win: searching takes longer instead of
 			// the client stuttering.
+			t.setPriority(Thread.MIN_PRIORITY);
+			return t;
+		});
+		searchHelpers = Executors.newFixedThreadPool(SEARCH_HELPERS, r ->
+		{
+			Thread t = new Thread(r, "best-gear-setup-helper");
+			t.setDaemon(true);
 			t.setPriority(Thread.MIN_PRIORITY);
 			return t;
 		});
@@ -426,6 +447,8 @@ public class BestGearSetupPlugin extends Plugin
 		// Running work stops itself on the lifecycle and search generations bumped above.
 		executor.shutdown();
 		executor = null;
+		searchHelpers.shutdown();
+		searchHelpers = null;
 		panel = null;
 		navButton = null;
 		gameData = null;
@@ -626,6 +649,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		if (event.getGameState() != GameState.LOGGED_IN)
 		{
+			clearLiveRaidInputs();
 			activeTarget = null;
 			engagedNpc = null;
 			activeTargetId = -1;
@@ -954,7 +978,8 @@ public class BestGearSetupPlugin extends Plugin
 			containersChanged = false;
 			settleOwnedItems(false);
 		}
-		if (trackingRaid) { return; }
+		if (trackingRaid) { updateLiveRaidEncounter(); return; }
+		clearLiveRaidInputs();
 		Player player = client.getLocalPlayer();
 		boolean following = config.activeEncounter() && client.getGameState() == GameState.LOGGED_IN && player != null;
 		// Targeting alone (clicking or walking up to an NPC) is not combat; it is once the NPC attacks you back.
@@ -1028,6 +1053,8 @@ public class BestGearSetupPlugin extends Plugin
 	@Subscribe
 	public void onNpcDespawned(NpcDespawned event)
 	{
+		if (event.getNpc() == raidLiveTarget)
+		{ raidLiveTarget = null; clearLiveRaidInputs(); }
 		if (event.getNpc() == engagedNpc) { engagedNpc = null; }
 		raidNpcTargets.remove(event.getNpc());
 	}
@@ -1055,6 +1082,7 @@ public class BestGearSetupPlugin extends Plugin
 	/** Client thread: progress uses the saved plan even when ordinary automatic encounter searches are disabled. */
 	private boolean updateRaidProgress()
 	{
+		raidLiveTarget = null;
 		if (panel == null || gameData == null) { return false; }
 		RaidPlanType type = panel.getRaidType();
 		if (type == null || type == RaidPlanType.SINGLE)
@@ -1094,18 +1122,130 @@ public class BestGearSetupPlugin extends Plugin
 			Player player = client.getLocalPlayer();
 			// A form change (the Nylocas Vasilias) drops your attack, so the NPC you're fighting leads until you reclick.
 			NPC target = player != null && player.getInteracting() instanceof NPC ? (NPC) player.getInteracting() : engaged();
+			// Live vulnerability leads over a stale click on Akkha or a shadow. Only inspect the actual boss room.
+			if (type == RaidPlanType.TOA && region == 14676 && world != null)
+			{
+				NPC akkhaTarget = LiveRaid.akkhaTarget(world.npcs());
+				if (akkhaTarget != null) { target = akkhaTarget; }
+			}
 			// Vasa's healing form opens crystal gear before a click, and his walking form restores Vasa gear.
 			boolean vasaPhase = vasa != null && raidProgress.vasaPhase(vasa.getId() == NpcID.RAIDS_VASANISTIRIO_HEALING);
-			if (!vasaPhase && target != null && !target.isDead() && target.getHealthRatio() != 0 && isAttackable(target))
+			LiveRaid.WardenTarget warden = type == RaidPlanType.TOA && region == 15184 && world != null
+				? LiveRaid.wardenTarget(world.npcs()) : null;
+			boolean wardenPhase = warden != null && raidProgress.wardenPhase(warden.getLabel());
+			if (wardenPhase)
+			{
+				target = warden.getNpc();
+				RaidPlan plan = raidPlan;
+				if (target != null && plan != null)
+				{
+					NPC actual = target;
+					plan.getEncounters().stream().filter(fight -> fight.getLabel().equals(warden.getLabel())).findFirst()
+						.ifPresent(fight -> raidNpcTargets.put(actual, fight.getTarget()));
+				}
+			}
+			if (!vasaPhase && !wardenPhase && target != null && !target.isDead() && target.getHealthRatio() != 0 && isAttackable(target))
 			{
 				MonsterSummary match = gameData.matchNpc(target.getId(), target.getName(), target.getCombatLevel());
 				if (match != null) { raidProgress.target(match, LiveRaid.akkhaPhase(target)); }
 			}
 			raidProgress.settleDeaths(livingRooms);
+			// Resolve the encounter chosen by room/form detection, including forms that drop the player's target.
+			RaidPlan plan = raidPlan;
+			RaidEncounter current = plan == null ? null : plan.getEncounters().stream()
+				.filter(fight -> fight.getLabel().equals(raidProgress.current().getEncounter())).findFirst().orElse(null);
+			if (current != null && !raidProgress.isFinished() && (!wardenPhase || target != null))
+			{
+				for (NPC npc : world == null ? Collections.<NPC>emptyList() : world.npcs())
+				{
+					MonsterSummary match = raidNpcTargets.get(npc);
+					if (match != null && match.getName().equals(current.getTarget().getName())
+						&& !npc.isDead() && npc.getHealthRatio() != 0 && isAttackable(npc))
+					{
+						raidLiveTarget = npc;
+						if (npc == target) { break; }
+					}
+				}
+			}
 		}
 		if (!raidProgress.isActive()) { raidNpcTargets.clear(); raidRegion = -1; }
 		publishRaidProgress();
 		return raidProgress.isActive();
+	}
+
+	/** Recalculate only the current fight from settled carried items; never rebuild or persist the packing plan. */
+	void updateLiveRaidEncounter()
+	{
+		RaidPlan plan = raidPlan;
+		NPC npc = raidLiveTarget;
+		if (executor == null || plan == null || npc == null || raidProgress.isFinished()
+			|| !raidProgress.isActive() || client.getGameState() != GameState.LOGGED_IN
+			|| client.getItemContainer(InventoryID.INV) == null || client.getItemContainer(InventoryID.WORN) == null)
+		{ clearLiveRaidInputs(); return; }
+		// A transfer invalidates in-flight work, but may settle to the same normalized gear and spell supplies.
+		if (!ownedItems.carriedSettled()) { desiredRaidInputs = null; return; }
+		RaidEncounter encounter = plan.getEncounters().stream()
+			.filter(fight -> fight.getLabel().equals(raidProgress.current().getEncounter())).findFirst().orElse(null);
+		RememberedLevels levels = readLevels();
+		if (encounter == null || levels == null || !levels.complete()) { desiredRaidInputs = null; return; }
+		if (liveSpecs != null) { liveSpecs.trackTarget(npc); }
+		LiveRaid live = LiveRaid.encounter(client, encounter.getTarget(), npc);
+		live.encounterLabel = encounter.getLabel();
+		if (live.combat.subList(0, 5).stream().anyMatch(level -> level <= 0)) { desiredRaidInputs = null; return; }
+		OwnedItems.Snapshot carried = ownedItems.capture(SearchMode.INVENTORY_ONLY);
+		live.spellSupplies = SpellRunes.carriedSupplies(plan, carried.getIds()::contains);
+		Map<String, Object> overrides = new HashMap<>(live.values);
+		List<String> notes = new ArrayList<>();
+		detectThralls(overrides, notes);
+		overrides.put("mode", SearchMode.INVENTORY_ONLY);
+		overrides.put("ammoCount", 1);
+		overrides.put("encounterPhase", encounter.getPhase());
+		overrides.put("potionMelee", PotionChoice.NONE);
+		overrides.put("potionRanged", PotionChoice.NONE);
+		overrides.put("potionMagic", PotionChoice.NONE);
+		if (liveSpecs != null) { overrides.putAll(liveSpecs.overrides(npc)); }
+		BestGearSetupConfig assumptions = SearchAssumptions.capture(config, overrides);
+		SearchInputs inputs = SearchInputs.capture(gameData, api, encounter.getTarget(), levels.getLevels(), false,
+			Collections.emptySet(), null, false, levels.getMining(), prices, carried.getIds(), carried.getQuantities(),
+			assumptions, live, Collections.emptyList(), true).with(System.identityHashCode(plan), npc.getIndex(), npc.getId(), encounter.getLabel());
+		desiredRaidInputs = inputs;
+		if (inputs.equals(publishedRaidInputs) || raidLiveSearch != null && !raidLiveSearch.isDone()
+			|| search != null && !search.isDone()) { return; }
+		if (requestedRaidInputs != null && client.getTickCount() - raidLiveTick < 3) { return; }
+		requestedRaidInputs = inputs; raidLiveTick = client.getTickCount(); live.inputs = inputs;
+		int generation = searchGeneration.incrementAndGet();
+		Set<String> prayers = readPrayerUnlocks();
+		Boolean diary = readKourendEliteDiary();
+		GameData data = gameData;
+		Map<Integer, Long> quotes = prices;
+		notes.add("Live raid: best setup from your inventory and worn equipment. The pre-raid packing plan is unchanged.");
+		notes.add("Uses current boosted levels, tracked landed defence reductions and " + live.combat.get(5) + "% special energy."
+				+ (live.combat.get(6) == 0 ? " Target HP is unavailable; maximum HP is assumed."
+					: " Target HP is estimated from its health bar, rounded up to the next 10%."));
+		raidLiveSearch = executor.submit(() ->
+		{
+			try
+			{
+				refreshRaidEncounter(plan, data, encounter.getTarget(), levels.getLevels(), false, prayers, diary,
+					levels.getMining(), quotes, carried.getIds(), carried.getQuantities(), generation, assumptions, live, notes, percent -> { });
+			}
+			catch (IOException | RuntimeException e)
+			{
+				log.warn("Live raid encounter refresh failed", e);
+				SwingUtilities.invokeLater(() ->
+				{
+					if (panel != null && generation == searchGeneration.get() && inputs.equals(desiredRaidInputs))
+					{ panel.showStatus("Live encounter update failed; the displayed setup may be outdated."); }
+				});
+			}
+		});
+	}
+
+	private void clearLiveRaidInputs()
+	{
+		desiredRaidInputs = null;
+		requestedRaidInputs = null;
+		publishedRaidInputs = null;
 	}
 
 	private void publishRaidProgress()
@@ -1211,23 +1351,7 @@ public class BestGearSetupPlugin extends Plugin
 			Boolean kourendElite = readKourendEliteDiary();
 			Map<String, Object> detected = new HashMap<>();
 			List<String> detectedNotes = new ArrayList<>();
-			if (config.thrall())
-			{
-				Boolean kingdomDivided = readKingdomDivided();
-				detected.put("thrall", config.arceuusSpellbook() && !Boolean.FALSE.equals(kingdomDivided));
-				if (!config.arceuusSpellbook())
-				{
-					detectedNotes.add("Thralls: not added, because the Arceuus spellbook isn't allowed under Spellbooks.");
-				}
-				else if (kingdomDivided == null)
-				{
-					detectedNotes.add("Thralls: A Kingdom Divided is unknown until you log in; thralls are assumed available.");
-				}
-				else if (!kingdomDivided)
-				{
-					detectedNotes.add("Thralls: not added, because A Kingdom Divided isn't complete.");
-				}
-			}
+			detectThralls(detected, detectedNotes);
 			NPC npc = matchingLiveTarget(summary);
 			searchedLive = npc != null;
 			com.bestgearsetup.data.EncounterPhase livePhase = LiveRaid.akkhaPhase(npc);
@@ -1304,7 +1428,8 @@ public class BestGearSetupPlugin extends Plugin
 	/** Specs landed on a live target: refresh the open result if it is that target. */
 	private void liveSpecsChanged(String target)
 	{
-		if (raidProgress.isActive()) { return; }
+		// The next GameTick refreshes the raid from a complete NPC/container snapshot and coalesces spec hits.
+		if (raidProgress.isActive()) { desiredRaidInputs = null; return; }
 		MonsterSummary last = lastSearched;
 		if (last != null && LiveSpecs.sameTarget(target, last.getName()))
 		{
@@ -1411,6 +1536,26 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		String remembered = configManager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, KINGDOM_DIVIDED_KEY);
 		return remembered == null ? null : Boolean.valueOf(remembered);
+	}
+
+	/** Apply the same account and spellbook eligibility to planned searches and live encounter refreshes. */
+	private void detectThralls(Map<String, Object> detected, List<String> notes)
+	{
+		if (!config.thrall()) { return; }
+		Boolean kingdomDivided = readKingdomDivided();
+		detected.put("thrall", config.arceuusSpellbook() && !Boolean.FALSE.equals(kingdomDivided));
+		if (!config.arceuusSpellbook())
+		{
+			notes.add("Thralls: not added, because the Arceuus spellbook isn't allowed under Spellbooks.");
+		}
+		else if (kingdomDivided == null)
+		{
+			notes.add("Thralls: A Kingdom Divided is unknown until you log in; thralls are assumed available.");
+		}
+		else if (!kingdomDivided)
+		{
+			notes.add("Thralls: not added, because A Kingdom Divided isn't complete.");
+		}
 	}
 
 	@Subscribe
@@ -1568,6 +1713,10 @@ public class BestGearSetupPlugin extends Plugin
 			.teamOpeners(teamOpeners(config, monster, specials, sharedTabs != null))
 			.karuulmDungeon(karuulmDungeon).raidLoadout(raidLoadout).switchFrom(switchFrom)
 			.switchLimit(Math.max(1, Math.min(RaidEncounter.MAX_SWITCH_LIMIT, config.quickSwitchLimit()))).build();
+		if (liveRaid.adaptive())
+		{
+			settings = settings.toBuilder().teamOpeners(false).raidOpeningEnergy(liveRaid.combat.get(5)).build();
+		}
 		if (raidLoadout == RaidLoadout.ICE_BARRAGE)
 		{
 			// A freeze is judged by how often each cast lands, switching as few items as reach the target.
@@ -1626,6 +1775,18 @@ public class BestGearSetupPlugin extends Plugin
 				.miningLevel(config.miningLevel() == 0 ? mining : config.miningLevel()).build())
 			// HP-dependent target stats are re-derived in the same order for whole-fight averages.
 			.withHealthStates(hp -> specials.apply(MonsterStates.atHealth(scaled, hp)));
+		if (liveRaid.adaptive())
+		{
+			int hp = liveRaid.combat.get(6) == 0 ? scaled.getHitpoints()
+				: Math.max(1, (scaled.getHitpoints() * liveRaid.combat.get(6) + 9) / 10);
+			Monster current = specials.apply(MonsterStates.atHealth(scaled, hp));
+			ctx = new CombatContext(current, levels, config.onSlayerTask(), liveRaid.combat.get(0), liveRaid.combat.get(1),
+				liveRaid.combat.get(2), liveRaid.combat.get(3), prayers, ctx.isThrall())
+				.withFightOptions(config.aoe() ? config.aoeTargets() : 1, 0)
+				.withModifiers(ctx.getModifiers().toBuilder().currentHitpoints(liveRaid.combat.get(4)).monsterHitpoints(hp).build())
+				.withHealthStates(health -> specials.apply(MonsterStates.atHealth(scaled, health)));
+			monster = current;
+		}
 		if (settings.isTeamOpeners())
 		{
 			// Only the player's own exclusions count: a reducer the kit planner leaves out of this search still owes its
@@ -1656,8 +1817,10 @@ public class BestGearSetupPlugin extends Plugin
 			OptimizerSettings typeSettings = settings.toBuilder().styles(EnumSet.of(type)).build();
 			// Spellbooks only decide which spells the magic tab may cast. The other tabs repeat across a raid's
 			// spellbooks unless thralls (Arceuus), boosted levels (a quick switch searched without its boost) or
-			// another fight modifier differ, which the key includes.
-			List<Object> shared = sharedTabs == null || classOf(type) == CombatClass.MAGIC ? null
+			// another fight modifier differ, which the key includes. Consolidation's trial searches each exclude a
+			// different item from nearly all gear, so no other search repeats them: keeping them would only hold
+			// thousands of results (and their exclusions) until the raid search ends.
+			List<Object> shared = sharedTabs == null || !extraExcluded.isEmpty() || classOf(type) == CombatClass.MAGIC ? null
 				: Arrays.asList(typeSettings.toBuilder().spellbooks(Collections.emptySet()).build(), ctx.isThrall(), ctx.getModifiers(),
 						ctx.getAttack(), ctx.getStrength(), ctx.getRanged(), ctx.getMagic());
 			List<SetupResult> setups = shared == null ? null : sharedTabs.get(shared);
@@ -1716,7 +1879,10 @@ public class BestGearSetupPlugin extends Plugin
 			rememberedLevels, assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config),
 			monster.isImmuneThrall() ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
 			scaled.getDefenceLevel(), levels.getPrayer()).withProtectionContext(
-				new com.bestgearsetup.calc.ProtectionPrayers.Context(scaled.copy(), levels, settings));
+				// Prayer advice reads only the fight settings; a raid consolidation search excludes thousands of items,
+				// which every kept result would otherwise hold on to.
+				new com.bestgearsetup.calc.ProtectionPrayers.Context(scaled.copy(), levels,
+					settings.toBuilder().excluded(Collections.emptySet()).build()));
 		if (cancelled.getAsBoolean()) { return null; }
 		progress.complete();
 		Map<AttackStyle.Type, List<SetupResult>> supplied = new LinkedHashMap<>();
@@ -1737,9 +1903,10 @@ public class BestGearSetupPlugin extends Plugin
 		Set<Integer> owned, Map<Integer, Long> quantities, int generation, BestGearSetupConfig config,
 		LiveRaid liveRaid, List<String> notes, DoubleConsumer publishProgress) throws IOException
 	{
-		RaidEncounter encounter = plan.encounterFor(summary.getName(), config.encounterPhase());
+		RaidEncounter encounter = liveRaid.encounterLabel == null ? plan.encounterFor(summary.getName(), config.encounterPhase())
+			: plan.getEncounters().stream().filter(fight -> fight.getLabel().equals(liveRaid.encounterLabel)).findFirst().orElse(null);
 		if (encounter == null) { return false; }
-		Set<Integer> excluded = outsideKit(plan, data);
+		Set<Integer> excluded = liveRaid.adaptive() ? Collections.emptySet() : outsideKit(plan, data);
 		Set<Integer> encounterOwned = new HashSet<>(owned);
 		Map<String, Object> overrides = new HashMap<>();
 		overrides.put("coxChallengeMode", plan.getType() == RaidPlanType.COX_CM);
@@ -1748,15 +1915,19 @@ public class BestGearSetupPlugin extends Plugin
 		overrides.put("aoe", false);
 		overrides.put("wilderness", false);
 		if (!encounter.isRaidSupplies()) { overrides.put("raidPotions", false); }
-		if (encounter.isUnboosted()) { unboostAll(overrides, config); }
-		freezeHeart(overrides, encounter, config, data, owned);
+		if (!liveRaid.adaptive())
+		{
+			if (encounter.isUnboosted()) { unboostAll(overrides, config); }
+			freezeHeart(overrides, encounter, config, data, owned);
+		}
 		// Path levels follow the order the plan was made in, which Auto chose.
 		if (plan.getType() == RaidPlanType.TOA) { overrides.put("toaPathOrder", ToaPathLevels.orderOf(plan.getEncounters())); }
 		// A quick switch stays a switch from the plan's full setup, within the plan's limit and with the boost it gave it.
 		overrides.put("quickSwitchLimit", encounter.getSwitchLimit());
 		// Spec energy follows the plan's rooms: a setup opens on a full bar only where the plan spent one.
 		overrides.put("specEnergy", SpecEnergy.FULL_BAR);
-		overrides.put("raidKillShare", encounter.getKillShare());
+		overrides.put("raidKillShare", liveRaid.adaptive() && encounter.isShared()
+			? liveRaid.values.getOrDefault("raidPartySize", encounter.getKillShare()) : encounter.getKillShare());
 		overrides.put("raidFinalBlowPercent", (int) Math.round(encounter.getFinalBlow() * 100));
 		int index = plan.getEncounters().indexOf(encounter);
 		boolean fullBar = plan.getSetups().get(index).usesFullBar();
@@ -1780,11 +1951,11 @@ public class BestGearSetupPlugin extends Plugin
 		if (switchGroup != null && fullSetup != index)
 		{
 			switchFrom = plan.getSetups().get(fullSetup).getLoadout();
-			if (plan.getResults().get(index).potionsForSetup(plan.getSetups().get(index)).isEmpty())
+			if (!liveRaid.adaptive() && plan.getResults().get(index).potionsForSetup(plan.getSetups().get(index)).isEmpty())
 			{ unboost(overrides, config, encounter.getFixedClass()); }
 		}
 		List<String> styleWarnings = new ArrayList<>();
-		if (unknownHandPhase)
+		if (unknownHandPhase && !liveRaid.adaptive())
 		{
 			styleWarnings.add("Live Olm hand phase is unknown: this refresh shows ordinary attacks and regenerated damage specs only. "
 				+ "Use the planned phase rows for entry-funded defence reducers.");
@@ -1795,13 +1966,14 @@ public class BestGearSetupPlugin extends Plugin
 			quotes, encounterOwned, quantities, generation, assumptions, liveRaid, notes,
 			styles, excluded, plan.getSpellbook(), encounter.getLoadoutRequirement(), publishProgress, null, switchFrom);
 		if (searched == null) { return true; }
-		if (searched.hasBlockingLock()) { return false; }
+		if (searched.hasBlockingLock() && !liveRaid.adaptive()) { return false; }
 		if (encounter.isPrepotted()) { searched = searched.withPrepotted(); }
-		searched = compatibleSwitches(plan, searched.withRegeneratedChoices(), index, switchGroup, fullSetup);
+		searched = compatibleSwitches(plan, liveRaid.adaptive() ? searched : searched.withRegeneratedChoices(), index, switchGroup, fullSetup);
 		// The freeze keeps its own goal in the kit: the fewest items reaching the target, not the most damage.
 		java.util.Comparator<SetupResult> preference = encounter.isFreeze()
 			? FreezeDuty.preference(FreezeDuty.GUARANTEED).reversed() : PRIMARY_DPS;
-		SetupResult best = bestInKit(plan, searched, owned::contains, fullBar, preference);
+		SetupResult best = liveRaid.adaptive() ? bestCarried(searched, liveRaid.spellSupplies, preference)
+			: bestInKit(plan, searched, owned::contains, fullBar, preference);
 		if (best == null && !styles.equals(encounter.getRequiredStyles()))
 		{
 			// The plan may have widened this encounter when its chosen style found nothing; do the same within the kit.
@@ -1811,19 +1983,42 @@ public class BestGearSetupPlugin extends Plugin
 				encounter.getRequiredStyles(), excluded, plan.getSpellbook(), encounter.getLoadoutRequirement(), publishProgress,
 				null, switchFrom);
 			if (searched == null) { return true; }
-			if (searched.hasBlockingLock()) { return false; }
+			if (searched.hasBlockingLock() && !liveRaid.adaptive()) { return false; }
 			if (encounter.isPrepotted()) { searched = searched.withPrepotted(); }
-			searched = compatibleSwitches(plan, searched.withRegeneratedChoices(), index, switchGroup, fullSetup);
-			best = bestInKit(plan, searched, owned::contains, fullBar, preference);
+			searched = compatibleSwitches(plan, liveRaid.adaptive() ? searched : searched.withRegeneratedChoices(), index, switchGroup, fullSetup);
+			best = liveRaid.adaptive() ? bestCarried(searched, liveRaid.spellSupplies, preference)
+				: bestInKit(plan, searched, owned::contains, fullBar, preference);
 		}
-		if (best == null) { return false; }
-		SearchResults found = searched.withWarnings(styleWarnings);
-		SetupResult shown = best;
+		if (best == null && !liveRaid.adaptive()) { return false; }
+		SearchResults found = best == null ? searched.withCandidates(Collections.emptyMap()).withWarnings(styleWarnings)
+			: searched.withWarnings(styleWarnings).withSetup(best);
 		SwingUtilities.invokeLater(() ->
 		{
-			if (panel != null && generation == searchGeneration.get()) { panel.showProgress(100); panel.showRaidResults(plan, summary, found.withSetup(shown)); }
+			if (panel != null && generation == searchGeneration.get()
+				&& (!liveRaid.adaptive() || raidPlan == plan && raidProgress.isActive() && !raidProgress.isFinished()
+					&& liveRaid.inputs != null && liveRaid.inputs.equals(desiredRaidInputs)
+					&& encounter.getLabel().equals(raidProgress.current().getEncounter())))
+			{
+				if (!liveRaid.adaptive()) { panel.showProgress(100); }
+				if (liveRaid.adaptive())
+				{
+					panel.showLiveRaidResults(plan, encounter, found);
+					publishedRaidInputs = liveRaid.inputs;
+				}
+				else { panel.showRaidResults(plan, summary, found); }
+			}
 		});
 		return true;
+	}
+
+	/** Live choices use only carried gear and the original kit's spell supplies, without spending future rooms' energy. */
+	private static SetupResult bestCarried(SearchResults found, Set<Integer> supplies,
+		java.util.Comparator<SetupResult> preference)
+	{
+		if (found.hasBlockingLock()) { return null; }
+		return found.getByType().values().stream().flatMap(Collection::stream)
+			.filter(setup -> supplies.containsAll(SpellRunes.required(setup)))
+			.max(preference).orElse(null);
 	}
 
 	/**
@@ -2005,7 +2200,9 @@ public class BestGearSetupPlugin extends Plugin
 		Map<RaidOptions.ToaPathOrder, List<String>> compared = new EnumMap<>(RaidOptions.ToaPathOrder.class);
 		Map<RaidOptions.ToaPathOrder, RaidPlan> fastestByOrder = new EnumMap<>(RaidOptions.ToaPathOrder.class);
 		// Optimizer results by encounter, shared between the spellbooks and path orders compared here.
-		Map<List<Object>, Map<List<Object>, List<SetupResult>>> sharedTabs = new HashMap<>();
+		Map<List<Object>, Map<List<Object>, List<SetupResult>>> sharedTabs = new java.util.concurrent.ConcurrentHashMap<>();
+		// Per order, the fastest plan a book stopped at without beating it (RaidKitSlower), in estimated seconds.
+		Map<RaidOptions.ToaPathOrder, Double> noFasterThan = new EnumMap<>(RaidOptions.ToaPathOrder.class);
 		for (int orderIndex = 0; orderIndex < orders.size(); orderIndex++)
 		{
 			RaidOptions.ToaPathOrder order = orders.get(orderIndex);
@@ -2017,11 +2214,15 @@ public class BestGearSetupPlugin extends Plugin
 				if (generation != searchGeneration.get()) { return; }
 				int step = orderIndex * books.size() + index;
 				RaidSpellbook book = books.get(index);
+				// Later books and orders only need a faster kit than the best so far, so it bounds their consolidation.
+				double best = selected == null ? Double.POSITIVE_INFINITY : RaidSpellbook.seconds(selected);
+				// Consolidation counts every player's combat; the estimate is per party member.
+				double beat = selected == null ? Double.POSITIVE_INFINITY : best * selected.getPartySize();
 				try
 				{
 					RaidPlan candidate = planRaidSpellbook(data, active, levels, remembered, prayerUnlocks, diary, mining,
 						quotes, owned, quantities, generation, orderConfig, liveRaid, detectedNotes, type, book,
-						percent -> progress.update(step, percent / 100.0), sharedTabs);
+						percent -> progress.update(step, percent / 100.0), sharedTabs, beat);
 					if (candidate == null) { return; }
 					compared.computeIfAbsent(order, o -> new ArrayList<>())
 						.add(book + ": " + Math.round(RaidSpellbook.seconds(candidate)) + "s estimated combat");
@@ -2029,6 +2230,11 @@ public class BestGearSetupPlugin extends Plugin
 					if (RaidSpellbook.faster(candidate, selected)) { selected = candidate; selectedOrder = order; }
 				}
 				catch (RaidKitUnavailable e) { unavailable.add(prefix + book + ": " + e.getMessage()); }
+				catch (RaidKitSlower e)
+				{
+					compared.computeIfAbsent(order, o -> new ArrayList<>()).add(book + ": no kit under " + Math.round(best) + "s");
+					noFasterThan.merge(order, best, Math::min);
+				}
 				progress.update(step, 1);
 			}
 		}
@@ -2042,7 +2248,15 @@ public class BestGearSetupPlugin extends Plugin
 		if (orders.size() > 1)
 		{
 			List<String> orderTimes = new ArrayList<>();
-			fastestByOrder.forEach((order, plan) -> orderTimes.add(order + ": " + Math.round(RaidSpellbook.seconds(plan)) + "s"));
+			for (RaidOptions.ToaPathOrder order : orders)
+			{
+				// An order whose books stopped at a faster plan is only known to be no faster than it.
+				RaidPlan plan = fastestByOrder.get(order);
+				Double bound = noFasterThan.get(order);
+				if (plan != null && (bound == null || RaidSpellbook.seconds(plan) <= bound))
+				{ orderTimes.add(order + ": " + Math.round(RaidSpellbook.seconds(plan)) + "s"); }
+				else if (bound != null) { orderTimes.add(order + ": no kit under " + Math.round(bound) + "s"); }
+			}
 			bookNotes.add("Auto path order selected " + selectedOrder + " by estimated raid combat time. "
 				+ String.join("; ", orderTimes) + ".");
 		}
@@ -2373,12 +2587,22 @@ public class BestGearSetupPlugin extends Plugin
 		RaidKitUnavailable(String message) { super(message); }
 	}
 
-	/** Search every target on one book, then consolidate switches when independent setups exceed the limit. */
+	/** A book or path order stopped at the faster plan already found: its own best is only known to be no faster. */
+	private static final class RaidKitSlower extends IllegalStateException
+	{
+		RaidKitSlower() { super("No faster kit"); }
+	}
+
+	/**
+	 * Search every target on one book, then consolidate switches when independent setups exceed the limit.
+	 * Consolidation only looks for kits faster than {@code beat} combat seconds, the whole party's (infinity for
+	 * none), and throws {@link RaidKitSlower} when that cut it short without one.
+	 */
 	private RaidPlan planRaidSpellbook(GameData data, MonsterSummary active, PlayerLevels levels, boolean remembered,
 		Set<String> prayerUnlocks, Boolean diary, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
 		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid,
 		List<String> detectedNotes, RaidPlanType type, RaidSpellbook spellbook, DoubleConsumer publishProgress,
-		Map<List<Object>, Map<List<Object>, List<SetupResult>>> sharedTabs) throws IOException
+		Map<List<Object>, Map<List<Object>, List<SetupResult>>> sharedTabs, double beat) throws IOException
 	{
 		List<RaidEncounter> encounters = type.encounters(data, raidSettings(levels == null ? PlayerLevels.maxed() : levels, mining, config),
 			RaidOptions.of(config));
@@ -2434,8 +2658,9 @@ public class BestGearSetupPlugin extends Plugin
 			List<String> notes = same ? detectedNotes : Collections.emptyList();
 			// Keyed by position and label: a ToA path order moves the path fights, whose scaling and smelling salts
 			// depend on their position, while the Obelisk and Wardens stay put and are shared between orders.
+			// Consolidation searches trials on helper threads too, so these maps are shared between threads.
 			Map<List<Object>, List<SetupResult>> encounterTabs = sharedTabs.computeIfAbsent(
-				Arrays.asList(index, encounter.getLabel()), key -> new HashMap<>());
+				Arrays.asList(index, encounter.getLabel()), key -> new java.util.concurrent.ConcurrentHashMap<>());
 			DoubleConsumer taskProgress = progress.search();
 			SearchResults result = computeSearch(data, encounter.getTarget(), levels, remembered, prayerUnlocks, diary,
 				false, mining, quotes, owned, quantities, generation, assumptions,
@@ -2467,7 +2692,7 @@ public class BestGearSetupPlugin extends Plugin
 			Arrays.stream(group).forEach(member -> groupOf[member] = bases);
 		});
 		// Each switch group member's full-setup search, shared by the other members' quick switches.
-		Map<List<Object>, SearchResults> fullSearches = new HashMap<>();
+		Map<List<Object>, SearchResults> fullSearches = new java.util.concurrent.ConcurrentHashMap<>();
 		RaidConsolidator.Search search = new RaidConsolidator.Search()
 		{
 			@Override
@@ -2497,9 +2722,14 @@ public class BestGearSetupPlugin extends Plugin
 			if (!encounters.get(index).isDisplayOnly()) { planned.add(index); }
 		}
 		List<RaidEncounter> kitEncounters = planned.stream().map(encounters::get).collect(Collectors.toList());
+		ExecutorService helpers = searchHelpers;
 		RaidConsolidator.Search kitSearch = new RaidConsolidator.Search()
 		{
 			@Override public void searching(DoubleConsumer work) { progress.searching(work); }
+
+			@Override public java.util.concurrent.Executor helpers() { return helpers; }
+
+			@Override public int helperCount() { return helpers == null ? 0 : SEARCH_HELPERS; }
 
 			@Override
 			public SearchResults run(int index, Set<Integer> excluded, int pass) throws IOException
@@ -2549,21 +2779,27 @@ public class BestGearSetupPlugin extends Plugin
 			java.util.stream.IntStream.range(0, results.size()).mapToObj(i -> results.get(i).withSetup(bestSetups.get(i)))
 				.collect(Collectors.toList()), limit, budget, kitOwns, item -> price(quotes, item), config.ammoCount(),
 			id -> quantities.getOrDefault(id, 0L), cancelled, progress.independentSelection());
+		boolean cutShort = false;
 		if (independent == null && !cancelled.getAsBoolean())
 		{
 			publishSearchActivity(generation, "Comparing shared gear");
 			Set<Integer> locked = buildSettings(config).getLocks().values().stream().map(SlotLock::getItemId).collect(Collectors.toSet());
-			// Only kits faster than the beam's own result can replace it, so let consolidation prune against it.
-			double bound = selected == null ? Double.POSITIVE_INFINITY
+			// Only kits faster than the beam's own result can replace it, so let consolidation prune against it; and
+			// only kits faster than another book's or path order's plan can be chosen, so against that too.
+			double own = selected == null ? Double.POSITIVE_INFINITY
 				: RaidConsolidator.seconds(selected.getSetups(), selected.getResults(), weighted);
+			double bound = Math.min(own, beat);
 			RaidPlan consolidated = RaidConsolidator.select(data, type, spellbook, weighted, results, locked, limit, budget,
 				kitOwns, item -> price(quotes, item), config.ammoCount(), id -> quantities.getOrDefault(id, 0L), cancelled, bound, kitSearch, progress::consolidation);
 			if (consolidated != null && (selected == null
 				|| RaidConsolidator.seconds(consolidated.getSetups(), consolidated.getResults(), weighted)
 					< RaidConsolidator.seconds(selected.getSetups(), selected.getResults(), weighted)))
 			{ selected = consolidated; }
+			cutShort = beat < own && (selected == null
+				|| RaidConsolidator.seconds(selected.getSetups(), selected.getResults(), weighted) >= beat);
 		}
 		if (cancelled.getAsBoolean()) { return null; }
+		if (cutShort) { throw new RaidKitSlower(); }
 		if (selected == null)
 		{
 			// The equipment limit is a maximum, so only suggest more slots when there are more to allow.

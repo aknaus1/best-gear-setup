@@ -42,6 +42,7 @@ public final class SpellRunes
 	private static final Map<SupportSpell, List<Integer>> SUPPORT = new EnumMap<>(SupportSpell.class);
 	private static final Map<Integer, List<Integer>> SUBSTITUTES = new HashMap<>();
 	private static final Map<String, List<Integer>> STAFF_ELEMENTS = new HashMap<>();
+	private static final Set<Integer> CARRIED_SUPPLIES = new HashSet<>();
 	// Best first: a divine pouch takes the cell ahead of a regular one, each before its locked (l) copy.
 	static final List<Integer> RUNE_POUCHES = Arrays.asList(ItemID.DIVINE_RUNE_POUCH,
 		ItemID.DIVINE_RUNE_POUCH_TROUVER, ItemID.BH_RUNE_POUCH, ItemID.BH_RUNE_POUCH_TROUVER);
@@ -123,6 +124,10 @@ public final class SpellRunes
 		STAFF_ELEMENTS.put("mud", Arrays.asList(WATER, EARTH));
 		STAFF_ELEMENTS.put("steam", Arrays.asList(WATER, FIRE));
 		STAFF_ELEMENTS.put("lava", Arrays.asList(EARTH, FIRE));
+		SPELLS.values().forEach(CARRIED_SUPPLIES::addAll);
+		SUPPORT.values().forEach(CARRIED_SUPPLIES::addAll);
+		SUBSTITUTES.values().forEach(CARRIED_SUPPLIES::addAll);
+		CARRIED_SUPPLIES.addAll(RUNE_POUCHES);
 	}
 
 	private SpellRunes()
@@ -186,6 +191,31 @@ public final class SpellRunes
 
 	/** Supplies checked during spell scoring, excluding unrelated gear, boosts and pouches. */
 	public static boolean isSpellSupply(int id) { return isRune(id) || id == ItemID.BOOK_OF_THE_DEAD; }
+
+	/** Raw spell supplies are represented by their casting capabilities in live keys, not their item variants. */
+	static boolean isCarriedSupply(int id) { return CARRIED_SUPPLIES.contains(id); }
+
+	/**
+	 * Canonical rune types available now. Combination and substitute runes contribute every type they replace;
+	 * redundant stacks and their quantities do not change availability. A carried pouch retains the kit's planned
+	 * contents, as in the live supply check; a pouch left in storage contributes nothing.
+	 */
+	static Set<Integer> carriedSupplies(RaidPlan plan, IntPredicate carried)
+	{
+		Set<Integer> stored = new HashSet<>();
+		plan.getInventory().stream().filter(item -> item.getIds().stream().anyMatch(id -> pouchCapacity(id) > 0 && carried.test(id)))
+			.flatMap(item -> item.getContents().stream()).filter(item -> !item.getIds().isEmpty())
+			// The remaining ids are withdrawal alternatives, not extra rune types known to be in the pouch.
+			.map(item -> item.getIds().get(0)).filter(SpellRunes::isRune).forEach(stored::add);
+		Set<Integer> available = new HashSet<>();
+		for (int id : CARRIED_SUPPLIES)
+		{
+			if (isSpellSupply(id) && (carried.test(id) || stored.contains(id)
+				|| substitutes(id).stream().anyMatch(carried::test)))
+			{ available.add(id); }
+		}
+		return Collections.unmodifiableSet(available);
+	}
 
 	static List<Integer> required(Loadout loadout, Set<SupportSpell> support)
 	{

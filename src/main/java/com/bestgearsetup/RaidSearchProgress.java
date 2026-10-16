@@ -8,7 +8,8 @@ final class RaidSearchProgress
 {
 	private final int encounters;
 	private final SearchProgress overall;
-	private Tasks active;
+	/** Per thread: consolidation may search several trials at once, each in its own range. */
+	private final ThreadLocal<Tasks> active = new ThreadLocal<>();
 
 	RaidSearchProgress(int encounters, DoubleConsumer publish)
 	{
@@ -23,15 +24,15 @@ final class RaidSearchProgress
 	}
 
 	/** One planned encounter, including any full setups, quick switches and fallback searches it needs. */
-	void beginEncounter(int index) { active = new Tasks(range(0.4 * index / encounters, 0.4 / encounters)); }
+	void beginEncounter(int index) { active.set(new Tasks(range(0.4 * index / encounters, 0.4 / encounters))); }
 	void endEncounter(int index) { overall.update(0, 0.4 * (index + 1) / encounters); }
-	DoubleConsumer search() { return active.next(); }
-	void expectSearches(int searches) { active.expected = Math.max(1, searches); }
+	DoubleConsumer search() { return tasks().next(); }
+	void expectSearches(int searches) { tasks().expected = Math.max(1, searches); }
 	DoubleConsumer selection() { return range(0.4, 0.15); }
 	DoubleConsumer independentSelection() { return range(0.55, 0.05); }
 
 	/** A trial supplies its known work denominator; its nested searches share that trial's range. */
-	void searching(DoubleConsumer work) { active = new Tasks(work); }
+	void searching(DoubleConsumer work) { active.set(new Tasks(work)); }
 
 	/** Remaining consolidation passes are discovered as gear is removed; reserve half for the next pass. */
 	DoubleConsumer consolidation(int pass)
@@ -40,8 +41,16 @@ final class RaidSearchProgress
 		return range(0.95 - remaining, remaining / 2);
 	}
 
-	void finalization() { active = new Tasks(range(0.95, 0.0499)); }
+	void finalization() { active.set(new Tasks(range(0.95, 0.0499))); }
 	void complete() { overall.complete(); }
+
+	/** This thread's current work; a thread that was never given any reports nothing. */
+	private Tasks tasks()
+	{
+		Tasks tasks = active.get();
+		if (tasks == null) { tasks = new Tasks(percent -> { }); active.set(tasks); }
+		return tasks;
+	}
 
 	private DoubleConsumer range(double start, double span)
 	{

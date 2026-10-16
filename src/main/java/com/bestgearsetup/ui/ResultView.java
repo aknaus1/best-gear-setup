@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.function.Function;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -118,6 +119,7 @@ class ResultView extends JPanel
 	private static final int TAB_SIZE = 32;
 	/** CSS width of the wrapped max-hit line; Swing scales CSS px by 1.3, so this fills the stats box. */
 	private static final int STAT_WRAP_WIDTH = 155;
+	private static final String STATS_EXPANDED = "statsExpanded";
 
 	private final BestGearSetupPlugin plugin;
 	private final ItemManager itemManager;
@@ -127,7 +129,7 @@ class ResultView extends JPanel
 	private final SearchResults results;
 	private final boolean publishBank;
 	private final JComponent carriedInventory;
-	/** Holds the inventory's minimized state, so it survives new results; this view itself when none is given. */
+	/** Holds inventory and DPS detail expansion across new results; this view itself when none is given. */
 	private final JComponent inventoryState;
 	/** How a raid kit gets each boost (prepot, brought or both); null for a single fight's search. */
 	private final Function<Potion, RaidPlan.PotionUse> potionUse;
@@ -378,7 +380,13 @@ class ResultView extends JPanel
 		String max = d.getMaxHit() + (d.getMaxHitDetail() == null ? "" : " (" + d.getMaxHitDetail() + ")");
 		double ttk = d.getPrimaryDps() > 0 ? results.getStartingHitpoints() / d.getPrimaryDps() : 0;
 		boolean area = d.getTargetsHit() > 1;
-		box.add(stat("<b>" + (area ? "Total DPS: " : "DPS: ") + fmt(d.getDps(), 3) + "</b>"), row);
+		JButton toggle = new JButton((area ? "Total DPS: " : "DPS: ") + fmt(d.getDps(), 3));
+		toggle.setName("statsToggle");
+		Controls.ghost(toggle);
+		toggle.setFont(FontManager.getRunescapeBoldFont());
+		toggle.setForeground(Color.WHITE);
+		toggle.setMargin(new Insets(0, 0, 0, 0));
+		box.add(toggle, row);
 		if (thrall != null)
 		{
 			JLabel thrallLabel = stat("Incl. thrall: +" + fmt(thrall.getDps(), 3));
@@ -410,7 +418,28 @@ class ResultView extends JPanel
 		kills.setToolTipText("Damage-based estimate: total DPS / enemy HP. Assumes continuous combat; excludes overkill, "
 			+ "respawns, travel, banking, eating and boss phases.");
 		box.add(kills, row);
+		toggle.addActionListener(e ->
+		{
+			inventoryState.putClientProperty(STATS_EXPANDED,
+				!Boolean.TRUE.equals(inventoryState.getClientProperty(STATS_EXPANDED)));
+			applyStatsExpanded(box, toggle);
+		});
+		applyStatsExpanded(box, toggle);
 		return box;
+	}
+
+	private void applyStatsExpanded(JPanel box, JButton toggle)
+	{
+		boolean open = Boolean.TRUE.equals(inventoryState.getClientProperty(STATS_EXPANDED));
+		for (Component component : box.getComponents())
+		{
+			if (component != toggle) { component.setVisible(open); }
+		}
+		toggle.setIcon(new Controls.Chevron(open ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, null));
+		toggle.setToolTipText(open ? "Collapse DPS details" : "Expand DPS details");
+		toggle.getAccessibleContext().setAccessibleDescription(open ? "Expanded" : "Collapsed");
+		box.revalidate();
+		box.repaint();
 	}
 
 	/**

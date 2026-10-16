@@ -405,7 +405,8 @@ public class RaidSearchTest
 			{
 				plans[run] = (RaidPlan) plan.invoke(plugin, data, RaidPlanType.TOB.encounters(data).get(0).getTarget(), PlayerLevels.maxed(),
 					false, null, true, 99, Collections.emptyMap(), owned, quantities, 0, config, new LiveRaid(), Collections.emptyList(),
-					RaidPlanType.TOB, book, (java.util.function.DoubleConsumer) percent -> { }, run == 0 ? shared : new HashMap<>());
+					RaidPlanType.TOB, book, (java.util.function.DoubleConsumer) percent -> { }, run == 0 ? shared : new HashMap<>(),
+					Double.POSITIVE_INFINITY);
 			}
 			assertNotNull(book.toString(), plans[0]);
 			assertEquals(book.toString(), RaidSpellbook.seconds(plans[1]), RaidSpellbook.seconds(plans[0]), 0);

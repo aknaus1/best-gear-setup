@@ -334,6 +334,45 @@ public class RaidConsolidatorTest
 		}
 	}
 
+	@Test public void trialsSearchedOnHelperThreadsChooseTheSameKitAsOneByOne() throws Exception
+	{
+		List<SearchResults> original = new ArrayList<>();
+		for (int index = 0; index < encounters.size(); index++) { original.add(search(index, Collections.emptySet())); }
+		java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+		try
+		{
+			Set<String> threads = java.util.concurrent.ConcurrentHashMap.newKeySet();
+			RaidConsolidator.Search together = new RaidConsolidator.Search()
+			{
+				@Override public SearchResults run(int index, Set<Integer> excluded, int pass) throws java.io.IOException
+				{
+					threads.add(Thread.currentThread().getName());
+					// Slow enough that the helpers take trials before the calling thread has finished them all.
+					try { Thread.sleep(10); }
+					catch (InterruptedException e) { throw new java.io.InterruptedIOException(); }
+					return search(index, excluded);
+				}
+				@Override public java.util.concurrent.Executor helpers() { return pool; }
+				@Override public int helperCount() { return 2; }
+			};
+			RaidPlan alone = RaidConsolidator.select(data, RaidPlanType.COX_CM, RaidSpellbook.ARCEUUS, encounters, original,
+				Collections.emptySet(), 2, Long.MAX_VALUE, id -> false, item -> 10, 0, id -> 0, () -> false,
+				(index, excluded, pass) -> search(index, excluded));
+			RaidPlan parallel = RaidConsolidator.select(data, RaidPlanType.COX_CM, RaidSpellbook.ARCEUUS, encounters, original,
+				Collections.emptySet(), 2, Long.MAX_VALUE, id -> false, item -> 10, 0, id -> 0, () -> false, together);
+			assertNotNull(alone);
+			assertNotNull(parallel);
+			assertTrue("Some trials must be searched on a helper thread", threads.size() > 1);
+			assertEquals(RaidConsolidator.seconds(alone.getSetups(), alone.getResults(), encounters),
+				RaidConsolidator.seconds(parallel.getSetups(), parallel.getResults(), encounters), 0);
+			for (int index = 0; index < encounters.size(); index++)
+			{
+				assertEquals(RaidPlan.gear(alone.getSetups().get(index)).keySet(), RaidPlan.gear(parallel.getSetups().get(index)).keySet());
+			}
+		}
+		finally { pool.shutdown(); }
+	}
+
 	private RaidPlan consolidate(Set<Integer> locked, int limit, long budget, AtomicBoolean cancelled) throws Exception
 	{
 		List<SearchResults> original = new ArrayList<>();

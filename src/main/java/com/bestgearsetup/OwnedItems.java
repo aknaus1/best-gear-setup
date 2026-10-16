@@ -221,6 +221,12 @@ public class OwnedItems
 		return mode == SearchMode.INVENTORY_ONLY ? carried : owned;
 	}
 
+	/** A live calculation must wait for transfer-sensitive carried totals to settle. */
+	boolean carriedSettled()
+	{
+		return carried.getQuantities().equals(combine(java.util.Arrays.asList(inventory, worn), Collections.emptySet()));
+	}
+
 	/** Distinct tracked items, including connected storage, excluding manual entries. */
 	public int count()
 	{

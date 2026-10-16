@@ -28,16 +28,19 @@ import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.Hitsplat;
 import net.runelite.api.IndexedObjectSet;
+import net.runelite.api.Model;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.Player;
 import net.runelite.api.WorldView;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.HitsplatApplied;
 import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.gameval.NpcID;
+import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Before;
@@ -153,6 +156,131 @@ public class RaidProgressIntegrationTest
 	private RaidEncounter encounter(String label)
 	{
 		return plan.getEncounters().stream().filter(fight -> fight.getLabel().equals(label)).findFirst().get();
+	}
+
+	@Test public void akkhaVulnerabilityAndImmunitySwitchSavedGearBeforeClicking() throws Exception
+	{
+		setPlan(RaidPlanType.TOA);
+		NPC boss = toaNpc(NpcID.AKKHA_MELEE, "Akkha"), shadow = toaNpc(NpcID.AKKHA_SHADOW, "Akkha's Shadow");
+		Model model = mock(Model.class); when(shadow.getModel()).thenReturn(model);
+		when(model.getOverrideAmount()).thenReturn((byte) 127);
+		when(boss.getOverheadArchiveIds()).thenReturn(new int[]{SpriteID.HEADICONS_PRAYER});
+		when(boss.getOverheadSpriteIds()).thenReturn(new short[]{2});
+		toaWorld(14676, shadow, boss);
+		tick(); assertEquals("Akkha: Immune To Magic", plugin.raidProgress.current().getEncounter());
+		long revision = plugin.raidProgress.current().getRevision();
+		tick(); assertEquals(revision, plugin.raidProgress.current().getRevision());
+		for (int cycle = 0; cycle < 2; cycle++)
+		{
+			// The player still targets Akkha when his shadows become vulnerable.
+			when(player.getInteracting()).thenReturn(boss); when(model.getOverrideAmount()).thenReturn((byte) 0);
+			tick(); assertEquals("Akkha Shadows", plugin.raidProgress.current().getEncounter());
+			revision = plugin.raidProgress.current().getRevision();
+			tick(); assertEquals(revision, plugin.raidProgress.current().getRevision());
+			// The shadow stays alive and targeted after it turns inactive; resume the boss's current form.
+			when(player.getInteracting()).thenReturn(shadow); when(model.getOverrideAmount()).thenReturn((byte) 127);
+			when(boss.getOverheadSpriteIds()).thenReturn(new short[]{1});
+			tick(); assertEquals("Akkha: Immune To Ranged", plugin.raidProgress.current().getEncounter());
+			when(player.getInteracting()).thenReturn(null); when(boss.getOverheadSpriteIds()).thenReturn(new short[]{0});
+			tick(); assertEquals("Akkha: Immune To Melee", plugin.raidProgress.current().getEncounter());
+		}
+		// Enrage takes priority over any lingering ordinary shadows, even before its overhead arrives.
+		when(boss.getId()).thenReturn(NpcID.AKKHA_ENRAGE); when(boss.getOverheadSpriteIds()).thenReturn(null);
+		when(model.getOverrideAmount()).thenReturn((byte) 0); when(player.getInteracting()).thenReturn(shadow);
+		tick(); assertEquals("Akkha: Final Stand (Melee Only)", plugin.raidProgress.current().getEncounter());
+		message(ChatMessageType.GAMEMESSAGE, "Challenge complete: Akkha. Duration: 3:00.");
+		String next = plugin.raidProgress.current().getEncounter();
+		assertFalse(next.startsWith("Akkha"));
+		tick(); assertEquals(next, plugin.raidProgress.current().getEncounter());
+		assertEquals(0, searches.get()); assertEquals(42, plugin.searchGeneration.get());
+		assertFalse(plugin.search.isCancelled());
+	}
+
+	@Test public void akkhaDetectionRequiresTheBossRoomAndDoesNotGuessFromUnloadedShadows() throws Exception
+	{
+		setPlan(RaidPlanType.TOA);
+		NPC boss = toaNpc(NpcID.AKKHA_MELEE, "Akkha"), shadow = toaNpc(NpcID.AKKHA_SHADOW, "Akkha's Shadow");
+		Model model = mock(Model.class); when(shadow.getModel()).thenReturn(model);
+		when(model.getOverrideAmount()).thenReturn((byte) 127);
+		when(boss.getOverheadArchiveIds()).thenReturn(new int[]{SpriteID.HEADICONS_PRAYER});
+		when(boss.getOverheadSpriteIds()).thenReturn(new short[]{2});
+		toaWorld(14160, boss, shadow); tick();
+		assertEquals(plan.getStartingEncounter().getLabel(), plugin.raidProgress.current().getEncounter());
+		toaWorld(14676, boss, shadow); tick();
+		assertEquals("Akkha: Immune To Magic", plugin.raidProgress.current().getEncounter());
+		when(shadow.getModel()).thenReturn(null); when(boss.getOverheadSpriteIds()).thenReturn(new short[]{1});
+		long revision = plugin.raidProgress.current().getRevision();
+		tick(); assertEquals(revision, plugin.raidProgress.current().getRevision());
+		when(shadow.getModel()).thenReturn(model); when(model.getOverrideAmount()).thenReturn((byte) 0);
+		tick(); assertEquals("Akkha Shadows", plugin.raidProgress.current().getEncounter());
+		when(shadow.isDead()).thenReturn(true);
+		tick(); assertEquals("Akkha: Immune To Ranged", plugin.raidProgress.current().getEncounter());
+		assertEquals(0, searches.get());
+	}
+
+	private NPC toaNpc(int id, String name)
+	{
+		NPC npc = mock(NPC.class); NPCComposition composition = mock(NPCComposition.class);
+		when(npc.getId()).thenReturn(id); when(npc.getName()).thenReturn(name); when(npc.getHealthRatio()).thenReturn(-1);
+		when(npc.getTransformedComposition()).thenReturn(composition);
+		when(composition.getActions()).thenReturn(new String[]{"Attack"});
+		return npc;
+	}
+
+	@Test public void bothWardensSwitchP2GearBeforeAttackingAndIgnoreStaleCoreTargets() throws Exception
+	{
+		int[][] ids = {
+			{NpcID.TOA_WARDEN_ELIDINIS_PHASE2_MAGE, NpcID.TOA_WARDEN_ELIDINIS_PHASE2_RANGE,
+				NpcID.TOA_WARDEN_ELIDINIS_PHASE2_EXPOSED, NpcID.TOA_WARDEN_ELIDINIS_CORE},
+			{NpcID.TOA_WARDEN_TUMEKEN_PHASE2_MAGE, NpcID.TOA_WARDEN_TUMEKEN_PHASE2_RANGE,
+				NpcID.TOA_WARDEN_TUMEKEN_PHASE2_EXPOSED, NpcID.TOA_WARDEN_TUMEKEN_CORE}};
+		for (int branch = 0; branch < ids.length; branch++)
+		{
+			plugin.raidProgress.reset(); setPlan(RaidPlanType.TOA);
+			String name = branch == 0 ? "Elidinis" : "Tumeken";
+			NPC boss = toaNpc(ids[branch][0], branch == 0 ? "Elidinis' Warden" : "Tumeken's Warden");
+			NPC core = toaNpc(ids[branch][3], "<col=00ffff>Core</col>"); when(core.isDead()).thenReturn(true);
+			when(player.getInteracting()).thenReturn(null);
+			toaWorld(14160, boss, core); tick();
+			assertEquals("Loading unrelated NPCs outside the boss room must not select P2", plan.getStartingEncounter().getLabel(),
+				plugin.raidProgress.current().getEncounter());
+			toaWorld(15184, boss, core); tick();
+			assertEquals(name + " P2: Magic", plugin.raidProgress.current().getEncounter());
+			for (int cycle = 0; cycle < 2; cycle++)
+			{
+				when(boss.getId()).thenReturn(ids[branch][1]); tick();
+				assertEquals(name + " P2: Ranged", plugin.raidProgress.current().getEncounter());
+				long revision = plugin.raidProgress.current().getRevision();
+				tick(); assertEquals(revision, plugin.raidProgress.current().getRevision());
+				// Shield HP is zero before the core has landed; still open core gear immediately.
+				when(boss.getId()).thenReturn(ids[branch][2]); when(boss.getHealthRatio()).thenReturn(0);
+				when(player.getInteracting()).thenReturn(boss); tick();
+				assertEquals(name + " Core", plugin.raidProgress.current().getEncounter());
+				when(core.isDead()).thenReturn(false); tick();
+				assertEquals(name + " Core", plugin.raidProgress.current().getEncounter());
+				// The core can linger while the shield reforms, and remains the player's stale target.
+				when(player.getInteracting()).thenReturn(core);
+				when(boss.getHealthRatio()).thenReturn(-1); when(boss.getId()).thenReturn(ids[branch][0]); tick();
+				assertEquals(name + " P2: Magic", plugin.raidProgress.current().getEncounter());
+				when(core.isDead()).thenReturn(true);
+			}
+		}
+		assertEquals(0, searches.get()); assertEquals(42, plugin.searchGeneration.get());
+		assertFalse(plugin.search.isCancelled());
+	}
+
+	@SuppressWarnings("unchecked")
+	private void toaWorld(int region, NPC... actors)
+	{
+		IndexedObjectSet<NPC> npcs = mock(IndexedObjectSet.class);
+		when(npcs.iterator()).thenAnswer(call -> Arrays.asList(actors).iterator());
+		WorldView world = mock(WorldView.class); when(world.npcs()).thenReturn((IndexedObjectSet) npcs);
+		when(client.getTopLevelWorldView()).thenReturn(world); when(client.getWorldView(WorldView.TOPLEVEL)).thenReturn(world);
+		// The allocated instance is elsewhere; detection must read its source template region.
+		when(world.isInstance()).thenReturn(true);
+		int template = ((region >> 8) * 8 << 14) | ((region & 255) * 8 << 3);
+		when(world.getInstanceTemplateChunks()).thenReturn(new int[][][]{{{template}}});
+		when(player.getLocalLocation()).thenReturn(new LocalPoint(64, 64, WorldView.TOPLEVEL));
 	}
 
 	@Test public void coxDeathsAdvanceOnceAndLandedSpecsOrSuppliesDoNotReplanTheKit() throws Exception

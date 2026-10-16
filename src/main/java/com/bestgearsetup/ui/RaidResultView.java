@@ -28,13 +28,20 @@ class RaidResultView extends JPanel
 		SpriteCache sprites, SkillIconManager skills, int ammoCount, JComboBox<RaidEncounter> encounter,
 		JComboBox<RaidEncounter> version, Consumer<RaidEncounter> selected)
 	{
+		this(plan, active, activeResult, plugin, items, sprites, skills, ammoCount, encounter, version, selected, null);
+	}
+
+	RaidResultView(RaidPlan plan, MonsterSummary active, SearchResults activeResult, BestGearSetupPlugin plugin, ItemManager items,
+		SpriteCache sprites, SkillIconManager skills, int ammoCount, JComboBox<RaidEncounter> encounter,
+		JComboBox<RaidEncounter> version, Consumer<RaidEncounter> selected, RaidEncounter exact)
+	{
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setOpaque(false);
 		// Switches, the rune pouch, loose runes and a carried book of the dead count against the limit, a maximum.
 		int equipment = RaidPlan.limitedSlots(plan.getInventory());
-		JLabel summary = new JLabel(BestGearSetupPanel.html("Start wearing <b>" + plan.getStartingEncounter().getLabel()
+		JLabel summary = new JLabel(BestGearSetupPanel.html((activeResult == null ? "Start wearing <b>" : "Pre-raid starting setup: <b>") + plan.getStartingEncounter().getLabel()
 			+ "</b> gear.<br>Equipment slots: " + equipment + " / " + plan.getEquipmentLimit() + " max"
-			+ "<br>Estimated combat time: " + duration(plan.getEstimatedSeconds())
+			+ "<br>" + (activeResult == null ? "Estimated combat time: " : "Pre-raid combat estimate: ") + duration(plan.getEstimatedSeconds())
 			+ "<br>Spellbook: " + plan.getSpellbook()
 			+ "<br>Inventory: " + plan.getInventory().size() + " / 28. Fill empty slots with supplies."
 			+ boostSummary(plan)
@@ -60,8 +67,16 @@ class RaidResultView extends JPanel
 			SearchResults result = plan.getResults().get(index).withSetup(plan.getSetups().get(index));
 			// Only the encounter the live target refreshed shows the refreshed result.
 			if (activeResult != null && active != null
-				&& current.equals(plan.encounterFor(active.getName(), activeResult.getMonster().getPhase())))
+				&& current.equals(exact == null ? plan.encounterFor(active.getName(), activeResult.getMonster().getPhase()) : exact))
 			{ result = activeResult; }
+			if (result.getByType().isEmpty())
+			{
+				detail.add(new JLabel(BestGearSetupPanel.html("No usable setup with your carried items and current restrictions.")));
+				inventorySection.showItems(java.util.Collections.emptyList(), plan::potionUse, null);
+				selected.accept(current);
+				detail.revalidate(); detail.repaint();
+				return;
+			}
 			java.util.List<RaidPlan.InventoryItem> carried = plan.inventoryFor(result.getByType().values().iterator().next().get(0));
 			CoxChestPlan chest = CoxChestPlan.forEncounter(plan, current, result.getByType().values().iterator().next().get(0));
 			inventorySection.showItems(carried, plan::potionUse, chest);
@@ -76,10 +91,10 @@ class RaidResultView extends JPanel
 			detail.revalidate();
 			detail.repaint();
 		};
-		RaidEncounter initial = active == null ? null
+		RaidEncounter initial = exact != null ? exact : active == null ? null
 			: plan.encounterFor(active.getName(), activeResult == null ? null : activeResult.getMonster().getPhase());
 		// A search from the raid's default (first) target opens on the setup the kit is worn in for.
-		if (initial == null || initial.equals(plan.getEncounters().get(0))) { initial = plan.getStartingEncounter(); }
+		if (initial == null || exact == null && initial.equals(plan.getEncounters().get(0))) { initial = plan.getStartingEncounter(); }
 		encounter.setSelectedItem(bosses.get(initial.getBossName()));
 		Runnable versions = () ->
 		{

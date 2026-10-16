@@ -20,6 +20,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleConsumer;
 import java.util.function.IntFunction;
@@ -47,10 +54,25 @@ final class RaidConsolidator
 		{
 			return null;
 		}
+
+		/**
+		 * Threads that may search a pass's trials alongside the calling one, which this search must then accept calls
+		 * from; null to search them one by one on the calling thread.
+		 */
+		default Executor helpers() { return null; }
+
+		/** How many {@link #helpers} threads may take part at once. */
+		default int helperCount() { return 0; }
 	}
 
 	/** Passes planned past a fitting baseline whose kit wasn't found ({@link #select}); each searches every removal. */
 	private static final int MAX_FITTING_PASSES = 6;
+	/**
+	 * Trials planned into kits per pass, those with the fastest setups first. A pass searches every removal (often 30 to
+	 * 50) but rarely gains from planning past its first few: in a profiled ToA search every faster kit came from the
+	 * first six, while the rest took most of the planning time. A slower trial is still ranked for removal.
+	 */
+	private static final int PLANNED_TRIALS = 8;
 
 	private RaidConsolidator() { }
 
@@ -136,6 +158,10 @@ final class RaidConsolidator
 			DoubleConsumer progress = passProgress;
 			List<SetupResult> baseline = best(current, encounters);
 			double baselineSeconds = seconds(baseline, current, encounters);
+			// Every later trial only restricts these searches further, and no kit beats its own fastest setups (the
+			// same bound that stops trial planning below): once these can't beat the kit in hand, no pass can, so
+			// skip this pass's searches.
+			if (baselineSeconds >= feasibleSeconds) { return feasible; }
 			RaidPlan.Memo baselineMemo = new RaidPlan.Memo();
 			int baselineStart = RaidPlan.bestStart(baseline, current, starts, baselineMemo);
 			double baselineExcess = excess(baseline, current, encounters, baselineStart, baselineMemo, limit, budget, owns, price, ammoCount,
@@ -174,80 +200,53 @@ final class RaidConsolidator
 			List<Map.Entry<Slot, Integer>> wearChoices = targetGrouped ? Collections.emptyList()
 				: wearable(baseline, current, worn, target);
 			int trialCount = Math.max(1, removable.size() + wearChoices.size());
-			int trialIndex = 0;
+			// Each trial only reads this pass's state, so the trials may be searched at once. Their new searches are
+			// remembered, and the trials ranked, in trial order afterwards, exactly as one by one: no trial can reuse
+			// another's search of the same pass, since each drops its own item or wears its own extra one.
+			Pass state = new Pass(trialCount, progress, cancelled, excluded, dropped, worn, wornAt, baseline, current, pass,
+				baselineSeconds, rankExcess, rankLimit);
+			List<Callable<Ranked>> tasks = new ArrayList<>();
 			for (int id : removable)
 			{
-				if (cancelled.getAsBoolean()) { return null; }
-				int work = trialIndex++;
-				progress.accept(80.0 * work / trialCount);
-				Set<Integer> trialExcluded = new HashSet<>(excluded); trialExcluded.add(id);
-				Set<Integer> trialDropped = new HashSet<>(dropped); trialDropped.add(id);
-				// A dropped item can't stay worn either.
-				Map<Slot, Integer> trialWorn = new EnumMap<>(Slot.class);
-				worn.forEach((slot, wornId) -> { if (wornId != id) { trialWorn.put(slot, wornId); } });
-				List<SearchResults> trial = new ArrayList<>();
-				// A switch group's quick switches are searched from its other members' setups, so the whole group is
-				// re-searched when any member is. Its candidates depend on each other, so earlier searches aren't reused.
-				Set<Integer> grouped = new HashSet<>();
-				for (int[] group : groups)
-				{
-					if (java.util.Arrays.stream(group).anyMatch(member -> gear(baseline.get(member)).contains(id)))
-					{ java.util.Arrays.stream(group).forEach(grouped::add); }
-				}
-				for (int index = 0; index < current.size(); index++)
-				{
-					DoubleConsumer encounterProgress = range(progress, 80.0 * (work + (double) index / current.size()) / trialCount,
-						80.0 / trialCount / current.size());
-					search.searching(encounterProgress);
-					encounterProgress.accept(0);
-					SearchResults result = current.get(index);
-					// An unaffected best setup already gives the same optimum under this restriction.
-					SearchResults replacement = grouped.contains(index) ? search.run(index, trialExcluded, pass)
-						: gear(baseline.get(index)).contains(id) ? restricted(encounters.get(index), searched.get(index), index, trialExcluded, trialDropped,
-							index == wornAt ? trialWorn : Collections.emptyMap(), pass, search)
-						: filter(result, trialExcluded);
-					replacement = keepFreezeAccuracy(replacement, freezeAccuracy[index]);
-					if (replacement == null || replacement.isEmpty() || replacement.hasBlockingLock()) { break; }
-					trial.add(replacement);
-					encounterProgress.accept(100);
-				}
-				if (trial.size() != current.size()) { continue; }
-				double loss = lossPerSlot(trial, encounters, starts, baselineSeconds, rankExcess, trials, rankLimit, budget, owns,
-					price, ammoCount, quantities);
-				if (loss < smallestLoss)
-				{ smallestLoss = loss; chosen = trial; removed = id; chosenWorn = trialWorn; chosenWornAt = wornAt; }
+				int work = tasks.size();
+				tasks.add(() -> removal(id, work, state, groups, encounters, searched, freezeAccuracy, search, starts, budget,
+					owns, price, ammoCount, quantities));
 			}
 			// Wearing another setup's item in the starting setup frees its switch, e.g. melee boots while maging: the
 			// setup the kit starts in now, or the one already wearing such items. Quick switches follow their group's
 			// full setups, so a grouped start keeps its own search.
 			for (Map.Entry<Slot, Integer> wear : wearChoices)
 			{
-				if (cancelled.getAsBoolean()) { return null; }
-				DoubleConsumer wearProgress = range(progress, 80.0 * trialIndex++ / trialCount, 80.0 / trialCount);
-				search.searching(wearProgress);
-				wearProgress.accept(0);
-				Map<Slot, Integer> trialWorn = new EnumMap<>(worn); trialWorn.put(wear.getKey(), wear.getValue());
-				SearchResults replacement = restricted(encounters.get(target), searched.get(target), target, excluded, dropped, trialWorn, pass, search);
-				replacement = keepFreezeAccuracy(replacement, freezeAccuracy[target]);
-				if (replacement == null || replacement.isEmpty() || replacement.hasBlockingLock()) { continue; }
-				List<SearchResults> trial = new ArrayList<>(current); trial.set(target, replacement);
-				double loss = lossPerSlot(trial, encounters, starts, baselineSeconds, rankExcess, trials, rankLimit, budget, owns,
-					price, ammoCount, quantities);
-				if (loss < smallestLoss)
-				{ smallestLoss = loss; chosen = trial; removed = null; chosenWorn = trialWorn; chosenWornAt = target; }
+				int work = tasks.size();
+				tasks.add(() -> wearing(wear, work, target, state, encounters, searched, freezeAccuracy, search, starts, budget,
+					owns, price, ammoCount, quantities));
+			}
+			List<Ranked> ranked = runAll(tasks, search.helpers(), search.helperCount());
+			if (cancelled.getAsBoolean()) { return null; }
+			for (Ranked trial : ranked)
+			{
+				trial.added.forEach((index, added) -> searched.get(index).addAll(added));
+				if (trial.trial == null) { continue; }
+				trials.add(trial.trial);
+				if (trial.loss < smallestLoss)
+				{
+					smallestLoss = trial.loss; chosen = trial.trial.results; removed = trial.removed; chosenWorn = trial.worn;
+					chosenWornAt = trial.wornAt;
+				}
 			}
 			// No kit beats its trial's independently best setups, so plan the most promising trials first: the
 			// best feasible time then tightens early and later trials stop at the planner's lower bound.
 			progress.accept(80);
 			trials.sort(Comparator.comparingDouble(trial -> trial.bestSeconds));
 			int planned = 0;
+			int toPlan = Math.min(PLANNED_TRIALS, trials.size());
 			for (Trial trial : trials)
 			{
 				if (cancelled.getAsBoolean()) { return null; }
-				if (trial.bestSeconds >= feasibleSeconds) { break; }
+				if (trial.bestSeconds >= feasibleSeconds || planned >= PLANNED_TRIALS) { break; }
 				// Trials only rank removals, so each is planned from the start its fastest setups suit; the final kit
 				// below compares every start.
-				DoubleConsumer planProgress = range(progress, 80.0 + 20.0 * planned++ / trials.size(), 20.0 / trials.size());
+				DoubleConsumer planProgress = range(progress, 80.0 + 20.0 * planned++ / toPlan, 20.0 / toPlan);
 				RaidPlan plan = RaidPlanner.select(type, spellbook, encounters, trial.results, limit, budget, owns, price,
 					ammoCount, quantities, cancelled, planProgress, feasibleSeconds, new int[]{trial.start});
 				double planSeconds = plan == null ? Double.POSITIVE_INFINITY : seconds(plan.getSetups(), trial.results, encounters);
@@ -292,9 +291,8 @@ final class RaidConsolidator
 	 * and remember it. Every search shares the base exclusion, so searches are told apart by the items consolidation
 	 * {@code dropped}.
 	 */
-	private static SearchResults restricted(RaidEncounter encounter, List<Searched> earlier, int index, Set<Integer> excluded,
-		Set<Integer> dropped,
-		Map<Slot, Integer> worn, int pass, Search search) throws IOException
+	private static SearchResults restricted(RaidEncounter encounter, List<Searched> earlier, List<Searched> added, int index,
+		Set<Integer> excluded, Set<Integer> dropped, Map<Slot, Integer> worn, int pass, Search search) throws IOException
 	{
 		Searched reusable = null;
 		for (Searched entry : earlier)
@@ -308,7 +306,7 @@ final class RaidConsolidator
 		SearchResults found = worn.isEmpty() ? search.run(index, excluded, pass) : search.wearing(index, excluded, worn, pass);
 		if (found != null && !found.isEmpty() && !found.hasBlockingLock())
 		{
-			earlier.add(new Searched(new HashSet<>(dropped), new HashMap<>(worn), found,
+			added.add(new Searched(new HashSet<>(dropped), new HashMap<>(worn), found,
 				gear(fastest(found, encounter))));
 		}
 		return found;
@@ -341,17 +339,210 @@ final class RaidConsolidator
 	}
 
 	/** A trial's extra seconds per equipment or inventory slot saved, or infinity when it saves none. */
-	private static double lossPerSlot(List<SearchResults> trial, List<RaidEncounter> encounters, int[] starts,
-		double baselineSeconds, double baselineExcess, List<Trial> trials, int limit, long budget, IntPredicate owns,
-		ToLongFunction<GearItem> price, int ammoCount, IntToLongFunction quantities)
+	/** A searched trial, ranked by the time it costs per slot it saves over the pass's limit. */
+	private static Ranked lossPerSlot(List<SearchResults> trial, List<RaidEncounter> encounters, int[] starts, Pass state,
+		long budget, IntPredicate owns, ToLongFunction<GearItem> price, int ammoCount, IntToLongFunction quantities)
 	{
 		List<SetupResult> setups = best(trial, encounters);
 		double trialSeconds = seconds(setups, trial, encounters);
 		RaidPlan.Memo memo = new RaidPlan.Memo();
 		int start = RaidPlan.bestStart(setups, trial, starts, memo);
-		trials.add(new Trial(trial, trialSeconds, start));
-		double saved = baselineExcess - excess(setups, trial, encounters, start, memo, limit, budget, owns, price, ammoCount, quantities);
-		return saved <= 0 ? Double.POSITIVE_INFINITY : (trialSeconds - baselineSeconds) / saved;
+		double saved = state.rankExcess - excess(setups, trial, encounters, start, memo, state.rankLimit, budget, owns, price,
+			ammoCount, quantities);
+		return new Ranked(new Trial(trial, trialSeconds, start),
+			saved <= 0 ? Double.POSITIVE_INFINITY : (trialSeconds - state.baselineSeconds) / saved);
+	}
+
+	/**
+	 * Drop {@code id} everywhere: re-search each encounter whose best setup uses it (a switch group as a whole) and
+	 * rank the result. Searches it adds are returned with it rather than remembered here.
+	 */
+	private static Ranked removal(int id, int work, Pass state, List<int[]> groups, List<RaidEncounter> encounters,
+		List<List<Searched>> searched, double[] freezeAccuracy, Search search, int[] starts, long budget, IntPredicate owns,
+		ToLongFunction<GearItem> price, int ammoCount, IntToLongFunction quantities) throws IOException
+	{
+		Map<Integer, List<Searched>> added = new TreeMap<>();
+		if (state.cancelled.getAsBoolean()) { return Ranked.none(added); }
+		state.progress.accept(80.0 * work / state.trialCount);
+		Set<Integer> trialExcluded = new HashSet<>(state.excluded); trialExcluded.add(id);
+		Set<Integer> trialDropped = new HashSet<>(state.dropped); trialDropped.add(id);
+		// A dropped item can't stay worn either.
+		Map<Slot, Integer> trialWorn = new EnumMap<>(Slot.class);
+		state.worn.forEach((slot, wornId) -> { if (wornId != id) { trialWorn.put(slot, wornId); } });
+		List<SearchResults> trial = new ArrayList<>();
+		// A switch group's quick switches are searched from its other members' setups, so the whole group is
+		// re-searched when any member is. Its candidates depend on each other, so earlier searches aren't reused.
+		Set<Integer> grouped = new HashSet<>();
+		for (int[] group : groups)
+		{
+			if (java.util.Arrays.stream(group).anyMatch(member -> gear(state.baseline.get(member)).contains(id)))
+			{ java.util.Arrays.stream(group).forEach(grouped::add); }
+		}
+		for (int index = 0; index < state.current.size(); index++)
+		{
+			DoubleConsumer encounterProgress = range(state.progress,
+				80.0 * (work + (double) index / state.current.size()) / state.trialCount, 80.0 / state.trialCount / state.current.size());
+			search.searching(encounterProgress);
+			encounterProgress.accept(0);
+			SearchResults result = state.current.get(index);
+			// An unaffected best setup already gives the same optimum under this restriction.
+			SearchResults replacement = grouped.contains(index) ? search.run(index, trialExcluded, state.pass)
+				: gear(state.baseline.get(index)).contains(id) ? restricted(encounters.get(index), searched.get(index),
+					added.computeIfAbsent(index, key -> new ArrayList<>()), index, trialExcluded, trialDropped,
+					index == state.wornAt ? trialWorn : Collections.emptyMap(), state.pass, search)
+				: filter(result, trialExcluded);
+			replacement = keepFreezeAccuracy(replacement, freezeAccuracy[index]);
+			if (replacement == null || replacement.isEmpty() || replacement.hasBlockingLock()) { return Ranked.none(added); }
+			trial.add(replacement);
+			encounterProgress.accept(100);
+		}
+		return lossPerSlot(trial, encounters, starts, state, budget, owns, price, ammoCount, quantities)
+			.with(added, id, trialWorn, state.wornAt);
+	}
+
+	/**
+	 * Have the starting setup at {@code target} wear another setup's item, freeing its switch, and rank the result.
+	 * Searches it adds are returned with it rather than remembered here.
+	 */
+	private static Ranked wearing(Map.Entry<Slot, Integer> wear, int work, int target, Pass state, List<RaidEncounter> encounters,
+		List<List<Searched>> searched, double[] freezeAccuracy, Search search, int[] starts, long budget, IntPredicate owns,
+		ToLongFunction<GearItem> price, int ammoCount, IntToLongFunction quantities) throws IOException
+	{
+		Map<Integer, List<Searched>> added = new TreeMap<>();
+		if (state.cancelled.getAsBoolean()) { return Ranked.none(added); }
+		DoubleConsumer wearProgress = range(state.progress, 80.0 * work / state.trialCount, 80.0 / state.trialCount);
+		search.searching(wearProgress);
+		wearProgress.accept(0);
+		Map<Slot, Integer> trialWorn = new EnumMap<>(state.worn); trialWorn.put(wear.getKey(), wear.getValue());
+		SearchResults replacement = restricted(encounters.get(target), searched.get(target),
+			added.computeIfAbsent(target, key -> new ArrayList<>()), target, state.excluded, state.dropped, trialWorn, state.pass, search);
+		replacement = keepFreezeAccuracy(replacement, freezeAccuracy[target]);
+		if (replacement == null || replacement.isEmpty() || replacement.hasBlockingLock()) { return Ranked.none(added); }
+		List<SearchResults> trial = new ArrayList<>(state.current); trial.set(target, replacement);
+		return lossPerSlot(trial, encounters, starts, state, budget, owns, price, ammoCount, quantities)
+			.with(added, null, trialWorn, target);
+	}
+
+	/**
+	 * Run the tasks on up to {@code helperCount} helpers as well as the calling thread, which works through them too
+	 * (so they finish even when no helper is free), and return their results in task order.
+	 */
+	private static <T> List<T> runAll(List<Callable<T>> tasks, Executor helpers, int helperCount) throws IOException
+	{
+		int count = tasks.size();
+		Object[] found = new Object[count];
+		AtomicInteger next = new AtomicInteger();
+		AtomicInteger remaining = new AtomicInteger(count);
+		AtomicReference<Throwable> failure = new AtomicReference<>();
+		CompletableFuture<Void> done = new CompletableFuture<>();
+		if (count == 0) { done.complete(null); }
+		Runnable worker = () ->
+		{
+			for (int task = next.getAndIncrement(); task < count; task = next.getAndIncrement())
+			{
+				try
+				{
+					// After a failure the remaining tasks are skipped, though still counted.
+					if (failure.get() == null) { found[task] = tasks.get(task).call(); }
+				}
+				catch (Exception | Error e) { failure.compareAndSet(null, e); }
+				finally { if (remaining.decrementAndGet() == 0) { done.complete(null); } }
+			}
+		};
+		for (int helper = 0; helpers != null && helper < Math.min(helperCount, count - 1); helper++)
+		{
+			try { helpers.execute(worker); }
+			// A pool that is shutting down leaves the work to this thread.
+			catch (RejectedExecutionException e) { break; }
+		}
+		worker.run();
+		// Tasks a helper took may still be running; join waits for them (and isn't interruptible).
+		done.join();
+		Throwable thrown = failure.get();
+		if (thrown instanceof IOException) { throw (IOException) thrown; }
+		if (thrown instanceof RuntimeException) { throw (RuntimeException) thrown; }
+		if (thrown instanceof Error) { throw (Error) thrown; }
+		if (thrown != null) { throw new IllegalStateException(thrown); }
+		List<T> results = new ArrayList<>(count);
+		for (Object result : found)
+		{
+			@SuppressWarnings("unchecked") T typed = (T) result;
+			results.add(typed);
+		}
+		return results;
+	}
+
+	/** What every trial of one consolidation pass reads; none of it changes until the pass's trials are all searched. */
+	private static final class Pass
+	{
+		final int trialCount;
+		final DoubleConsumer progress;
+		final BooleanSupplier cancelled;
+		final Set<Integer> excluded;
+		final Set<Integer> dropped;
+		final Map<Slot, Integer> worn;
+		final int wornAt;
+		final List<SetupResult> baseline;
+		final List<SearchResults> current;
+		final int pass;
+		final double baselineSeconds;
+		/** Removals are ranked by the slots they save over this limit, from this excess. */
+		final double rankExcess;
+		final int rankLimit;
+
+		Pass(int trialCount, DoubleConsumer progress, BooleanSupplier cancelled, Set<Integer> excluded, Set<Integer> dropped,
+			Map<Slot, Integer> worn, int wornAt, List<SetupResult> baseline, List<SearchResults> current, int pass,
+			double baselineSeconds, double rankExcess, int rankLimit)
+		{
+			this.trialCount = trialCount;
+			this.progress = progress;
+			this.cancelled = cancelled;
+			this.excluded = excluded;
+			this.dropped = dropped;
+			this.worn = worn;
+			this.wornAt = wornAt;
+			this.baseline = baseline;
+			this.current = current;
+			this.pass = pass;
+			this.baselineSeconds = baselineSeconds;
+			this.rankExcess = rankExcess;
+			this.rankLimit = rankLimit;
+		}
+	}
+
+	/**
+	 * A searched trial with its loss per slot saved, or none ({@code trial} null, when some encounter had no usable
+	 * setup or the search was cancelled), and the restricted searches it added, by encounter.
+	 */
+	private static final class Ranked
+	{
+		final Trial trial;
+		final double loss;
+		Map<Integer, List<Searched>> added = Collections.emptyMap();
+		/** The item dropped, or null for a worn item. */
+		Integer removed;
+		Map<Slot, Integer> worn;
+		int wornAt;
+
+		Ranked(Trial trial, double loss)
+		{
+			this.trial = trial;
+			this.loss = loss;
+		}
+
+		static Ranked none(Map<Integer, List<Searched>> added)
+		{
+			return new Ranked(null, Double.POSITIVE_INFINITY).with(added, null, null, -1);
+		}
+
+		Ranked with(Map<Integer, List<Searched>> added, Integer removed, Map<Slot, Integer> worn, int wornAt)
+		{
+			this.added = added;
+			this.removed = removed;
+			this.worn = worn;
+			this.wornAt = wornAt;
+			return this;
+		}
 	}
 
 	private static final class Searched

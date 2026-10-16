@@ -369,6 +369,23 @@ public class RaidPanelTest
 			panel.encounterBox.setSelectedIndex(0);
 			assertEquals(1, panel.raidVersionBox.getItemCount());
 			assertTrue(!panel.versionRow.isVisible());
+			SearchResults unavailable = new SearchResults(results.get(0).getMonster(), 100, Collections.emptyMap(),
+				Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false);
+			panel.showRaidResults(plan, encounters.get(0).getTarget(), unavailable);
+			assertTrue(components(panel).stream().filter(c -> c instanceof javax.swing.JLabel)
+				.anyMatch(c -> String.valueOf(((javax.swing.JLabel) c).getText()).contains("No usable setup with your carried items")));
+			panel.encounterBox.setSelectedItem(akkha);
+			assertFalse(components(panel).stream().filter(c -> c instanceof javax.swing.JLabel)
+				.anyMatch(c -> String.valueOf(((javax.swing.JLabel) c).getText()).contains("No usable setup with your carried items")));
+			RaidEncounter wardenMagic = encounters.stream().filter(e -> e.getLabel().equals("Elidinis P2: Magic")).findFirst().get();
+			RaidEncounter wardenRanged = encounters.stream().filter(e -> e.getLabel().equals("Elidinis P2: Ranged")).findFirst().get();
+			panel.showLiveRaidResults(plan, wardenMagic, unavailable);
+			assertEquals("Live magic must not reopen the first same-name P2 row (ranged)", wardenMagic, panel.raidVersionBox.getSelectedItem());
+			assertTrue(components(panel).stream().filter(c -> c instanceof javax.swing.JLabel)
+				.anyMatch(c -> String.valueOf(((javax.swing.JLabel) c).getText()).contains("No usable setup with your carried items")));
+			panel.encounterBox.setSelectedItem(wardenRanged);
+			assertFalse("Only the refreshed magic row gets its unavailable result", components(panel).stream().filter(c -> c instanceof javax.swing.JLabel)
+				.anyMatch(c -> String.valueOf(((javax.swing.JLabel) c).getText()).contains("No usable setup with your carried items")));
 			panel.selectMonster(RaidPlanType.TOB.encounters(data).get(0).getTarget(), false);
 			assertEquals(RaidPlanType.SINGLE, panel.getRaidType());
 			assertEquals(panel.versionRow, panel.versionBox.getParent());

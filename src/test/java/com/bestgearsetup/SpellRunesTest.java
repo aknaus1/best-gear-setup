@@ -28,6 +28,43 @@ public class SpellRunesTest
 {
 	@BeforeClass public static void ownershipRules() { OwnershipRules.init(RuneLiteAPI.GSON); }
 
+	@Test public void carriedSuppliesNormalizeEverySupportedSubstitute()
+	{
+		RaidPlan plan = org.mockito.Mockito.mock(RaidPlan.class);
+		org.mockito.Mockito.when(plan.getInventory()).thenReturn(Collections.emptyList());
+		Map<Integer, Set<Integer>> replacements = Map.ofEntries(
+			Map.entry(ItemID.MISTRUNE, Set.of(ItemID.AIRRUNE, ItemID.WATERRUNE)),
+			Map.entry(ItemID.DUSTRUNE, Set.of(ItemID.AIRRUNE, ItemID.EARTHRUNE)),
+			Map.entry(ItemID.SMOKERUNE, Set.of(ItemID.AIRRUNE, ItemID.FIRERUNE)),
+			Map.entry(ItemID.MUDRUNE, Set.of(ItemID.WATERRUNE, ItemID.EARTHRUNE)),
+			Map.entry(ItemID.STEAMRUNE, Set.of(ItemID.WATERRUNE, ItemID.FIRERUNE)),
+			Map.entry(ItemID.LAVARUNE, Set.of(ItemID.EARTHRUNE, ItemID.FIRERUNE)),
+			Map.entry(ItemID.SUNFIRERUNE, Set.of(ItemID.FIRERUNE)),
+			Map.entry(ItemID.AETHERRUNE, Set.of(ItemID.SOULRUNE, ItemID.COSMICRUNE)));
+		replacements.forEach((substitute, canonical) ->
+		{
+			assertEquals(canonical, SpellRunes.carriedSupplies(plan, id -> id == substitute));
+			assertEquals(canonical, SpellRunes.carriedSupplies(plan, canonical::contains));
+		});
+		assertEquals(Set.of(ItemID.BOOK_OF_THE_DEAD),
+			SpellRunes.carriedSupplies(plan, id -> id == ItemID.BOOK_OF_THE_DEAD));
+	}
+
+	@Test public void onlyCarriedPouchesContributeTheirPlannedContents()
+	{
+		RaidPlan plan = org.mockito.Mockito.mock(RaidPlan.class);
+		RaidPlan.InventoryItem runes = new RaidPlan.InventoryItem("Fire runes",
+			Arrays.asList(ItemID.FIRERUNE, ItemID.SUNFIRERUNE, ItemID.SMOKERUNE), false);
+		RaidPlan.InventoryItem pouch = new RaidPlan.InventoryItem("Rune pouch",
+			Arrays.asList(ItemID.BH_RUNE_POUCH, ItemID.BH_RUNE_POUCH_TROUVER), false, Collections.singletonList(runes));
+		org.mockito.Mockito.when(plan.getInventory()).thenReturn(Collections.singletonList(pouch));
+		assertTrue(SpellRunes.carriedSupplies(plan, id -> false).isEmpty());
+		assertEquals(SpellRunes.carriedSupplies(plan, id -> id == ItemID.BH_RUNE_POUCH),
+			SpellRunes.carriedSupplies(plan, id -> id == ItemID.BH_RUNE_POUCH_TROUVER));
+		assertEquals("A possible smoke substitute is not evidence that air runes were packed", Set.of(ItemID.FIRERUNE),
+			SpellRunes.carriedSupplies(plan, id -> id == ItemID.BH_RUNE_POUCH));
+	}
+
 	@Test
 	public void everyBundledSpellHasItsRunes() throws Exception
 	{

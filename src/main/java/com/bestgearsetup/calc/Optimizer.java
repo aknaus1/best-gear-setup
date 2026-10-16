@@ -1830,7 +1830,7 @@ public class Optimizer
 		// Every choice of this worn kit, including no personal specs, follows the same teammates' openers.
 		plainSeconds = plainSeconds(worn, ordinary, hp, share);
 		List<RaidRotation> variants = new ArrayList<>();
-		RaidRotation full = bestRotation(ordinary, hp, rate, regen, SpecialRotation.FULL_ENERGY, damageChoices, drainChoices,
+		RaidRotation full = bestRotation(ordinary, hp, rate, regen, Math.max(0, Math.min(100, settings.getRaidOpeningEnergy())), damageChoices, drainChoices,
 			wornCost, variants, range(progress, 0.7, 0.2));
 		progress.accept(0.9);
 		DpsResult plain = raidOrdinary(worn, ordinary);

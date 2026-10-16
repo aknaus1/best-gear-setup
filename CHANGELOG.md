@@ -5,6 +5,17 @@ is what the Plugin Hub shows.
 
 ## Unreleased
 
+- Wardens P2 now selects magic, ranged or core gear from the live NPC forms before attacking, for either
+  Warden. An exposed shield opens core gear while the core is being ejected, and a reformed shield overrides
+  a stale core target. Live calculations and the sidebar keep the exact magic/ranged row despite both styles
+  sharing the same monster data.
+- Raid searches still build the packing plan before entry. Inside a raid, the current encounter now refreshes
+  automatically using inventory and worn equipment, actual raid/path scaling, current boosted levels,
+  tracked landed defence-reducing specs and remaining special energy. Following a different ToA route selects
+  the actual room and uses its live path level. These updates keep the original packing plan and switch/role
+  constraints; they never trigger another full raid search. Boss HP is estimated from its visible health bar.
+- Akkha's vulnerable shadows select shadow gear before clicking them; inactive shadows restore Akkha's
+  current protection phase, with melee-only gear for his final stand.
 - When the Nylocas Vasilias changes form, the raid view now switches to the new form's setup straight away. Before, the
   form change dropped your attack and the view stayed on the old form until you clicked the boss again.
 - Ranged and magic kits no longer leech the party's defence reducers. If you can use an elder maul, dragon
