@@ -25,6 +25,13 @@ manage item rules in **Gear**, and set equipment preferences in **Settings**.
 - Compare DPS, max hit, accuracy, estimated kill time and upgrade costs across attack styles.
 - Plan complete **CM CoX, ToA and ToB** kits with shared switches, supplies and encounter setups that
   follow live raid progress. Choose your ToB role, ToA path order and switch limits.
+- In **CM CoX**, red means finished for the raid, yellow means unused for the rest of this floor, and
+  green means needed for this floor (or the next floor after completing this one). Chest guidance shows
+  red/yellow in inventory and green/yellow in private storage. Inventory also highlights the selected
+  encounter's gear to equip, including with storage closed. Hover over **Inventory** for chest advice and a
+  next-floor preview when everything is still needed; no extra text section expands the side panel.
+  Advice includes the selected room and all its phases; supplies and puzzle/prep items stay outside it.
+  Enable **Highlight inventory gear** for equip outlines; chest guidance appears only while private storage is open.
 - Account for levels, prayers, boosts, thralls, special attacks and encounter requirements.
 - Use bank layouts and gear highlights to prepare your setup. Enable
   [Dude, Where's My Stuff?](https://runelite.net/plugin-hub/show/dude-wheres-my-stuff) to include recorded
@@ -38,6 +45,9 @@ Results are estimates; movement, switch timing and downtime aren't simulated. Ra
 only. See [mechanics and assumptions](docs/mechanics.md) and [known calculation gaps](COMBAT_AUDIT.md).
 
 ## Support
+
+[Join the Discord community](https://discord.gg/gxFXvnUrUs) for setup help, gear discussions, FAQs and
+feature requests.
 
 [Report a bug](https://github.com/aknaus1/best-gear-setup/issues) with the monster, version, mode and
 **Search details** text. Leave out your account name and whole bank.

@@ -159,7 +159,7 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(keyName = HIGHLIGHT_INVENTORY_GEAR_KEY, name = "Highlight inventory gear",
-		description = "Outline only the gear to wear for the displayed setup in your inventory; excludes carried switches and supplies",
+		description = "Outline gear to equip for the displayed setup. CM CoX adds storage-only guidance: inventory red/yellow to deposit; storage green to retrieve, yellow for later floors",
 		section = displaySection, position = 3)
 	default boolean highlightInventoryGear()
 	{

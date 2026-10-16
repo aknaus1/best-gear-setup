@@ -73,8 +73,10 @@ public class RaidOptionsTest
 		assertEquals("tekton (normal)", cox.get(0).getTarget().getName());
 		assertTrue(cox.get(cox.size() - 1).getTarget().getName().startsWith("great olm"));
 		assertEquals(Arrays.asList("Tekton", "Scavenger Beast", "Ice Demon", "Lizardman Shaman", "Vanguard",
-			"Vespula", "Abyssal Portal", "Deathly Ranger", "Deathly Mage", "Guardian", "Vasa Nistirio",
+			"Vespula", "Abyssal Portal", "Deathly Mage", "Deathly Ranger", "Guardian", "Vasa Nistirio",
 			"Glowing Crystal", "Skeletal Mystic", "Muttadile", "Great Olm"), bosses(cox));
+		assertEquals(80, find(cox, "Tightrope Mage").getRestBefore(), 0);
+		assertEquals(0, find(cox, "Tightrope Ranger").getRestBefore(), 0);
 	}
 
 	@Test

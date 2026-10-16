@@ -110,6 +110,7 @@ import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
+import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.client.callback.ClientThread;
@@ -243,6 +244,8 @@ public class BestGearSetupPlugin extends Plugin
 	/** Only the equipment slots of the displayed setup, excluding carried switches and supplies. */
 	@Getter
 	private volatile Set<Integer> inventoryHighlightIds = Collections.emptySet();
+	/** CM gear colors; null selects ordinary encounter highlighting. Previews never reach the overlay. */
+	private volatile Map<Integer, java.awt.Color> coxChestHighlights;
 
 	@Getter
 	@Inject
@@ -1075,10 +1078,13 @@ public class BestGearSetupPlugin extends Plugin
 			}
 			raidRegion = region;
 			Set<String> livingRooms = new HashSet<>();
+			NPC vasa = null;
 			WorldView world = client.getTopLevelWorldView();
 			for (NPC npc : world == null ? Collections.<NPC>emptyList() : world.npcs())
 			{
 				if (npc == null || RaidProgress.room(type, npc.getName()) == null || npc.isDead() || npc.getHealthRatio() == 0) { continue; }
+				if (type == RaidPlanType.COX_CM && (npc.getId() == NpcID.RAIDS_VASANISTIRIO_WALKING
+					|| npc.getId() == NpcID.RAIDS_VASANISTIRIO_HEALING)) { vasa = npc; }
 				MonsterSummary target = gameData.matchNpc(npc.getId(), npc.getName(), npc.getCombatLevel());
 				if (target == null) { continue; }
 				raidNpcTargets.put(npc, target);
@@ -1088,7 +1094,9 @@ public class BestGearSetupPlugin extends Plugin
 			Player player = client.getLocalPlayer();
 			// A form change (the Nylocas Vasilias) drops your attack, so the NPC you're fighting leads until you reclick.
 			NPC target = player != null && player.getInteracting() instanceof NPC ? (NPC) player.getInteracting() : engaged();
-			if (target != null && !target.isDead() && target.getHealthRatio() != 0 && isAttackable(target))
+			// Vasa's healing form opens crystal gear before a click, and his walking form restores Vasa gear.
+			boolean vasaPhase = vasa != null && raidProgress.vasaPhase(vasa.getId() == NpcID.RAIDS_VASANISTIRIO_HEALING);
+			if (!vasaPhase && target != null && !target.isDead() && target.getHealthRatio() != 0 && isAttackable(target))
 			{
 				MonsterSummary match = gameData.matchNpc(target.getId(), target.getName(), target.getCombatLevel());
 				if (match != null) { raidProgress.target(match, LiveRaid.akkhaPhase(target)); }
@@ -2659,12 +2667,44 @@ public class BestGearSetupPlugin extends Plugin
 	/** Inventory outlines mark the gear to equip for the displayed setup, rather than the whole carried kit. */
 	public void setInventoryHighlightedSetup(SetupResult setup)
 	{
+		coxChestHighlights = null;
 		Set<Integer> ids = new HashSet<>();
 		if (setup != null)
 		{
 			for (Slot slot : Slot.values()) { addBankHighlightItem(ids, setup.getLoadout().get(slot)); }
 		}
 		inventoryHighlightIds = Collections.unmodifiableSet(ids);
+	}
+
+	/** Publish the sidebar's private-storage advice without changing the complete bank kit. */
+	public void setCoxChestHighlights(RaidPlan plan, CoxChestPlan chest)
+	{
+		if (plan.getType() != RaidPlanType.COX_CM) { coxChestHighlights = null; return; }
+		Map<Integer, java.awt.Color> colors = new HashMap<>();
+		for (GearItem item : plan.getEquipment())
+		{
+			java.awt.Color color = chest.colorFor(item);
+			if (color == null) { continue; }
+			Set<Integer> ids = new HashSet<>();
+			addBankHighlightItem(ids, item);
+			ids.forEach(id -> colors.put(id, color));
+		}
+		coxChestHighlights = Collections.unmodifiableMap(colors);
+	}
+
+	/** Full CM kits add floor guidance alongside the selected encounter's equip outlines. */
+	boolean isCoxChestHighlightMode() { return coxChestHighlights != null; }
+
+	/** Storage outlines apply only while the active CM raid's private chest is open. */
+	java.awt.Color coxChestHighlightColor(int itemId)
+	{
+		Map<Integer, java.awt.Color> colors = coxChestHighlights;
+		if (colors == null || !raidProgress.isActive() || raidProgress.current().getType() != RaidPlanType.COX_CM || client == null)
+		{ return null; }
+		net.runelite.api.widgets.Widget chest = client.getWidget(net.runelite.api.gameval.InterfaceID.RaidsStoragePrivate.UNIVERSE);
+		if (chest == null || chest.isHidden()) { return null; }
+		java.awt.Color color = colors.get(itemId);
+		return color != null && raidProgress.isFinished() ? CoxChestPlan.FINISHED_COLOR : color;
 	}
 
 	/** Swing thread: cancel current and queued work and release the selected setup and target. */

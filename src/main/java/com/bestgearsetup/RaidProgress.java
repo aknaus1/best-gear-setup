@@ -110,6 +110,7 @@ final class RaidProgress
 	}
 
 	synchronized boolean isActive() { return active; }
+	synchronized boolean isFinished() { return finished; }
 	synchronized Update current() { return update; }
 
 	/** A target or live phase selects its setup once; manually browsing between events remains possible. */
@@ -123,6 +124,19 @@ final class RaidProgress
 		RaidEncounter match = plan.encounterFor(target.getName(), phase);
 		if (match == null) { return; }
 		if (!match.getLabel().equals(encounter)) { choose(match); emit(); }
+	}
+
+	/** Vasa's live form leads over stale attack targets; unchanged phases leave manual browsing alone. */
+	synchronized boolean vasaPhase(boolean crystal)
+	{
+		if (!active || finished || type != RaidPlanType.COX_CM || !"vasa".equals(room)
+			|| completed.contains("vasa")) { return false; }
+		String name = crystal ? "glowing crystal" : "vasa nistirio";
+		RaidEncounter match = rooms.get("vasa").stream()
+			.filter(fight -> fight.getTarget().getName().startsWith(name)).findFirst().orElse(null);
+		if (match == null) { return false; }
+		if (!match.getLabel().equals(encounter)) { choose(match); emit(); }
+		return true;
 	}
 
 	/** ToA room changes follow the player's actual chosen path rather than assuming the planned path order. */
@@ -227,7 +241,8 @@ final class RaidProgress
 		if (fights == null || fights.isEmpty()) { return null; }
 		if (boss && key.equals("apmeken"))
 		{ return fights.stream().filter(fight -> fight.getTarget().getName().equals("ba-ba")).findFirst().orElse(fights.get(0)); }
-		return fights.get(0);
+		// Optional targets remain available to browse, but room progression opens the planned fight.
+		return fights.stream().filter(fight -> !fight.isDisplayOnly()).findFirst().orElse(null);
 	}
 
 	private void choose(RaidEncounter fight)

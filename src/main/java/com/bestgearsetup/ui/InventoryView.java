@@ -1,6 +1,7 @@
 package com.bestgearsetup.ui;
 
 import com.bestgearsetup.RaidPlan;
+import com.bestgearsetup.CoxChestPlan;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.GameData;
@@ -41,6 +42,8 @@ class InventoryView extends JPanel
 	private final BestGearSetupPlugin plugin;
 	private final SpriteCache sprites;
 	private final int ammoCount;
+	/** Hover-only guidance adds no height to the side panel, even while inventory is collapsed. */
+	private String chestAdvice;
 
 	InventoryView(ItemManager items, JComponent stateOwner, String name, BestGearSetupPlugin plugin, SpriteCache sprites, int ammoCount)
 	{
@@ -75,7 +78,15 @@ class InventoryView extends JPanel
 	/** @param potionUse how the raid kit gets each carried boost: brought, and maybe prepot too */
 	void showItems(List<RaidPlan.InventoryItem> carried, Function<RaidPlan.InventoryItem, RaidPlan.PotionUse> potionUse)
 	{
+		showItems(carried, potionUse, null);
+	}
+
+	/** Chest guidance stays in hover text so inventory cells retain their original appearance. */
+	void showItems(List<RaidPlan.InventoryItem> carried, Function<RaidPlan.InventoryItem, RaidPlan.PotionUse> potionUse,
+		CoxChestPlan chest)
+	{
 		setVisible(RaidPlan.hasEquipmentSwitches(carried));
+		chestAdvice = chestTooltip(chest);
 		grid.removeAll();
 		for (int i = 0; i < 28; i++)
 		{
@@ -85,6 +96,18 @@ class InventoryView extends JPanel
 			JComponent cell = gear == null ? new Cell(item, item == null ? null : potionUse.apply(item), items, plugin)
 				: EquipmentGrid.inventoryCell(gear, item.getContents(), plugin, items, sprites, ammoCount, false);
 			cell.setPreferredSize(new Dimension(SLOT_WIDTH, SLOT_HEIGHT));
+			if (chest != null && item != null && item.isEquipment())
+			{
+				chest.getDeposits().stream().filter(deposit -> item.getIds().contains(deposit.getItem().getId()))
+					.findFirst().ifPresent(deposit ->
+					{
+						String tip = cell.getToolTipText();
+						if (tip == null) { tip = ""; }
+						if (!tip.startsWith("<html>")) { tip = "<html>" + BestGearSetupPanel.escape(tip) + "</html>"; }
+						cell.setToolTipText(tip.replace("</html>", "<br>Private chest: "
+							+ BestGearSetupPanel.escape(deposit.getReason()) + "</html>"));
+					});
+			}
 			grid.add(cell);
 		}
 		toggle.setText("Inventory (" + carried.size() + " / 28)");
@@ -99,10 +122,34 @@ class InventoryView extends JPanel
 		boolean open = expanded();
 		grid.setVisible(open);
 		toggle.setIcon(new Controls.Chevron(open ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, null));
-		toggle.setToolTipText(open ? "Minimize inventory" : "Expand inventory");
+		String action = open ? "Minimize inventory" : "Expand inventory";
+		toggle.setToolTipText(chestAdvice == null ? action : BestGearSetupPanel.html(action + "<br><br>" + chestAdvice));
 		toggle.getAccessibleContext().setAccessibleDescription(open ? "Expanded" : "Collapsed");
 		revalidate();
 		repaint();
+	}
+
+	private static String chestTooltip(CoxChestPlan chest)
+	{
+		if (chest == null || chest.getFloor() == 0) { return null; }
+		StringBuilder tip = new StringBuilder("<b>Private chest · Floor ").append(chest.getFloor()).append("</b>");
+		List<CoxChestPlan.Deposit> advice = chest.getDeposits();
+		if (advice.isEmpty())
+		{
+			tip.append("<br>Keep all planned gear for the rest of this floor.");
+			if (chest.getPreviewFloor() > 0)
+			{
+				tip.append("<br><br><b>Next floor (").append(chest.getPreviewFloor()).append(") preview</b>")
+					.append("<br>Keep these items until this floor is cleared.");
+				advice = chest.getPreview();
+			}
+		}
+		for (CoxChestPlan.Deposit deposit : advice)
+		{
+			tip.append("<br><br><b>").append(BestGearSetupPanel.escape(GameData.titleCase(deposit.getItem().getName())))
+				.append("</b><br>").append(BestGearSetupPanel.escape(deposit.getReason()));
+		}
+		return tip.toString();
 	}
 
 	static String tooltip(RaidPlan.InventoryItem item)

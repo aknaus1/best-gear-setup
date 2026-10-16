@@ -55,7 +55,7 @@ public class RaidPanelTest
 	@Test public void raidBossDropdownsFollowRoomOrderAndKeepPhasesTogether() throws Exception
 	{
 		assertRaidBossOrder(RaidPlanType.COX_CM, Arrays.asList("Tekton", "Scavenger Beast", "Ice Demon",
-			"Lizardman Shaman", "Vanguard", "Vespula", "Abyssal Portal", "Deathly Ranger", "Deathly Mage",
+			"Lizardman Shaman", "Vanguard", "Vespula", "Abyssal Portal", "Deathly Mage", "Deathly Ranger",
 			"Guardian", "Vasa Nistirio", "Glowing Crystal", "Skeletal Mystic", "Muttadile", "Great Olm"));
 		assertRaidBossOrder(RaidPlanType.TOB, Arrays.asList("The Maiden Of Sugadinti", "Nylocas Matomenos",
 			"Pestilent Bloat", "Nylocas Ischyros", "Nylocas Vasilias",
@@ -515,6 +515,50 @@ public class RaidPanelTest
 			((javax.swing.JButton) named(panel, "raidInventoryToggle")).doClick();
 			panel.showResults(result(switching));
 			assertTrue("Minimizing carries over too", !named(panel, "setupInventory").isVisible());
+		});
+	}
+
+	@Test public void coxChestAdviceStaysInTooltipsAndDoesNotHighlightPreviewItems() throws Exception
+	{
+		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
+		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
+		ItemManager images = mock(ItemManager.class);
+		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
+		GearItem first = new GearItem(); first.setId(100); first.setName("crush weapon"); first.setSlot(Slot.WEAPON);
+		GearItem second = new GearItem(); second.setId(101); second.setName("ranged weapon"); second.setSlot(Slot.WEAPON);
+		SetupResult a = setup(first); SetupResult b = setup(second);
+		List<RaidEncounter> encounters = new ArrayList<>();
+		for (String name : Arrays.asList("tekton (normal)", "lizardman shaman (normal)", "vanguard (magic)", "great olm (head)"))
+		{
+			MonsterSummary target = new MonsterSummary(); target.setName(name);
+			encounters.add(new RaidEncounter(name, target, new AttackStyle.Type[0]));
+		}
+		RaidPlan plan = new RaidPlan(RaidPlanType.COX_CM, RaidSpellbook.ARCEUUS, encounters,
+			Arrays.asList(result(a), result(b), result(b), result(b)), Arrays.asList(a, b, b, b), Arrays.asList(first, second),
+			Collections.singletonList(new RaidPlan.InventoryItem("ranged weapon", Collections.singletonList(101), true)), 10, 0);
+		SwingUtilities.invokeAndWait(() ->
+		{
+			JComboBox<RaidEncounter> selector = new JComboBox<>();
+			RaidResultView view = new RaidResultView(plan, encounters.get(0).getTarget(), null, plugin, images,
+				mock(SpriteCache.class), null, 0, selector, new JComboBox<>(), encounter -> { });
+			assertTrue("No chest text section adds height", components(view).stream()
+				.noneMatch(component -> "coxChestAdvice".equals(component.getName())));
+			javax.swing.JButton toggle = (javax.swing.JButton) named(view, "raidInventoryToggle");
+			assertTrue(toggle.getToolTipText().contains("Next floor (2) preview"));
+			assertTrue(toggle.getToolTipText().contains("Crush Weapon"));
+			JPanel inventory = (JPanel) named(view, "raidInventory");
+			assertFalse("Inventory stays minimized", inventory.isVisible());
+			assertNull(((javax.swing.JComponent) inventory.getComponent(0)).getBorder());
+			selector.setSelectedIndex(1);
+			assertTrue(toggle.getToolTipText().contains("Finished for this raid"));
+			assertFalse(toggle.getToolTipText().contains("preview</b>"));
+			toggle.doClick();
+			assertTrue("Expanding preserves the hover advice", toggle.getToolTipText().contains("Finished for this raid"));
+			javax.swing.JComponent cell = (javax.swing.JComponent) inventory.getComponent(0);
+			assertNull("Chest guidance does not add boxes to side-panel items", cell.getBorder());
+			assertTrue(cell.getToolTipText().contains("Private chest: Finished for this raid"));
+			selector.setSelectedIndex(0);
+			assertNull("Encounter changes preserve borderless items", ((javax.swing.JComponent) inventory.getComponent(0)).getBorder());
 		});
 	}
 

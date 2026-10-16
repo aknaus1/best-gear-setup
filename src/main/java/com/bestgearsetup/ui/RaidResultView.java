@@ -2,6 +2,7 @@ package com.bestgearsetup.ui;
 
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.Budget;
+import com.bestgearsetup.CoxChestPlan;
 import com.bestgearsetup.RaidEncounter;
 import com.bestgearsetup.RaidPlan;
 import com.bestgearsetup.SearchResults;
@@ -62,13 +63,15 @@ class RaidResultView extends JPanel
 				&& current.equals(plan.encounterFor(active.getName(), activeResult.getMonster().getPhase())))
 			{ result = activeResult; }
 			java.util.List<RaidPlan.InventoryItem> carried = plan.inventoryFor(result.getByType().values().iterator().next().get(0));
-			inventorySection.showItems(carried, plan::potionUse);
+			CoxChestPlan chest = CoxChestPlan.forEncounter(plan, current, result.getByType().values().iterator().next().get(0));
+			inventorySection.showItems(carried, plan::potionUse, chest);
 			selected.accept(plan.getEncounters().get(index));
 			JLabel stats = new JLabel(BestGearSetupPanel.html("Defence: " + result.getBaseDefence() + " → "
 				+ result.getMonster().getDefenceLevel() + (result.getRaidScaling() == null ? "" : "<br>" + BestGearSetupPanel.escape(result.getRaidScaling()))));
 			stats.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 			detail.add(new ResultView(result, plugin, items, sprites, skills, ammoCount, false, inventorySection, null,
 				plan::potionUse));
+			plugin.setCoxChestHighlights(plan, chest);
 			detail.add(BestGearSetupPanel.left(stats));
 			detail.revalidate();
 			detail.repaint();

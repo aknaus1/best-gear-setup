@@ -125,8 +125,9 @@ public enum RaidPlanType
 				displayOnly(out, data, "Vespula", "vespula (normal)");
 				add(out, data, "Vespula portal", "abyssal portal (normal)");
 				// Two of each in solo and small groups (Wiki); larger raids have more, in numbers the Wiki doesn't give.
-				add(out, data, "Tightrope ranger", "deathly ranger (normal)", 2);
+				// Kill the mages before the rangers.
 				add(out, data, "Tightrope mage", "deathly mage (normal)", 2);
+				add(out, data, "Tightrope ranger", "deathly ranger (normal)", 2);
 				// Two guardians, at every party size (Wiki strategies).
 				add(out, data, "Guardians", "guardian (chambers of xeric) (normal)", 2);
 				// Vasa is attacked while he walks between the centre and a crystal; the crystal is then killed before
@@ -371,7 +372,7 @@ public enum RaidPlanType
 				// the second resource room; crossing the tightrope; the scavengers; the third resource room and Olm rising.
 				return name.equals("ice demon (normal)") ? 60 + 45 + 60 + 30 : name.startsWith("lizardman shaman") ? 20
 					: name.equals("vanguard (melee)") ? 120 + 20 : name.equals("abyssal portal (normal)") ? 60 + 45 + 20
-					: name.equals("deathly ranger (normal)") ? 60 + 20 : name.startsWith("guardian") ? 30 + 15
+					: name.equals("deathly mage (normal)") ? 60 + 20 : name.startsWith("guardian") ? 30 + 15
 					: name.equals("vasa nistirio (normal)") ? 20 : name.startsWith("skeletal mystic") ? 45 + 20
 					: name.equals("muttadile (small)") ? 20 : name.equals("great olm (melee hand)")
 					&& !encounter.getLabel().contains(": Phase ") ? 60 + 30 : 0;

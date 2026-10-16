@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -15,6 +16,7 @@ import com.bestgearsetup.data.GameDataLoader;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.ui.BestGearSetupPanel;
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,14 +27,17 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.Hitsplat;
+import net.runelite.api.IndexedObjectSet;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.Player;
+import net.runelite.api.WorldView;
 import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.HitsplatApplied;
 import net.runelite.api.events.NpcDespawned;
+import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Before;
@@ -167,6 +172,119 @@ public class RaidProgressIntegrationTest
 		plugin.invalidateIfOwnershipChanged(); SwingUtilities.invokeAndWait(plugin::refreshSupply);
 		assertEquals("Consumption and loot keep the packed kit", 0, searches.get());
 		verify(plugin.panel).showRaidProgress(eq(RaidPlanType.COX_CM), eq("Ice Demon"), anyString());
+	}
+
+	@Test public void coxVanguardsAdvanceToPortalGearAndPortalDeathOpensTightrope() throws Exception
+	{
+		setPlan(RaidPlanType.COX_CM);
+		bits.put(VarbitID.RAIDS_CLIENT_INDUNGEON, 1); bits.put(VarbitID.RAIDS_CLIENT_PROGRESS, 1);
+		bits.put(VarbitID.RAIDS_CHALLENGE_MODE, 1); tick();
+		for (String label : new String[]{"Vanguard: Melee", "Vanguard: Ranged", "Vanguard: Magic"})
+		{
+			NPC vanguard = mock(NPC.class);
+			when(vanguard.getId()).thenReturn(encounter(label).getTarget().getId());
+			when(vanguard.getName()).thenReturn("Vanguard");
+			plugin.onActorDeath(new ActorDeath(vanguard));
+		}
+		tick();
+		assertEquals("Vespula Portal", plugin.raidProgress.current().getEncounter());
+		verify(plugin.panel).showRaidProgress(eq(RaidPlanType.COX_CM), eq("Vespula Portal"), anyString());
+		verify(plugin.panel, never()).showRaidProgress(eq(RaidPlanType.COX_CM), eq("Vespula"), anyString());
+		NPC portal = mock(NPC.class);
+		when(portal.getId()).thenReturn(encounter("Vespula Portal").getTarget().getId());
+		when(portal.getName()).thenReturn("Abyssal portal");
+		plugin.onActorDeath(new ActorDeath(portal)); tick();
+		assertEquals("Tightrope Mage", plugin.raidProgress.current().getEncounter());
+		assertEquals(0, searches.get());
+		assertEquals(42, plugin.searchGeneration.get());
+		assertFalse(plugin.search.isCancelled());
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test public void bothGuardianDeathsOpenVasaGearWithoutTargetingVasa() throws Exception
+	{
+		setPlan(RaidPlanType.COX_CM);
+		bits.put(VarbitID.RAIDS_CLIENT_INDUNGEON, 1); bits.put(VarbitID.RAIDS_CLIENT_PROGRESS, 1);
+		bits.put(VarbitID.RAIDS_CHALLENGE_MODE, 1); tick();
+		NPC left = mock(NPC.class), right = mock(NPC.class);
+		when(left.getId()).thenReturn(NpcID.RAIDS_STONEGUARDIANS_LEFT);
+		when(right.getId()).thenReturn(NpcID.RAIDS_STONEGUARDIANS_RIGHT);
+		NPCComposition composition = mock(NPCComposition.class);
+		when(composition.getActions()).thenReturn(new String[]{"Attack"});
+		for (NPC guardian : Arrays.asList(left, right))
+		{
+			when(guardian.getName()).thenReturn("Guardian"); when(guardian.getHealthRatio()).thenReturn(100);
+			when(guardian.getTransformedComposition()).thenReturn(composition);
+		}
+		IndexedObjectSet<NPC> npcs = mock(IndexedObjectSet.class);
+		when(npcs.iterator()).thenAnswer(call -> Arrays.asList(left, right).iterator());
+		WorldView world = mock(WorldView.class); when(world.npcs()).thenReturn((IndexedObjectSet) npcs);
+		when(client.getTopLevelWorldView()).thenReturn(world);
+		when(player.getInteracting()).thenReturn(left); tick();
+		assertEquals("Guardians", plugin.raidProgress.current().getEncounter());
+		plugin.onActorDeath(new ActorDeath(left)); when(left.isDead()).thenReturn(true); tick();
+		assertEquals("One Guardian remains", "Guardians", plugin.raidProgress.current().getEncounter());
+		plugin.onActorDeath(new ActorDeath(left)); tick();
+		assertEquals("A duplicate death must not advance", "Guardians", plugin.raidProgress.current().getEncounter());
+		plugin.onActorDeath(new ActorDeath(right)); when(right.isDead()).thenReturn(true); tick();
+		assertEquals("Vasa", plugin.raidProgress.current().getEncounter());
+		verify(plugin.panel).showRaidProgress(eq(RaidPlanType.COX_CM), eq("Vasa"), anyString());
+		long revision = plugin.raidProgress.current().getRevision();
+		tick(); assertEquals(revision, plugin.raidProgress.current().getRevision());
+		assertEquals(0, searches.get()); assertEquals(42, plugin.searchGeneration.get());
+		assertFalse(plugin.search.isCancelled());
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test public void vasaPhasesSwitchGearBeforeReclickingAndIgnoreStaleTargets() throws Exception
+	{
+		setPlan(RaidPlanType.COX_CM);
+		bits.put(VarbitID.RAIDS_CLIENT_INDUNGEON, 1); bits.put(VarbitID.RAIDS_CLIENT_PROGRESS, 1);
+		bits.put(VarbitID.RAIDS_CHALLENGE_MODE, 1); tick();
+		NPC vasa = mock(NPC.class), crystal = mock(NPC.class);
+		when(vasa.getId()).thenReturn(NpcID.RAIDS_VASANISTIRIO_WALKING);
+		when(vasa.getName()).thenReturn("Vasa Nistirio"); when(vasa.getHealthRatio()).thenReturn(-1);
+		when(crystal.getId()).thenReturn(NpcID.RAIDS_VASANISTIRIO_CRYSTAL);
+		when(crystal.getName()).thenReturn("Glowing crystal"); when(crystal.getHealthRatio()).thenReturn(-1);
+		NPCComposition composition = mock(NPCComposition.class);
+		when(composition.getActions()).thenReturn(new String[]{"Attack"});
+		when(vasa.getTransformedComposition()).thenReturn(composition);
+		when(crystal.getTransformedComposition()).thenReturn(composition);
+		IndexedObjectSet<NPC> npcs = mock(IndexedObjectSet.class);
+		when(npcs.iterator()).thenAnswer(call -> Arrays.asList(crystal, vasa).iterator());
+		WorldView world = mock(WorldView.class); when(world.npcs()).thenReturn((IndexedObjectSet) npcs);
+		when(client.getTopLevelWorldView()).thenReturn(world);
+		// Merely loading the NPCs must not pull gear away from the current room.
+		tick(); assertEquals("Tekton", plugin.raidProgress.current().getEncounter());
+		when(player.getInteracting()).thenReturn(vasa); tick();
+		assertEquals("Vasa", plugin.raidProgress.current().getEncounter());
+		for (int cycle = 0; cycle < 2; cycle++)
+		{
+			// Vasa starts healing while the player still has Vasa targeted.
+			when(vasa.getId()).thenReturn(NpcID.RAIDS_VASANISTIRIO_HEALING);
+			when(player.getInteracting()).thenReturn(vasa); tick();
+			assertEquals("Vasa Crystal", plugin.raidProgress.current().getEncounter());
+			long revision = plugin.raidProgress.current().getRevision();
+			tick(); assertEquals("An unchanged phase must not refresh gear", revision, plugin.raidProgress.current().getRevision());
+			when(player.getInteracting()).thenReturn(null); tick();
+			assertEquals("Vasa Crystal", plugin.raidProgress.current().getEncounter());
+			// The crystal need not die: Vasa can resume while it is still targeted and alive.
+			when(vasa.getId()).thenReturn(NpcID.RAIDS_VASANISTIRIO_WALKING);
+			when(player.getInteracting()).thenReturn(crystal); tick();
+			assertEquals("Vasa", plugin.raidProgress.current().getEncounter());
+			revision = plugin.raidProgress.current().getRevision();
+			tick(); assertEquals(revision, plugin.raidProgress.current().getRevision());
+		}
+		// Crystal death does not complete Vasa's room; Vasa's own death does.
+		when(vasa.getId()).thenReturn(NpcID.RAIDS_VASANISTIRIO_HEALING);
+		tick(); plugin.onActorDeath(new ActorDeath(crystal)); when(crystal.isDead()).thenReturn(true);
+		when(vasa.getId()).thenReturn(NpcID.RAIDS_VASANISTIRIO_WALKING); tick();
+		assertEquals("Vasa", plugin.raidProgress.current().getEncounter());
+		plugin.onActorDeath(new ActorDeath(vasa)); when(vasa.isDead()).thenReturn(true); tick();
+		assertEquals("Mystics", plugin.raidProgress.current().getEncounter());
+		verify(plugin.panel, atLeastOnce()).showRaidProgress(eq(RaidPlanType.COX_CM), eq("Vasa Crystal"), anyString());
+		assertEquals(0, searches.get()); assertEquals(42, plugin.searchGeneration.get());
+		assertFalse(plugin.search.isCancelled());
 	}
 
 	@Test public void queuedProgressCannotSurviveAReset() throws Exception
