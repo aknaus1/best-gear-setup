@@ -22,7 +22,7 @@ public class RaidOptions
 	public static final RaidOptions DEFAULT = RaidOptions.builder().build();
 
 	@Builder.Default
-	ToaPathOrder toaPathOrder = ToaPathOrder.AUTO;
+	ToaPathOrder toaPathOrder = ToaPathOrder.BA_BA_FIRST;
 	@Builder.Default
 	TobRole tobRole = TobRole.MELEE_DPS;
 	/** The More Overlords invocation, which doubles Kephri's soldier and spitting scarabs. */

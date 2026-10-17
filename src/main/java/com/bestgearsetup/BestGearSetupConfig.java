@@ -41,7 +41,7 @@ public interface BestGearSetupConfig extends Config
 	@ConfigItem(keyName = "toaPathOrder", name = "ToA path order",
 		description = "Order of the Tombs of Amascut paths. Auto plans the raid in both orders and keeps the one with the lower estimated combat time. Smelling salts are only assumed after the first two paths.",
 		section = searchSection, position = 32, hidden = true)
-	default RaidOptions.ToaPathOrder toaPathOrder() { return RaidOptions.ToaPathOrder.AUTO; }
+	default RaidOptions.ToaPathOrder toaPathOrder() { return RaidOptions.ToaPathOrder.BA_BA_FIRST; }
 
 	@ConfigItem(keyName = "tobRole", name = "ToB role",
 		description = "South freeze: freeze and kill Maiden's clump, mage Nylo. North freeze: freeze, then help the clump or return to Maiden; melee Nylo in 3/4-player teams, mage in 5. Range DPS: chin Maiden's clump, range Nylo. Melee DPS: focus Maiden, melee Nylo.",
@@ -163,7 +163,7 @@ public interface BestGearSetupConfig extends Config
 		section = displaySection, position = 3)
 	default boolean highlightInventoryGear()
 	{
-		return false;
+		return true;
 	}
 
 	@ConfigItem(keyName = INVENTORY_HIGHLIGHT_COLOR_KEY, name = "Inventory color",
@@ -432,7 +432,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 600)
 	default int toaRaidLevel()
 	{
-		return 0;
+		return 150;
 	}
 
 	@ConfigItem(keyName = "toaPathLevel", name = "ToA path level", hidden = true,
@@ -574,7 +574,7 @@ public interface BestGearSetupConfig extends Config
 		section = equipmentSection, position = 4)
 	default boolean requireAtlatlAmmoRecovery()
 	{
-		return false;
+		return true;
 	}
 
 	// ------------------------------------------------------------ options

@@ -173,7 +173,8 @@ public class BankHighlightTest
 			verify(items, org.mockito.Mockito.times(2)).getItemOutline(12926, 1, CoxChestPlan.LATER_COLOR);
 			verify(items, org.mockito.Mockito.times(1)).getItemOutline(11826, 1, CoxChestPlan.NEEDED_COLOR);
 			when(chestWidget.isHidden()).thenReturn(false);
-			BestGearSetupInventoryOverlay disabled = new BestGearSetupInventoryOverlay(plugin, new BestGearSetupConfig() {}, items);
+			BestGearSetupInventoryOverlay disabled = new BestGearSetupInventoryOverlay(plugin,
+				new BestGearSetupConfig() { @Override public boolean highlightInventoryGear() { return false; } }, items);
 			renderChestItems(disabled, graphics, net.runelite.api.gameval.InterfaceID.RAIDS_STORAGE_PRIVATE, ids);
 			verify(items, org.mockito.Mockito.times(1)).getItemOutline(11826, 1, CoxChestPlan.NEEDED_COLOR);
 			plugin.raidProgress.message("Congratulations - your raid is complete!");
