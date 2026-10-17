@@ -10,6 +10,7 @@ import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.DpsResult;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.LockStatus;
+import com.bestgearsetup.calc.PrayerDrain;
 import com.bestgearsetup.calc.ProtectionPrayers;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SpecialPlan;
@@ -47,6 +48,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -321,6 +323,12 @@ class ResultView extends JPanel
 		}
 
 		body.add(BestGearSetupPanel.left(statsBox(d, thrallFor(selected))));
+		JPanel prayer = prayerBox(selected);
+		if (prayer != null)
+		{
+			body.add(spacer(4));
+			body.add(BestGearSetupPanel.left(prayer));
+		}
 		// A raid rotation may combine several spec weapons: one box each, the main one first.
 		for (SpecialPlan special : selected.getSpecials())
 		{
@@ -440,6 +448,59 @@ class ResultView extends JPanel
 		toggle.getAccessibleContext().setAccessibleDescription(open ? "Expanded" : "Collapsed");
 		box.revalidate();
 		box.repaint();
+	}
+
+	/**
+	 * Prayer points one kill of this setup drains and the restore doses that cover them: the offensive prayer the
+	 * search assumed plus the overhead its advice names, kept on for the kill time shown above, at the worn prayer
+	 * bonus. Null when the setup prays nothing that drains or the kill never ends.
+	 */
+	JPanel prayerBox(SetupResult setup)
+	{
+		List<String> prayers = new ArrayList<>();
+		OffensivePrayer offensive = results.getPrayers().get(setup.getCombatClass());
+		if (offensive != null) { prayers.add(offensive.getName()); }
+		ProtectionPrayers.Advice advice = results.protectionFor(setup);
+		if (advice != null && advice.getPrayer() != null && !advice.isLocked()) { prayers.add(advice.getPrayer().toString()); }
+		DpsResult d = setup.getDps();
+		double ttk = d == null || d.getPrimaryDps() <= 0 ? 0 : results.getStartingHitpoints() / d.getPrimaryDps();
+		PrayerDrain.Estimate estimate = PrayerDrain.estimate(prayers, PrayerDrain.prayerBonus(setup.getLoadout()), ttk);
+		if (estimate == null)
+		{
+			return null;
+		}
+		JPanel box = new JPanel(new GridBagLayout());
+		box.setBackground(BOX_BG);
+		box.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BOX_BORDER),
+			new EmptyBorder(2, 6, 4, 6)));
+		GridBagConstraints row = new GridBagConstraints();
+		row.gridx = 0;
+		row.weightx = 1;
+		row.fill = GridBagConstraints.HORIZONTAL;
+		row.insets = new Insets(2, 0, 0, 0);
+		int level = results.getPrayerLevel();
+		int prayerDose = PrayerDrain.prayerPotionDose(level);
+		int restoreDose = PrayerDrain.superRestoreDose(level);
+		String names = estimate.getPrayers().stream().map(GameData::titleCase).collect(Collectors.joining(" + "));
+		String tip = BestGearSetupPanel.html(BestGearSetupPanel.escape(names) + " drain 1 point every "
+			+ fmt(estimate.getSecondsPerPoint(), 2) + "s at +" + estimate.getPrayerBonus() + " prayer bonus ("
+			+ fmt(estimate.getPointsPerMinute(), 1) + " a minute), kept on for the ~" + fmt(ttk, 1)
+			+ "s kill time above. A prayer potion dose restores " + prayerDose + " points and a super restore "
+			+ restoreDose + " at " + level + " Prayer. Assumes the prayers stay on for the whole kill; flicking, "
+			+ "the holy wrench, time between kills and the points you start with aren't counted.");
+		JLabel points = stat("Prayer: ~" + fmt(estimate.getPointsPerKill(), 1) + " pts/kill");
+		points.setName("prayerPoints");
+		points.setToolTipText(tip);
+		box.add(points, row);
+		JLabel potions = stat("Prayer pots: ~" + fmt(estimate.dosesPerKill(prayerDose), 2) + " doses/kill");
+		potions.setName("prayerDoses");
+		potions.setToolTipText(tip);
+		box.add(potions, row);
+		JLabel restores = stat("Super restores: ~" + fmt(estimate.dosesPerKill(restoreDose), 2) + " doses/kill");
+		restores.setName("restoreDoses");
+		restores.setToolTipText(tip);
+		box.add(restores, row);
+		return box;
 	}
 
 	/**

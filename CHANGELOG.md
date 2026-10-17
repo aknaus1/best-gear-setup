@@ -3,6 +3,11 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Show each setup's prayer cost under its DPS: points per kill from the assumed offensive prayer and
+  recommended overhead at the worn prayer bonus, and the prayer potion and super restore doses per kill.
+
 ## 1.1.1 (2026-10-17)
 
 - Add Beta raid planning for CM CoX, ToA and ToB: shared kits, encounter setups, spellbook

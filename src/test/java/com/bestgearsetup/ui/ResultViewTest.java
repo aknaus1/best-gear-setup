@@ -189,6 +189,39 @@ public class ResultViewTest
 		}
 	}
 
+	@Test
+	public void prayerBoxCountsTheAssumedPrayersOverTheKillTime() throws Exception
+	{
+		// 100 HP at 2 DPS is a 50-second kill. Piety (24) at +15 bonus drains a point every 2.25 seconds:
+		// 22.2 points a kill, 0.72 prayer potion doses (31 points) and 0.69 super restores (32) at 99 Prayer.
+		Monster monster = new Monster();
+		monster.setName("Combat dummy");
+		monster.setHitpoints(100);
+		Map<CombatClass, com.bestgearsetup.data.OffensivePrayer> prayers = new EnumMap<>(CombatClass.class);
+		prayers.put(CombatClass.MELEE, new com.bestgearsetup.data.OffensivePrayer("piety", 20, 23, 70, 70));
+		SearchResults results = new SearchResults(monster, 100, Collections.emptyMap(), Collections.emptyList(),
+			prayers, Collections.emptyMap(), false);
+		GearItem cape = pricedItem(7, "cape", Slot.CAPE);
+		cape.setPrayerBonus(15);
+		Loadout praying = new Loadout();
+		praying.set(Slot.CAPE, cape);
+		DpsResult dps = new DpsResult(2, 10, 0.5, 4, 4.8, null);
+		SetupResult melee = new SetupResult(CombatClass.MELEE, praying, dps, 0);
+		SetupResult magic = new SetupResult(CombatClass.MAGIC, praying, dps, 0);
+		SwingUtilities.invokeAndWait(() ->
+		{
+			ResultView view = new ResultView(results, null, null, null, null, 0);
+			JPanel box = view.prayerBox(melee);
+			assertEquals("<html>Prayer: ~22.2 pts/kill</html>", label(box, "Prayer:").getText());
+			assertEquals("<html>Prayer pots: ~0.72 doses/kill</html>", label(box, "Prayer pots").getText());
+			assertEquals("<html>Super restores: ~0.69 doses/kill</html>", label(box, "Super restores").getText());
+			assertTrue(label(box, "Prayer:").getToolTipText().contains("Piety drain 1 point every 2.25s at +15 prayer bonus"));
+			assertTrue("No box when the setup prays nothing", view.prayerBox(magic) == null);
+			assertTrue("No box when the kill never ends", view.prayerBox(new SetupResult(CombatClass.MELEE, praying,
+				DpsResult.ZERO, 0)) == null);
+		});
+	}
+
 	private static JLabel label(JPanel box, String text)
 	{
 		for (Component component : box.getComponents())

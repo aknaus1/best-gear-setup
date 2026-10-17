@@ -456,6 +456,17 @@ open the sidebar or perform any game action.
   (Magic 37, Missiles 40, Melee 43) are excluded from choices and the note says why; when none of the recommended ones is
   unlocked, the advice still names them with the level needed, e.g. *Protect from Melee (needs 43 Prayer)*. It is advice only and doesn't change
   the DPS calculation.
+- **Prayer cost:** under each setup's DPS box, a **Prayer** box estimates the points one kill drains and the
+  restore doses that cover them. It counts the offensive prayer the search assumed plus the recommended
+  overhead (not a locked one, and only the first of a switching pair, since every overhead drains the same)
+  kept on for the TTK shown above. Each prayer's Wiki drain effect (Piety, Rigour, Augury, Chivalry, Deadeye
+  and Mystic Vigour 24; the overheads, Eagle Eye, Mystic Might, Ultimate Strength and Incredible Reflexes 12;
+  lower tiers 6 or 3) is summed, and one point lasts `(2 × prayer bonus + 60) / total drain` ticks with the
+  shown gear's prayer bonus: Piety with Protect from Melee at +0 costs a point a second, at +30 one every
+  two. A prayer potion dose restores `7 + Prayer / 4` points and a super restore `8 + Prayer / 4` at your base
+  Prayer level. Flicking, the holy wrench and prayer cape, Rapid Restore-style prayers, points you start with
+  and time between kills aren't counted, so a trip needs the per-kill doses times the kills, less the points
+  you arrive with.
 - **Encounter overhead audit:** [the catalogue report](overhead-audit.md) records the checked boss variants
   and generic-data limits. Ordinary attacks are assumed to check prayers at launch; verified encounter
   rules distinguish delayed cues, impact timing, counted cycles, phases, position, supporting attackers
