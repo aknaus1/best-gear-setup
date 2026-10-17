@@ -100,7 +100,20 @@ class BestGearSetupBankView
 	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
 		IntPredicate owns)
 	{
-		selection = layoutFor(setup, potions, itemIds, owns);
+		setSelection(setup, potions, itemIds, owns, false);
+	}
+
+	/** As above, with the inventory's free slots filled with food ({@link InventoryFood}) when {@code food} is set. */
+	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
+		IntPredicate owns, boolean food)
+	{
+		selection = layoutFor(setup, potions, itemIds, owns, food);
+	}
+
+	/** The selected layout's food stacks, for the bank outline; empty without food. */
+	Set<Integer> selectedFoodIds()
+	{
+		return Collections.unmodifiableSet(selection.foodIds);
 	}
 
 	void setRaidSelection(RaidPlan plan, Function<GearItem, List<Integer>> itemIds)
@@ -126,6 +139,9 @@ class BestGearSetupBankView
 	{
 		Layout layout = new Layout();
 		List<RaidPlan.InventoryItem> display = RaidPlan.inventoryLayout(inventory);
+		Map<Integer, Integer> foodCount = new HashMap<>();
+		inventory.stream().filter(item -> item.getGroup() == RaidPlan.InventoryGroup.FOOD)
+			.forEach(item -> foodCount.merge(item.getIds().get(0), 1, Integer::sum));
 		Loadout worn = setup.getLoadout();
 		for (Slot slot : Slot.values()) { addItem(layout, itemIds, worn.get(slot), CELLS[slot.ordinal()]); }
 		// The bank grid mirrors the inventory's physical switch cells, including empty cells in partial blocks.
@@ -144,6 +160,12 @@ class BestGearSetupBankView
 			if (item == null) { continue; }
 			GearItem gear = equipment.get(item.getIds().get(0));
 			layout.add(gear == null ? item.getIds() : itemIds.apply(gear), inventoryCell(i), group(item));
+			if (item.getGroup() == RaidPlan.InventoryGroup.FOOD)
+			{
+				String guidance = "Bring " + foodCount.get(item.getIds().get(0)) + " " + item.getName() + " (fills free slots)";
+				item.getIds().forEach(id -> { layout.foodIds.add(id); layout.boostGuidance.put(id, guidance); });
+				continue;
+			}
 			RaidPlan.PotionUse use = plan == null ? null : plan.potionUse(item);
 			String drunk = use == null || use.getTag() == null ? "" : use.getDescription();
 			if (item.getBottles() > 0)
@@ -191,9 +213,10 @@ class BestGearSetupBankView
 
 	static int inventoryCell(int index) { return (index / 4) * 8 + 4 + index % 4; }
 
+	/** Food shares the boosts' group, whose repeated stacks are drawn in every cell they fill. */
 	private static int group(RaidPlan.InventoryItem item)
 	{
-		return item.getGroup() == RaidPlan.InventoryGroup.BOOSTS ? BOOST
+		return item.getGroup() == RaidPlan.InventoryGroup.BOOSTS || item.getGroup() == RaidPlan.InventoryGroup.FOOD ? BOOST
 			: item.getGroup() == RaidPlan.InventoryGroup.RUNES ? SPELL : GEAR;
 	}
 
@@ -221,7 +244,12 @@ class BestGearSetupBankView
 
 	static List<Integer> raidCellsFor(RaidPlan plan, int itemId)
 	{
-		Layout layout = layoutForRaid(plan, BestGearSetupBankView::itemIds);
+		return allCells(layoutForRaid(plan, BestGearSetupBankView::itemIds), itemId);
+	}
+
+	/** An item's cells in a layout, its own first and then its repeats. */
+	static List<Integer> allCells(Layout layout, int itemId)
+	{
 		List<Integer> cells = new ArrayList<>();
 		Integer first = layout.cells.get(itemId);
 		if (first != null) { cells.add(first); }
@@ -247,9 +275,18 @@ class BestGearSetupBankView
 	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
 		IntPredicate owns)
 	{
-		return setup == null ? Layout.EMPTY : layoutFor(setup, RaidPlan.inventoryForSetup(setup, potions, owns),
-			RaidPlan.gear(setup), Collections.emptyList(), Collections.singletonList(setup), itemIds, null);
+		return layoutFor(setup, potions, itemIds, owns, false);
 	}
+
+	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
+		IntPredicate owns, boolean food)
+	{
+		if (setup == null) { return Layout.EMPTY; }
+		List<RaidPlan.InventoryItem> inventory = RaidPlan.inventoryForSetup(setup, potions, owns);
+		return layoutFor(setup, food ? InventoryFood.fill(inventory, owns) : inventory, RaidPlan.gear(setup),
+			Collections.emptyList(), Collections.singletonList(setup), itemIds, null);
+	}
+
 
 	private static void addItem(Layout layout, Function<GearItem, List<Integer>> itemIds, GearItem item, int cell)
 	{
@@ -289,6 +326,8 @@ class BestGearSetupBankView
 		private final Map<Integer, String> boostGuidance = new HashMap<>();
 		/** When a raid boost is drunk (prepot, brought or both), tagged on its bank stack. */
 		private final Map<Integer, RaidPlan.PotionUse> tags = new HashMap<>();
+		/** Food filling the inventory's free slots, outlined in the bank with the setup's other items. */
+		private final Set<Integer> foodIds = new HashSet<>();
 
 		/** The first id is the cell's own item; the rest (variants, doses, substitutes) only fill it in its absence. */
 		private void add(Collection<Integer> ids, int cell, int group)

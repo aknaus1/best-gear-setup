@@ -7,6 +7,8 @@ is what the Plugin Hub shows.
 
 - Show the inventory layout for every search, not only setups with equipment switches: the panel's
   inventory and the bank layout now place boosts, runes and pouches in their inventory slots.
+- Fill a single search's free inventory slots with the best-healing food you own (sharks if none), in the panel
+  and the bank layout, and outline it in the bank. Raid kits are unchanged; turn it off with Fill inventory with food.
 
 ## 1.1.1 (2026-10-17)
 

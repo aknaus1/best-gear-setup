@@ -86,6 +86,7 @@ public class SearchAssumptionsTest
 		GETTERS.put("bankHighlightColor", BestGearSetupConfig::bankHighlightColor);
 		GETTERS.put("highlightInventoryGear", BestGearSetupConfig::highlightInventoryGear);
 		GETTERS.put("inventoryHighlightColor", BestGearSetupConfig::inventoryHighlightColor);
+		GETTERS.put("fillFood", BestGearSetupConfig::fillFood);
 		GETTERS.put("mode", BestGearSetupConfig::mode);
 		GETTERS.put("budget", BestGearSetupConfig::budget);
 		GETTERS.put("bossesOnly", BestGearSetupConfig::bossesOnly);

@@ -2807,6 +2807,12 @@ public class BestGearSetupPlugin extends Plugin
 	/** Publish the displayed setup's equipment, loaded ammunition, spell runes (with an owned rune pouch) and boosts to the bank. */
 	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions)
 	{
+		setBankHighlightedSetup(setup, potions, false);
+	}
+
+	/** As above; with {@code food}, the layout's free inventory slots hold food ({@link InventoryFood}), outlined too. */
+	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions, boolean food)
+	{
 		setInventoryHighlightedSetup(setup);
 		Set<Integer> ids = new HashSet<>();
 		if (setup != null)
@@ -2825,11 +2831,15 @@ public class BestGearSetupPlugin extends Plugin
 				}
 			}
 		}
-		publishBankHighlights(ids);
 		if (bankView != null)
 		{
 			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions, this::bankItemIds,
-				this::ownsItem);
+				this::ownsItem, food);
+			ids.addAll(bankView.selectedFoodIds());
+		}
+		publishBankHighlights(ids);
+		if (bankView != null)
+		{
 			int life = lifecycle.get();
 			clientThread.invokeLater(() ->
 			{
@@ -2938,6 +2948,22 @@ public class BestGearSetupPlugin extends Plugin
 		searchOwned = null;
 		searchQuantities = null;
 		observedQuantities = null;
+	}
+
+	/**
+	 * Whether an individual search's inventory fills its free slots with food: the setting is on and the target isn't
+	 * a raid encounter, whose supplies follow the raid's own rules.
+	 */
+	public boolean fillsFood(SearchResults results)
+	{
+		return config.fillFood() && results != null && results.getMonster() != null
+			&& RaidScaling.raid(results.getMonster()) == RaidScaling.Raid.NONE;
+	}
+
+	/** The inventory with its free slots filled with the best food the player owns. */
+	public List<RaidPlan.InventoryItem> withFood(List<RaidPlan.InventoryItem> inventory)
+	{
+		return InventoryFood.fill(inventory, this::ownsItem);
 	}
 
 	private boolean ownsItem(int itemId)
