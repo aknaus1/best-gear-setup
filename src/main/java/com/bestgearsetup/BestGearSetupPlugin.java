@@ -2153,8 +2153,13 @@ public class BestGearSetupPlugin extends Plugin
 		// A boss fight is planned solo, whatever the raid party size.
 		if (type.isBossFight()) { config = SearchAssumptions.capture(config, Collections.singletonMap("raidPartySize", 1)); }
 		long epoch = raidCache.epoch();
-		SearchInputs inputs = SearchInputs.capture(data, api, active, levels, remembered, prayerUnlocks, diary,
-			false, mining, quotes, owned, quantities, config, liveRaid, detectedNotes, false).with(type);
+		// A full fight's plan is the same from any of its phases, so reopening it from another phase reuses it.
+		SearchInputs inputs = (type.isBossFight()
+			? SearchInputs.captureFight(data, api, FightSearchKey.searchedFrom(type.encounters(data, raidSettings(levels == null
+				? PlayerLevels.maxed() : levels, mining, config), RaidOptions.of(config)), active, config, detectedNotes),
+				levels, remembered, prayerUnlocks, diary, mining, quotes, owned, quantities, config, liveRaid, detectedNotes)
+			: SearchInputs.capture(data, api, active, levels, remembered, prayerUnlocks, diary,
+				false, mining, quotes, owned, quantities, config, liveRaid, detectedNotes, false)).with(type);
 		RaidPlan reused = raidCache.get(inputs, epoch);
 		if (reused != null)
 		{
@@ -2617,10 +2622,9 @@ public class BestGearSetupPlugin extends Plugin
 				&& encounter.getTarget().getName().contains("hand");
 			if (!same || freshHand)
 			{
-				for (String key : new String[]{"specElderMaul", "specDwh", "specEmberlight", "specArclight", "specTonalztics",
-					"specBgsDamage", "specSeercullDamage", "specAyakDamage"}) { overrides.put(key, 0); }
-				overrides.put("specVulnerability", false);
-				overrides.put("specTomeOfWater", false);
+				// FightSearchKey keys a full fight's plan by the encounters these settings reach.
+				for (String key : FightSearchKey.LANDED_SPEC_HITS) { overrides.put(key, 0); }
+				for (String key : FightSearchKey.LANDED_SPEC_FLAGS) { overrides.put(key, false); }
 			}
 			// The Dawnbringer is passed around at Verzik P1: the optimizer offers it to everyone there as a spec-only
 			// weapon, and the kit never carries it (RaidPlan.providedInRaid).

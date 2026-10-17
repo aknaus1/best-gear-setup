@@ -19,6 +19,8 @@ is what the Plugin Hub shows.
   summary above the setups, open DPS details by default, and let the badge beside the search box switch the
   Bosses filter both ways. Editors are titled after their buttons, and a freeze role without Ancient Magicks
   names the settings to change.
+- Reopening a full fight from another phase (or after changing Boss state) reuses its cached plan instead of
+  planning the whole fight again.
 
 ## 1.1.1 (2026-10-17)
 

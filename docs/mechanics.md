@@ -354,6 +354,9 @@ Each phase deals its share of the boss's HP, from Wiki thresholds unless noted:
   reuse after restarting the client. Keys are deterministic SHA-256 fingerprints of the calculation inputs,
   including the runtime catalogue, source type, settings, prices, ownership and live encounter context.
   An installed code/resource fingerprint and cache schema must also match before a saved result is loaded.
+  A full fight's plan is cached and saved like a raid's, in the same store. Its key leaves out the phase the
+  fight was opened from, unless landed specs or detected notes apply to that phase's encounters (then it keeps
+  their labels), and Boss state, which each phase sets for itself; reopening the fight from another phase reuses it.
   The RS profile is synced per account, so the profile store keeps at most 12 raids within 640 KiB and
   64 single-target encounters within 1,152 KiB of encoded text (under 1.75 MiB in all); oldest saved entries
   are pruned to meet either limit, and a result larger than its category's budget remains memory-only. A raid
