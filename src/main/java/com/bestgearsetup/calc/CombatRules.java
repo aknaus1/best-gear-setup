@@ -4,6 +4,7 @@ import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
+import java.util.Map;
 
 /** Static encounter identity rules from the OSRS Wiki calculator; phases remain separate targets. */
 final class CombatRules
@@ -120,16 +121,38 @@ final class CombatRules
 	static boolean equipmentAllowed(Monster m, boolean gauntlet, GearItem item)
 	{
 		String name = EncounterDamage.lower(item);
-		boolean activity = (name.startsWith("crystal ") || name.startsWith("corrupted "))
-			&& (name.contains("(basic)") || name.contains("(attuned)") || name.contains("(perfected)")
-			|| name.contains("(gauntlet)") || name.endsWith("sceptre") || name.equals("corrupted axe")
-			|| name.equals("corrupted harpoon") || name.equals("corrupted pickaxe"));
+		int flags = nameFlags(name);
+		boolean activity = (flags & ACTIVITY_ITEM) != 0;
 		if (gauntlet)
 		{
 			return activity && name.startsWith(m.hasAttribute("corrupted") || m.getId() >= 9035 ? "corrupted " : "crystal ");
 		}
-		return !activity && (!name.startsWith("dawnbringer") || EncounterDamage.verzikP1(m))
-			&& (!name.contains("(inside toa)") || toa(m)) && (!name.contains("(outside toa)") || !toa(m));
+		return !activity && ((flags & DAWNBRINGER) == 0 || EncounterDamage.verzikP1(m))
+			&& ((flags & INSIDE_TOA) == 0 || toa(m)) && ((flags & OUTSIDE_TOA) == 0 || !toa(m));
+	}
+
+	private static final int ACTIVITY_ITEM = 1;
+	private static final int DAWNBRINGER = 2;
+	private static final int INSIDE_TOA = 4;
+	private static final int OUTSIDE_TOA = 8;
+	/**
+	 * What an item's name says about where it can be used, which doesn't depend on the target. Every DPS
+	 * calculation checks every worn slot, so the name scans are done once per name.
+	 */
+	private static final Map<String, Integer> NAME_FLAGS = new java.util.concurrent.ConcurrentHashMap<>();
+
+	private static int nameFlags(String name)
+	{
+		Integer known = NAME_FLAGS.get(name);
+		if (known != null) { return known; }
+		boolean activity = (name.startsWith("crystal ") || name.startsWith("corrupted "))
+			&& (name.contains("(basic)") || name.contains("(attuned)") || name.contains("(perfected)")
+			|| name.contains("(gauntlet)") || name.endsWith("sceptre") || name.equals("corrupted axe")
+			|| name.equals("corrupted harpoon") || name.equals("corrupted pickaxe"));
+		int flags = (activity ? ACTIVITY_ITEM : 0) | (name.startsWith("dawnbringer") ? DAWNBRINGER : 0)
+			| (name.contains("(inside toa)") ? INSIDE_TOA : 0) | (name.contains("(outside toa)") ? OUTSIDE_TOA : 0);
+		NAME_FLAGS.put(name, flags);
+		return flags;
 	}
 
 	static int defenceFloor(Monster m)
@@ -149,6 +172,32 @@ final class CombatRules
 		return Math.min(m.getDefenceLevel(), Math.max(floor, m.getDefenceFloor()));
 	}
 
+	/**
+	 * The share of a kill a landed drain lasts before the target restores its Defence, so a draining spec opening
+	 * the kill only pays over that part: a third of Sotetseg (reset each time players are sent to the shadow realm,
+	 * at two thirds and one third of its health), or none of Akkha (her Defence regenerates quickly), and 1
+	 * elsewhere. Bloat's useful drain window is limited separately to one down. Verzik can't be drained at all
+	 * ({@link #defenceFloor}).
+	 */
+	public static double drainPersistence(Monster m)
+	{
+		String name = m.getLowerName();
+		if (name.startsWith("akkha") && !name.contains("shadow"))
+		{
+			return 0;
+		}
+		return name.startsWith("sotetseg") ? 1 / 3.0 : 1;
+	}
+
+	/** Raid support targets reserve energy for the boss rather than spending damage specs on individual adds. */
+	public static boolean raidSpecialsAllowed(Monster m)
+	{
+		String name = m.getLowerName();
+		return !name.startsWith("nylocas matomenos") && !name.startsWith("blood spawn")
+			&& !name.matches("nylocas (ischyros|toxobolos|hagios).*")
+			&& !name.startsWith("baboon") && !name.endsWith(" scarab");
+	}
+
 	static boolean wardenCore(Monster m)
 	{
 		String name = m.getLowerName();
@@ -158,6 +207,15 @@ final class CombatRules
 			return name.contains("core");
 		}
 		return m.getId() == 11755 || m.getId() == 11758;
+	}
+
+	/**
+	 * Tiles the target spans for size-dependent hits (scythe, halberd, colossal blade). The ejected core is its own 1x1
+	 * NPC, though the Wiki data gives it the Warden's size.
+	 */
+	static int size(Monster m)
+	{
+		return wardenCore(m) ? 1 : m.getSize();
 	}
 
 	static boolean wardenP2(Monster m)

@@ -7,8 +7,11 @@ import com.bestgearsetup.data.WikiGameData;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.runelite.api.gameval.ItemID;
@@ -75,10 +78,14 @@ public final class OwnershipRules
 			group(ItemID.TRAIL_AMULET_OF_GLORY, ItemID.TRAIL_AMULET_OF_GLORY_1, ItemID.TRAIL_AMULET_OF_GLORY_2, ItemID.TRAIL_AMULET_OF_GLORY_3, ItemID.TRAIL_AMULET_OF_GLORY_4, ItemID.TRAIL_AMULET_OF_GLORY_5, ItemID.TRAIL_AMULET_OF_GLORY_6);
 			group(ItemID.RING_OF_WEALTH, ItemID.RING_OF_WEALTH_5, ItemID.RING_OF_WEALTH_4, ItemID.RING_OF_WEALTH_3, ItemID.RING_OF_WEALTH_2, ItemID.RING_OF_WEALTH_1);
 			group(ItemID.RING_OF_WEALTH_I, ItemID.RING_OF_WEALTH_I5, ItemID.RING_OF_WEALTH_I4, ItemID.RING_OF_WEALTH_I3, ItemID.RING_OF_WEALTH_I2, ItemID.RING_OF_WEALTH_I1);
-			group(ItemID.TOTS_UNCHARGED, ItemID.TOTS_CHARGED); // Trident of the seas, uncharged/charged.
+			group(ItemID.TOTS_UNCHARGED, ItemID.TOTS_CHARGED, ItemID.TOTS); // Empty, partly charged and full.
 			group(ItemID.TOXIC_TOTS_UNCHARGED, ItemID.TOXIC_TOTS_CHARGED); // Trident of the swamp, uncharged/charged.
 			group(ItemID.TOTS_I_UNCHARGED, ItemID.TOTS_I_CHARGED);
 			group(ItemID.TOXIC_TOTS_I_UNCHARGED, ItemID.TOXIC_TOTS_I_CHARGED);
+			group(ItemID.TOTS_UNCHARGED_ORN, ItemID.TOTS_CHARGED_ORN, ItemID.TOTS_ORN);
+			group(ItemID.TOXIC_TOTS_UNCHARGED_ORN, ItemID.TOXIC_TOTS_CHARGED_ORN);
+			group(ItemID.TOTS_I_UNCHARGED_ORN, ItemID.TOTS_I_CHARGED_ORN);
+			group(ItemID.TOXIC_TOTS_I_UNCHARGED_ORN, ItemID.TOXIC_TOTS_I_CHARGED_ORN);
 			group(ItemID.TOXIC_BLOWPIPE, ItemID.TOXIC_BLOWPIPE_LOADED); // Blowpipe, empty/loaded; ornaments retain their own identities.
 			group(ItemID.TOXIC_SOTD, ItemID.TOXIC_SOTD_CHARGED);
 			group(ItemID.SERPENTINE_HELM, ItemID.SERPENTINE_HELM_CHARGED);
@@ -168,6 +175,26 @@ public final class OwnershipRules
 	public static boolean equivalent(int first, int second)
 	{
 		return first == second || identity(first) == identity(second);
+	}
+
+	/** The ids in an explicitly reviewed charge-state group, sorted for stable layout ranking. */
+	public static List<Integer> reviewedStates(int id)
+	{
+		Integer state = rules().states.get(id);
+		if (state == null)
+		{
+			return Collections.emptyList();
+		}
+		List<Integer> ids = new ArrayList<>();
+		for (Map.Entry<Integer, Integer> entry : rules().states.entrySet())
+		{
+			if (state.equals(entry.getValue()))
+			{
+				ids.add(entry.getKey());
+			}
+		}
+		Collections.sort(ids);
+		return ids;
 	}
 
 	/** Acquisition identity for gear; non-equipment such as potion doses keeps its RuneLite family. */

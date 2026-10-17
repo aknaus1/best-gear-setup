@@ -200,8 +200,8 @@ public class GearItem
 			default:
 				break;
 		}
-		String lower = getName().toLowerCase(Locale.ROOT);
-		if (lower.contains("(dmm)") || lower.contains("(deadman)"))
+		String name = getName();
+		if (containsIgnoreCase(name, "(dmm)") || containsIgnoreCase(name, "(deadman)"))
 		{
 			return true;
 		}
@@ -254,8 +254,21 @@ public class GearItem
 	/** Explicitly labelled beta equipment. */
 	public boolean isBetaEquipment()
 	{
-		String lower = getName().toLowerCase(Locale.ROOT);
-		return lower.contains("(beta)") || lower.startsWith("beta ");
+		String name = getName();
+		return containsIgnoreCase(name, "(beta)") || name.regionMatches(true, 0, "beta ", 0, 5);
+	}
+
+	/** Case-insensitive {@code contains} without lower-casing a copy: the search asks for every candidate it scores. */
+	private static boolean containsIgnoreCase(String text, String part)
+	{
+		for (int start = 0; start + part.length() <= text.length(); start++)
+		{
+			if (text.regionMatches(true, start, part, 0, part.length()))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Override

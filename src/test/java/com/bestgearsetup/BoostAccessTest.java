@@ -14,9 +14,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import net.runelite.api.gameval.ItemID;
+import net.runelite.client.game.ItemVariationMapping;
 import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -83,6 +85,40 @@ public class BoostAccessTest
 			ItemID._4DOSEDIVINEATTACK, ItemID._3DOSEDIVINEATTACK, ItemID._2DOSEDIVINEATTACK, ItemID._1DOSEDIVINEATTACK,
 			ItemID._4DOSE2COMBAT, ItemID._3DOSE2COMBAT),
 			new ArrayList<>(BoostAccess.itemIds(potion(ItemID._4DOSE2ATTACK))).subList(0, 10));
+	}
+
+	@Test
+	public void prepotIdsPrioritizeDivineAndLowDoseBottles()
+	{
+		List<Integer> expected = new ArrayList<>();
+		for (int fourDose : Arrays.asList(ItemID._4DOSEDIVINERANGE, ItemID._4DOSERANGERSPOTION))
+		{
+			List<Integer> family = new ArrayList<>(
+				ItemVariationMapping.getVariations(ItemVariationMapping.map(fourDose)));
+			family.remove(Integer.valueOf(fourDose));
+			family.sort(Collections.reverseOrder());
+			family.add(fourDose);
+			expected.addAll(family);
+		}
+		List<Integer> ids = new ArrayList<>(BoostAccess.prepotItemIds(potion(ItemID._4DOSERANGERSPOTION)));
+		assertEquals(expected, ids.subList(0, expected.size()));
+	}
+
+	@Test
+	public void inventoryIdsPrioritizeDivineAndHighDoseBottles()
+	{
+		List<Integer> expected = new ArrayList<>();
+		for (int fourDose : Arrays.asList(ItemID._4DOSEDIVINERANGE, ItemID._4DOSERANGERSPOTION))
+		{
+			List<Integer> family = new ArrayList<>(
+				ItemVariationMapping.getVariations(ItemVariationMapping.map(fourDose)));
+			family.remove(Integer.valueOf(fourDose));
+			family.add(0, fourDose);
+			family.subList(1, family.size()).sort(Integer::compareTo);
+			expected.addAll(family);
+		}
+		List<Integer> ids = new ArrayList<>(BoostAccess.inventoryItemIds(potion(ItemID._4DOSERANGERSPOTION)));
+		assertEquals(expected, ids.subList(0, expected.size()));
 	}
 
 	@Test

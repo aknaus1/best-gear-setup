@@ -5,6 +5,34 @@ This page covers what the plugin assumes and what it enforces. For installation 
 
 ## Complete raids and active encounters
 
+Selected raid plans track live progress independently of the ordinary **Active encounter** option. Entry
+selects the plan's starting worn setup. Combat targets and Akkha's observed overhead select saved encounter
+setups, and room completion selects the next room without running the optimizer. The inventory highlights
+follow the selected worn setup; bank highlighting retains the full packed kit. Manual browsing remains
+available between progress events.
+
+ToB uses its system wave-completion messages. ToA uses system challenge-completion messages and source
+regions of the player's instanced room, so it follows paths taken out of the planned order. A completed
+puzzle selects that path's boss and does not mark the boss defeated. CM CoX counts required NPC deaths
+after the tick settles and no required targets remain alive: phases and optional scavengers are skipped
+when advancing, Vasa's crystal and Olm's hands cannot finish their boss rooms, and multi-target rooms need
+all required deaths. An NPC despawning, loading a scene, or the player dying is not room completion.
+Observed room progress survives a same-raid re-plan, resets after leaving or changing accounts, and ignores
+duplicate completion events. Short loading gaps do not reset a run. Joining mid-raid can select the current
+combat target; completions before tracking began are not reconstructed.
+
+During tracked raids, automatic ownership, ammunition and landed-drain updates preserve the packed kit.
+Explicit searches and settings changes can still re-plan it. Navigation does not refresh its scaling,
+prices or supply estimates; those remain the assumptions of the selected plan. Automated event and UI
+tests cover progress transitions; live client validation is separate.
+
+Signal references: [RuneLite raid and Theatre state definitions](https://github.com/runelite/runelite/blob/master/runelite-api/src/main/java/net/runelite/api/Varbits.java),
+[ToA source-region definitions](https://github.com/LlemonDuck/tombs-of-amascut/blob/main/src/main/java/com/duckblade/osrs/toa/util/RaidRoom.java),
+[ToA completion-message formats](https://github.com/LlemonDuck/tombs-of-amascut/blob/main/src/main/java/com/duckblade/osrs/toa/features/timetracking/SplitsTracker.java),
+and [ToB completion-message identifier](https://github.com/damencs/tob-qol/blob/3715d6ae24547fa87dc7ed82665e37b632407ba7/src/main/java/com/tobqol/rooms/maiden/commons/MaidenConstants.java).
+These identify game signals; the progress state machine is implemented locally without a runtime dependency
+on those plugins.
+
 The ordinary search includes **Challenge Mode: Chambers of Xeric**, **Tombs of Amascut** and
 **Theatre of Blood**, also matched by CM CoX / CoX CM, ToA and ToB. Each combat room and major boss phase has a
 setup, including the three Olm targets, Akkha's required attack styles, both Warden branches, Nylocas styles
@@ -14,12 +42,29 @@ Encounters, and the boss selector, follow the order the rooms appear in the raid
 starting worn setup:
 
 - **ToB:** Maiden, Bloat, Nylocas, Sotetseg, Xarpus, then Verzik P1, P2 and P3.
-- **CM CoX:** Challenge Mode layouts are fixed for each raid, so no single order is exact. The plan uses the
-  common rotation of combat rooms (Tekton, Muttadile, Guardians, Vespula, Shamans, Vasa, Vanguards, Mystics)
-  with the scavengers, ice demon and tightrope between them and Olm always last.
+- **CM CoX:** The plan follows the fixed combat-room order: Tekton, Ice Demon, Shamans, Vanguards, Vespula,
+  Tightrope, Guardians, Vasa, Mystics, Muttadiles and Olm, with the optional scavengers shown after Tekton.
+  The Scavengers and Vespula are listed but don't shape the kit: the number of scavengers varies (they're
+  killed until the potion secondaries drop) and Vespula is rarely attacked (players pray Redemption and kill
+  the portal). Each is shown with the fastest setup built from the kit the other encounters chose, and adds
+  nothing to the estimated combat time.
 - **ToA:** **ToA path order** (under **Fight → Raid**) picks *Ba-Ba, Kephri, Akkha, Zebak* or *Zebak, Kephri,
-  Akkha, Ba-Ba*; the Wardens are always last. Each path's puzzle comes before its boss, so the Apmeken
+  Akkha, Ba-Ba*; the Wardens are always last. *Auto (fastest)*, the default, plans the whole raid in both
+  orders (with each allowed spellbook) and keeps the kit with the lower estimated combat time; until that
+  search runs the encounters are listed Ba-Ba first. Each path's puzzle comes before its boss, so the Apmeken
   baboons come before Ba-Ba.
+
+ToA full plans use **ToA starting path level** (0-3: none, Pathseeker, Pathfinder, Pathmaster) and a
+**Walk the Path** toggle. Without the toggle, every path uses the starting level. With it, HP is averaged
+over the possible levels at that path's position, applying normal raid/party scaling and game rounding
+to each outcome first. The first path gains no levels; completing it raises two of the remaining three,
+the next completion raises one of the remaining two, and the third raises the final path. For a fixed
+order, the extra-level probabilities are 0; 0/1 with weights 1/3, 2/3; 0/1/2 with weights 1/6, 1/2, 1/3;
+and 1/2/3 with weights 1/6, 1/2, 1/3. Results label this as expected HP, rounded to an integer; actual
+levels vary. This models HP, not extra boss mechanics at path thresholds. See the
+[Wiki invocation rules](https://oldschool.runescape.wiki/w/Tombs_of_Amascut#Invocations).
+When automatic raid detection has live path levels, each path's exact level overrides the estimate,
+including Akkha's shadows and Kephri's scarabs. Single encounters retain the manual **ToA path level** (0-6).
 
 Candidates come from the existing optimizer with the same ownership, levels, locks, exclusions, protection
 and experience rules. CoX plans force CM scaling. Live ToA path levels are applied to their own bosses.
@@ -27,7 +72,16 @@ Raid-handed boosts follow the raid: in CM CoX, Tekton (both phases) is fought be
 boosts you bring in (the potion settings' *Best* choice without raid supplies; the elder, twisted and kodai
 potions brewed in the raid aren't in the potion table), and every later room may use overload (+). In ToA,
 the first two paths are fought without smelling salts and the third and fourth paths and the Wardens may use
-them. ToB hands out no boosts, so every room uses the potions you bring. Rooms where raid boosts are available
+them. Tekton and ToA's first path are prepotted like Maiden: the initial boost dose is drunk before entering;
+the kit carries refreshments when that dose expires, even during a long first room. Kephri's scarabs are fought without the *Best* boosts or raid supplies (a potion picked by
+name still applies): only Kephri herself is worth a potion. ToB hands out no boosts, so every room is fought on the potions you bring. Maiden's room is
+prepotted: its initial boost dose is drunk before entering. Every later setup is
+boosted and the kit carries estimated refresh doses, so a role brings the boost for its Nylocas waves and for any other
+style it uses after Maiden (a Melee DPS ranging Xarpus brings a ranging potion). A Vasilias quick switch
+is only boosted when that potion is already brought for a full setup after Maiden; a switch alone isn't
+worth a potion. Each boost in a raid plan is tagged *Pre* (drunk before entering, not carried),
+*Bring* (carried in the inventory) or *Both* (prepot and carried refreshments);
+raid-handed boosts have no tag. Rooms where raid boosts are available
 follow **Include raid potions**. Named potion overrides still apply and their warnings remain visible.
 The Dawnbringer is picked up at Verzik P1 and passed between players for its special attack, so it is never a
 worn weapon, a bank withdrawal, a purchase or an entry inventory slot. P1 is planned with your own setup under
@@ -40,8 +94,8 @@ or ranged-or-magic. *Auto* keeps each encounter's default: ranged or magic for b
 practice even when melee is higher DPS (Skeletal Mystics, the large Muttadile and Zebak, who can't be tanked
 in melee range), and any style elsewhere. Only styles the displayed phase can be damaged by are offered (no
 ranged for Tekton or the Vasa crystal, no melee for Vespula, only melee for Guardians, and so on), and
-encounters with a fixed style (Vanguards, Warden P2 phases, Maiden's nylocas, and each colour of Nylocas
-and Vasilias form) don't offer a choice. The choice is saved per raid and encounter. Only the phases of one
+encounters with a fixed style (Vanguards, Warden P2 phases, freezing or chinning Maiden's nylocas, and each
+colour of Nylocas and Vasilias form) don't offer a choice. The choice is saved per raid and encounter. Only the phases of one
 fight share it: Tekton and enraged Tekton, Zebak and enraged Zebak, Kephri's shielded and aggressive forms,
 the Akkha phases, and each Warden's P3 with its core. Separate fights, such as Olm's hands and head, the two
 Muttadiles and Verzik's phases, are chosen on their own. A phase the shared style can't damage (e.g. Akkha
@@ -56,35 +110,134 @@ nothing; combat updates inside a planned raid do the same within the kit. A raid
 example on a blocking lock or when no style finds a setup; the error then offers **Reset raid attack styles
 to Auto** if any are saved.
 
-**Theatre of Blood roles** (under **Fight → Raid** while planning ToB) change the encounters:
+**Theatre of Blood role** (under **Fight → Raid** while planning ToB) changes the encounters:
 
-- **ToB Maiden role:** *DPS and freeze* (the default, for solo and small teams) plans the boss and the
-  Nylocas Matomenos. *DPS* leaves the nylocas to the freezers. *Freezer* stays on magic at Maiden as well as
-  on the nylocas. Freezing needs Ice or Blood Barrage, so with *Freezer* or *DPS and freeze* the results
-  warn unless **Raid spellbook** is Ancient.
-- **ToB Nylocas role:** *All styles* plans every colour of wave nylocas; *Melee*, *Ranged* and *Magic* plan
-  only the grey, green or blue waves. Each colour only takes damage from its own style. Every role still
-  plans each Vasilias form with that form's style.
+- **Maiden's nylocas:** freezers freeze them and everyone else kills them. *South freeze* only freezes.
+  *North freeze* freezes, then helps with the unclumped nylocas. *Range DPS* helps with the unclumped
+  nylocas until the clump forms, then chins the clump. *Melee DPS* helps with the unclumped nylocas.
+  Freezing requires Ice Barrage (so Ancient), the clump requires chinchompas, and Range DPS plans ranged
+  attacks for the unclumped nylocas. Other helpers may kill them with any style.
+- **The freeze switch:** a splash misses the freeze, so the freeze isn't planned for damage. Binding Maiden's
+  nylocas never fails once the magic attack roll reaches (base Magic + 9) × 204, 22,032 at 99 Magic: +140 magic
+  attack without a prayer, +103 with Augury at 99 Magic, less with a boost or the Ice ancient sceptre's 10% (Wiki: *Nylocas
+  Matomenos*). Below it the ordinary hit chance applies. The freeze is a switch from your Maiden setup that
+  swaps the fewest items reaching that roll, autocasting Ice Barrage whenever a weapon that can still reaches
+  it (more items rather than casting each freeze by hand); the Maiden setup is planned with such a freeze when
+  any exists. Each freeze switch is searched from the Maiden setup actually worn (the fastest few, and the
+  fastest of each attack type), so a mage Maiden setup may need no gear switch at all and a freeze never puts
+  on pieces from a different Maiden setup.
+  When none does, the most accurate switch is planned and its note says freezes can splash. *South freeze*
+  assumes a saturated heart (else an imbued heart) for the freeze whenever the search may use one, whatever
+  the Magic boost choice: the threshold uses base Magic, so the heart's boost lowers the bonus needed. The
+  freeze adds no combat time. Packing the shared kit preserves the best freeze accuracy from the original
+  search: removing equipment cannot turn a guaranteed freeze into a splashable fallback to free a slot.
+  When 100% was already impossible, packing preserves the original best available accuracy. The freeze notes
+  state the offensive prayer and Magic boost its accuracy assumes; those must be active when freezing.
+  Freeze switches keep or replace worn equipment; they never assume the player takes off melee armour.
+  A two-handed weapon automatically removing its shield is the only exception.
+- **Nylocas waves:** South mages them, North melees them in 3/4-player teams and mages them in 5, Range
+  DPS ranges them and Melee DPS melees them. Each colour only takes damage from its own style. Every role
+  still plans each Vasilias form with that form's style.
+- **Vasilias quick switches:** the Vasilias changes form at random after two hits (three in entry mode), so
+  players swap fast. The plan wears a full setup for one form and plans the other two as quick
+  switches from it: the weapon and at most one other piece, with the same extra slot across both forms
+  (see **Quick switch swaps** below to allow more).
+  Every role compares melee, ranged and magic bases by the complete kit's estimated combat time; the
+  main boss setup is independent of Maiden and wave duties. Quick switches retain alternatives for each
+  possible extra slot and are searched from the fastest few full setups of all three forms.
+  Results name the base and shared extra slot,
+  and live updates preserve the pattern. A shield removed by a two-handed weapon doesn't count;
+  ammunition a bow fires does (a bow whose ammunition isn't already worn takes both changes), while darts
+  loaded into a blowpipe don't. Switches carry no fill items or special attack.
+- **Apmeken baboons:** brawlers, throwers, mages and shamans come in mixed waves, and each always takes a
+  max hit from the style it's weak to. They form a switch group like the Vasilias forms: one baboon wears a
+  full setup and the others are quick switches from it. Accuracy doesn't matter against them, so a switch
+  only swaps pieces that raise the max hit. Ba-Ba herself is planned on her own.
+- **Quick switch swaps** (under **Fight → Raid**, 1-6, default 2) is the most swaps a quick switch may make,
+  weapon included: the weapon and at most one fewer other pieces. Every quick switch of a group draws its
+  extra pieces from the same slots, so switching between any two forms also stays within the limit. It's a
+  limit, not a target: a switch is only planned when it beats every smaller switch of the same weapon it
+  contains, so a higher limit never adds a piece that doesn't make the switch faster. Every single extra
+  piece is scored exactly; larger switches are grown one slot at a time from the best few smaller ones.
+
+**Require Ava's / quiver** under Settings → Equipment requires a usable recovery cape for every ranged
+attack whose ammunition an Ava's device recovers, including full raid setups and quick switches: arrows,
+bolts, javelins and atlatl darts, blowpipe darts, and thrown darts, knives, thrownaxes, toktz-xil-ul and
+blisterwood stakes. Bolt racks (Karil's crossbow), chinchompas, holy water, salamander tar and weapons
+without ammunition (crystal bows, Tonalztics of Ralos, the Hunter's spear) are unaffected, and so are
+special-attack switches, which keep the worn cape (a Zaryte crossbow or blowpipe used as the main weapon still
+needs one). Availability, cape locks, exclusions, budget and Wilderness equipment limits still apply. The original saved setting key is retained.
 
 One **Raid spellbook** is used throughout, subject to the existing allowed spellbooks. Thralls are only
-assumed on Arceuus. A bounded beam search chooses a shared kit across encounter candidates; when needed,
-the optimizer compares removing each unlocked switch, re-searches affected rooms and chooses the smallest
-increase in total estimated fight time per slot saved. Consolidation stays within gear from the original
+assumed on Arceuus. A bounded beam search chooses a shared kit across encounter candidates (between
+equally fast kits, the one built from the faster partial kit and higher-ranked room setup); when needed,
+the optimizer compares removing each unlocked switch, and having the starting setup wear an item another
+setup carries anyway (for example melee boots while maging, which frees the mage boots' slot), re-searches
+affected rooms and chooses the smallest increase in total estimated fight time per slot saved. A worn item
+may lower the starting room's damage when that costs less time than giving up another switch; it is
+highlighted like a filled slot rather than shown as a lock. Consolidation stays within gear from the original
 best room setups, so it cannot repeatedly replace strong magic gear with unrelated weaker pieces merely
 because fewer rooms use magic. This is a heuristic, not a proof of the best possible complete-raid kit.
 Failure to find a kit shows an error without publishing partial setups.
 
-Both kit selection and consolidation count Olm's melee and mage hands for all required hand phases:
-three plus one per eight players, using the same selected or detected party size as stat scaling.
-The head is counted once. The phase count multiplies estimated combat time (phase HP / DPS), preserving
-per-phase HP, damage calculations and inventory quantities. See the
-[Olm phase rules](https://oldschool.runescape.wiki/w/Olm_strategy).
+Kits are compared by **estimated combat time**: for each encounter, the expected time to deal its share of the
+target's party-scaled HP, times the number of times it's fought, summed over the raid. The counts, shares and
+time model only weigh this objective; per-phase HP, damage calculations and inventory quantities are unchanged.
+
+- **Whole attacks:** each kill takes whole attacks, so the damage wasted on the killing blow counts. An attack
+  hits with the setup's accuracy for a whole number up to its max hit (from a higher minimum for attacks
+  whose average is above half the max, such as attacks that always max). Small targets (nylocas, baboons,
+  scarabs) can favour a faster weapon over a higher-DPS slow one; on bosses the difference is negligible.
+  The fastest setup is ranked by this time, not by DPS.
+- **Phases of one HP pool** share it rather than each counting the whole pool: Akkha's three immune
+  phases each take a third of her health and her final stand the fifth she restores; each Vasilias form a
+  third (it changes to a random form every 10 ticks); Zebak three quarters before his enrage at ~25% and a
+  quarter after; Tekton three quarters normal and a quarter enraged (an estimate, as the Wiki gives no share).
+- **Repeated targets:** Olm's melee and mage hands are counted for all required hand phases: three plus one
+  per eight players. CoX counts two Guardians, the [Skeletal Mystics and Lizardman shamans](https://oldschool.runescape.wiki/w/Chambers_of_Xeric/Strategies)
+  for the party size (3 plus one per three players, at most 12; 2 plus one per five, at most 5), and two
+  deathly rangers and two mages on the tightrope (the solo and small-group count; larger raids have more, in
+  numbers not yet known). Akkha has one shadow at each of 80/60/40/20%. Kephri summons one soldier, spitting and
+  arcane scarab; the **More Overlords** invocation (under **Fight → Raid**) adds a second soldier and spitting
+  scarab. The [Apmeken baboons](https://oldschool.runescape.wiki/w/Tombs_of_Amascut/Strategies#Path_of_Apmeken)
+  come in eight waves holding 5 brawlers, 5 throwers, 4 mages and 5 shamans solo; a group adds one combat
+  baboon of each wave's style (8 brawlers, 7 throwers, 6 mages).
+  [Maiden](https://oldschool.runescape.wiki/w/The_Maiden_of_Sugadinti) spawns two nylocas per player (at most
+  10) at each of 70/50/30%. A good freeze stacks all but three for the Range DPS to chin (7, 5 and 3 for five,
+  four and three players); the rest are killed one by one. One player chins each clump, so it counts as one kill of the party's time per spawn.
+  The Nylocas room's 31 fixed waves hold 76 small and 44 big nylocas, and each big one splits into two small
+  ones, so the wave encounters count 164 small and 44 big (a new **big** wave encounter in the role's colour).
+  The party shares the other kills like boss HP. Each count uses the same selected or detected party size as
+  stat scaling.
+- **Vasa:** he's attacked only on his way between the centre and a crystal, which must then be killed before
+  he can be attacked again. The number of crystals follows from how fast the party deals his HP with his
+  fastest setup: 10 ticks for his first walk to a crystal, then 14 for each return (4 ticks back to the
+  centre, where he immediately picks the next crystal, and 10 out to it). He only charges his teleport, when he
+  can't be attacked, after his 40-second siphon timer runs out. The walk timings are commonly seen ones; the
+  Wiki gives none. Every window but the one that kills him ends at a crystal.
+- **Wardens:** one Warden is fought in P2 and the other in P3, so each Warden's P2, core and P3 count half.
+  In P2 the shield is broken with magic and ranged in turn, each break ejecting the core; the core is the
+  Warden's health and takes five times each hit's damage. The core is planned on a fifth of its HP, and the
+  number of breaks follows from how fast the party clears it with the core's fastest setup: its exposure lasts
+  21 ticks above 80% of the Warden's health, 29 above 60% and 37 below
+  ([Core](https://oldschool.runescape.wiki/w/Core)). Each P2 style takes half of the breaks. P3 counts a fifth
+  more for the 20% it heals when it enrages below 5%.
+
+See the [Olm phase rules](https://oldschool.runescape.wiki/w/Olm_strategy), the
+[Nylocas wave table](https://oldschool.runescape.wiki/w/Theatre_of_Blood/Strategies/Nylocas) and
+[Akkha](https://oldschool.runescape.wiki/w/Akkha).
 
 Required ammunition stays worn during encounters that leave the ammo slot free. A single ammo type is
 used throughout; with several types, empty slots use the most-used type while existing ammunition and
 ammo-slot locks are retained. This changes the actual worn kit and inventory capacity, including the
 starting bank layout. Loaded blowpipe darts remain internal and appear in the pipe's tooltip and exclusion
 menu, including special switches and inventory blowpipes.
+
+The starting setup also wears, in each empty slot, a piece another setup already carries (for example the
+melee ring while maging), so it takes no equipment or inventory slot. Only pieces without a negative
+offensive bonus are filled in this way, so the starting setup's damage never drops; locked slots, and a
+shield slot needed by a two-handed or special weapon, stay empty. These pieces are highlighted like filled
+slots. Pieces that do cost damage are only worn when consolidation chooses them (see above).
 
 Inventory gear reuses worn gear's ownership/cost tooltip, locks, exclusions and manual ownership controls.
 Supplies have ownership and exclusion menus, and pouch menus include their rune contents. Excluded
@@ -93,21 +246,52 @@ them unless the equipment supplies those runes. Excluding thrall supplies remove
 Automatic boosts skip excluded potions; an explicitly selected excluded potion must be changed to produce
 setups using that boost.
 
-**Raid equipment slots** counts unique equipment carried at entry after subtracting the starting worn
-gear, including special weapons, off-hands and spare ammo stacks. Starting worn gear and loaded blowpipe
-darts do not consume that limit. Spell supplies and boost items must also fit in 28 inventory slots, and
-capacity is checked after encounter switches. Required rune stacks are packed into an owned rune pouch
-(three types) or divine rune pouch (four types), preferring the divine pouch when available. The pouch
-occupies one inventory slot; overflow types remain loose. Hovering the pouch lists its planned contents.
+The kit is worn in for one setup of the raid's first room: any ToA first-path fight (the Apmeken baboons
+or Ba-Ba, or Zebak when Crondis is first), either Tekton phase in CoX, or any Maiden-room setup in ToB. The
+planner tries each and keeps the fastest kit, preferring the earliest fight on a tie, so for example melee gear
+can be worn in for the baboon throwers while the brawlers keep their magic setup. That starting setup is shown
+in the bank and opened by default in the results.
+
+**Raid equipment slots** is a maximum, not a target: a kit may use fewer. It counts unique equipment
+carried at entry after subtracting the starting worn gear, including special weapons, off-hands and spare
+ammo stacks, plus the rune pouch, rune stacks left outside it and a carried Book of the dead (a worn book is
+already equipment). Starting worn gear, loaded blowpipe darts and runes inside the pouch do not consume that
+limit. Boosts and food don't count toward it but must also fit in 28 inventory slots, and capacity is
+checked after encounter switches. So that a higher limit doesn't lose a kit a lower one found, the planner
+keeps switch groups (such as the Vasilias forms) consistent as each form joins the kit, and keeps comparing
+alternatives when the fastest setups fit but no kit was found from them. Required rune stacks are packed into
+an owned rune pouch (three types) or divine rune pouch (four types), preferring the divine pouch when
+available. The pouch occupies one inventory slot; overflow types remain loose. Hovering the pouch lists its
+planned contents.
 The sidebar runs from search input to current boss/monster, Version, gear source, action buttons, worn
 equipment and inventory. In a raid, the current boss selector updates both the shown gear and Version.
 The inventory starts minimized; its heading expands or minimizes the grid, and that choice carries over to
 new searches, raid encounter switches and re-plans.
-Food, healing, extra potion doses and utility supplies
-are left to the player. The bank's equipment
+Boost dose estimates follow selected setups' party-adjusted combat time, repeated kills, HP shares and known
+rest-before gaps. A physical potion used for several skills is counted once, and is drunk again when its first
+skill needs it. With **Divine potions** on (the default), a potion with a divine version (super combat,
+attack, strength, ranging, bastion, magic, battlemage) is planned as that version: each dose holds the full
+boost for five minutes (500 ticks), and the bottles, prepots included, are matched divine first. Other boosts
+drain one level a minute toward the base level and are drunk again once the remaining boost falls below **Repot below** (default 50%) of its
+full amount at your level. The restore timer is already running when a dose is drunk, so the first level
+drains after half a minute on average: a +19 super combat at 99 lasts about 9.5 minutes at 50%, 18.5 at 0% (let
+it run out) and 30 seconds at 100%. Peak stats are not maintained between ordinary doses; DPS still assumes the
+full boost. Preserve is not modelled. The initial prepot dose is excluded, and its remaining coverage
+can serve later rooms. Overloads and smelling salts obtained inside the raid occupy no carried bottle slots;
+hearts are reusable single items. Doses round up to four-dose bottles, each with its own inventory cell.
+Unknown walking, puzzle time, preparation and other downtime may need extra doses. Food, healing, restores,
+stamina and other utility supply demand is not estimated. The bank's equipment
 silhouette is followed by the four-column inventory on its right; loaded darts appear below for loading.
 Pouch contents also appear below the bank kit so they can be withdrawn and loaded.
 The gear budget applies once to the entire unique kit, with owned ammunition quantities deducted.
+Boost supply prices remain excluded from that budget. Ownership establishes only availability of a boost
+type (any dose), not enough doses for this plan. Results warn that required quantities are unvalidated;
+confirm sufficient full bottles, especially when only partial doses are owned. The bank retains one real
+stack per item variant with its native quantity and withdrawal actions: hover guidance states the estimated
+doses and bottles to withdraw, and duplicate planned bottle positions remain reserved. No fake stacks are
+created. Capacity checks count every bottle after ordinary and special-attack switches, including unequipped
+shields. Partial beam checks omit boost slots as a safe lower bound; full candidates receive the timeline
+estimate before selection. Live refresh uses the existing full-bottle capacity and cannot add carried slots.
 
 **Active encounter**, off by default, follows the attackable NPC the player is in combat with, checked once
 per game tick. Combat starts when one of the player's own hitsplats (including blocked hits) lands on the NPC,
@@ -134,13 +318,65 @@ open the sidebar or perform any game action.
 
 - **Owned items**: the plugin remembers your bank (once you've opened it), inventory and worn equipment,
   per account. Anything you own costs nothing in a setup.
+  Calculation ownership is one immutable combined category, separate from recorded locations and equipped
+  markers. Item ids are canonicalized (notes/placeholders and reviewed charge states), totals are combined
+  across locations, and the combined totals must agree across two consecutive game ticks before they are
+  published. This also covers a withdrawal or equip whose container updates straddle a tick boundary.
+  Searches capture ids and quantities together. Cache keys use the combined owned ids and relevant capped
+  ammunition totals; locations, source ordering, update times, equipped markers and ordinary gear stack
+  counts do not affect the key or hash. Real item gains/losses still refresh after settling; carried-only
+  searches use their own combined inventory/equipment snapshot. Paid upgrades remain separate ownership.
+  Completed encounter results and full raid plans are also saved in the current RuneScape profile for
+  reuse after restarting the client. Keys are deterministic SHA-256 fingerprints of the calculation inputs,
+  including the runtime catalogue, source type, settings, prices, ownership and live encounter context.
+  An installed code/resource fingerprint and cache schema must also match before a saved result is loaded.
+  The RS profile is synced per account, so the profile store keeps at most 12 raids within 640 KiB and
+  64 single-target encounters within 1,152 KiB of encoded text (under 1.75 MiB in all); oldest saved entries
+  are pruned to meet either limit, and a result larger than its category's budget remains memory-only. A raid
+  plan is saved with only each encounter's chosen setup, which is all a published plan reads (about 30 KiB for
+  ToB, against nearly 200 KiB with every candidate). The thousands of encounter searches inside a raid search
+  stay in their own memory-only cache: saving each to the profile cost more than searching, and they would
+  have displaced the single-target results. Records list each object type's field names once and store each
+  object positionally. Records saved by a
+  different plugin build can never be loaded, so they are cleared when the store is attached to an account.
+  Searches only encode and compress; every profile write runs on the client thread, because each
+  ConfigManager write posts ConfigChanged to all plugins on the writing thread. A queued write re-checks the
+  account and cache epoch first, so work from before an account change or shutdown is dropped.
+  Records are split into 16-KiB configuration values so RuneLite configuration sync accepts large raid
+  results. A small manifest is published only after all chunks, with their total length and SHA-256 checksum.
+  Readers reject missing or damaged parts, and eviction clears both the manifest and all of its chunks.
+  RuneLite's [configuration service](https://github.com/runelite/api.runelite.net/blob/96d431742220ff8aea594bfbf969b6f886209bda/http-service/src/main/java/net/runelite/http/service/config/ConfigService.java)
+  rejects values with 262,144 or more characters; the previous single-value raid records could exceed 500,000.
+  Results use a compressed DTO graph to retain shared loadouts, transient combat phases/item slots and
+  identity-keyed potion assumptions. Restored equipment, spells and attack styles use the current catalogue's
+  instances so cached encounters remain valid inputs to a new kit search. Invalid or incompatible records are cache misses, and searches
+  started before an account change cannot publish into the new account's cache. RuneLite's normal
+  configuration persistence writes the profile; no client or game actions are performed by this feature.
+  With **Dude, Where's My Stuff?** enabled, its recorded STASH units, POH costume storage, active
+  deathbanks/deathpiles, group storage, bags and other item storage also count. Hover equipment or
+  inventory gear to see its recorded locations. Visit or update a storage in DWMS first if it has no data;
+  these are DWMS's observations, so retrieval restrictions and recovery fees can still apply (including
+  incomplete costume sets on UIM). Storage contents are not proof that gear is immediately accessible.
+  The integration uses DWMS's [version 1 plugin-message interface](https://github.com/Thource/dude-wheres-my-stuff/blob/2f636ab8f75400219b6e35dd0412b42f510e528a/src/main/java/dev/thource/runelite/dudewheresmystuff/DudeWheresMyStuffPlugin.java),
+  with no mandatory plugin dependency or direct reads of its saved configuration. Native bank, inventory
+  and equipment remain authoritative and are excluded from the import to avoid counting them twice.
+  Minigame points, coin counters, deposit-only balloon logs, pets and POH mounted displays are excluded.
+  The provider's complete snapshot is requested after native container changes (storing or retrieving
+  items moves them through the inventory) and otherwise every 50 ticks, about 30 seconds, for changes DWMS
+  sees without one, such as an expired deathpile; a newer timestamp alone doesn't count as a change;
+  ownership comparisons wait for its queued reply so storage withdrawals don't restart a raid search.
+  Empty responses remove old contents. Missing/disabled/unsupported providers clear imports; account
+  changes, logout and plugin restarts reset them, while a world hop keeps them. DWMS remembers locations between sessions and sends
+  only the logged-in profile, even while its sidebar previews another account. Update DWMS if it doesn't
+  reply to storage requests. Coverage follows what its interface exports; the current interface omits
+  graves and Death's Office, and no additional CoX raid chest tracking is implemented here.
 - Decorated equipment also counts as its base item, including Twisted ancestral. Ornament kits that can be
   removed and traded are tracked separately and included in the price of getting the item. Owning only the
   base item or only the kit doesn't give you a paid upgrade for free.
 - **Four modes**
   - *Owned items only*: only gear you already have.
   - *Inventory + equipped only*: only what you're carrying right now, in your inventory or worn. Your bank
-    and items marked as owned by hand are ignored, so it suits picking a setup when you're already at the
+    and all other storage or items marked as owned by hand are ignored, so it suits picking a setup when you're already at the
     fight. It works without opening your bank, and withdrawing or dropping gear runs the search again.
   - *Owned + budget*: your gear plus anything you can buy within the budget (e.g. `50m`).
     Untradeable items are only used if you own them, unless they can be bought as tradeable components.
@@ -199,15 +435,34 @@ open the sidebar or perform any game action.
   melee range; ranged and magic setups are assumed to fight from distance, where a monster's melee attacks
   are dropped if it has others. A melee-only monster still gets *Protect from Melee*, since it walks up to
   you; the note says none is needed if you safespot it. Raid bosses use curated advice with a short reason
-  where the fight switches (Olm, Akkha, Zebak, Vasa, Sotetseg, Verzik P2 and P3, the Wardens and Vasilias
+  where the fight switches (Olm, Akkha, Zebak, Vasa, Sotetseg, Verzik P3, the Wardens and Vasilias
   forms). Attacks no overhead blocks are called out: Xarpus's spit and Verzik P3's melee are typeless, so
-  Xarpus needs none and Verzik P3 is Magic / Missiles even for her tank. Other monsters use the Wiki's attack
-  styles: the protectable style with the highest max hit comes first, "all" means all three, and typeless,
-  dragonfire and prayer-piercing attacks are left out. *None needed* only appears when the monster has no
+  Xarpus needs none and Verzik P3 is Magic / Missiles even for her tank. Ice Demon, large Muttadile at
+  distance and Verzik P2 use fixed Missiles; Vasa's Magic advice is for its teleport special, not ordinary rocks.
+  [Vorkath](https://oldschool.runescape.wiki/w/Vorkath/Strategies) uses fixed Missiles with ranged and a fire
+  shield; melee and ranged without one use Magic. Two-handed weapons cannot count a shield. Its advice
+  explains super antifire, restoring prayer after purple breath, and staying close with melee between specials.
+  Other monsters use a fixed prayer: the largest estimated blockable ordinary damage (attack weight × hit
+  chance × half max hit), using the shown gear's defensive bonuses and base Defence / Magic levels. Missing
+  melee / ranged attack bonuses use zero; unspecified attack frequencies use equal weights. The tooltip
+  labels these estimates: defensive boosts, prayer penetration beyond the snapshot's labels, special damage
+  distributions and equipment damage-reduction effects aren't simulated. Incoming stats are retained before
+  offensive stat drains. Explicit distance overrides the combat-class distance assumption. When accuracy
+  stats or per-style damage can't be read, advice falls back to the highest max hit. A mixed attack list
+  never establishes a reactive switch window. Fire requirements restrict which overheads can be recommended.
+  Typeless, dragonfire and prayer-piercing attacks are left out of ordinary damage comparisons.
+  *None needed* only appears when the monster has no
   protectable attack; attack data that can't be read shows *Unknown*. Overheads above your Prayer level
-  (Magic 37, Missiles 40, Melee 43) are dropped and the note says why; when none of the recommended ones is
+  (Magic 37, Missiles 40, Melee 43) are excluded from choices and the note says why; when none of the recommended ones is
   unlocked, the advice still names them with the level needed, e.g. *Protect from Melee (needs 43 Prayer)*. It is advice only and doesn't change
   the DPS calculation.
+- **Encounter overhead audit:** [the catalogue report](overhead-audit.md) records the checked boss variants
+  and generic-data limits. Ordinary attacks are assumed to check prayers at launch; verified encounter
+  rules distinguish delayed cues, impact timing, counted cycles, phases, position, supporting attackers
+  and disabled prayers. Ranged melee / ranged magic use ranged accuracy but Melee / Magic protection;
+  magical melee / magical ranged use magic accuracy but Melee / Missiles protection. Labelled partial
+  prayer penetration reduces estimated blocked damage rather than removing the style entirely.
+  Known special-mode exceptions with unverified mechanics show *Unknown*, rather than normal-game advice.
 - **Potions** are set per combat style with the dropdowns under **Combat boosts**: *Best available* (the
   strongest potion you can use anywhere, leaving out raid, NMZ and Deadman potions and brews), *None*, or
   any potion from the potion table (overloads, smelling salts, ...). A potion picked by name is always used.
@@ -226,7 +481,29 @@ open the sidebar or perform any game action.
   Empty bank placeholders are skipped. You can change **Highlight bank gear** and **Bank color** under
   **Display & interaction** in the plugin settings.
 - The **bank gear layout** shows just the selected setup's equipment and ammunition from your bank,
-  arranged like the equipment slots in the sidebar. Any extra variants appear underneath.
+  arranged like the equipment slots in the sidebar. Already-worn items are removed before grouping the carried
+  switches, largest first. A hybrid starting outfit's attack style does not suppress its carried armour switches.
+  Groups with fewer than two core equipment slots fill spare cells instead of reserving a block.
+  For a hybrid outfit with its weapon already equipped, a carried main weapon matching the worn armour
+  leads the equipped weapon's carried armour group as a stand-in. This moves the actual item once;
+  it does not add an inventory slot or change its combat classification. Ambiguous armour or an absent
+  matching carried weapon leaves the normal order unchanged.
+  Selecting another encounter recomputes this from its actual worn equipment.
+  Shared gear follows the style with the most deliberate worn uses; filled slots and unchanged armour inherited
+  by quick switches do not override that style. Usage counts then include only that style's encounters.
+  Each style's main weapon leads its core; the other core pieces are the most-used item per equipment slot,
+  used at least half as often as its most-used carried piece: cape/backpack, other gear by descending damage
+  then accuracy, and offhand.
+  Occasional pieces, alternate weapons and specials follow as extras; a unique equipment slot is not automatically core gear.
+  Two-row blocks fill 1,5,2,6,3,7,4,8, then 9,13,10,14,11,15,12,16. Two-column blocks fill 1,2,5,6,9,10,...
+  and 3,4,7,8,11,12,... . The whole inventory uses one orientation. Rows are preferred whenever the core switches
+  and carried items fit; columns are used when rows cannot preserve those groups within 28 cells.
+  Passive supplies such as the rune pouch can use spare edge cells. Spare gear fills the remaining gaps;
+  potions finish the lowest occupied row or go immediately below it. Earlier gaps are used for potions only
+  when needed to fit a full inventory. If extras prevent whole-style blocks, the main switches
+  keep their blocks and remaining extras use space outside them. If even the main switches cannot fit in
+  separate blocks within 28 cells, the layout preserves every item in paired-row click order. Any
+  extra item variants appear underneath.
   - If the setup casts a spell, its runes appear to the right of the head slot, along with runes for any
     Mark of Darkness, Charge or thrall the DPS assumes (plus the Book of the dead for a thrall).
     Elemental runes that the equipped staff or tome provides are left out, and combination, sunfire and
@@ -602,6 +879,11 @@ against the target's current stats, and the rest of the kill is fought at the dr
 missed and a landed warhammer are taken into account. That makes the figure an average: kills where the
 drain misses are slower, sometimes slower than not speccing at all.
 
+A drain only pays while it lasts. Sotetseg's Defence resets after the maze: single-target searches
+credit only the first third, while complete raids divide finite opening specs across reset windows.
+Bloat regains full Defence on its stomp, so drain benefit is capped to its first ~18-second down.
+Akkha regenerates Defence quickly, so its drain specs only count for damage; Verzik cannot be drained.
+
 **Drain specs** sets how drains are ranked:
 
 - **Expected** (default): the average kill.
@@ -614,15 +896,114 @@ DPS, time to kill and kills per hour include the specs, and setups are ranked wi
 switch can overtake a slightly stronger main weapon. **Spec energy** can be **Regenerating**
 (the default: the steady state over a trip, 10% every 30 seconds, with the energy regenerated during one
 kill opening the next) or **Full bar** (each kill opens with every whole spec in a full bar,
-which suits single boss kills). The Lightbearer replaces your ring when doubled regeneration is worth more
-than the ring it pushes out. In budget mode, the spec weapon, off-hand and ammunition are bought from
+which suits single boss kills). Complete raids replace this setting with the raid's own energy (see
+**Spec energy in raids** below). The Lightbearer replaces your ring when doubled regeneration is worth more
+than the ring it pushes out, except in the Theatre of Blood, where it is never switched in (lock it in the
+ring slot to wear it there anyway). In budget mode, the spec weapon, off-hand and ammunition are bought from
 whatever budget is left.
 
 The result shows the spec, its energy cost, the expected specs per kill, one spec's max hit and accuracy,
 and, for draining specs, the DPS after one landed spec. The spec items are added to the cost and to the
 bank and inventory highlights. Pre-fight preparation drains still apply first, so clear them if they
-describe the same specs. Switch timing and overkill aren't modelled, and Tonalztics drains once per landed
-special.
+describe the same specs. Switch timing isn't modelled (overkill only counts in raid plans' combat time),
+and Tonalztics drains once per landed special.
+
+**Spec energy in raids.** Every raid setup is planned opening on a full bar, together with the same
+setup speccing only on energy regenerated during its fight, and the kit planner follows the bar through the
+raid in room order to choose which fights open on it:
+
+- The raid starts on a full bar. A setup can only open on a full bar when there's enough energy for its opening
+  specs; it then spends them. A setup that specs during the fight spends the energy regenerated meanwhile,
+  keeping what was left; one without specs lets the bar regenerate over its fight (twice as fast in lightbearer).
+- **Theatre of Blood:** each room refills the bar as it starts, and it regenerates on top during the room.
+- **Tombs of Amascut** and **Chambers of Xeric:** the bar carries from room to room and regenerates over the
+  downtime before each room. The estimates are each path's puzzle (the Wiki's solo 545 splits: Scabaras
+  about 55 seconds, Het 40, Crondis 32, and a minute of the Apmeken room's tasks before Ba-Ba) plus 20
+  seconds of walking between paths and 30 to the Wardens; and in the Challenge Mode layout, the puzzles
+  (crabs, thieving, tightrope, the ice demon's kindling), the scavengers, the resource rooms (two minutes of
+  preparation after the shamans, a minute in the others) and walking.
+
+Repeated adds retain a first-opening/remaining-damage-regeneration approximation. Olm hands instead have
+explicit phase entries, interleaving melee and mage hands, so every later opener must be funded by energy
+already retained before its phase. The initial preparation gap applies only before the first melee hand.
+One- and two-hammer candidates retain their separate 50% and 100% entry requirements. The spec tooltip
+shows the concrete required entry percentage; a phase need not start on a full 100% bar.
+
+**Raid spec rotations.** The complete carried kit uses at most one defence-reducing special weapon and
+one damaging special weapon per combat style (melee, ranged and magic), shared across encounters. Stab,
+slash and crush share the melee allowance. The spec's attacking style determines its allowance, rather
+than the defence it rolls against. Room-provided Dawnbringer does not occupy a
+carried choice. Damage specs pay their full attack interval and are ranked by expected damage gained per
+energy, not max hit. An ordinary attack's end-of-fight timing adjustment remains; no special is reserved
+as an interval-free last attack. Alternate spec choices and ordinary-only versions of each worn setup let
+the planner find a feasible kit without requiring a second damaging special of the same style. Equipped normal weapons
+remain available even when their specials are not selected. Maiden's Matomenos, ordinary Nylocas waves,
+blood spawns, baboons and scarab support targets conserve spec energy for the bosses.
+
+A shared boss drain now models this player's opening attacks against the whole party HP pool. Other
+players continue ordinary attacks during those intervals, then benefit from landed drains. This assumes
+equal ordinary DPS and the same accuracy benefit for teammates, without adding unconfigured teammate
+specials; coordinate drain assignments and existing drains with the actual team. Sotetseg restores
+Defence after each maze, so the available opening specs are divided between its three HP thirds.
+Two hammer specs from one bar can cover two thirds, not supply a fresh full bar in every phase. Olm hand rows each start at fresh Defence; currently detected drains are not copied into future hands.
+
+**Teammates also spec.** Where a party conventionally opens with every member's defence reducer (each Olm
+melee hand phase, Tekton before its enrage, Maiden and Xarpus), each other player, up to seven, is assumed to
+open with one dragon warhammer special before yours. You open with yours too: if you can use an elder maul,
+dragon warhammer or Bandos godsword, every kit is assigned one of them at each of these bosses as far as the bar funds it,
+even where a damage spec alone would be faster for you, and may follow it with more. Sotetseg restores its Defence after each maze, and the party
+makes two reducer attempts in each third (one each in a party of two), each player at most one a third. If your
+kit can use an elder maul, dragon warhammer or Bandos godsword (owned, allowed and within budget), you take your
+fair share of the six: the party's attempts divided by its size, rounded up (two in a party of three to five,
+three in a party of two), one in each of the first thirds, before damage specs and as far as the bar funds them
+(a full bar holds two of these 50% specials). It is an assignment, not an option: teammates fill only the rest of
+each third (one teammate in a third you reduce, two in the others) and don't make up a share you can't fund, so
+your kit's own no-spec time has those gaps. Every kit owes the share whenever you could use one of the three as a
+spec switch (its level requirements, equipment rules, ownership or budget, and your own exclusions), even in a
+search where the kit planner leaves it out, so dropping the hammer from the kit can't dodge the duty. The share is
+valued at your own reducer's accuracy against the reference teammate's, so a less accurate hammer than theirs can
+cost the party a little time; it is still assigned. Ranged and magic kits owe it too and switch to the reducer for the spec (held with the kit's own armour), so no
+class leeches the teammates' reducers; only a player who can't use any of the three keeps their full coverage. Other reducers (arclight, emberlight and the like) don't take a share or
+stand in for a teammate's hammer: without one of the three weapons teammates make every attempt, and such a spec
+only adds to theirs. Within a third
+teammates attempt first. The kill time is the party's: while you spec, the others (including the teammate you
+relieved) keep attacking, so taking the share costs your kit only the accuracy difference from the reference
+hammer and the energy it uses, not a teammate's damage, and doesn't push one class behind another.
+Damage specs have no per-third limit. The teammates' hammer is a fixed
+reference, not your gear: 99 Attack with a super combat potion and Piety on the accurate style at +120 crush
+(attack roll 152 x 184), 63 max hit, rolled against the target's current Defence and crush defence. That is a
+modest raid teammate (no overload, salve or slayer bonus), so it understates rather than overstates their drains.
+Their attempts are staggered over full attack intervals with hits and misses weighted separately, and cost you no
+energy. Every kit of every class gets the same attempts in its no-spec baseline, whether or not you own a reducer,
+so class comparisons stay fair and your own reducers are valued only for what they add after theirs (in a party of
+four each own hammer is worth roughly half what it was credited without them). Not applied to Tekton enraged
+(same HP pool, already opened), Maiden's nylocas, Bloat, Verzik (undrainable), ToA (no fixed team opener against
+its scaled floors), solo raids,
+**Damage specs only**, or live refreshes (which use detected or manual drains). A raid plan says so in its notes.
+Raid draining openers never borrow regeneration from their upcoming fight. Actual expected special costs
+are subtracted from available energy, and unused estimated combat regeneration is carried forward.
+Maze downtime is not credited. The serial melee/mage hand timeline is an estimate rather than a model of
+concurrent teammates, attack cycles or exact transition durations. A live hand target does not identify
+its numbered phase: live refresh therefore shows ordinary attacks and regenerated damage specials only,
+with a visible warning, while the planned phase rows retain their entry-funded reducer recommendations.
+
+Bloat permits a defence reducer for one useful down, with drain benefit limited to about 18 seconds
+before its stomp restores Defence. The HP proxy uses ordinary DPS; it does not simulate the exact
+run-by or natural Defence regeneration tick by tick. Bloat clears burns when it resumes moving, before a complete 24-second burning-claw burn can finish.
+Because the actual attack placement within each down is unknown, Bloat burning-claw comparisons now
+conservatively credit direct damage only, with that policy stated in the spec detail shown in results.
+This can prefer a dagger where a complete burn would have preferred claws. Burn calculations for other
+targets and ordinary claw attacks are unchanged. The planner does not prescribe a scripted Bloat attack
+sequence or claim that early burning-claw burns deal no damage in game.
+
+Sources: [CoX strategies](https://oldschool.runescape.wiki/w/Chambers_of_Xeric/Strategies) and
+[ToB strategies](https://oldschool.runescape.wiki/w/Theatre_of_Blood/Strategies), retrieved through
+indexed Wiki aliases Olm_strategy and Nylocas_room on 2026-10-14; direct page fetches were blocked.
+
+**Bloat** is only damaged in full while he's down, so his fight lasts as many downs as the party needs: a
+first walk of about 43 ticks, then 32-tick downs with about 38 ticks of walking between them (the Wiki's
+39-47 and 34-42 ticks). Damage while he walks (halved) isn't counted. A higher DPS only saves time when it
+saves a down.
 
 About 45 specials use the Wiki calculator's exact formulas. That covers accuracy and max hit multipliers,
 the defence style each spec rolls against, multi-hit patterns (the dragon and burning claws cascades, the
@@ -685,9 +1066,17 @@ burn resistance). Targets that are immune to venom but can be poisoned take seve
 The **Ice ancient sceptre**'s +10% accuracy on ice spells applies to targets that can be frozen and aren't
 frozen yet. Each cast that lands freezes the target and is followed by five ticks of immunity, so only the
 casts trying to freeze it again get the bonus. Bosses without Wiki freeze data are treated as unfreezable.
+A raid freeze duty only casts on nylocas that aren't frozen, so every one of its casts gets the bonus, and it
+counts toward the guaranteed freeze of Maiden's nylocas.
 
 ### Known gaps
 
 See [COMBAT_AUDIT.md](../COMBAT_AUDIT.md) for calculation adjustments, sources, validation and remaining
 gaps. Weapon-switch timing, overkill, protection-prayer timing and attackable windows still aren't
 supported, and the tests don't cover every mechanic.
+
+## Search progress estimates
+
+Search percentages retain fractional precision across attack types, raid encounters, kit selection and spellbook/path-order comparisons. The optimizer reports inner refinement comparisons; packing and consolidation report known candidate/trial work. Separate trials receive separate ranges, and display-only encounters are searched during finalization. Updates are monotonic and throttled; only publishing a valid result completes a search.
+
+The percentage estimates completed work rather than time remaining. Comparisons vary in cost, cache hits and pruning skip work, and adaptive consolidation can discover additional passes. Known call counts receive evenly divided ranges, with a reserve for fallback work; unknown passes use a decreasing reserve. A single costly comparison can still hold a percentage unchanged, while the activity indicator and elapsed time continue.

@@ -331,7 +331,7 @@ public final class DpsCalculator
 		}
 		if (wName.equals("colossal blade"))
 		{
-			maxHit += Math.min(10, Math.max(1, m.getSize()) * 2);
+			maxHit += Math.min(10, Math.max(1, CombatRules.size(m)) * 2);
 		}
 		if (EquipmentEffects.ratWeapon(weapon) && m.hasAttribute("rat"))
 		{
@@ -408,7 +408,8 @@ public final class DpsCalculator
 		if (scythe)
 		{
 			// Up to three hits at 100%, 50% and 25% damage depending on target size.
-			int hits = m.getSize() >= 3 ? 3 : m.getSize() == 2 ? 2 : 1;
+			int size = CombatRules.size(m);
+			int hits = size >= 3 ? 3 : size == 2 ? 2 : 1;
 			avgDamage = 0;
 			displayMax = 0;
 			StringBuilder sb = new StringBuilder();
@@ -489,7 +490,7 @@ public final class DpsCalculator
 		}
 		else if (scythe && ctx.getAoeTargets() > 1 && r.getDps() > 0)
 		{
-			int primaryHits = Math.max(1, Math.min(3, m.getSize()));
+			int primaryHits = Math.max(1, Math.min(3, CombatRules.size(m)));
 			int extraTargets = Math.min(ctx.getAoeTargets() - 1, 3 - primaryHits);
 			double extra = 0;
 			for (int i = primaryHits; i < primaryHits + extraTargets; i++)
@@ -768,7 +769,7 @@ public final class DpsCalculator
 		SpecialAttack spec)
 	{
 		Monster m = ctx.getMonster();
-		if (spec != null && style.isAutocast() && SpecialDamage.builtInSpell(weapon))
+		if (spec != null && style.isSpellCast() && SpecialDamage.builtInSpell(weapon))
 		{
 			// These staves' specials cast their own built-in spell, as a powered staff on its accurate stance.
 			l = l.copy();
@@ -779,13 +780,13 @@ public final class DpsCalculator
 		int baseMax;
 		int speed;
 		int stanceBonus;
-		if (weapon.getSubcategory().equals("salamander"))
+		if (weapon.getSubcategory().equals("salamander") && !style.isManualCast())
 		{
 			baseMax = WeaponRules.salamanderMaxHit(weapon, ctx.getMagic());
 			speed = weapon.getAttackSpeed();
 			stanceBonus = 0;
 		}
-		else if (style.isAutocast())
+		else if (style.isSpellCast())
 		{
 			if (l.getSpell() == null)
 			{
@@ -793,12 +794,12 @@ public final class DpsCalculator
 			}
 			baseMax = SpellRules.maxHit(l, ctx);
 			speed = l.getSpell().getAttackSpeed();
-			if (lower(weapon).startsWith("harmonised nightmare staff")
+			if (style.isAutocast() && lower(weapon).startsWith("harmonised nightmare staff")
 				&& "standard".equalsIgnoreCase(l.getSpell().getSpellbook()))
 			{
 				speed = 4;
 			}
-			if (lower(weapon).startsWith("twinflame staff"))
+			if (style.isAutocast() && lower(weapon).startsWith("twinflame staff"))
 			{
 				speed = 6;
 			}
@@ -861,7 +862,7 @@ public final class DpsCalculator
 			gearDmg += (named(l, Slot.HEAD, "virtus mask") ? 3 : 0)
 				+ (named(l, Slot.BODY, "virtus robe top") ? 3 : 0) + (named(l, Slot.LEGS, "virtus robe bottom") ? 3 : 0);
 		}
-		if (WeaponRules.isShadow(weapon) && !style.isAutocast())
+		if (WeaponRules.isShadow(weapon) && !style.isSpellCast())
 		{
 			int factor = CombatRules.toa(m) ? 4 : 3;
 			magicBonus *= factor;
@@ -974,9 +975,15 @@ public final class DpsCalculator
 		}
 		if (wName.startsWith("ice ancient sceptre") && spell.startsWith("ice "))
 		{
-			accuracy = iceSceptreAccuracy(m, l, attRoll, defRoll, confliction, accuracy, spell, speed);
+			accuracy = iceSceptreAccuracy(m, l, attRoll, defRoll, confliction, accuracy, spell, speed,
+				ctx.getModifiers().isFreezeCasts());
 		}
 		accuracy = CombatRules.accuracy(m, l, accuracy);
+		long freezeRoll = wName.startsWith("ice ancient sceptre") && spell.startsWith("ice ") ? attRoll * 11 / 10 : attRoll;
+		if (guaranteedFreeze(m, spell, freezeRoll, ctx.getLevels() == null ? ctx.getMagic() : ctx.getLevels().getMagic()))
+		{
+			accuracy = 1;
+		}
 		long[] bounds = CombatRules.bounds(m, attRoll, defRoll, maxHit);
 		if (CombatRules.wardenP2(m) || EncounterDamage.named(m, "respiratory system"))
 		{
@@ -1021,7 +1028,7 @@ public final class DpsCalculator
 			displayMax += rule.maximum(maxHit * 4 / 10);
 		}
 		DpsResult r = result(average, displayMax, accuracy, speed).withDetail(rule.detail);
-		if (style.isAutocast() && l.getSpell() != null && "ancient".equalsIgnoreCase(l.getSpell().getSpellbook())
+		if (style.isSpellCast() && l.getSpell() != null && "ancient".equalsIgnoreCase(l.getSpell().getSpellbook())
 			&& (spell.endsWith(" burst") || spell.endsWith(" barrage")) && ctx.getAoeTargets() > 1 && r.getDps() > 0)
 		{
 			int targets = Math.min(9, ctx.getAoeTargets());
@@ -1036,10 +1043,11 @@ public final class DpsCalculator
 	 * Ice ancient sceptre: ice spells gain 10% accuracy against freezable targets that are not frozen.
 	 * A landed cast freezes for the spell's duration (+10% from the sceptre, less any freeze resistance),
 	 * then five ticks of immunity; casts in that window get no bonus, and every cast after it does until
-	 * one lands. Returns the mean accuracy over that cycle.
+	 * one lands. Returns the mean accuracy over that cycle, or the bonused accuracy when every cast is a fresh
+	 * {@code freeze} of a target that isn't frozen.
 	 */
 	private static double iceSceptreAccuracy(Monster m, Loadout l, long attRoll, long defRoll, boolean confliction,
-		double accuracy, String spell, int speed)
+		double accuracy, String spell, int speed, boolean freeze)
 	{
 		StatusImmunities.Immunity immunity = StatusImmunities.of(m);
 		int resistance = immunity.getFreezeResistance();
@@ -1057,12 +1065,34 @@ public final class DpsCalculator
 		{
 			return accuracy;
 		}
-		int freeze = spell.endsWith("rush") ? 8 : spell.endsWith("burst") ? 17 : spell.endsWith("blitz") ? 26 : 35;
-		freeze = freeze * (100 - Math.max(0, resistance)) / 100;
-		int unbonused = Math.max(0, (int) Math.ceil((freeze + 5.0) / speed) - 1);
+		if (freeze)
+		{
+			return bonus;
+		}
+		int duration = spell.endsWith("rush") ? 8 : spell.endsWith("burst") ? 17 : spell.endsWith("blitz") ? 26 : 35;
+		duration = duration * (100 - Math.max(0, resistance)) / 100;
+		int unbonused = Math.max(0, (int) Math.ceil((duration + 5.0) / speed) - 1);
 		double bonusCasts = 1 / bonus;
 		double share = bonusCasts / (bonusCasts + unbonused);
 		return share * bonus + (1 - share) * accuracy;
+	}
+
+	/** The magic attack roll per base Magic level (plus 9) at which every bind lands on Maiden's nylocas. */
+	static final int MAIDEN_FREEZE_ROLL = 204;
+
+	/**
+	 * Maiden's nylocas: a binding spell (Bind, Snare, Entangle, the ice spells, the grasps) always lands once the magic
+	 * attack roll reaches (base Magic + 9) x {@link #MAIDEN_FREEZE_ROLL}, 22,032 at 99 Magic (Wiki: Nylocas
+	 * Matomenos, "Freezing Nylocas Matomenos"). The threshold uses the base level, so boosts and prayers help reach it;
+	 * the ice ancient sceptre's 10% counts, every freeze being cast on a nylocas that isn't frozen.
+	 */
+	static boolean guaranteedFreeze(Monster m, String spell, long attRoll, int baseMagic)
+	{
+		String name = m.getLowerName();
+		boolean binds = spell.startsWith("ice ") || spell.equals("bind") || spell.equals("snare") || spell.equals("entangle")
+			|| spell.endsWith(" grasp");
+		return binds && name.startsWith("nylocas matomenos") && name.contains("maiden")
+			&& attRoll >= (long) (baseMagic + 9) * MAIDEN_FREEZE_ROLL;
 	}
 
 	private static int specDefenceBonus(Monster m, String defence)

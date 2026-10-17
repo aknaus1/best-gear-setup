@@ -46,8 +46,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -117,6 +119,7 @@ class ResultView extends JPanel
 	private static final int TAB_SIZE = 32;
 	/** CSS width of the wrapped max-hit line; Swing scales CSS px by 1.3, so this fills the stats box. */
 	private static final int STAT_WRAP_WIDTH = 155;
+	private static final String STATS_EXPANDED = "statsExpanded";
 
 	private final BestGearSetupPlugin plugin;
 	private final ItemManager itemManager;
@@ -126,8 +129,10 @@ class ResultView extends JPanel
 	private final SearchResults results;
 	private final boolean publishBank;
 	private final JComponent carriedInventory;
-	/** Holds the inventory's minimized state, so it survives new results; this view itself when none is given. */
+	/** Holds inventory and DPS detail expansion across new results; this view itself when none is given. */
 	private final JComponent inventoryState;
+	/** How a raid kit gets each boost (prepot, brought or both); null for a single fight's search. */
+	private final Function<Potion, RaidPlan.PotionUse> potionUse;
 	/** Result tabs, highest DPS first. */
 	private final List<AttackStyle.Type> tabOrder = new ArrayList<>();
 	private final JPanel tabs = new JPanel(new GridLayout(0, 5, 2, 2));
@@ -158,6 +163,15 @@ class ResultView extends JPanel
 	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
 		SkillIconManager skillIcons, int ammoCount, boolean publishBank, JComponent carriedInventory, JComponent inventoryState)
 	{
+		this(results, plugin, itemManager, sprites, skillIcons, ammoCount, publishBank, carriedInventory, inventoryState, null);
+	}
+
+	/** @param potionUse how a raid kit gets each boost, tagged on its icon; null outside a raid */
+	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
+		SkillIconManager skillIcons, int ammoCount, boolean publishBank, JComponent carriedInventory, JComponent inventoryState,
+		Function<Potion, RaidPlan.PotionUse> potionUse)
+	{
+		this.potionUse = potionUse;
 		this.carriedInventory = carriedInventory;
 		this.inventoryState = inventoryState == null ? this : inventoryState;
 		this.publishBank = publishBank;
@@ -195,6 +209,7 @@ class ResultView extends JPanel
 		selectedType = type;
 		selected = setup;
 		if (publishBank) { plugin.setBankHighlightedSetup(setup, potionsFor(setup)); }
+		else { plugin.setInventoryHighlightedSetup(setup); }
 		rebuildTabs();
 		rebuildBody();
 	}
@@ -299,14 +314,18 @@ class ResultView extends JPanel
 				id -> plugin.getOwnedItems().owns(id) && !plugin.getExcluded().contains(id)));
 			inventory = supplies;
 		}
-		body.add(BestGearSetupPanel.left(inventory));
-		body.add(spacer(6));
+		if (inventory.isVisible())
+		{
+			body.add(BestGearSetupPanel.left(inventory));
+			body.add(spacer(6));
+		}
 
 		body.add(BestGearSetupPanel.left(statsBox(d, thrallFor(selected))));
-		if (selected.getSpecial() != null)
+		// A raid rotation may combine several spec weapons: one box each, the main one first.
+		for (SpecialPlan special : selected.getSpecials())
 		{
 			body.add(spacer(4));
-			body.add(BestGearSetupPanel.left(specBox(selected.getSpecial(), l)));
+			body.add(BestGearSetupPanel.left(specBox(special, l, selected.getSpecial())));
 		}
 		body.add(spacer(4));
 		body.add(BestGearSetupPanel.left(costBox(l, selected.getSpecial())));
@@ -361,7 +380,13 @@ class ResultView extends JPanel
 		String max = d.getMaxHit() + (d.getMaxHitDetail() == null ? "" : " (" + d.getMaxHitDetail() + ")");
 		double ttk = d.getPrimaryDps() > 0 ? results.getStartingHitpoints() / d.getPrimaryDps() : 0;
 		boolean area = d.getTargetsHit() > 1;
-		box.add(stat("<b>" + (area ? "Total DPS: " : "DPS: ") + fmt(d.getDps(), 3) + "</b>"), row);
+		JButton toggle = new JButton((area ? "Total DPS: " : "DPS: ") + fmt(d.getDps(), 3));
+		toggle.setName("statsToggle");
+		Controls.ghost(toggle);
+		toggle.setFont(FontManager.getRunescapeBoldFont());
+		toggle.setForeground(Color.WHITE);
+		toggle.setMargin(new Insets(0, 0, 0, 0));
+		box.add(toggle, row);
 		if (thrall != null)
 		{
 			JLabel thrallLabel = stat("Incl. thrall: +" + fmt(thrall.getDps(), 3));
@@ -393,11 +418,35 @@ class ResultView extends JPanel
 		kills.setToolTipText("Damage-based estimate: total DPS / enemy HP. Assumes continuous combat; excludes overkill, "
 			+ "respawns, travel, banking, eating and boss phases.");
 		box.add(kills, row);
+		toggle.addActionListener(e ->
+		{
+			inventoryState.putClientProperty(STATS_EXPANDED,
+				!Boolean.TRUE.equals(inventoryState.getClientProperty(STATS_EXPANDED)));
+			applyStatsExpanded(box, toggle);
+		});
+		applyStatsExpanded(box, toggle);
 		return box;
 	}
 
-	/** The special attack mixed into the kill: its weapon, energy, uses per kill and one spec's stats. */
-	private JPanel specBox(SpecialPlan plan, Loadout worn)
+	private void applyStatsExpanded(JPanel box, JButton toggle)
+	{
+		boolean open = Boolean.TRUE.equals(inventoryState.getClientProperty(STATS_EXPANDED));
+		for (Component component : box.getComponents())
+		{
+			if (component != toggle) { component.setVisible(open); }
+		}
+		toggle.setIcon(new Controls.Chevron(open ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, null));
+		toggle.setToolTipText(open ? "Collapse DPS details" : "Expand DPS details");
+		toggle.getAccessibleContext().setAccessibleDescription(open ? "Expanded" : "Collapsed");
+		box.revalidate();
+		box.repaint();
+	}
+
+	/**
+	 * A special attack mixed into the kill: its weapon, energy, uses per kill and one spec's stats, within the
+	 * {@code rotation} of every spec the kill uses (the main plan, whose energy it describes).
+	 */
+	private JPanel specBox(SpecialPlan plan, Loadout worn, SpecialPlan rotation)
 	{
 		JPanel box = new JPanel(new BorderLayout(6, 0));
 		box.setBackground(BOX_BG);
@@ -406,14 +455,15 @@ class ResultView extends JPanel
 		boolean newWeapon = plan.getWeapon() != worn.getWeapon();
 		JPanel icons = new JPanel(new GridLayout(1, 0, 2, 0));
 		icons.setOpaque(false);
-		for (GearItem item : new GearItem[]{newWeapon ? plan.getWeapon() : null, plan.getOffhand(), plan.getAmmo()})
+		// The spec weapon is always shown, even when the worn weapon specs itself, so every spec box has its icon.
+		for (GearItem item : new GearItem[]{plan.getWeapon(), plan.getOffhand(), plan.getAmmo()})
 		{
 			if (item != null)
 			{
 				List<RaidPlan.InventoryItem> contents = item == plan.getWeapon() && plan.getLoadedAmmo() != null
 					? Collections.singletonList(new RaidPlan.InventoryItem(plan.getLoadedAmmo().getName(),
 						Collections.singletonList(plan.getLoadedAmmo().getId()), false)) : Collections.emptyList();
-				JComponent icon = EquipmentGrid.inventoryCell(item, contents, plugin, itemManager, sprites, ammoCount);
+				JComponent icon = EquipmentGrid.inventoryCell(item, contents, plugin, itemManager, sprites, ammoCount, true);
 				icon.setPreferredSize(new Dimension(36, 32));
 				icons.add(icon);
 			}
@@ -439,11 +489,16 @@ class ResultView extends JPanel
 		label.setFont(FontManager.getRunescapeSmallFont());
 		label.setForeground(Color.WHITE);
 		box.setToolTipText("<html>Special attacks are used whenever energy allows and are counted in DPS, TTK and KPH."
+			+ (rotation.isFullBar() ? "<br>Requires " + fmt(rotation.getOpeningEnergy(), 0) + "% energy at phase entry."
+				: "<br>Uses damage specs as energy regenerates during the fight.")
+			+ (rotation.getPartners().isEmpty() ? "" : "<br>One of " + rotation.getAll().size() + " spec weapons used in the fight.")
 			+ "<br>Without specs: " + fmt(plan.getOrdinary().getDps(), 3) + " DPS. One spec averages "
 			+ fmt(spec.getAverageHit(), 2) + " damage every " + fmt(spec.getExpectedSpeedTicks() * 0.6, 1) + "s."
 			+ (detail.isEmpty() ? "" : "<br>Max hit: " + BestGearSetupPanel.escape(detail))
 			+ (drained == null ? "" : "<br>Opens each kill for its drain: one landed spec raises ordinary DPS from "
 			+ fmt(plan.getOrdinary().getDps(), 3) + " to " + fmt(drained.getDps(), 3) + ".")
+			+ (drained == null ? "" : "<br>Raid drains assume equal-DPS teammates keep attacking and share the accuracy benefit."
+			+ " Coordinate opener roles with your team; maze resets require another landed drain and available energy.")
 			+ (newWeapon ? "<br>Switch from " + BestGearSetupPanel.escape(GameData.titleCase(worn.getWeapon().getName()))
 			+ " to " + BestGearSetupPanel.escape(GameData.titleCase(plan.getWeapon().getName())) : "")
 			+ (plan.getOffhand() == null ? "" : (newWeapon ? " with " : "<br>Equip ")
@@ -472,17 +527,17 @@ class ResultView extends JPanel
 		}
 		List<GearItem> extras = new ArrayList<>();
 		extras.add(l.getLoadedAmmo());
-		if (special != null && special.getWeapon() != l.getWeapon())
+		for (SpecialPlan plan : special == null ? Collections.<SpecialPlan>emptyList() : special.getAll())
 		{
-			// The spec weapon (and a spec blowpipe's darts) are carried in the inventory.
-			// A raid-provided spec weapon (the Dawnbringer) is picked up in the room and costs nothing.
-			extras.add(RaidPlan.providedInRaid(special.getWeapon()) ? null : special.getWeapon());
-			extras.add(special.getLoadedAmmo());
-		}
-		if (special != null)
-		{
-			extras.add(special.getOffhand());
-			extras.add(special.getAmmo());
+			if (plan.getWeapon() != l.getWeapon())
+			{
+				// The spec weapon (and a spec blowpipe's darts) are carried in the inventory.
+				// A raid-provided spec weapon (the Dawnbringer) is picked up in the room and costs nothing.
+				extras.add(RaidPlan.providedInRaid(plan.getWeapon()) ? null : plan.getWeapon());
+				extras.add(plan.getLoadedAmmo());
+			}
+			extras.add(plan.getOffhand());
+			extras.add(plan.getAmmo());
 		}
 		for (GearItem extra : extras)
 		{
@@ -550,7 +605,7 @@ class ResultView extends JPanel
 		if (l.getSpell() != null)
 		{
 			name = l.getSpell().toString();
-			sub = "Autocast";
+			sub = style != null && style.isManualCast() ? "Manual cast" : "Autocast";
 		}
 		else if (style != null && style.getType() == AttackStyle.Type.MAGIC && WeaponRules.isPoweredStaff(l.getWeapon()))
 		{
@@ -594,10 +649,13 @@ class ResultView extends JPanel
 		}
 		for (Potion p : potionsFor(selected))
 		{
-			JLabel icon = new JLabel();
+			RaidPlan.PotionUse use = potionUse == null ? null : potionUse.apply(p);
+			JLabel icon = new TaggedLabel(use == null ? null : use.getTag());
 			icon.setPreferredSize(new Dimension(34, 32));
 			itemManager.getImage(p.getId()).addTo(icon);
-			icon.setToolTipText(GameData.titleCase(p.getName()));
+			icon.setToolTipText(use == null ? GameData.titleCase(p.getName()) : "<html><b>"
+				+ BestGearSetupPanel.escape(GameData.titleCase(p.getName())) + "</b><br>" + BestGearSetupPanel.escape(use.getDescription()) + "</html>");
+			icon.setName("potion" + (use == null ? "" : ":" + use.name()));
 			boosts.add(icon);
 		}
 		row.add(boosts, BorderLayout.CENTER);
@@ -714,6 +772,33 @@ class ResultView extends JPanel
 			{
 				g.drawImage(img, (getWidth() - img.getWidth()) / 2, (getHeight() - img.getHeight()) / 2, null);
 			}
+		}
+	}
+
+	/** Draws a short tag in an icon's top-left corner, shadowed like the game's item quantities. */
+	static void paintTag(Graphics g, String tag)
+	{
+		if (tag == null) { return; }
+		g.setFont(FontManager.getRunescapeSmallFont());
+		int baseline = g.getFontMetrics().getAscent();
+		g.setColor(Color.BLACK);
+		g.drawString(tag, 1, baseline + 1);
+		g.setColor(YELLOW);
+		g.drawString(tag, 0, baseline);
+	}
+
+	/** An item icon with an optional {@link #paintTag tag}, e.g. when a raid boost is drunk. */
+	private static final class TaggedLabel extends JLabel
+	{
+		private final String tag;
+
+		TaggedLabel(String tag) { this.tag = tag; }
+
+		@Override
+		protected void paintComponent(Graphics g)
+		{
+			super.paintComponent(g);
+			paintTag(g, tag);
 		}
 	}
 

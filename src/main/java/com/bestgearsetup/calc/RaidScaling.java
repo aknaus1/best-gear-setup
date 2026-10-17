@@ -33,6 +33,9 @@ public final class RaidScaling
 		int partySize = 1;
 		int toaRaidLevel;
 		int toaPathLevel;
+		/** Full-raid planning only: average the possible Walk the Path level increases. */
+		boolean toaWalkThePath;
+		int toaCompletedPaths;
 		boolean coxChallengeMode;
 		@Builder.Default
 		int partyMaxCombat = 126;
@@ -113,6 +116,25 @@ public final class RaidScaling
 	 */
 	private static void toa(Monster m, Settings s)
 	{
+		if (s.isToaWalkThePath() && toaPath(m))
+		{
+			// First completion raises two of three paths; second raises one of two; third raises the last.
+			// Counts out of six equally likely outcomes, for each path's position in a fixed order.
+			int[][] weights = {{6, 0, 0, 0}, {2, 4, 0, 0}, {1, 3, 2, 0}, {0, 1, 3, 2}};
+			int[] outcomes = weights[clamp(s.getToaCompletedPaths(), 0, 3)];
+			int weightedHp = 0;
+			for (int extra = 0; extra < outcomes.length; extra++)
+			{
+				if (outcomes[extra] == 0) { continue; }
+				Monster outcome = m.copy();
+				toa(outcome, s.toBuilder().toaWalkThePath(false)
+					.toaPathLevel(clamp(s.getToaPathLevel(), 0, 6) + extra).build());
+				weightedHp += outcomes[extra] * outcome.getHitpoints();
+				m.setToaRaidLevel(outcome.getToaRaidLevel());
+			}
+			m.setHitpoints((int) Math.round(weightedHp / 6.0));
+			return;
+		}
 		boolean core = CombatRules.wardenCore(m);
 		int hp = core ? 4500 : m.getHitpoints();
 		int raidLevel = clamp(s.getToaRaidLevel(), 0, 600);
@@ -197,6 +219,33 @@ public final class RaidScaling
 	public static int olmHandPhases(Settings s)
 	{
 		return 3 + clamp(s.getPartySize(), 1, 100) / 8;
+	}
+
+	/** Skeletal mystics in CoX: 3 for one or two players, one more per three players, at most 12 (Wiki strategies). */
+	public static int coxMystics(Settings s)
+	{
+		return Math.min(12, 3 + clamp(s.getPartySize(), 1, 100) / 3);
+	}
+
+	/** Lizardman shamans in CoX: 2 for up to four players, one more per five players, at most 5 (Wiki strategies). */
+	public static int coxShamans(Settings s)
+	{
+		return Math.min(5, 2 + clamp(s.getPartySize(), 1, 100) / 5);
+	}
+
+	/** Nylocas matomenos Maiden spawns at each of 70%, 50% and 30% HP: two per player, at most 10 (Wiki). */
+	public static int maidenNylocasPerSpawn(Settings s)
+	{
+		return Math.min(10, 2 * clamp(s.getPartySize(), 1, 5));
+	}
+
+	/**
+	 * Of each spawn, the nylocas a good freeze stacks for chinning: all but three, so 7, 5 and 3 for five, four and
+	 * three players (one for two players, none solo).
+	 */
+	public static int maidenClump(Settings s)
+	{
+		return Math.max(0, maidenNylocasPerSpawn(s) - 3);
 	}
 
 	private static void cox(Monster m, Settings s)
@@ -355,6 +404,12 @@ public final class RaidScaling
 					raid(base) == Raid.TOB_ENTRY ? "1-5" : "below 3 counts as 3",
 					base.getHitpoints(), scaled.getHitpoints());
 			case TOA:
+				if (s.isToaWalkThePath() && toaPath(base))
+				{
+					return String.format("ToA scaling: raid level %d, starting path level %d, Walk the Path after %d paths, party %d; expected HP %d -> %d (random levels estimated).",
+						clamp(s.getToaRaidLevel(), 0, 600), clamp(s.getToaPathLevel(), 0, 6),
+						clamp(s.getToaCompletedPaths(), 0, 3), clamp(s.getPartySize(), 1, 8), base.getHitpoints(), scaled.getHitpoints());
+				}
 				return String.format("ToA scaling: raid level %d, path level %d, party %d; HP %d -> %d%s.",
 					clamp(s.getToaRaidLevel(), 0, 600), clamp(s.getToaPathLevel(), 0, 6), clamp(s.getPartySize(), 1, 8),
 					base.getHitpoints(), scaled.getHitpoints(),

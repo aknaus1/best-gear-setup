@@ -29,6 +29,27 @@ import org.junit.Test;
 
 public class LiveSpecsTest
 {
+	@SuppressWarnings("unchecked")
+	@Test public void returningToABossKeepsItsOwnDrainsAndDoesNotBorrowAnAddsDrains()
+	{
+		NPC boss = mock(NPC.class), add = mock(NPC.class);
+		when(boss.getIndex()).thenReturn(7); when(boss.getId()).thenReturn(1); when(boss.getName()).thenReturn("Ba-Ba");
+		when(add.getIndex()).thenReturn(8); when(add.getId()).thenReturn(2); when(add.getName()).thenReturn("Baboon");
+		Client client = mock(Client.class); WorldView world = mock(WorldView.class);
+		IndexedObjectSet<NPC> npcs = mock(IndexedObjectSet.class);
+		when(npcs.byIndex(7)).thenReturn(boss); when(npcs.byIndex(8)).thenReturn(add);
+		when(world.npcs()).thenReturn((IndexedObjectSet) npcs); when(client.getTopLevelWorldView()).thenReturn(world);
+		LiveSpecs tracker = new LiveSpecs(client, mock(ClientThread.class), new BestGearSetupConfig() { }, ignored -> { });
+		tracker.partySpec(7, "BANDOS_GODSWORD", 20);
+		tracker.partySpec(8, "BANDOS_GODSWORD", 5);
+		tracker.trackTarget(boss); assertEquals(20, tracker.overrides(boss).get("specBgsDamage"));
+		tracker.trackTarget(add); assertEquals(5, tracker.overrides(add).get("specBgsDamage"));
+		tracker.onNpcDespawned(new NpcDespawned(add));
+		tracker.trackTarget(boss); assertEquals(20, tracker.overrides(boss).get("specBgsDamage"));
+		when(boss.getId()).thenReturn(3); tracker.trackTarget(boss);
+		assertEquals("A form reset clears that NPC's drains", 0, tracker.overrides(boss).get("specBgsDamage"));
+		tracker.end(); assertTrue(tracker.overrides(boss).isEmpty());
+	}
 	@Test public void weaponTableMatchesTheSpecialAttackCounter()
 	{
 		// Party updates map by name, and own specs by item: both must stay in step with the Special Attack Counter.

@@ -10,12 +10,15 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.GameData;
+import com.bestgearsetup.data.GameDataLoader;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
@@ -26,14 +29,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.runelite.api.Point;
 import java.util.concurrent.ScheduledExecutorService;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
+import net.runelite.api.MenuAction;
+import net.runelite.api.Menu;
+import net.runelite.api.MenuEntry;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.ScriptEvent;
 import net.runelite.api.ScriptID;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.ScriptCallbackEvent;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.ScriptPreFired;
@@ -57,6 +65,101 @@ import org.mockito.stubbing.Answer;
 
 public class BankViewTest
 {
+	@Test public void specialEquipmentSwitchUsesInventoryButSameWeaponSpecialUsesCompactSupplies()
+	{
+		GearItem weapon = item(12926);
+		SetupResult base = setup(Slot.WEAPON, weapon);
+		Potion potion = new Potion(); potion.setId(ItemID._4DOSE2COMBAT);
+		for (GearItem specialWeapon : Arrays.asList(weapon, item(4153)))
+		{
+			com.bestgearsetup.calc.SpecialPlan special = new com.bestgearsetup.calc.SpecialPlan(specialWeapon,
+				null, null, null, null, null, null, null, null, null, 1, 0, 0);
+			SetupResult selected = new SetupResult(CombatClass.MELEE, base.getLoadout(), null, 0, 0,
+				Collections.emptySet(), Collections.emptySet(), special);
+			Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(selected, Collections.singletonList(potion));
+			assertEquals(Integer.valueOf(specialWeapon == weapon ? 20 : 5), cells.get(ItemID._4DOSE2COMBAT));
+			if (specialWeapon != weapon) { assertEquals(Integer.valueOf(4), cells.get(4153)); }
+		}
+		base.getLoadout().setLoadedAmmo(item(11230));
+		assertEquals(Integer.valueOf(10), BestGearSetupBankView.cellsFor(base).get(11230));
+	}
+
+	@Test public void raidBoostCountGuidanceReservesBottleSlotsAndPreservesRealStack() throws Exception
+	{
+		Fixture bank = new Fixture(ItemID._4DOSE2COMBAT, 200);
+		SetupResult setup = setup(Slot.WEAPON, item(12926));
+		RaidPlan plan = mock(RaidPlan.class);
+		when(plan.getStartingSetup()).thenReturn(setup);
+		when(plan.getSetups()).thenReturn(Collections.singletonList(setup));
+		when(plan.getEquipment()).thenReturn(Collections.singletonList(item(12926)));
+		RaidPlan.InventoryItem bottle = new RaidPlan.InventoryItem("Super combat potion", Collections.singletonList(ItemID._4DOSE2COMBAT),
+			false, Collections.emptyList(), RaidPlan.InventoryGroup.BOOSTS, 5, 2, false);
+		when(plan.getInventory()).thenReturn(Arrays.asList(bottle, bottle,
+			new RaidPlan.InventoryItem("Rune", Collections.singletonList(200), false)));
+		bank.items[4].widget.setName("Original potion");
+		bank.items[4].widget.setAction(0, "Withdraw-1");
+		bank.items[4].widget.setAction(1, "Examine");
+		bank.view.setRaidSelection(plan, BestGearSetupBankView::itemIds);
+		assertTrue(bank.view.show());
+		assertTrue(bank.view.boostGuidance(ItemID._4DOSE2COMBAT).contains("Bring 2 bottles (~5 doses)"));
+		assertEquals(243, bank.items[4].value("OriginalX"));
+		assertEquals(243, bank.items[5].value("OriginalX")); // runes retain their separate supply group
+		assertEquals(72, bank.items[4].value("OriginalY"));
+		assertEquals(0, bank.items[5].value("OriginalY"));
+		assertEquals("Original potion", bank.items[4].widget.getName());
+		assertEquals("Withdraw-1", bank.items[4].values.get("Action0"));
+		assertEquals(1, bank.items[4].widget.getItemQuantity()); assertEquals(4, bank.items[4].value("Index"));
+		assertEquals(8, bank.container.widget.getChildren().length); // six real stacks, heading, and repeated potion entry
+		Widget duplicate = bank.container.widget.getChildren()[7];
+		assertEquals(ItemID._4DOSE2COMBAT, duplicate.getItemId());
+		assertFalse(duplicate.isSelfHidden());
+		assertTrue(duplicate.hasListener());
+		assertTrue(Arrays.asList(duplicate.getActions()).contains("Withdraw-1"));
+		assertTrue(duplicate.getOriginalX() != bank.items[4].value("OriginalX")
+			|| duplicate.getOriginalY() != bank.items[4].value("OriginalY"));
+		assertEquals("Withdraw-1", bank.container.children.get(0).values.get("Action0"));
+		MenuEntry withdraw = mock(MenuEntry.class);
+		when(withdraw.getOption()).thenReturn("Cancel");
+		Menu menu = mock(Menu.class);
+		when(bank.client.getMenu()).thenReturn(menu);
+		when(menu.createMenuEntry(anyInt())).thenAnswer(i ->
+		{
+			MenuEntry entry = mock(MenuEntry.class);
+			when(entry.setOption(any())).thenAnswer(setOption ->
+			{
+				when(entry.getOption()).thenReturn(setOption.getArgument(0));
+				bank.menuEntries.add(entry);
+				return entry;
+			});
+			return entry;
+		});
+		Point mouse = new Point(duplicate.getOriginalX() + 1, duplicate.getOriginalY() + 1);
+		when(bank.client.getMouseCanvasPosition()).thenReturn(mouse);
+		bank.view.onMenuEntryAdded(new MenuEntryAdded(withdraw));
+		assertEquals(2, bank.menuEntries.size());
+		MenuEntry duplicateExamine = bank.menuEntries.get(0);
+		verify(duplicateExamine).setOption("Examine");
+		verify(duplicateExamine).setType(MenuAction.CC_OP);
+		verify(duplicateExamine).setIdentifier(2);
+		verify(duplicateExamine).setParam0(4);
+		verify(duplicateExamine).setParam1(InterfaceID.Bankmain.ITEMS);
+		MenuEntry duplicateWithdraw = bank.menuEntries.get(1);
+		verify(duplicateWithdraw).setOption("Withdraw-1");
+		verify(duplicateWithdraw).setType(MenuAction.CC_OP);
+		verify(duplicateWithdraw).setIdentifier(1);
+		verify(duplicateWithdraw).setParam0(4);
+		verify(duplicateWithdraw).setParam1(InterfaceID.Bankmain.ITEMS);
+		assertEquals(Arrays.asList("Examine", "Withdraw-1"), bank.menuEntries.stream()
+			.map(MenuEntry::getOption).collect(java.util.stream.Collectors.toList()));
+		bank.view.clear();
+		assertEquals(null, bank.view.boostGuidance(ItemID._4DOSE2COMBAT));
+		assertEquals("Original potion", bank.items[4].widget.getName());
+		assertTrue(duplicate.isSelfHidden());
+		assertEquals(-1, duplicate.getItemId());
+		bank.view.setSelection(setup); bank.view.show();
+		assertEquals(8, bank.container.widget.getChildren().length);
+		assertEquals(null, bank.view.boostGuidance(ItemID._4DOSE2COMBAT));
+	}
 	/** Main code gets the client's Gson in startUp; tests use the same instance. */
 	@BeforeClass
 	public static void ownershipRules()
@@ -171,6 +274,24 @@ public class BankViewTest
 	}
 
 	@Test
+	public void kittedAssemblerTakesTheCapeCellAndBaseBeatsAKitPlaceholder() throws Exception
+	{
+		GameData data = new GameDataLoader(RuneLiteAPI.GSON).loadGameData();
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.gameData = data;
+		for (int kitQuantity : new int[]{1, 0})
+		{
+			Fixture bank = new Fixture(ItemID.AVAS_ASSEMBLER, ItemID.AVAS_ASSEMBLER_MASORI);
+			bank.items[5].values.put("ItemQuantity", kitQuantity);
+			bank.view.setSelection(setup(Slot.CAPE, data.findItem(ItemID.AVAS_ASSEMBLER)), Collections.emptyList(),
+				plugin::bankItemIds, id -> false);
+			assertTrue(bank.view.show());
+			assertEquals(36, bank.items[kitQuantity > 0 ? 5 : 4].value("OriginalY"));
+			if (kitQuantity > 0) { assertEquals(180, bank.items[4].value("OriginalY")); }
+			else { assertTrue(bank.items[5].widget.isSelfHidden()); }
+		}
+	}
+
+	@Test
 	public void cellsOwnItemClaimsItAheadOfAnAlternativeEarlierInTheBank() throws Exception
 	{
 		Fixture bank = new Fixture();
@@ -196,13 +317,13 @@ public class BankViewTest
 		attack.setId(ItemID._4DOSE2ATTACK);
 		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0), Collections.singletonList(attack));
 		assertTrue(bank.view.show());
-		// Own cells: weapon, air and mind runes right of the head, super attack below them.
+		// Own cells: weapon in the silhouette, runes beside the head and boosts below them.
 		assertEquals(72, bank.items[0].value("OriginalY"));
 		assertEquals(0, bank.items[4].value("OriginalY"));
 		assertEquals(243, bank.items[4].value("OriginalX"));
 		assertEquals(72, bank.items[7].value("OriginalY"));
 		assertEquals(243, bank.items[7].value("OriginalX"));
-		// Extras: the gear variant, then the mist rune and the super combat each on a row of their own.
+		// Extras: the gear variant, then the mist rune, then super combat on separate rows.
 		assertEquals(180, bank.items[1].value("OriginalY"));
 		assertEquals(216, bank.items[5].value("OriginalY"));
 		assertEquals(51, bank.items[5].value("OriginalX"));
@@ -235,6 +356,39 @@ public class BankViewTest
 	}
 
 	@Test
+	public void extraPrepotDosesAreArrangedHighToLow() throws Exception
+	{
+		Fixture bank = new Fixture(ItemID._1DOSE2ATTACK, ItemID._2DOSE2ATTACK, ItemID._3DOSE2ATTACK,
+			ItemID._4DOSE2ATTACK);
+		SetupResult setup = setup(Slot.WEAPON, item(12926));
+		RaidPlan plan = mock(RaidPlan.class);
+		when(plan.getStartingSetup()).thenReturn(setup);
+		when(plan.getEquipment()).thenReturn(Collections.emptyList());
+		when(plan.getInventory()).thenReturn(Collections.emptyList());
+		when(plan.getSetups()).thenReturn(Collections.emptyList());
+		when(plan.prepotItems()).thenReturn(Collections.singletonList(new RaidPlan.InventoryItem("Super attack",
+			Arrays.asList(ItemID._1DOSE2ATTACK, ItemID._2DOSE2ATTACK, ItemID._3DOSE2ATTACK, ItemID._4DOSE2ATTACK),
+			false, Collections.emptyList(), RaidPlan.InventoryGroup.BOOSTS)));
+
+		bank.view.setRaidSelection(plan, BestGearSetupBankView::itemIds);
+		assertTrue(bank.view.show());
+		// The one-dose prepot fills the selected cell; its extras remain grouped high-dose-first.
+		assertEquals(72, bank.items[4].value("OriginalY"));
+		assertEquals(180, bank.items[7].value("OriginalY"));
+		assertEquals(51, bank.items[7].value("OriginalX"));
+		assertEquals(180, bank.items[6].value("OriginalY"));
+		assertEquals(99, bank.items[6].value("OriginalX"));
+		assertEquals(180, bank.items[5].value("OriginalY"));
+		assertEquals(147, bank.items[5].value("OriginalX"));
+		assertEquals(10, bank.container.widget.getChildren().length);
+		Widget extraPrepot = bank.container.widget.getChildren()[9];
+		assertEquals(ItemID._1DOSE2ATTACK, extraPrepot.getItemId());
+		assertEquals(180, extraPrepot.getOriginalY());
+		assertEquals(195, extraPrepot.getOriginalX());
+		assertFalse(extraPrepot.isSelfHidden());
+	}
+
+	@Test
 	public void filterIncludesVariantsAmmoAndPlaceholdersButSkipsUnrelatedItems() throws Exception
 	{
 		Fixture bank = new Fixture();
@@ -257,8 +411,66 @@ public class BankViewTest
 		loadout.setLoadedAmmo(item(11230, 11231));
 		bank.view.setSelection(new SetupResult(CombatClass.RANGED, loadout, null, 0));
 		bank.view.refreshSelection();
+		// A new selection updates the open layout in place; the player doesn't have to reopen it.
+		assertTrue(bank.view.isActive());
 		assertEquals(0, bank.filter(11231));
 		assertEquals(1, bank.filter(12926));
+	}
+
+	@Test
+	public void partialRaidInventoryReservesSevenRowsBeforeLoadingItemsAndVariants() throws Exception
+	{
+		Fixture bank = new Fixture(200);
+		GearItem weapon = item(12926, 12924);
+		SetupResult setup = setup(Slot.WEAPON, weapon);
+		RaidPlan plan = mock(RaidPlan.class);
+		when(plan.getStartingSetup()).thenReturn(setup);
+		when(plan.getSetups()).thenReturn(Collections.singletonList(setup));
+		when(plan.getEquipment()).thenReturn(Collections.singletonList(weapon));
+		RaidPlan.InventoryItem rune = new RaidPlan.InventoryItem("Rune", Collections.singletonList(200), false);
+		when(plan.getInventory()).thenReturn(Arrays.asList(new RaidPlan.InventoryItem("Pouch",
+			Collections.singletonList(100), false, Collections.singletonList(rune)),
+			new RaidPlan.InventoryItem("Switch", Collections.singletonList(300), true)));
+		bank.view.setRaidSelection(plan, BestGearSetupBankView::itemIds);
+		assertTrue(bank.view.show());
+		assertEquals(243, bank.items[2].value("OriginalX"));
+		assertEquals(0, bank.items[2].value("OriginalY"));
+		assertEquals(252, bank.items[4].value("OriginalY"));
+		assertEquals(288, bank.items[1].value("OriginalY"));
+		assertEquals(324, bank.container.value("ScrollHeight"));
+	}
+
+	@Test
+	public void depositedTridentChargeStateReplacesFullPlaceholderWithoutReselecting() throws Exception
+	{
+		GameData data = new GameDataLoader(RuneLiteAPI.GSON).loadGameData();
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.gameData = data;
+		for (int[] states : new int[][]{{ItemID.TOTS, ItemID.TOTS_CHARGED}})
+		{
+			Fixture bank = new Fixture(states[0], states[1], ItemID.TOTS_I_CHARGED, ItemID.TOXIC_TOTS_CHARGED);
+			bank.items[4].values.put("ItemQuantity", 0);
+			bank.items[5].values.put("ItemId", -1); // The deposited item is still in inventory.
+			bank.view.setSelection(setup(Slot.WEAPON, data.findItem(states[0])), Collections.emptyList(),
+				plugin::bankItemIds, id -> false);
+			assertTrue(bank.view.show());
+			assertFalse("The selected trident's placeholder initially fills the weapon cell", bank.items[4].widget.isSelfHidden());
+			bank.items[5].values.put("ItemId", states[1]); // Deposit a different charge state.
+			bank.items[5].widget.setAction(0, "Withdraw-1");
+			bank.rebuild();
+			assertEquals("Deposited charge state must pass the existing bank filter", 1, bank.filter(states[1]));
+			assertFalse(bank.items[5].widget.isSelfHidden());
+			assertTrue("Real deposited gear takes precedence over the full placeholder", bank.items[4].widget.isSelfHidden());
+			assertEquals(51, bank.items[5].value("OriginalX"));
+			assertEquals(72, bank.items[5].value("OriginalY"));
+			assertEquals(states[1], bank.items[5].widget.getItemId());
+			assertEquals("Withdraw-1", bank.items[5].values.get("Action0"));
+			assertEquals("Enhanced tridents remain separate", 0, bank.filter(ItemID.TOTS_I_CHARGED));
+			assertEquals("Swamp tridents remain separate", 0, bank.filter(ItemID.TOXIC_TOTS_CHARGED));
+			bank.items[5].values.put("ItemId", -1); // Withdraw it again: restore the placeholder.
+			bank.rebuild();
+			assertFalse(bank.items[4].widget.isSelfHidden());
+			assertTrue(bank.view.isActive());
+		}
 	}
 
 	@Test
@@ -268,6 +480,7 @@ public class BankViewTest
 		bank.view.setSelection(setup(Slot.WEAPON, item(12926)));
 		assertTrue(bank.view.show());
 		assertEquals(72, bank.items[0].value("OriginalY"));
+		assertEquals(180, bank.container.value("ScrollHeight"));
 		assertTrue(bank.items[3].widget.isSelfHidden());
 		// Withdrawing the weapon leaves only its placeholder, which takes the empty weapon cell.
 		bank.items[0].values.put("ItemId", -1);
@@ -276,6 +489,7 @@ public class BankViewTest
 		assertFalse(bank.items[3].widget.isSelfHidden());
 		assertEquals(72, bank.items[3].value("OriginalY"));
 		assertEquals(51, bank.items[3].value("OriginalX"));
+		assertEquals(180, bank.container.value("ScrollHeight"));
 	}
 
 	@Test
@@ -453,6 +667,7 @@ public class BankViewTest
 		private int tab;
 		private final List<Object> posted = new ArrayList<>();
 		private final Map<Integer, ItemComposition> compositions = new HashMap<>();
+		private final List<MenuEntry> menuEntries = new ArrayList<>();
 		private final BestGearSetupBankView view;
 		private final Client client;
 		private final ClientThread thread;
@@ -611,6 +826,8 @@ public class BankViewTest
 			values.put("ItemId", id);
 			values.put("ItemQuantity", quantity);
 			values.put("Index", index);
+			values.put("OriginalWidth", 36);
+			values.put("OriginalHeight", 32);
 			values.put("DragDeadZone", 5);
 			values.put("DragDeadTime", 5);
 			// A property bag: setters store under the property name, getters read it back (setHidden is SelfHidden).
@@ -619,12 +836,23 @@ public class BankViewTest
 			when(widget.getText()).thenAnswer(i -> values.get("Text"));
 			when(widget.getOnInvTransmitListener()).thenAnswer(i -> values.get("OnInvTransmitListener"));
 			when(widget.getOnOpListener()).thenAnswer(i -> values.get("OnOpListener"));
+			when(widget.getActions()).thenAnswer(i -> actions());
+			when(widget.hasListener()).thenAnswer(i -> flag("HasListener"));
 			when(widget.getItemId()).thenAnswer(i -> intValue("ItemId"));
 			when(widget.getItemQuantity()).thenAnswer(i -> intValue("ItemQuantity"));
+			when(widget.getIndex()).thenAnswer(i -> intValue("Index"));
+			when(widget.getItemQuantityMode()).thenAnswer(i -> intValue("ItemQuantityMode"));
+			when(widget.getOriginalWidth()).thenAnswer(i -> intValue("OriginalWidth"));
+			when(widget.getOriginalHeight()).thenAnswer(i -> intValue("OriginalHeight"));
+			when(widget.getOpacity()).thenAnswer(i -> intValue("Opacity"));
+			when(widget.getCanvasLocation()).thenAnswer(i ->
+				new Point(intValue("OriginalX"), intValue("OriginalY")));
 			when(widget.getDragDeadTime()).thenAnswer(i -> intValue("DragDeadTime"));
 			when(widget.getDragDeadZone()).thenAnswer(i -> intValue("DragDeadZone"));
-			when(widget.getHeight()).thenAnswer(i -> intValue("Height"));
-			when(widget.getWidth()).thenAnswer(i -> intValue("Width"));
+			when(widget.getHeight()).thenAnswer(i -> values.containsKey("Height")
+				? intValue("Height") : intValue("OriginalHeight"));
+			when(widget.getWidth()).thenAnswer(i -> values.containsKey("Width")
+				? intValue("Width") : intValue("OriginalWidth"));
 			when(widget.getOriginalX()).thenAnswer(i -> intValue("OriginalX"));
 			when(widget.getOriginalY()).thenAnswer(i -> intValue("OriginalY"));
 			when(widget.getScrollHeight()).thenAnswer(i -> intValue("ScrollHeight"));
@@ -640,6 +868,10 @@ public class BankViewTest
 			when(widget.setOriginalY(anyInt())).thenAnswer(store("OriginalY"));
 			when(widget.setOriginalWidth(anyInt())).thenAnswer(store("OriginalWidth"));
 			when(widget.setOriginalHeight(anyInt())).thenAnswer(store("OriginalHeight"));
+			when(widget.setItemId(anyInt())).thenAnswer(store("ItemId"));
+			when(widget.setItemQuantity(anyInt())).thenAnswer(store("ItemQuantity"));
+			when(widget.setItemQuantityMode(anyInt())).thenAnswer(store("ItemQuantityMode"));
+			when(widget.setOpacity(anyInt())).thenAnswer(store("Opacity"));
 			when(widget.setScrollHeight(anyInt())).thenAnswer(store("ScrollHeight"));
 			when(widget.setScrollY(anyInt())).thenAnswer(store("ScrollY"));
 			when(widget.setSpriteId(anyInt())).thenAnswer(store("SpriteId"));
@@ -652,9 +884,13 @@ public class BankViewTest
 			doAnswer(i -> values.keySet().removeIf(key -> key.startsWith("Action"))).when(widget).clearActions();
 			when(widget.createChild(anyInt(), anyInt())).thenAnswer(i ->
 			{
-				WidgetState child = new WidgetState(-1, 0, children.size());
+				Widget[] current = (Widget[]) values.get("Children");
+				int childIndex = current == null ? 0 : current.length;
+				WidgetState child = new WidgetState(-1, 0, childIndex);
 				children.add(child);
-				values.put("Children", children.stream().map(c -> c.widget).toArray(Widget[]::new));
+				Widget[] expanded = current == null ? new Widget[1] : Arrays.copyOf(current, current.length + 1);
+				expanded[childIndex] = child.widget;
+				values.put("Children", expanded);
 				return child.widget;
 			});
 		}
@@ -672,6 +908,15 @@ public class BankViewTest
 		{
 			Object value = values.get(property);
 			return value == null ? 0 : (int) value;
+		}
+
+		private String[] actions()
+		{
+			int count = values.keySet().stream().filter(key -> key.startsWith("Action"))
+				.mapToInt(key -> Integer.parseInt(key.substring("Action".length()))).max().orElse(-1) + 1;
+			String[] actions = new String[count];
+			for (int i = 0; i < count; i++) { actions[i] = (String) values.get("Action" + i); }
+			return actions;
 		}
 
 		private boolean flag(String property)

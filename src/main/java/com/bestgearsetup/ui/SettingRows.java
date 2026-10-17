@@ -162,6 +162,12 @@ final class SettingRows
 		return rows.get(key);
 	}
 
+	/** The setting's display name, as its row labels it. */
+	String name(String key)
+	{
+		return descriptors.get(key).getItem().name();
+	}
+
 	JComponent control(String key)
 	{
 		JComponent control = controls.get(key);
@@ -175,6 +181,15 @@ final class SettingRows
 	boolean selected(String key)
 	{
 		return ((JCheckBox) control(key)).isSelected();
+	}
+
+	/** Show an enforced choice without replacing the saved preference or starting another search. */
+	void showChoice(String key, Object value)
+	{
+		boolean wasSyncing = syncing;
+		syncing = true;
+		try { ((JComboBox<?>) control(key)).setSelectedItem(value); }
+		finally { syncing = wasSyncing; }
 	}
 
 	/** Show the saved values without saving them again. */

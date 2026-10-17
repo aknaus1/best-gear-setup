@@ -50,6 +50,8 @@ class SettingsPanel extends JPanel
 		setting("rangedPotionChoice", BestGearSetupConfig::rangedPotion),
 		setting("magicPotionChoice", BestGearSetupConfig::magicPotion),
 		setting("raidPotions", BestGearSetupConfig::raidPotions),
+		setting("divinePotions", BestGearSetupConfig::divinePotions),
+		setting("repotBelow", BestGearSetupConfig::repotBelow),
 		setting("weaponPoison", BestGearSetupConfig::weaponPoison),
 		setting("charge", BestGearSetupConfig::charge),
 		setting("markOfDarkness", BestGearSetupConfig::markOfDarkness),

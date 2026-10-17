@@ -8,6 +8,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
@@ -47,6 +48,39 @@ public class SpecialAttackTest
 		w.setCrushBonus(bonus);
 		w.setMeleeStr(strength);
 		return w;
+	}
+
+	@Test
+	public void bloatBurningClawsExcludeTheUncertainBurnButKeepOrdinaryAttacks()
+	{
+		Loadout claws = loadout(melee("burning claws", 40, 56, 4), "slash,slash,aggressive");
+		Monster normal = monster(100, 50);
+		Monster bloat = normal.copy(); bloat.setName("pestilent bloat (normal)");
+		DpsResult normalSpec = DpsCalculator.calculate(claws, context(normal, SPEC));
+		DpsResult bloatSpec = DpsCalculator.calculate(claws, context(bloat, SPEC));
+		assertTrue(bloatSpec.getAverageHit() < normalSpec.getAverageHit());
+		assertEquals(normalSpec.getMaxHit(), bloatSpec.getMaxHit());
+		assertTrue(bloatSpec.getMaxHitDetail().contains("burn excluded"));
+		assertEquals(DpsCalculator.calculate(claws, context(normal, CombatModifiers.NONE)).getAverageHit(),
+			DpsCalculator.calculate(claws, context(bloat, CombatModifiers.NONE)).getAverageHit(), EPS);
+	}
+
+	@Test
+	public void excludingBloatBurnCanChangeACloseClawsVersusDaggerChoice()
+	{
+		Monster normal = monster(100, 50);
+		Monster bloat = normal.copy(); bloat.setName("pestilent bloat (normal)");
+		Loadout dagger = loadout(melee("dragon dagger", 40, 85, 4), "slash,slash,aggressive");
+		double daggerGain = (DpsCalculator.calculate(dagger, context(bloat, SPEC)).getAverageHit() - 12) / 25;
+		Loadout claws = loadout(melee("burning claws", 40, 15, 4), "slash,slash,aggressive");
+		double completeBurn = (DpsCalculator.calculate(claws, context(normal, SPEC)).getAverageHit() - 12) / 35;
+		double directOnly = (DpsCalculator.calculate(claws, context(bloat, SPEC)).getAverageHit() - 12) / 35;
+		assertTrue(directOnly > 0);
+		assertTrue(completeBurn > daggerGain);
+		assertTrue(directOnly < daggerGain);
+		assertEquals(0.17386029642281683, completeBurn, EPS);
+		assertEquals(0.0017525952038317273, directOnly, EPS);
+		assertEquals(0.11814012606136366, daggerGain, EPS);
 	}
 
 	@Test
@@ -121,6 +155,21 @@ public class SpecialAttackTest
 		target.setName("tekton (normal)");
 		target.setDefMagic(0);
 		assertTrue(DpsCalculator.calculate(l, context(target, SPEC)).getAverageHit() < max * 0.31);
+	}
+
+	@Test
+	public void voidwakerDealsNothingToAkkhasFinalStand()
+	{
+		Loadout l = loadout(melee("voidwaker", 70, 80, 4), "slash,slash,aggressive");
+		Monster akkha = monster(300, 300);
+		akkha.setId(11789);
+		akkha.setName("akkha");
+		akkha.setPhase(EncounterPhase.AKKHA_ENRAGE);
+		// Melee is allowed in the final stand, but the spec's hit is Magic damage.
+		assertTrue(DpsCalculator.calculate(l, context(akkha, CombatModifiers.builder().build())).getDps() > 0);
+		assertEquals(0, DpsCalculator.calculate(l, context(akkha, SPEC)).getDps(), EPS);
+		akkha.setPhase(EncounterPhase.AKKHA_IMMUNE_RANGED);
+		assertTrue(DpsCalculator.calculate(l, context(akkha, SPEC)).getDps() > 0);
 	}
 
 	@Test

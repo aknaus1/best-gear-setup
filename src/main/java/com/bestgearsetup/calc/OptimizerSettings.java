@@ -32,6 +32,24 @@ public class OptimizerSettings
 	/** Attack types that may be used. */
 	@Builder.Default
 	Set<AttackStyle.Type> styles = EnumSet.allOf(AttackStyle.Type.class);
+	/** Raid duties may require an actual freeze spell or chinchompas rather than any attack of that class. */
+	@Builder.Default
+	RaidLoadout raidLoadout = RaidLoadout.ANY;
+	/**
+	 * A raid switch: setups keep this worn setup except for the weapon and at most {@link #switchLimit} - 1 other
+	 * slots, without fill items or special attacks. Null searches every slot freely.
+	 */
+	@Builder.Default
+	Loadout switchFrom = null;
+	/** Most slots a {@link #switchFrom} switch may change, weapon included. */
+	@Builder.Default
+	int switchLimit = 2;
+	/**
+	 * A freeze duty's target chance (0..1) to land each cast ({@link FreezeDuty}): a {@link #switchFrom} switch swaps
+	 * the fewest slots that reach it. 0 for no freeze duty.
+	 */
+	@Builder.Default
+	double freezeAccuracy = 0;
 	@Builder.Default
 	WeaponHands weaponHands = WeaponHands.ANY;
 	@Builder.Default
@@ -57,7 +75,10 @@ public class OptimizerSettings
 	boolean betaItems = false;
 	@Builder.Default
 	boolean bountyHunterItems = false;
-	/** Eclipse atlatl setups must wear an Ava's device or quiver to recover ammunition. */
+	/**
+	 * Ranged attacks firing ammunition an Ava's device recovers must wear an Ava's device or quiver; special-attack
+	 * switches are exempt. Name retained for saved-setting compatibility.
+	 */
 	@Builder.Default
 	boolean requireAtlatlAmmoRecovery = false;
 
@@ -74,9 +95,40 @@ public class OptimizerSettings
 	boolean killSpecials = false;
 	@Builder.Default
 	SpecEnergy specEnergy = SpecEnergy.REGENERATION;
+	/** Percent available now for a live raid rotation; planning starts on a full bar. */
+	@Builder.Default
+	int raidOpeningEnergy = 100;
 	/** How landed stat drains from those specs count. */
 	@Builder.Default
 	DrainSpecs drainSpecs = DrainSpecs.EXPECTED;
+	/**
+	 * In a raid plan, the players sharing each kill of this fight (the party for a boss, 1 for adds one player
+	 * kills): specs are planned over one player's share of its HP, combining one defence reducer and one damage weapon. 0 outside a
+	 * raid plan, where each kill is planned on its own as before.
+	 */
+	@Builder.Default
+	int raidKillShare = 0;
+	/**
+	 * A raid boss the whole party opens with defence reducers ({@link SpecialRotation#teamReducerTarget}): staggered
+	 * attempts with the reference teammate's dragon warhammer ({@link SpecialRotation#teammateHammer}) before this
+	 * player's own, the same for every kit and class.
+	 */
+	@Builder.Default
+	boolean teamOpeners = false;
+	/**
+	 * The player could use an elder maul, dragon warhammer or Bandos godsword as a spec switch here (levels, equipment
+	 * rules, ownership or budget, and the player's own exclusions; {@link Optimizer#sharedReducerUsable}), so every kit,
+	 * whatever its class, owes its fair share of the party's reducers ({@link SpecialRotation#reducerShare}) even where
+	 * the kit planner leaves the weapon out.
+	 */
+	@Builder.Default
+	boolean sharedReducerUsable = false;
+	/**
+	 * In a raid plan, the share of this fight's kills followed by a pause, so each player's last attack doesn't wait
+	 * out its interval and may be a hard-hitting slow spec (a crystal halberd finishing the kill).
+	 */
+	@Builder.Default
+	double finalBlows = 0;
 
 	/** Number of arrows / bolts / darts to price in the budget; 0 ignores ammo cost. */
 	@Builder.Default

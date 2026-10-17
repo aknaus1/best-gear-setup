@@ -42,8 +42,11 @@ public class SearchAssumptionsTest
 		GETTERS.put("raidSpellbook", BestGearSetupConfig::raidSpellbook);
 		GETTERS.put("raidEquipmentLimit", BestGearSetupConfig::raidEquipmentLimit);
 		GETTERS.put("toaPathOrder", BestGearSetupConfig::toaPathOrder);
-		GETTERS.put("tobMaidenRole", BestGearSetupConfig::tobMaidenRole);
-		GETTERS.put("tobNylocasRole", BestGearSetupConfig::tobNylocasRole);
+		GETTERS.put("tobRole", BestGearSetupConfig::tobRole);
+		GETTERS.put("toaMoreOverlords", BestGearSetupConfig::toaMoreOverlords);
+		GETTERS.put("raidKillShare", BestGearSetupConfig::raidKillShare);
+		GETTERS.put("raidFinalBlowPercent", BestGearSetupConfig::raidFinalBlowPercent);
+		GETTERS.put("quickSwitchLimit", BestGearSetupConfig::quickSwitchLimit);
 		GETTERS.put("raidStyles", BestGearSetupConfig::raidStyles);
 		GETTERS.put("showMenuOption", BestGearSetupConfig::showMenuOption);
 		GETTERS.put("highlightBankGear", BestGearSetupConfig::highlightBankGear);
@@ -77,6 +80,8 @@ public class SearchAssumptionsTest
 		GETTERS.put("raidPartySize", BestGearSetupConfig::raidPartySize);
 		GETTERS.put("toaRaidLevel", BestGearSetupConfig::toaRaidLevel);
 		GETTERS.put("toaPathLevel", BestGearSetupConfig::toaPathLevel);
+		GETTERS.put("toaStartingPathLevel", BestGearSetupConfig::toaStartingPathLevel);
+		GETTERS.put("toaWalkThePath", BestGearSetupConfig::toaWalkThePath);
 		GETTERS.put("coxChallengeMode", BestGearSetupConfig::coxChallengeMode);
 		GETTERS.put("encounterPhase", BestGearSetupConfig::encounterPhase);
 		GETTERS.put("aoe", BestGearSetupConfig::aoe);
@@ -116,6 +121,8 @@ public class SearchAssumptionsTest
 		GETTERS.put("usePrayers", BestGearSetupConfig::usePrayers);
 		GETTERS.put("thrall", BestGearSetupConfig::thrall);
 		GETTERS.put("raidPotions", BestGearSetupConfig::raidPotions);
+		GETTERS.put("divinePotions", BestGearSetupConfig::divinePotions);
+		GETTERS.put("repotBelow", BestGearSetupConfig::repotBelow);
 		GETTERS.put("taskMode", BestGearSetupConfig::taskMode);
 		GETTERS.put("autoRaid", BestGearSetupConfig::autoRaid);
 		GETTERS.put("autoSpecs", BestGearSetupConfig::autoSpecs);
@@ -127,6 +134,7 @@ public class SearchAssumptionsTest
 		GETTERS.put("potionMagic", BestGearSetupConfig::potionMagic);
 		GETTERS.put("locks", BestGearSetupConfig::locks);
 		GETTERS.put("excluded", BestGearSetupConfig::excluded);
+		GETTERS.put("seenFightOptions", BestGearSetupConfig::seenFightOptions);
 	}
 
 	/** Config keys that differ from their method name, which is what overrides are keyed by. */

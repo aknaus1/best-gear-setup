@@ -54,6 +54,24 @@ public class OptimizerProgressTest
 		}
 	}
 
+	@Test public void expensivePairRefinementReportsWorkBeforeTheWeaponFinishes()
+	{
+		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED).depth(SearchDepth.BEST)
+			.spellbooks(Collections.emptySet()).build();
+		List<Double> refinement = new ArrayList<>();
+		List<SetupResult> results = new Optimizer(data, context, settings, id -> false, GearItem::getPrice)
+			.optimize(CombatClass.MELEE, () -> false, fraction ->
+			{
+				// Observe updates while refinement is still on the call stack, rather than its outer weapon boundary.
+				if (java.util.Arrays.stream(Thread.currentThread().getStackTrace()).anyMatch(frame -> frame.getMethodName().equals("refinePairs")))
+				{ refinement.add(fraction); }
+			});
+		assertFalse(results.isEmpty());
+		assertTrue("Pair/escape trials must advance inside the refinement phase", refinement.stream().distinct().count() > 20);
+		assertTrue(refinement.stream().allMatch(fraction -> fraction > 0 && fraction < 1));
+		for (int index = 1; index < refinement.size(); index++) { assertTrue(refinement.get(index) >= refinement.get(index - 1)); }
+	}
+
 	@Test
 	public void aClassTheTargetIgnoresIsCompleteAtOnce()
 	{

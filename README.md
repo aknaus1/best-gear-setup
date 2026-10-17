@@ -1,87 +1,64 @@
 # Best Gear Setup
 
-A DPS calculator and gear optimizer for monsters, bosses and Slayer, built into RuneLite. Compare melee,
-ranged and magic equipment to find your best loadout. Stick to what you own, shop within a budget, or go
-straight to best in slot.
+A DPS calculator and gear optimizer built into RuneLite. Find melee, ranged and magic setups for
+monsters, bosses and Slayer using gear you own, a budget or best in slot.
 
-![Best setups for Vorkath (best in slot), Yama (owned + budget) and Verzik Vitur (owned items only)](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/results.png)
+![Best setups for Vorkath, Yama and Verzik Vitur](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/results.png)
 
 ## Getting started
 
 1. Install **Best Gear Setup** from the Plugin Hub.
-2. Log in and open your bank once so the plugin can see what you own.
-3. Open the **Best Gear Setup** sidebar panel, or right-click an NPC and choose **Best setup**.
-4. Search for a monster, pick a mode and click **Find best setup**.
+2. Log in and open your bank once to record your owned gear.
+3. Open the sidebar panel, or right-click an NPC and choose **Best setup**.
+4. Search for a monster, pick a mode and click **Find best setup**:
 
-Right-click an item in a result to lock it, exclude it or mark it as owned, or add these rules from the
-**Gear** panel.
+   - **Owned items only**
+   - **Inventory + equipped only**
+   - **Owned + budget** (for example, `50m`)
+   - **Best in slot**
+
+Right-click result items to lock, exclude or mark them as owned. Adjust combat options in **Fight**,
+manage item rules in **Gear**, and set equipment preferences in **Settings**.
 
 ## Features
 
-- **Any monster or boss**, with versions and phases (Vorkath, Verzik, Yama and so on) in one search.
-- **Complete raid plans:** search for *Challenge Mode: Chambers of Xeric*, *Tombs of Amascut* or
-  *Theatre of Blood* (also `CM CoX`, `ToA` or `ToB`). Start wearing the first room's gear, with a shared
-  inventory of switches. The boss selector above **Version** lists the rooms in raid order and changes the
-  equipment shown. The bank shows starting worn gear on the left and
-  the shared inventory in four columns beside it.
-- Pick each raid encounter's **Attack style** (Auto uses ranged or magic for Mystics, the large Muttadile
-  and Zebak), the **ToA path order**, and your **ToB Maiden and Nylocas roles** (freezer, DPS, or the
-  wave colour you kill). Overloads are assumed after Tekton and smelling salts after the first two ToA paths.
-- **Protection prayers:** every result names the overhead to use with that setup (or *Switch* with a short
-  reason, such as Olm, Zebak or Verzik P3), from your attack distance, the boss and your Prayer level.
-  Melee-only monsters still get Protect from Melee at range unless you safespot them.
-- The sidebar shows inventory below worn gear. Runes fill an owned rune pouch (three types) or divine
-  rune pouch (four types); hover the pouch to see its planned contents. Overflow rune types stay loose.
-  The inventory starts minimized; click its heading to expand it, and it stays that way for later results.
-- Raid setups keep required ammo worn when the slot is free. If several ammo types are needed, empty
-  slots use the most-used type; bow and crossbow setups retain their own ammunition. Hover a blowpipe
-  to see its loaded darts, and right-click it to exclude those darts. Inventory gear has the same hover
-  details and right-click controls as worn equipment.
-- **Raid equipment slots** limits carried switches; **Raid spellbook** keeps spells consistent across rooms.
-  Empty inventory slots are left for food, healing and utility supplies.
-- **Active encounter** follows the attackable NPC you are in combat with (your hits land on it, or it attacks
-  you back), not one you have only clicked or are standing near, including new spawns and phase changes.
-  Another NPC of the monster already shown (the next kill of the same type) keeps the results without searching.
-  With **Use active defence** enabled, tracked landed specials update its Defence. In a planned raid,
-  recalculations use the selected shared kit.
-- **Four modes:** *Owned items only*, *Inventory + equipped only*, *Owned + budget* (e.g. `50m`) and
-  *Best in slot*.
-- **A result per attack style** with DPS, max hit, accuracy, time to kill, kills per hour and the cost of
-  anything you'd need to buy, plus the next-best alternatives.
-- **Knows your account:** owned items, levels, prayers, Slayer task and diaries, remembered per profile.
-- **Potions, prayers, thralls and special attacks** are all counted, with the best spec weapon suggested.
-- **Bank gear layout and highlights** lay out the setup's gear, runes and potions in your bank, ready to
-  withdraw.
-- **Encounter rules are enforced:** damage caps, immunities, dragonfire protection, raid scaling and
-  required Slayer gear.
+- Compare DPS, max hit, accuracy, estimated kill time and upgrade costs across attack styles.
+- Plan complete **CM CoX, ToA and ToB** kits with shared switches, supplies and encounter setups that
+  follow live raid progress. Choose your ToB role, ToA path order and switch limits.
+- Inside the raid, adapt the current encounter to carried gear, actual path levels, current boosts,
+  tracked defence reductions and remaining spec energy. The pre-raid packing plan stays available.
+- In **CM CoX**, red means finished for the raid, yellow means unused for the rest of this floor, and
+  green means needed for this floor (or the next floor after completing this one). Chest guidance shows
+  red/yellow in inventory and green/yellow in private storage. Inventory also highlights the selected
+  encounter's gear to equip, including with storage closed. Hover over **Inventory** for chest advice and a
+  next-floor preview when everything is still needed; no extra text section expands the side panel.
+  Advice includes the selected room and all its phases; supplies and puzzle/prep items stay outside it.
+  Enable **Highlight inventory gear** for equip outlines; chest guidance appears only while private storage is open.
+- Account for levels, prayers, boosts, thralls, special attacks and encounter requirements.
+- Use bank layouts and gear highlights to prepare your setup. Enable
+  [Dude, Where's My Stuff?](https://runelite.net/plugin-hub/show/dude-wheres-my-stuff) to include recorded
+  gear from other storage.
+- Save recent searches per account for quick reuse. Calculations run locally with bundled game data
+  and RuneLite prices.
 
-![The RuneLite client with the bank gear layout, highlighted inventory and Yama result in the side panel](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/bank-layout.png)
+![Bank gear layout, inventory highlights and sidebar results](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/bank-layout.png)
 
-Everything else is in the sidebar too. **Fight** sets active encounter, your HP, Slayer task, thralls,
-special attacks, raid scaling and kit limits, Wilderness and pre-fight defence reductions. **Gear** lists
-your locks, excluded items and extra owned items, with a search to add more. **Settings** covers search
-options, attack styles, equipment, spellbooks, boosts and highlights.
-
-![The Fight and Settings panels in the sidebar](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
-
-## Good to know
-
-- Results are expected DPS, not a simulated fight: switch timing, overkill, movement and line of sight
-  aren't modelled. See [COMBAT_AUDIT.md](COMBAT_AUDIT.md) for known gaps and
-  [docs/mechanics.md](docs/mechanics.md) for how everything is worked out.
-- All data is bundled and the search runs locally, so the plugin makes no network requests. Prices come
-  from RuneLite.
+Results are estimates; movement, switch timing and downtime aren't simulated. Raid times cover combat
+only. See [mechanics and assumptions](docs/mechanics.md) and [known calculation gaps](COMBAT_AUDIT.md).
 
 ## Support
 
-Report bugs on the [issue tracker](https://github.com/aknaus1/best-gear-setup/issues). If a result looks
-wrong, include the monster, version, mode and the text under **Search details**, but not your account name
-or whole bank.
+[Join the Discord community](https://discord.gg/gxFXvnUrUs) for setup help, gear discussions, FAQs and
+feature requests.
+
+[Report a bug](https://github.com/aknaus1/best-gear-setup/issues) with the monster, version, mode and
+**Search details** text. Leave out your account name and whole bank.
+
+<a href="https://www.buymeacoffee.com/aknaus" target="_blank"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20beer&amp;emoji=%F0%9F%8D%BA&amp;slug=aknaus&amp;button_colour=FFDD00&amp;font_colour=000000&amp;font_family=Cookie&amp;outline_colour=000000&amp;coffee_colour=ffffff" alt="Buy me a beer" height="39"></a>
 
 ## License
 
-Code is under the [BSD 2-Clause licence](LICENSE). Monster, equipment and immunity data comes from the
-[Old School RuneScape Wiki](https://oldschool.runescape.wiki/) contributors under
-[CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/); see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Not affiliated with Jagex or the OSRS Wiki.
-To build from source, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Code: [BSD 2-Clause](LICENSE). Game data: [OSRS Wiki](https://oldschool.runescape.wiki/) contributors,
+[CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/).
+See [third-party notices](THIRD_PARTY_NOTICES.md) and [building from source](CONTRIBUTING.md).
+Not affiliated with Jagex or the OSRS Wiki.

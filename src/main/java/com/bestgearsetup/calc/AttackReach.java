@@ -170,6 +170,7 @@ public final class AttackReach
 	 */
 	public static int range(GearItem weapon, AttackStyle style)
 	{
+		if (style.isManualCast()) { return 10; }
 		if (weapon.getSubcategory().equals("salamander"))
 		{
 			return 1;

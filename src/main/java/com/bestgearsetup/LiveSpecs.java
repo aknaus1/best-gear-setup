@@ -2,6 +2,7 @@ package com.bestgearsetup;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -61,6 +62,8 @@ final class LiveSpecs
 	private final Consumer<String> changed;
 
 	private final Map<String, Integer> landed = new HashMap<>();
+	private final Map<NPC, Map<String, Integer>> targetDrains = new IdentityHashMap<>();
+	private final Map<NPC, Integer> targetIds = new IdentityHashMap<>();
 	private NPC trackedTarget;
 	private int trackedId = -1;
 	/** Lower-case name of the tracked target; read by searches off the client thread. */
@@ -106,12 +109,19 @@ final class LiveSpecs
 	{
 		if (!config.autoSpecs() || npc == null || npc.getName() == null) { return; }
 		if (trackedTarget == npc && trackedId == npc.getId()) { return; }
+		if (trackedTarget != null)
+		{
+			targetDrains.put(trackedTarget, new HashMap<>(landed));
+			targetIds.put(trackedTarget, trackedId);
+		}
 		landed.clear();
+		if (targetIds.getOrDefault(npc, -1) == npc.getId())
+		{ landed.putAll(targetDrains.getOrDefault(npc, java.util.Collections.emptyMap())); }
 		trackedTarget = npc;
 		trackedId = npc.getId();
 		targetName = Text.removeTags(npc.getName()).toLowerCase(Locale.ROOT).trim();
 		Map<String, Object> values = new HashMap<>();
-		LIMITS.forEach((key, limit) -> values.put(key, 0));
+		LIMITS.forEach((key, limit) -> values.put(key, Math.min(limit, landed.getOrDefault(key, 0))));
 		values.put("specVulnerability", false);
 		values.put("specTomeOfWater", false);
 		snapshot = values;
@@ -240,8 +250,9 @@ final class LiveSpecs
 	{
 		if (event.getNpc() == trackedTarget)
 		{
-			end();
+			resetCurrent();
 		}
+		targetDrains.remove(event.getNpc()); targetIds.remove(event.getNpc());
 	}
 
 	@Subscribe
@@ -283,6 +294,12 @@ final class LiveSpecs
 
 	/** Stop tracking; the next search of the target uses the planned preparation again. */
 	void end()
+	{
+		targetDrains.clear(); targetIds.clear();
+		resetCurrent();
+	}
+
+	private void resetCurrent()
 	{
 		String name = targetName;
 		landed.clear();

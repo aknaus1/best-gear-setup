@@ -49,7 +49,7 @@ final class SpecialDamage
 				average = claws[0];
 				shown = (int) claws[1];
 				shownAccuracy = 1 - Math.pow(1 - acc, dragon ? 4 : 3);
-				if (!dragon)
+				if (!dragon && !m.getLowerName().startsWith("pestilent bloat"))
 				{
 					average += burningClawDot(acc) * StatusEffects.burnFactor(l, ctx, StatusImmunities.BURN_NORMAL);
 				}
@@ -68,7 +68,7 @@ final class SpecialDamage
 				break;
 			case HALBERD:
 				average = single(rule, l, ctx, acc, min, max);
-				if (m.getSize() > 1)
+				if (CombatRules.size(m) > 1)
 				{
 					double second = CombatRules.accuracy(m, l, HitChance.single(attRoll * 3 / 4, defRoll));
 					average += single(rule, l, ctx, second, min, max);
@@ -101,6 +101,11 @@ final class SpecialDamage
 				break;
 			case VOIDWAKER:
 			{
+				if (!EncounterImmunities.classAllowed(m, CombatClass.MAGIC))
+				{
+					// The hit is Magic damage, so targets immune to Magic (Akkha's final stand) take none.
+					return DpsResult.ZERO;
+				}
 				EncounterDamage.Rule magic = EncounterDamage.rule(m, l, CombatClass.MAGIC);
 				average = EquipmentEffects.average(magic, l, ctx, min, max);
 				shown = EquipmentEffects.maximum(magic, l, ctx, max);
@@ -126,7 +131,9 @@ final class SpecialDamage
 		{
 			average += 10 * acc * StatusEffects.burnFactor(l, ctx, StatusImmunities.BURN_STRONG);
 		}
-		return finish(s, average, shown, shownAccuracy, speed, interval, rule, null);
+		String timing = s.getKind() == SpecialAttack.Kind.BURNING_CLAWS && m.getLowerName().startsWith("pestilent bloat")
+			? "Bloat: direct damage only; burn excluded because activation clears it and attack timing is unknown" : null;
+		return finish(s, average, shown, shownAccuracy, speed, interval, rule, timing);
 	}
 
 	static DpsResult ranged(SpecialAttack s, Loadout l, CombatContext ctx, EncounterDamage.Rule rule, double acc,

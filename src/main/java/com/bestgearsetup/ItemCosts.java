@@ -123,7 +123,8 @@ public final class ItemCosts
 				if (mapping.getTradeableItem() != ItemID.GRACE
 					&& mapping.getTradeableItem() != ItemID.MOTHERLODE_NUGGET)
 				{
-					components.merge(mapping.getTradeableItem(), mapping.getQuantity(), Long::sum);
+					// A mapped component can itself be charged (e.g. a full ornamented trident).
+					components.merge(acquisitionBase(mapping.getTradeableItem()), mapping.getQuantity(), Long::sum);
 				}
 			}
 		}

@@ -239,6 +239,46 @@ public class StatusEffectsTest
 		boss.setAttributes(Collections.singletonList(attribute("boss")));
 		assertEquals(DpsCalculator.snapshot(baseline, context(boss, CombatModifiers.NONE)).getAccuracy(),
 			DpsCalculator.snapshot(l, context(boss, CombatModifiers.NONE)).getAccuracy(), EPS);
+		// A freeze duty only casts on targets that aren't frozen, so every cast has the bonus, above the cycle's mean.
+		CombatModifiers freezing = CombatModifiers.builder().freezeCasts(true).build();
+		double fresh = DpsCalculator.snapshot(l.copy(), context(ordinary, freezing)).getAccuracy();
+		assertTrue(fresh > plain);
+		assertEquals(DpsCalculator.snapshot(baseline, context(boss, freezing)).getAccuracy(),
+			DpsCalculator.snapshot(l, context(boss, freezing)).getAccuracy(), EPS);
+	}
+
+	/** An Ice Barrage's chance to land from a staff with this magic attack bonus, at 99 Magic without a prayer. */
+	private static double barrage(int id, String staff, int bonus, Monster target)
+	{
+		GearItem weapon = weapon(id, staff, "staff", 4, "spell,magic,magic");
+		weapon.setMagicBonus(bonus);
+		Loadout l = loadout(weapon, "spell,magic,magic");
+		Spell barrage = new Spell();
+		barrage.setName("ice barrage");
+		barrage.setSpellbook("ancient");
+		barrage.setMaxHit(30);
+		barrage.setLevel(94);
+		l.setSpell(barrage);
+		return DpsCalculator.snapshot(l, context(target, CombatModifiers.NONE)).getAccuracy();
+	}
+
+	@Test
+	public void maidensNylocasAreAlwaysFrozenOnceTheRollReachesTheWikiThreshold()
+	{
+		Monster nylocas = monster(100, 0);
+		nylocas.setName("nylocas matomenos (normal mode maiden)");
+		nylocas.setHitpoints(100);
+		// At 99 Magic the threshold is (99 + 9) x 204 = 22,032: +140 without a prayer (Wiki table).
+		assertEquals(1, barrage(27624, "ancient sceptre", 140, nylocas), EPS);
+		assertTrue(barrage(27624, "ancient sceptre", 139, nylocas) < 0.9);
+		// The ice ancient sceptre's 10% counts, so +122 is enough.
+		assertEquals(1, barrage(28262, "ice ancient sceptre", 122, nylocas), EPS);
+		assertTrue(barrage(28262, "ice ancient sceptre", 121, nylocas) < 1);
+		// Only Maiden's nylocas have the guarantee.
+		Monster verzik = monster(100, 0);
+		verzik.setName("nylocas matomenos (normal mode verzik)");
+		verzik.setHitpoints(200);
+		assertTrue(barrage(27624, "ancient sceptre", 140, verzik) < 0.9);
 	}
 
 	private static Monster.Attribute attribute(String name)

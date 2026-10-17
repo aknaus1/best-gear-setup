@@ -326,6 +326,14 @@ public final class StatusEffects
 			double total = 0;
 			double venomWeight = s.getVenomChance();
 			double poisonWeight = s.getPoisonChance();
+			boolean poisons = s.getPoisonSeverity() > 0;
+			boolean burns = s.getBurnChance() > 0;
+			// Same products, in the same order, as each burn term: the kill-time search calls this for every
+			// candidate, so nothing here may change a result, only skip repeated work.
+			double burnScale = burns ? s.getBurnChance() * s.getBurnFactor() * burnCap() : 0;
+			// A burn that has dealt all its hits averages exactly BURN_HITS over the timer phase.
+			double settledBurn = burnScale * (double) BURN_HITS;
+			int settledTicks = BURN_HITS * BURN_INTERVAL;
 			for (int i = 0; ; i++)
 			{
 				double elapsed = t - i * speed;
@@ -333,20 +341,27 @@ public final class StatusEffects
 				{
 					break;
 				}
-				if (venomWeight > 1e-9)
+				boolean venom = venomWeight > 1e-9;
+				boolean poison = poisonWeight > 1e-9 && poisons;
+				if (!venom && !poison && !burns)
+				{
+					// Neither weight grows again, so no later attack adds anything.
+					break;
+				}
+				if (venom)
 				{
 					total += venomWeight * phaseAverage(elapsed, POISON_INTERVAL, Fight::venomCumulative);
 					venomWeight *= 1 - s.getVenomChance();
 				}
-				if (poisonWeight > 1e-9 && s.getPoisonSeverity() > 0)
+				if (poison)
 				{
 					total += poisonWeight * phaseAverage(elapsed, POISON_INTERVAL, this::poisonCumulative);
 					poisonWeight *= 1 - s.getPoisonChance();
 				}
-				if (s.getBurnChance() > 0)
+				if (burns)
 				{
-					total += s.getBurnChance() * s.getBurnFactor() * burnCap()
-						* phaseAverage(elapsed, BURN_INTERVAL, n -> Math.min(BURN_HITS, n));
+					total += (int) elapsed >= settledTicks ? settledBurn
+						: burnScale * phaseAverage(elapsed, BURN_INTERVAL, n -> Math.min(BURN_HITS, n));
 				}
 			}
 			return total;

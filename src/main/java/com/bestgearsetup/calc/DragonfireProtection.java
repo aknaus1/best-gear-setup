@@ -29,6 +29,13 @@ public final class DragonfireProtection
 			|| n.equals("elemental shield") || n.equals("mind shield");
 	}
 
+	/** Ordinary dragonfire shields; elemental and mind shields protect only against icy breath. */
+	static boolean isFireShield(GearItem item)
+	{
+		String n = item == null ? "" : item.getLowerCombatName();
+		return isProtectiveShield(item) && !n.equals("elemental shield") && !n.equals("mind shield");
+	}
+
 	private static boolean wyvern(Monster monster)
 	{
 		return name(monster).contains("wyvern");

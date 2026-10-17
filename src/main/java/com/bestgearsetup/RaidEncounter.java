@@ -1,21 +1,31 @@
 package com.bestgearsetup;
 
 import com.bestgearsetup.calc.AttackStyle;
+import com.bestgearsetup.calc.DpsResult;
 import com.bestgearsetup.calc.EncounterImmunities;
+import com.bestgearsetup.calc.FreezeDuty;
+import com.bestgearsetup.calc.KillTime;
+import com.bestgearsetup.calc.RaidLoadout;
+import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.SpecialRotation;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.MonsterGroup;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.EncounterPhase;
+import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Slot;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.DoubleSupplier;
 import java.util.stream.Collectors;
 import lombok.Value;
+import net.runelite.api.gameval.ItemID;
 
 /** One combat target or required attack style in a complete raid. */
 @Value
@@ -25,8 +35,16 @@ public class RaidEncounter
 	MonsterSummary target;
 	/** Attack types the encounter is planned with: the usable types narrowed by the style choice; empty for any. */
 	Set<AttackStyle.Type> styles;
-	/** Number of times this target must be defeated, used only for the full raid's combat-time objective. */
-	int repetitions;
+	/**
+	 * Expected number of times this target (or phase) is fought, used only for the full raid's combat-time objective:
+	 * fractional for an expectation, such as a Warden branch fought in half of raids.
+	 */
+	double repetitions;
+	/**
+	 * Share of the target's hitpoints dealt each time it is fought, for phases of one HP pool (Akkha's immune phases
+	 * split her health, the Vasilias forms share one pool). Like {@link #repetitions} it only weighs the objective.
+	 */
+	double share;
 	EncounterPhase phase;
 	/** Attack types the encounter is restricted to by the raid itself; empty for any. */
 	Set<AttackStyle.Type> requiredStyles;
@@ -45,6 +63,96 @@ public class RaidEncounter
 	boolean styleFallback;
 	/** Raid-handed boosts (CoX overloads, ToA smelling salts) are available by this point of the raid. */
 	boolean raidSupplies;
+	/** Primary attack required by the player's raid duty. */
+	RaidLoadout loadoutRequirement;
+	/**
+	 * Shown with the fastest setup the finished kit allows, but never weighs on the kit: how often it's fought varies
+	 * (scavengers are killed until the potion secondaries drop) or it usually isn't attacked at all (Vespula).
+	 */
+	boolean displayOnly;
+	/**
+	 * Encounters sharing a group (the Nylocas Vasilias forms, the ToA baboons) are fought back to back: one wears a
+	 * full setup and the others are quick switches from it, within {@link #switchLimit} swaps. Null for none.
+	 */
+	String switchGroup;
+	/** May wear the group's full setup; false for explicitly restricted forms. */
+	boolean fullSwitchSetup;
+	/**
+	 * Most swaps a quick switch in this encounter's group may make: the weapon and at most one fewer other pieces,
+	 * drawn from slots every quick switch of the group shares, so switching between any two forms stays within it.
+	 * A limit, not a target: a piece is only swapped when it makes the switch faster.
+	 */
+	int switchLimit;
+	/** In the raid's first room (ToA's first path): its boosts are drunk before entering, so the kit doesn't carry them. */
+	boolean prepotted;
+	/**
+	 * In the raid's first room (ToA's first path), so the kit may be worn in for this encounter: the starting setup
+	 * is whichever such encounter leaves the fewest switches to carry.
+	 */
+	boolean startable;
+	/** Not worth a potion (Kephri's scarabs): fought without the Best available boosts or raid supplies. */
+	boolean unboosted;
+	/**
+	 * Seconds without combat before this encounter (puzzles, preparation, walking), while spec energy regenerates.
+	 * The raid starts on a full bar and energy carries from fight to fight ({@link #energyAfter}).
+	 */
+	double restBefore;
+	/** The bar is full again when this encounter starts: each Theatre room refills it. */
+	boolean refill;
+	/** Players in the party: the fight lasts its estimated time over this, while spec energy regenerates. */
+	int partySize;
+	/**
+	 * Whether the whole party fights each kill together (a boss), rather than each player killing their own (the
+	 * waves' nylocas, baboons, scarabs): specs are planned over one player's share of a shared kill.
+	 */
+	boolean shared;
+	/**
+	 * The share of this encounter's kills followed by a pause, when each player's last attack doesn't wait out its
+	 * attack interval: 1 for a boss or phase that ends the fight, a phase's share of a pool that may end in any of
+	 * them, and 0 for adds killed back to back and phases that end at a threshold.
+	 */
+	double finalBlow;
+	/** Damaged only while it stops between walks (the Pestilent Bloat), or null for a target fought throughout. */
+	Downs downs;
+
+	/**
+	 * A target the party damages only while it is down: it first walks for {@code firstWalk} ticks, then stays down for
+	 * {@code down} ticks at a time with {@code walk} ticks of walking between, until the party's damage while it is down
+	 * kills it. Fewer downs save a whole walk each, so the fight's time steps with the party's DPS.
+	 */
+	@Value
+	public static class Downs
+	{
+		int firstWalk;
+		int down;
+		int walk;
+		int partySize;
+
+		/** The party's time scaled by its size (as for other encounters), at this DPS per player. */
+		double seconds(double dps, int hitpoints)
+		{
+			if (!(dps > 0)) { return Double.POSITIVE_INFINITY; }
+			int players = Math.max(1, partySize);
+			double partyDps = players * dps;
+			double perDown = partyDps * down * 0.6;
+			double downs = Math.max(1, Math.ceil(hitpoints / perDown));
+			double last = hitpoints - (downs - 1) * perDown;
+			return players * (firstWalk * 0.6 + (downs - 1) * (down + walk) * 0.6 + last / partyDps);
+		}
+	}
+
+	/** Swaps a quick switch may make unless the player chooses otherwise: the weapon and one other piece. */
+	public static final int DEFAULT_SWITCH_LIMIT = 2;
+	/** The highest swap limit offered; larger switches search slowly and are rarely made mid-fight. */
+	public static final int MAX_SWITCH_LIMIT = 6;
+	/** A freeze switch may swap every slot: it swaps as few as reach the freeze accuracy ({@link FreezeDuty}). */
+	static final int FREEZE_SWITCH_LIMIT = Slot.values().length;
+	/**
+	 * A freeze adds no combat time; each item its switch swaps weighs this much in the kit's objective (casting by hand
+	 * more than any switch, {@link FreezeDuty#burden}), so autocasting and fewer items win between otherwise equal
+	 * kits without showing in the raid's estimated time.
+	 */
+	static final double FREEZE_ITEM_SECONDS = 1e-3;
 
 	public RaidEncounter(String label, MonsterSummary target, AttackStyle.Type... styles)
 	{
@@ -58,25 +166,106 @@ public class RaidEncounter
 
 	public RaidEncounter(String label, MonsterSummary target, int repetitions, EncounterPhase phase, AttackStyle.Type... styles)
 	{
-		this(label, target, repetitions, phase, required(styles), RaidStyle.AUTO, label, RaidStyle.AUTO, true);
+		this(new Spec(label, target, repetitions, phase, required(styles)));
 	}
 
-	private RaidEncounter(String label, MonsterSummary target, int repetitions, EncounterPhase phase,
-		Set<AttackStyle.Type> required, RaidStyle preferred, String styleKey, RaidStyle choice, boolean raidSupplies)
+	private RaidEncounter(Spec spec)
 	{
-		if (repetitions < 1) { throw new IllegalArgumentException("Encounter repetitions must be positive"); }
-		this.label = label;
-		this.target = target;
-		this.repetitions = repetitions;
-		this.phase = phase;
-		this.requiredStyles = required;
-		this.usableStyles = usable(target, phase, required);
-		this.preferredStyle = preferred;
-		this.styleKey = styleKey;
-		this.styleChoice = choice;
-		this.raidSupplies = raidSupplies;
-		this.styleFallback = choice != RaidStyle.AUTO && within(choice).isEmpty();
-		this.styles = Collections.unmodifiableSet(stylesFor(choice));
+		// Zero is allowed: a fight the party may not reach (e.g. no Vasa crystal before he dies) still shapes the kit.
+		if (!(spec.repetitions >= 0)) { throw new IllegalArgumentException("Encounter repetitions must not be negative"); }
+		if (!(spec.share > 0 && spec.share <= 1)) { throw new IllegalArgumentException("Encounter share must be in (0, 1]"); }
+		this.label = spec.label;
+		this.target = spec.target;
+		this.repetitions = spec.repetitions;
+		this.share = spec.share;
+		this.phase = spec.phase;
+		this.requiredStyles = spec.required;
+		this.usableStyles = usable(spec.target, spec.phase, spec.required);
+		this.preferredStyle = spec.preferred;
+		this.styleKey = spec.styleKey;
+		this.styleChoice = spec.choice;
+		this.raidSupplies = spec.raidSupplies;
+		this.loadoutRequirement = spec.loadoutRequirement;
+		this.displayOnly = spec.displayOnly;
+		this.switchGroup = spec.switchGroup;
+		this.prepotted = spec.prepotted;
+		this.startable = spec.startable;
+		this.unboosted = spec.unboosted;
+		this.restBefore = spec.restBefore;
+		this.refill = spec.refill;
+		this.partySize = spec.partySize;
+		this.shared = spec.shared;
+		this.finalBlow = spec.finalBlow;
+		this.downs = spec.downs;
+		this.fullSwitchSetup = spec.fullSwitchSetup;
+		this.switchLimit = spec.switchLimit;
+		this.styleFallback = spec.choice != RaidStyle.AUTO && within(spec.choice).isEmpty();
+		this.styles = Collections.unmodifiableSet(stylesFor(spec.choice));
+	}
+
+	/** An encounter's inputs, from which the derived style sets are recomputed; the with* copies change one. */
+	private static final class Spec
+	{
+		final String label;
+		final MonsterSummary target;
+		final EncounterPhase phase;
+		final Set<AttackStyle.Type> required;
+		double repetitions;
+		double share = 1;
+		RaidStyle preferred = RaidStyle.AUTO;
+		String styleKey;
+		RaidStyle choice = RaidStyle.AUTO;
+		boolean raidSupplies = true;
+		RaidLoadout loadoutRequirement = RaidLoadout.ANY;
+		boolean displayOnly;
+		String switchGroup;
+		boolean fullSwitchSetup = true;
+		int switchLimit = DEFAULT_SWITCH_LIMIT;
+		boolean prepotted;
+		boolean startable;
+		boolean unboosted;
+		double restBefore;
+		boolean refill;
+		int partySize = 1;
+		boolean shared = true;
+		double finalBlow = 1;
+		Downs downs;
+
+		Spec(String label, MonsterSummary target, double repetitions, EncounterPhase phase, Set<AttackStyle.Type> required)
+		{
+			this.label = label;
+			this.target = target;
+			this.repetitions = repetitions;
+			this.phase = phase;
+			this.required = required;
+			this.styleKey = label;
+		}
+	}
+
+	/** This encounter's inputs, to copy it with one of them changed. */
+	private Spec spec()
+	{
+		Spec spec = new Spec(label, target, repetitions, phase, requiredStyles);
+		spec.share = share;
+		spec.preferred = preferredStyle;
+		spec.styleKey = styleKey;
+		spec.choice = styleChoice;
+		spec.raidSupplies = raidSupplies;
+		spec.loadoutRequirement = loadoutRequirement;
+		spec.displayOnly = displayOnly;
+		spec.switchGroup = switchGroup;
+		spec.fullSwitchSetup = fullSwitchSetup;
+		spec.switchLimit = switchLimit;
+		spec.prepotted = prepotted;
+		spec.startable = startable;
+		spec.unboosted = unboosted;
+		spec.restBefore = restBefore;
+		spec.refill = refill;
+		spec.partySize = partySize;
+		spec.shared = shared;
+		spec.finalBlow = finalBlow;
+		spec.downs = downs;
+		return spec;
 	}
 
 	private static Set<AttackStyle.Type> required(AttackStyle.Type... styles)
@@ -106,6 +295,13 @@ public class RaidEncounter
 			if (EncounterImmunities.classAllowed(target, classOf(type))) { out.add(type); }
 		}
 		return Collections.unmodifiableSet(out.isEmpty() ? candidates : out);
+	}
+
+	/** The one combat class the encounter can be fought with, or null when it allows several. */
+	public CombatClass getFixedClass()
+	{
+		Set<CombatClass> classes = usableStyles.stream().map(RaidEncounter::classOf).collect(Collectors.toSet());
+		return classes.size() == 1 ? classes.iterator().next() : null;
 	}
 
 	private static CombatClass classOf(AttackStyle.Type type)
@@ -146,23 +342,324 @@ public class RaidEncounter
 
 	RaidEncounter withPreferredStyle(RaidStyle preferred)
 	{
-		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferred, styleKey, styleChoice, raidSupplies);
+		Spec spec = spec();
+		spec.preferred = preferred;
+		return new RaidEncounter(spec);
 	}
 
 	RaidEncounter withStyleChoice(RaidStyle choice)
 	{
-		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferredStyle, styleKey, choice, raidSupplies);
+		Spec spec = spec();
+		spec.choice = choice;
+		return new RaidEncounter(spec);
 	}
 
 	/** Share a style choice with the other phases of the same fight. */
 	RaidEncounter withStyleKey(String key)
 	{
-		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferredStyle, key, styleChoice, raidSupplies);
+		Spec spec = spec();
+		spec.styleKey = key;
+		return new RaidEncounter(spec);
 	}
 
 	RaidEncounter withRaidSupplies(boolean available)
 	{
-		return new RaidEncounter(label, target, repetitions, phase, requiredStyles, preferredStyle, styleKey, styleChoice, available);
+		Spec spec = spec();
+		spec.raidSupplies = available;
+		return new RaidEncounter(spec);
+	}
+
+	RaidEncounter withLoadoutRequirement(RaidLoadout requirement)
+	{
+		Spec spec = spec();
+		spec.loadoutRequirement = requirement;
+		return new RaidEncounter(spec);
+	}
+
+	/** Fought this many times (an expectation when fractional) in the combat-time objective. */
+	RaidEncounter withRepetitions(double times)
+	{
+		Spec spec = spec();
+		spec.repetitions = times;
+		return new RaidEncounter(spec);
+	}
+
+	/** Each time, only this share of the target's hitpoints is dealt (a phase of one HP pool). */
+	RaidEncounter withShare(double fraction)
+	{
+		Spec spec = spec();
+		spec.share = fraction;
+		return new RaidEncounter(spec);
+	}
+
+	/**
+	 * Spec energy regenerates for {@code restBefore} seconds before this fight, or the bar is full again when it
+	 * {@code refill}s; the fight itself lasts its time over the {@code party}'s size.
+	 */
+	RaidEncounter withEnergy(double restBefore, boolean refill, int party)
+	{
+		Spec spec = spec();
+		spec.restBefore = restBefore;
+		spec.refill = refill;
+		spec.partySize = Math.max(1, party);
+		return new RaidEncounter(spec);
+	}
+
+	/**
+	 * Spec energy (percent) left after this fight, from {@code before} left after the previous one: it regenerates
+	 * over the rest before this fight (or the bar refills), then a setup opening on a full bar spends its opening specs
+	 * and every setup retains regeneration it does not spend. NaN when a draining opener has no funded entry bar,
+	 * the entry bar cannot pay the reserved opening, or total special spending exceeds available energy.
+	 */
+	double energyAfter(double before, SearchResults result, SetupResult setup)
+	{
+		return energyAfter(before, setup, () -> estimatedSeconds(result, setup));
+	}
+
+	/** As above, with the fight's {@link #estimatedSeconds} supplied. */
+	double energyAfter(double before, SetupResult setup, DoubleSupplier seconds)
+	{
+		double energy = refill ? SpecialRotation.FULL_ENERGY
+			: Math.min(SpecialRotation.FULL_ENERGY, before + SpecialRotation.REGEN_PER_SECOND * restBefore);
+		com.bestgearsetup.calc.SpecialPlan plan = setup.getSpecial();
+		if (plan != null && !setup.usesFullBar() && setup.getSpecials().stream().anyMatch(special -> special.getDrained() != null))
+		{
+			// A regenerated-only damage plan may wait for energy. A phase-entry drain may never borrow future energy.
+			return Double.NaN;
+		}
+		if (setup.usesFullBar())
+		{
+			if (energy + 1e-9 < plan.getOpeningEnergy()) { return Double.NaN; }
+		}
+		GearItem ring = setup.getLoadout().get(Slot.RING);
+		double regen = SpecialRotation.REGEN_PER_SECOND * (ring != null && ring.getId() == ItemID.LIGHTBEARER ? 2 : 1);
+		double gained = regen * seconds.getAsDouble() / Math.max(1, partySize);
+		double spent = 0;
+		if (plan != null)
+		{
+			if (setup.getSpecials().stream().anyMatch(special -> special.getSpecial() == null))
+			{
+				// Legacy synthetic plans without a weapon's energy data assumed all fight regeneration was spent.
+				spent = gained + (setup.usesFullBar() ? barsSpent() * plan.getOpeningEnergy() : 0);
+			}
+			else
+			{
+				spent = specEnergy(plan) * (setup.usesFullBar() ? barsSpent() : repetitions);
+				if (setup.usesFullBar() && repetitions > 1 && plan.getRegeneratedSpecsPerKill() > 0)
+				{ spent += (repetitions - 1) * specEnergy(plan.withRegeneratedEnergy()); }
+			}
+		}
+		double left = energy + gained - spent;
+		return left < -1e-6 ? Double.NaN : Math.min(SpecialRotation.FULL_ENERGY, Math.max(0, left));
+	}
+
+	private static double specEnergy(com.bestgearsetup.calc.SpecialPlan plan)
+	{
+		return plan.getAll().stream().mapToDouble(special -> special.getSpecsPerKill() * special.getSpecial().getEnergy()).sum();
+	}
+
+	/** Damaged only while down between walks, in these ticks ({@link Downs}). */
+	RaidEncounter withDowns(Downs cycle)
+	{
+		Spec spec = spec();
+		spec.downs = cycle;
+		return new RaidEncounter(spec);
+	}
+
+	/** Each player kills their own (adds), and none of the kills is followed by a pause. */
+	RaidEncounter withKillsEach()
+	{
+		Spec spec = spec();
+		spec.shared = false;
+		spec.finalBlow = 0;
+		return new RaidEncounter(spec);
+	}
+
+	/** This share of the encounter's kills is followed by a pause ({@link #finalBlow}). */
+	RaidEncounter withFinalBlow(double share)
+	{
+		Spec spec = spec();
+		spec.finalBlow = share;
+		return new RaidEncounter(spec);
+	}
+
+	/** Players sharing each kill: the party for a boss, 1 for adds each player kills. */
+	public int getKillShare()
+	{
+		return shared ? Math.max(1, partySize) : 1;
+	}
+
+	/** The opening bars a full-bar setup spends here: one fight's worth, or its expectation when fought in some raids. */
+	double barsSpent()
+	{
+		return Math.min(1, repetitions);
+	}
+
+	RaidEncounter withDisplayOnly()
+	{
+		Spec spec = spec();
+		spec.displayOnly = true;
+		return new RaidEncounter(spec);
+	}
+
+	RaidEncounter withSwitchGroup(String group)
+	{
+		return withSwitchGroup(group, true);
+	}
+
+	RaidEncounter withSwitchGroup(String group, boolean fullSetup)
+	{
+		Spec spec = spec();
+		spec.switchGroup = group;
+		spec.fullSwitchSetup = fullSetup;
+		return new RaidEncounter(spec);
+	}
+
+	RaidEncounter withSwitchLimit(int limit)
+	{
+		Spec spec = spec();
+		spec.switchLimit = Math.max(1, Math.min(MAX_SWITCH_LIMIT, limit));
+		return new RaidEncounter(spec);
+	}
+
+	/** In a freeze's switch group, whose switch may swap every slot ({@link #FREEZE_SWITCH_LIMIT}). */
+	RaidEncounter withFreezeSwitches()
+	{
+		Spec spec = spec();
+		spec.switchLimit = FREEZE_SWITCH_LIMIT;
+		return new RaidEncounter(spec);
+	}
+
+	/** A freeze duty: Ice Barrage is cast to freeze, and each cast should land ({@link FreezeDuty}). */
+	public boolean isFreeze()
+	{
+		return loadoutRequirement == RaidLoadout.ICE_BARRAGE;
+	}
+
+	/**
+	 * Whether this group member's setup may be a quick switch from {@code base}. A freeze may swap every slot, so the
+	 * slot count says nothing: it must have been searched from the gear {@code base} wears, or its items (and whether
+	 * it lands) were counted from different gear. {@code base} may also wear pieces in slots that gear left empty, as
+	 * the finished kit does ({@link RaidPlan#fill}), when they don't lower magic attack.
+	 */
+	boolean switchableFrom(SetupResult setup, Loadout base)
+	{
+		if (!isFreeze()) { return true; }
+		Loadout from = setup.getSwitchFrom();
+		if (from == null) { return false; }
+		if (!FreezeDuty.keepsWornGear(setup.getLoadout(), from)) { return false; }
+		for (Slot slot : Slot.values())
+		{
+			GearItem searched = from.get(slot);
+			GearItem worn = base.get(slot);
+			if (searched == null ? worn != null && worn.getMagicBonus() < 0 : worn == null || worn.getId() != searched.getId())
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	RaidEncounter withPrepotted()
+	{
+		Spec spec = spec();
+		spec.prepotted = true;
+		return new RaidEncounter(spec);
+	}
+
+	RaidEncounter withStartable()
+	{
+		Spec spec = spec();
+		spec.startable = true;
+		return new RaidEncounter(spec);
+	}
+
+	RaidEncounter withUnboosted()
+	{
+		Spec spec = spec();
+		spec.unboosted = true;
+		return new RaidEncounter(spec);
+	}
+
+	/** Indices of the encounters the kit may start in, in list order; the first encounter when none is marked. */
+	static int[] starts(List<RaidEncounter> encounters)
+	{
+		int[] starts = java.util.stream.IntStream.range(0, encounters.size()).filter(i -> encounters.get(i).isStartable()).toArray();
+		return starts.length == 0 && !encounters.isEmpty() ? new int[]{0} : starts;
+	}
+
+	/** Indices of each switch group's encounters, in list order; groups of one aren't listed. */
+	static List<int[]> switchGroups(List<RaidEncounter> encounters)
+	{
+		java.util.Map<String, List<Integer>> groups = new java.util.LinkedHashMap<>();
+		for (int index = 0; index < encounters.size(); index++)
+		{
+			String group = encounters.get(index).getSwitchGroup();
+			if (group != null) { groups.computeIfAbsent(group, g -> new ArrayList<>()).add(index); }
+		}
+		List<int[]> out = new ArrayList<>();
+		groups.values().stream().filter(group -> group.size() > 1)
+			.forEach(group -> out.add(group.stream().mapToInt(Integer::intValue).toArray()));
+		return out;
+	}
+
+	/** Allowed full-setup encounters whose setup every other member's is a quick switch from. */
+	static List<Integer> fullSetups(int[] group, List<SetupResult> setups, List<RaidEncounter> encounters)
+	{
+		List<Integer> out = new ArrayList<>();
+		for (int full : group)
+		{
+			if (!encounters.get(full).isFullSwitchSetup() || setups.get(full).getSwitchFrom() != null) { continue; }
+			int limit = encounters.get(full).getSwitchLimit();
+			boolean quick = true;
+			Set<Slot> otherSlots = EnumSet.noneOf(Slot.class);
+			for (int other : group)
+			{
+				if (other == full) { continue; }
+				if (setups.get(other).getSpecial() != null
+					|| !encounters.get(other).switchableFrom(setups.get(other), setups.get(full).getLoadout())) { quick = false; break; }
+				Set<Slot> changed = setups.get(other).getLoadout().switchSlotsFrom(setups.get(full).getLoadout());
+				if (changed.size() > limit) { quick = false; break; }
+				changed.remove(Slot.WEAPON);
+				otherSlots.addAll(changed);
+				if (otherSlots.size() > limit - 1) { quick = false; break; }
+			}
+			if (quick) { out.add(full); }
+		}
+		return out;
+	}
+
+	/** A switch changing the weapon and only slots among the group's chosen extra slots. */
+	static boolean quickSwitchAllows(Loadout setup, Loadout worn, Set<Slot> extras)
+	{
+		Set<Slot> changed = setup.switchSlotsFrom(worn);
+		changed.remove(Slot.WEAPON);
+		return extras.containsAll(changed);
+	}
+
+	/**
+	 * The extra slots a group's quick switches may share under {@code limit} swaps: every largest choice of the
+	 * {@code used} slots (those the candidates change besides the weapon) that fits beside the weapon. A smaller
+	 * choice allows nothing a larger one doesn't.
+	 */
+	static List<Set<Slot>> extraSlotChoices(Set<Slot> used, int limit)
+	{
+		List<Slot> slots = new ArrayList<>(used);
+		slots.remove(Slot.WEAPON);
+		List<Set<Slot>> out = new ArrayList<>();
+		choose(slots, 0, Math.max(0, Math.min(limit - 1, slots.size())), EnumSet.noneOf(Slot.class), out);
+		return out;
+	}
+
+	private static void choose(List<Slot> slots, int from, int size, EnumSet<Slot> chosen, List<Set<Slot>> out)
+	{
+		if (chosen.size() == size) { out.add(EnumSet.copyOf(chosen)); return; }
+		for (int index = from; index <= slots.size() - (size - chosen.size()); index++)
+		{
+			chosen.add(slots.get(index));
+			choose(slots, index + 1, size, chosen, out);
+			chosen.remove(slots.get(index));
+		}
 	}
 
 	/**
@@ -208,10 +705,35 @@ public class RaidEncounter
 			? label.substring(boss.length()).replaceFirst("^[ :]+", "") : label;
 	}
 
-	/** Keep phase HP and DPS intact; repeat the estimated fight time instead. */
+	/**
+	 * Keep phase HP and DPS intact; repeat the estimated fight time instead. Each fight deals this encounter's share
+	 * of the target's hitpoints in whole attacks ({@link KillTime}), so overkill on small targets counts. Display-only
+	 * encounters add none, and a freeze only its switch's burden ({@link #FREEZE_ITEM_SECONDS}).
+	 */
 	double estimatedSeconds(SearchResults result, SetupResult setup)
 	{
-		return repetitions * (double) result.getStartingHitpoints() / setup.getDps().getPrimaryDps();
+		if (displayOnly) { return 0; }
+		if (isFreeze()) { return FREEZE_ITEM_SECONDS * FreezeDuty.burden(setup); }
+		int hitpoints = hitpoints(result);
+		double once = fightSeconds(setup.getDps(), hitpoints);
+		if (setup.usesFullBar() && repetitions > 1)
+		{
+			// Only the first of repeated fights opens on the full bar; the rest spend regenerated energy.
+			return once + (repetitions - 1) * fightSeconds(setup.getSpecial().getRegenerated(), hitpoints);
+		}
+		return repetitions * once;
+	}
+
+	/** One fight's time: whole attacks to kill, or the target's downs when it is only damaged while down. */
+	private double fightSeconds(DpsResult dps, int hitpoints)
+	{
+		return downs == null ? KillTime.seconds(dps, hitpoints) : downs.seconds(dps.getPrimaryDps(), hitpoints);
+	}
+
+	/** Hitpoints dealt each time this encounter is fought: its share of the target's, at least 1. */
+	int hitpoints(SearchResults result)
+	{
+		return Math.max(1, (int) Math.round(share * result.getStartingHitpoints()));
 	}
 
 	@Override public String toString() { return label; }

@@ -28,6 +28,43 @@ public class SpellRunesTest
 {
 	@BeforeClass public static void ownershipRules() { OwnershipRules.init(RuneLiteAPI.GSON); }
 
+	@Test public void carriedSuppliesNormalizeEverySupportedSubstitute()
+	{
+		RaidPlan plan = org.mockito.Mockito.mock(RaidPlan.class);
+		org.mockito.Mockito.when(plan.getInventory()).thenReturn(Collections.emptyList());
+		Map<Integer, Set<Integer>> replacements = Map.ofEntries(
+			Map.entry(ItemID.MISTRUNE, Set.of(ItemID.AIRRUNE, ItemID.WATERRUNE)),
+			Map.entry(ItemID.DUSTRUNE, Set.of(ItemID.AIRRUNE, ItemID.EARTHRUNE)),
+			Map.entry(ItemID.SMOKERUNE, Set.of(ItemID.AIRRUNE, ItemID.FIRERUNE)),
+			Map.entry(ItemID.MUDRUNE, Set.of(ItemID.WATERRUNE, ItemID.EARTHRUNE)),
+			Map.entry(ItemID.STEAMRUNE, Set.of(ItemID.WATERRUNE, ItemID.FIRERUNE)),
+			Map.entry(ItemID.LAVARUNE, Set.of(ItemID.EARTHRUNE, ItemID.FIRERUNE)),
+			Map.entry(ItemID.SUNFIRERUNE, Set.of(ItemID.FIRERUNE)),
+			Map.entry(ItemID.AETHERRUNE, Set.of(ItemID.SOULRUNE, ItemID.COSMICRUNE)));
+		replacements.forEach((substitute, canonical) ->
+		{
+			assertEquals(canonical, SpellRunes.carriedSupplies(plan, id -> id == substitute));
+			assertEquals(canonical, SpellRunes.carriedSupplies(plan, canonical::contains));
+		});
+		assertEquals(Set.of(ItemID.BOOK_OF_THE_DEAD),
+			SpellRunes.carriedSupplies(plan, id -> id == ItemID.BOOK_OF_THE_DEAD));
+	}
+
+	@Test public void onlyCarriedPouchesContributeTheirPlannedContents()
+	{
+		RaidPlan plan = org.mockito.Mockito.mock(RaidPlan.class);
+		RaidPlan.InventoryItem runes = new RaidPlan.InventoryItem("Fire runes",
+			Arrays.asList(ItemID.FIRERUNE, ItemID.SUNFIRERUNE, ItemID.SMOKERUNE), false);
+		RaidPlan.InventoryItem pouch = new RaidPlan.InventoryItem("Rune pouch",
+			Arrays.asList(ItemID.BH_RUNE_POUCH, ItemID.BH_RUNE_POUCH_TROUVER), false, Collections.singletonList(runes));
+		org.mockito.Mockito.when(plan.getInventory()).thenReturn(Collections.singletonList(pouch));
+		assertTrue(SpellRunes.carriedSupplies(plan, id -> false).isEmpty());
+		assertEquals(SpellRunes.carriedSupplies(plan, id -> id == ItemID.BH_RUNE_POUCH),
+			SpellRunes.carriedSupplies(plan, id -> id == ItemID.BH_RUNE_POUCH_TROUVER));
+		assertEquals("A possible smoke substitute is not evidence that air runes were packed", Set.of(ItemID.FIRERUNE),
+			SpellRunes.carriedSupplies(plan, id -> id == ItemID.BH_RUNE_POUCH));
+	}
+
 	@Test
 	public void everyBundledSpellHasItsRunes() throws Exception
 	{
@@ -79,10 +116,10 @@ public class SpellRunesTest
 		Loadout loadout = loadout("dark demonbane", "magic staff", null);
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MAGIC, loadout, null,
 			0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.MARK_OF_DARKNESS, SupportSpell.THRALL)));
-		assertEquals(Integer.valueOf(7), cells.get(ItemID.BLOODRUNE));
-		assertEquals(Integer.valueOf(12), cells.get(ItemID.BOOK_OF_THE_DEAD));
+		assertEquals(Integer.valueOf(12), cells.get(ItemID.BLOODRUNE));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID.BOOK_OF_THE_DEAD));
 		// Aether replaces soul and cosmic; it sits with the first of those (soul).
-		assertEquals(Integer.valueOf(5), cells.get(ItemID.AETHERRUNE));
+		assertEquals(Integer.valueOf(6), cells.get(ItemID.AETHERRUNE));
 		Map<Integer, Integer> thrall = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
 			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.THRALL)));
 		assertEquals(thrall.get(ItemID.COSMICRUNE), thrall.get(ItemID.AETHERRUNE));
@@ -107,7 +144,7 @@ public class SpellRunesTest
 	}
 
 	@Test
-	public void bankLayoutPlacesBoostsBelowTheSpellRunesWithEveryDose()
+	public void bankLayoutPlacesBoostsBeforeRunesWithEveryDose()
 	{
 		Potion combat = new Potion();
 		combat.setId(ItemID._4DOSE2COMBAT);
@@ -143,12 +180,13 @@ public class SpellRunesTest
 		Map<Integer, Integer> none = BestGearSetupBankView.cellsFor(barrage, Collections.emptyList(), id -> false);
 		assertFalse(none.containsKey(ItemID.BH_RUNE_POUCH));
 		assertEquals(Integer.valueOf(4), none.get(ItemID.DEATHRUNE));
-		// Both pouches owned: the divine one takes the cell, the regular one only fills it in its absence.
+		// Keep the bank consistent with the packed inventory: choose the best owned pouch capacity.
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(barrage, Collections.emptyList(),
 			id -> id == ItemID.DIVINE_RUNE_POUCH || id == ItemID.BH_RUNE_POUCH_TROUVER);
 		assertEquals(Integer.valueOf(4), cells.get(ItemID.DIVINE_RUNE_POUCH));
-		assertEquals(Integer.valueOf(4), cells.get(ItemID.BH_RUNE_POUCH_TROUVER));
+		assertFalse(cells.containsKey(ItemID.BH_RUNE_POUCH_TROUVER));
 		assertFalse(cells.containsKey(ItemID.BH_RUNE_POUCH));
+		// Without equipment switches, packed runes stay beside the pouch.
 		assertEquals(Integer.valueOf(5), cells.get(ItemID.DEATHRUNE));
 		// No runes needed, no pouch.
 		assertFalse(BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MAGIC,

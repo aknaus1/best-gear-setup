@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
+import com.bestgearsetup.RaidOptions;
 import com.bestgearsetup.calc.Antifire;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.MonsterSummary;
@@ -23,6 +24,65 @@ import org.junit.Test;
 
 public class FightOptionsPanelTest
 {
+	@Test public void toaPlanningControlsPersistAndRemainVisibleOnPuzzleTargets() throws Exception
+	{
+		Map<String, Object> writes = new HashMap<>();
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin()
+		{
+			@Override public void setConfig(String key, Object value) { writes.put(key, value); }
+		};
+		SwingUtilities.invokeAndWait(() ->
+		{
+			FightOptionsPanel panel = new FightOptionsPanel(plugin, new BestGearSetupConfig() {}, com.bestgearsetup.ConfigItemsForTests.items());
+			panel.setTarget(target("baboon brawler (level 56)", "tombs of amascut"));
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.TOA);
+			assertTrue(control(panel, "toaStartingPathLevelRow").isVisible());
+			assertTrue(control(panel, "toaWalkThePathRow").isVisible());
+			assertFalse(control(panel, "toaPathLevelRow").isVisible());
+			assertTrue(writes.isEmpty());
+			((JSpinner) control(panel, "toaStartingPathLevel")).setValue(3);
+			((JCheckBox) control(panel, "toaWalkThePath")).doClick();
+			assertEquals(3, writes.get("toaStartingPathLevel"));
+			assertEquals(true, writes.get("toaWalkThePath"));
+			panel.setTarget(target("kephri", "tombs of amascut"));
+			assertFalse(control(panel, "toaPathLevelRow").isVisible());
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.SINGLE);
+			assertTrue(control(panel, "toaPathLevelRow").isVisible());
+			assertFalse(control(panel, "toaStartingPathLevelRow").isVisible());
+			assertFalse(control(panel, "toaWalkThePathRow").isVisible());
+		});
+	}
+
+	@Test public void tobSelectorOffersFourRolesAndSavesTheSelection() throws Exception
+	{
+		Map<String, Object> writes = new HashMap<>();
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin()
+		{
+			@Override public void setConfig(String key, Object value) { writes.put(key, value); }
+		};
+		SwingUtilities.invokeAndWait(() ->
+		{
+			FightOptionsPanel panel = new FightOptionsPanel(plugin, new BestGearSetupConfig() {}, com.bestgearsetup.ConfigItemsForTests.items());
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.TOB);
+			JComboBox<?> roles = (JComboBox<?>) control(panel, "tobRole");
+			assertEquals(4, roles.getItemCount());
+			assertEquals(RaidOptions.TobRole.MELEE_DPS, roles.getSelectedItem());
+			assertTrue(writes.isEmpty());
+			for (RaidOptions.TobRole role : RaidOptions.TobRole.values())
+			{
+				roles.setSelectedItem(role);
+				assertEquals(role, writes.get("tobRole"));
+				JComboBox<?> book = (JComboBox<?>) control(panel, "raidSpellbook");
+				assertEquals(!role.freezes(), book.isEnabled());
+				assertEquals(role.freezes() ? com.bestgearsetup.RaidSpellbook.ANCIENT : com.bestgearsetup.RaidSpellbook.AUTO,
+					book.getSelectedItem());
+				assertFalse(writes.containsKey("raidSpellbook"));
+			}
+			assertTrue(control(panel, "tobMaidenRole") == null);
+			assertTrue(control(panel, "tobNylocasRole") == null);
+		});
+	}
+
 	@Test
 	public void wildernessRiskControlsShowTogetherAndSaveTheirValues() throws Exception
 	{
@@ -112,13 +172,12 @@ public class FightOptionsPanelTest
 			assertFalse(control(panel, "toaPathOrderRow").isVisible());
 			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.TOA);
 			assertTrue(control(panel, "toaPathOrderRow").isVisible());
-			assertFalse(control(panel, "tobMaidenRoleRow").isVisible());
+			assertFalse(control(panel, "tobRoleRow").isVisible());
 			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.TOB);
 			assertFalse(control(panel, "toaPathOrderRow").isVisible());
-			assertTrue(control(panel, "tobMaidenRoleRow").isVisible());
-			assertTrue(control(panel, "tobNylocasRoleRow").isVisible());
+			assertTrue(control(panel, "tobRoleRow").isVisible());
 			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.SINGLE);
-			assertFalse(control(panel, "tobNylocasRoleRow").isVisible());
+			assertFalse(control(panel, "tobRoleRow").isVisible());
 			// ToA plans start on the Apmeken baboons, which the raid doesn't scale: the Raid section stays open.
 			panel.setTarget(target("baboon brawler (level 56)", "tombs of amascut"));
 			assertFalse(control(panel, "raidScalingSection").getParent().isVisible());
