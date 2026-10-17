@@ -467,9 +467,11 @@ open the sidebar or perform any game action.
   two. A prayer potion dose restores `7 + Prayer / 4` points and a super restore `8 + Prayer / 4` at your base
   Prayer level. With **Kills per trip** set for a boss outside raids, a *Trip of N kills* line gives the whole
   doses those kills need after the full points you arrive with (your Prayer level), and the inventory and
-  bank list the bottles next to the trip's boosts: super restores if you own any dose, otherwise prayer
-  potions. Flicking, the holy wrench and prayer cape, Rapid Restore-style prayers and time between kills
-  aren't counted.
+  bank list the bottles next to the trip's boosts: super restores if you own any dose, else Sanfew serums,
+  otherwise prayer potions. The bank cell accepts the other two restores as alternatives when the listed one
+  is absent, with the same bottle count (a Sanfew serum restores what a super restore does; a prayer potion
+  one point less a dose). Flicking, the holy wrench and prayer cape, Rapid Restore-style prayers and time
+  between kills aren't counted.
 - **Encounter overhead audit:** [the catalogue report](overhead-audit.md) records the checked boss variants
   and generic-data limits. Ordinary attacks are assumed to check prayers at launch; verified encounter
   rules distinguish delayed cues, impact timing, counted cycles, phases, position, supporting attackers

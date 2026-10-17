@@ -36,6 +36,11 @@ public class TripRestoresTest
 		assertEquals(ItemID._4DOSEPRAYERRESTORE, (int) one.get(0).getIds().get(0));
 		assertEquals(4, one.get(0).getEstimatedDoses());
 		assertEquals(1, one.get(0).getBottles());
+		// Every dose of the other restores follows as a bank alternative, super restores before Sanfew serums.
+		List<Integer> ids = one.get(0).getIds();
+		assertTrue(ids.containsAll(java.util.Arrays.asList(ItemID._1DOSEPRAYERRESTORE, ItemID._1DOSE2RESTORE, ItemID.SANFEW_SALVE_1_DOSE)));
+		assertTrue(ids.indexOf(ItemID._1DOSEPRAYERRESTORE) < ids.indexOf(ItemID._4DOSE2RESTORE));
+		assertTrue(ids.indexOf(ItemID._1DOSE2RESTORE) < ids.indexOf(ItemID.SANFEW_SALVE_4_DOSE));
 		// Two kills: 301 points beyond the start is ten doses, three bottles.
 		List<RaidPlan.InventoryItem> two = restores(RaidPlan.inventoryForSetup(setup, trip(300, setup, 2), id -> false));
 		assertEquals(3, two.size());
@@ -53,6 +58,15 @@ public class TripRestoresTest
 		assertEquals(TripRestores.SUPER_RESTORE, items.get(0).getName());
 		assertEquals(ItemID._4DOSE2RESTORE, (int) items.get(0).getIds().get(0));
 		assertEquals(10, items.get(0).getEstimatedDoses());
+		assertTrue(items.get(0).getIds().indexOf(ItemID._1DOSE2RESTORE) < items.get(0).getIds().indexOf(ItemID.SANFEW_SALVE_4_DOSE));
+		assertTrue(items.get(0).getIds().indexOf(ItemID.SANFEW_SALVE_1_DOSE) < items.get(0).getIds().indexOf(ItemID._4DOSEPRAYERRESTORE));
+		// Owned Sanfew serums lead when no super restore is owned, restoring the same per dose.
+		List<RaidPlan.InventoryItem> sanfews = restores(RaidPlan.inventoryForSetup(setup, trip(300, setup, 2),
+			id -> id == ItemID.SANFEW_SALVE_3_DOSE));
+		assertEquals(TripRestores.SANFEW_SERUM, sanfews.get(0).getName());
+		assertEquals(ItemID.SANFEW_SALVE_4_DOSE, (int) sanfews.get(0).getIds().get(0));
+		assertTrue(sanfews.get(0).getIds().indexOf(ItemID.SANFEW_SALVE_1_DOSE) < sanfews.get(0).getIds().indexOf(ItemID._4DOSE2RESTORE));
+		assertEquals(10, sanfews.get(0).getEstimatedDoses());
 	}
 
 	@Test public void nothingListedWithoutATripPrayersOrAShortfall()

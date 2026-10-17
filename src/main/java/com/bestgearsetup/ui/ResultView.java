@@ -481,7 +481,8 @@ class ResultView extends JPanel
 			+ "s each kill takes in whole attacks. A prayer potion dose restores " + prayerDose
 			+ " points and a super restore " + restoreDose + " at " + level + " Prayer. Assumes the prayers stay on "
 			+ "for the whole kill; flicking, the holy wrench and time between kills aren't counted. A trip starts "
-			+ "with full points and lists super restores when you own some, otherwise prayer potions.");
+			+ "with full points and lists super restores or Sanfew serums when you own some, otherwise prayer "
+			+ "potions; the bank cell accepts any of them.");
 		JLabel points = stat("Prayer: ~" + fmt(estimate.getPointsPerKill(), 1) + " pts/kill");
 		points.setName("prayerPoints");
 		points.setToolTipText(tip);
