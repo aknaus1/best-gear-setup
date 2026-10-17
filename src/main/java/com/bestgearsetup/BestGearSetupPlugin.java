@@ -1667,26 +1667,30 @@ public class BestGearSetupPlugin extends Plugin
 		SearchInputs inputs = SearchInputs.capture(data, api, summary, knownLevels, rememberedLevels, prayerUnlocks,
 			kourendElite, karuulmDungeon, mining, quotes, owned, quantities, config, liveRaid, detectedNotes, true)
 			.with(allowedStyles, extraExcluded, spellbook, raidLoadout, sharedTabs != null, SearchInputs.loadout(switchFrom));
-		BoostTiming timing = boostTiming(config, knownLevels);
 		SearchResults reused = cache.get(inputs, epoch);
 		if (reused != null)
 		{
 			publishProgress.accept(100);
-			return reused.withBoostTiming(timing);
+			return reused.withBoostTiming(boostTiming(config, knownLevels, summary, reused, spellbook));
 		}
 		SearchResults found = searchEncounter(data, summary, knownLevels, rememberedLevels, prayerUnlocks, kourendElite,
 			karuulmDungeon, mining, quotes, owned, quantities, generation, config, liveRaid, detectedNotes, allowedStyles,
 			extraExcluded, spellbook, raidLoadout, publishProgress, sharedTabs, switchFrom);
-		if (found != null) { found = found.withBoostTiming(timing); }
+		if (found != null) { found = found.withBoostTiming(boostTiming(config, knownLevels, summary, found, spellbook)); }
 		if (generation == searchGeneration.get()) { cache.put(inputs, found, epoch); }
 		return found;
 	}
 
-	/** Raid boost dose timing: a kit setting, so it is applied after the encounter search cache. */
-	private static BoostTiming boostTiming(BestGearSetupConfig config, PlayerLevels knownLevels)
+	/**
+	 * Boost dose timing: a kit setting, so it is applied after the encounter search cache. A boss outside raids
+	 * searched on its own carries boosts for the kills of one trip.
+	 */
+	private static BoostTiming boostTiming(BestGearSetupConfig config, PlayerLevels knownLevels, MonsterSummary summary,
+		SearchResults result, RaidSpellbook spellbook)
 	{
+		boolean trip = spellbook == null && summary.isBoss() && RaidScaling.raid(result.getMonster()) == RaidScaling.Raid.NONE;
 		return new BoostTiming(config.divinePotions(), config.repotBelow(),
-			knownLevels == null ? PlayerLevels.maxed() : knownLevels);
+			knownLevels == null ? PlayerLevels.maxed() : knownLevels, trip ? Math.max(1, config.killsPerTrip()) : 0);
 	}
 
 	private SearchResults searchEncounter(GameData data, MonsterSummary summary, PlayerLevels knownLevels, boolean rememberedLevels,
@@ -2804,8 +2808,20 @@ public class BestGearSetupPlugin extends Plugin
 		setBankHighlightedSetup(setup, Collections.emptyList());
 	}
 
+	/** As below, with a boss trip's boost bottles from the setup's search results. */
+	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions, SearchResults results)
+	{
+		setBankHighlightedSetup(setup, potions, setup == null || results == null ? Collections.emptyList()
+			: RaidPlan.tripBoosts(setup, results));
+	}
+
 	/** Publish the displayed setup's equipment, loaded ammunition, spell runes (with an owned rune pouch) and boosts to the bank. */
 	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions)
+	{
+		setBankHighlightedSetup(setup, potions, Collections.<RaidPlan.InventoryItem>emptyList());
+	}
+
+	private void setBankHighlightedSetup(SetupResult setup, List<Potion> potions, List<RaidPlan.InventoryItem> tripBoosts)
 	{
 		setInventoryHighlightedSetup(setup);
 		Set<Integer> ids = new HashSet<>();
@@ -2829,7 +2845,7 @@ public class BestGearSetupPlugin extends Plugin
 		if (bankView != null)
 		{
 			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions, this::bankItemIds,
-				this::ownsItem);
+				this::ownsItem, tripBoosts);
 			int life = lifecycle.get();
 			clientThread.invokeLater(() ->
 			{

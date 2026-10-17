@@ -210,7 +210,7 @@ class ResultView extends JPanel
 	{
 		selectedType = type;
 		selected = setup;
-		if (publishBank) { plugin.setBankHighlightedSetup(setup, potionsFor(setup)); }
+		if (publishBank) { plugin.setBankHighlightedSetup(setup, potionsFor(setup), results); }
 		else { plugin.setInventoryHighlightedSetup(setup); }
 		rebuildTabs();
 		rebuildBody();

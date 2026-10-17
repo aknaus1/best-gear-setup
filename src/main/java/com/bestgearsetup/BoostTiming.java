@@ -8,7 +8,7 @@ import lombok.Value;
 /**
  * How long one boost dose lasts on a raid's combat timeline. A divine potion holds its full boost for five minutes.
  * An ordinary boost drains one level a minute and is drunk again once it falls below {@link #repotPercent} of its
- * full amount at the player's level.
+ * full amount at the player's level. The same timing counts the doses of a trip to a non-raid boss.
  */
 @Value
 class BoostTiming
@@ -25,6 +25,22 @@ class BoostTiming
 	int repotPercent;
 	/** Base levels the boosts are drunk at. */
 	PlayerLevels levels;
+	/** Kills of a non-raid boss one trip's boosts cover; 0 elsewhere, where boosts are listed without quantities. */
+	int tripKills;
+
+	/** Timing without a boss trip: raid plans time their own fights. */
+	BoostTiming(boolean divine, int repotPercent, PlayerLevels levels)
+	{
+		this(divine, repotPercent, levels, 0);
+	}
+
+	BoostTiming(boolean divine, int repotPercent, PlayerLevels levels, int tripKills)
+	{
+		this.divine = divine;
+		this.repotPercent = repotPercent;
+		this.levels = levels;
+		this.tripKills = tripKills;
+	}
 
 	boolean isDivine(Potion potion)
 	{

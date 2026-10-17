@@ -426,6 +426,16 @@ public interface BestGearSetupConfig extends Config
 		return SearchAssumptions.value(this, "raidPartySize", 1);
 	}
 
+	@ConfigItem(keyName = "killsPerTrip", name = "Kills per trip", hidden = true,
+		description = "Boss kills one trip covers outside raids. Boosts are listed as the bottles those kills need, "
+			+ "using the divine and repot settings; time between kills is not counted.",
+		section = searchSection, position = 21)
+	@Range(min = 1, max = 100)
+	default int killsPerTrip()
+	{
+		return SearchAssumptions.value(this, "killsPerTrip", 1);
+	}
+
 	@ConfigItem(keyName = "toaRaidLevel", name = "ToA raid level", hidden = true,
 		description = "Tombs of Amascut raid level (invocations). Scales boss HP and their defence rolls.",
 		section = searchSection, position = 28)

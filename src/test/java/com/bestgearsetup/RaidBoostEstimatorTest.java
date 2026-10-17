@@ -229,6 +229,40 @@ public class RaidBoostEstimatorTest
 		assertEquals(BoostTiming.DIVINE_SECONDS, divine.doseSeconds(combat()), 0);
 	}
 
+	@Test public void bossTripCoversEveryKillBackToBack()
+	{
+		SetupResult setup = setup(1, 1);
+		SearchResults result = result(200, setup, combat());
+		// About 200 seconds a kill on five-minute divine doses.
+		RaidPlan.InventoryItem one = RaidBoostEstimator.trip(result, setup, 1).get(0);
+		assertEquals(1, one.getEstimatedDoses());
+		assertEquals(1, one.getBottles());
+		List<RaidPlan.InventoryItem> ten = RaidBoostEstimator.trip(result, setup, 10);
+		assertEquals(2, ten.size());
+		assertEquals(7, ten.get(0).getEstimatedDoses());
+		assertEquals(2, ten.get(0).getBottles());
+		assertTrue("No kill, no estimate", RaidBoostEstimator.trip(result(200, setup(1, 0), combat()), setup(1, 0), 10).isEmpty());
+	}
+
+	@Test public void setupInventoryListsTripBottlesOnlyForABossTrip()
+	{
+		SetupResult setup = setup(1, 1);
+		List<RaidPlan.InventoryItem> listed = boosts(RaidPlan.inventoryForSetup(setup, result(200, setup, combat()), id -> false));
+		assertEquals(1, listed.size());
+		assertEquals("Outside a trip a boost is listed once, without quantities", 0, listed.get(0).getBottles());
+		List<RaidPlan.InventoryItem> trip = boosts(RaidPlan.inventoryForSetup(setup,
+			result(200, setup, combat()).withBoostTiming(new BoostTiming(true, 50, PlayerLevels.maxed(), 10)), id -> false));
+		assertEquals(2, trip.size());
+		assertEquals(7, trip.get(0).getEstimatedDoses());
+	}
+
+	private static List<RaidPlan.InventoryItem> boosts(List<RaidPlan.InventoryItem> inventory)
+	{
+		List<RaidPlan.InventoryItem> boosts = new ArrayList<>();
+		inventory.stream().filter(item -> item.getGroup() == RaidPlan.InventoryGroup.BOOSTS).forEach(boosts::add);
+		return boosts;
+	}
+
 	private static int doses(int hp, BoostTiming timing, Potion... potions)
 	{
 		SetupResult setup = setup(1, 1);

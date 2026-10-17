@@ -37,7 +37,7 @@ class FightOptionsPanel extends JPanel
 	 */
 	private static final String[] TARGET_OPTIONS = {"autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel",
 		"toaStartingPathLevel", "toaWalkThePath", "toaMoreOverlords", "coxChallengeMode", "miningLevel", "raidEquipmentLimit",
-		"raidSpellbook", "toaPathOrder", "tobRole", "quickSwitchLimit", "forinthrySurge"};
+		"raidSpellbook", "toaPathOrder", "tobRole", "quickSwitchLimit", "forinthrySurge", "killsPerTrip"};
 	/** Wide enough for the largest maximum shown here (2000 damage). */
 	private static final int SPINNER_COLUMNS = 4;
 	private final SettingRows settingRows;
@@ -48,6 +48,8 @@ class FightOptionsPanel extends JPanel
 	private final String spellbookTip;
 	private boolean freezeSpellbookLocked;
 	private Monster target = new Monster();
+	/** Kills per trip only apply to bosses, which the target's tags don't say. */
+	private boolean boss;
 	/** The complete raid being planned; path order and roles only change complete raid plans. */
 	private RaidPlanType raidPlan = RaidPlanType.SINGLE;
 	private Runnable targetOptionsListener;
@@ -68,7 +70,8 @@ class FightOptionsPanel extends JPanel
 		settingRows = new SettingRows(plugin, config, items, SPINNER_COLUMNS, this::updateVisibility);
 		SidebarSection conditions = accordion.create("fightConditions", "Fight conditions");
 		addRows(conditions, "activeEncounter", "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
-			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "thrall");
+			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "thrall",
+			"killsPerTrip");
 		conditions.showAsEditor();
 		add(BestGearSetupPanel.left(conditions));
 		SidebarSection specials = accordion.create("specialAttacks", "Special attacks");
@@ -104,6 +107,7 @@ class FightOptionsPanel extends JPanel
 	void setTarget(MonsterSummary summary)
 	{
 		target = summary == null ? new Monster() : targetOf(summary);
+		boss = summary != null && summary.isBoss();
 		refresh();
 	}
 
@@ -155,6 +159,8 @@ class FightOptionsPanel extends JPanel
 		freezeSpellbookLocked = freeze;
 		control("raidSpellbook").setEnabled(!freeze);
 		control("raidSpellbook").setToolTipText(freeze ? "Ancient is required for this role's Ice Barrage freezes." : spellbookTip);
+		// Raid plans time their own boosts; trips are for bosses fought on their own.
+		settingRows.row("killsPerTrip").setVisible(boss && !planned && raid == RaidScaling.Raid.NONE);
 		settingRows.row("aoeTargets").setVisible(selected("aoe"));
 		settingRows.row("specEnergy").setVisible(selected("killSpecials"));
 		settingRows.row("drainSpecs").setVisible(selected("killSpecials"));

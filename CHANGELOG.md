@@ -5,6 +5,8 @@ is what the Plugin Hub shows.
 
 ## Unreleased
 
+- Add Kills per trip (Fight conditions, default 1) for bosses outside raids: the inventory and bank
+  list the boost bottles and doses those kills need, using the divine and repot settings.
 - Show each setup's prayer cost under its DPS: points per kill from the assumed offensive prayer and
   recommended overhead at the worn prayer bonus, and the prayer potion and super restore doses per kill.
 

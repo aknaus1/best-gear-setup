@@ -107,6 +107,7 @@ public final class ConfigSettings
 		add("raidPotions", BestGearSetupConfig::raidPotions);
 		add("divinePotions", BestGearSetupConfig::divinePotions);
 		add("repotBelow", BestGearSetupConfig::repotBelow);
+		add("killsPerTrip", BestGearSetupConfig::killsPerTrip);
 		add("taskMode", BestGearSetupConfig::taskMode);
 		add("autoRaid", BestGearSetupConfig::autoRaid);
 		add("meleePotion", BestGearSetupConfig::meleePotion);
