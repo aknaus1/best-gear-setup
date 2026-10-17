@@ -108,7 +108,7 @@ public class CombatContext
 	}
 
 	/** The same fight after further drains land on the target, at every HP state too. */
-	CombatContext withDrains(SpecialAttacks drains)
+	public CombatContext withDrains(SpecialAttacks drains)
 	{
 		if (!drains.isAny())
 		{

@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.IntPredicate;
+import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import lombok.Value;
 import lombok.AllArgsConstructor;
@@ -175,23 +176,8 @@ public class RaidPlan
 	/** The same inventory ordering for the bank's selected encounter and boost choices. */
 	static List<InventoryItem> inventoryForSetup(SetupResult setup, List<Potion> potions, IntPredicate owns)
 	{
-		List<SetupResult> setups = Collections.singletonList(setup);
-		Set<Integer> worn = wornIds(setup.getLoadout());
-		List<InventoryItem> items = new ArrayList<>();
-		for (GearItem item : gear(setup).values())
-		{
-			if (!worn.contains(item.getId())) { items.add(equipmentItem(item, setups)); }
-		}
-		Supplies supplies = new Supplies(setup, potions, owns);
-		for (InventoryItem spell : supplies.spells)
-		{
-			if (!worn.contains(spell.getIds().get(0))) { addSupply(items, spell); }
-		}
-		supplies.boosts.forEach(boost -> addSupply(items, boost));
-		packRunes(items, owns);
-		weaponStandIn(items, setup, setups);
-		sortInventory(items);
-		return items;
+		return filledInventory(Collections.singletonList(setup), owns, new Memo(), gear(setup), true, 0,
+			index -> new Supplies(setup, potions, owns));
 	}
 
 	/**
@@ -252,14 +238,7 @@ public class RaidPlan
 		}
 		Set<Integer> total = new java.util.HashSet<>();
 		equipment.forEach(item -> total.add(item.getId()));
-		int supplies = 0;
-		for (InventoryItem item : inventory) { if (!item.isEquipment() && !total.contains(item.getIds().get(0))) { supplies++; } }
-		for (Loadout loadout : wornStates(setup))
-		{
-			Set<Integer> carried = new java.util.HashSet<>(total);
-			carried.removeAll(wornIds(loadout));
-			if (carried.size() + supplies > 28) { return false; }
-		}
+		if (filledMaximumInventory(Collections.singletonList(setup), total, inventory, new Memo()) > 28) { return false; }
 		Set<Integer> packed = new java.util.HashSet<>();
 		inventory.forEach(item ->
 		{
@@ -716,6 +695,15 @@ public class RaidPlan
 		return out;
 	}
 
+	/** Unique items to acquire: worn and special equipment, plus ammunition loaded inside weapons. */
+	public static Map<Integer, GearItem> requiredItems(SetupResult setup)
+	{
+		Map<Integer, GearItem> items = gear(setup);
+		put(items, setup.getLoadout().getLoadedAmmo());
+		setup.getSpecials().forEach(special -> put(items, special.getLoadedAmmo()));
+		return items;
+	}
+
 	static void put(Map<Integer, GearItem> out, GearItem item)
 	{
 		if (item != null && !providedInRaid(item)) { out.putIfAbsent(item.getId(), item); }
@@ -746,7 +734,8 @@ public class RaidPlan
 	static List<InventoryItem> filledInventory(List<SetupResult> setups, List<SearchResults> results, IntPredicate owns, Memo memo,
 		int start)
 	{
-		return filledInventory(setups, results, owns, memo, kitGear(setups, memo), true, start);
+		return filledInventory(setups, owns, memo, kitGear(setups, memo), true, start,
+			index -> memo.supplies(setups.get(index), results.get(index), owns));
 	}
 
 	/**
@@ -772,7 +761,8 @@ public class RaidPlan
 	static List<InventoryItem> packedInventory(List<SetupResult> setups, List<SearchResults> results, IntPredicate owns, Memo memo,
 		Map<Integer, GearItem> gear, int start)
 	{
-		return filledInventory(setups, results, owns, memo, gear, false, start);
+		return filledInventory(setups, owns, memo, gear, false, start,
+			index -> memo.supplies(setups.get(index), results.get(index), owns));
 	}
 
 	/** Every setup's {@link Memo#gear}, in setup order. */
@@ -812,8 +802,8 @@ public class RaidPlan
 		return item.isEquipment() || SpellRunes.isSpellSupply(id) || SpellRunes.pouchCapacity(id) > 0;
 	}
 
-	private static List<InventoryItem> filledInventory(List<SetupResult> setups, List<SearchResults> results, IntPredicate owns,
-		Memo memo, Map<Integer, GearItem> gear, boolean display, int start)
+	private static List<InventoryItem> filledInventory(List<SetupResult> setups, IntPredicate owns,
+		Memo memo, Map<Integer, GearItem> gear, boolean display, int start, IntFunction<Supplies> required)
 	{
 		Set<Integer> wornIds = slotIds(setups.get(start).getLoadout());
 		List<InventoryItem> items = new ArrayList<>();
@@ -829,7 +819,7 @@ public class RaidPlan
 		}
 		for (int i = 0; i < setups.size(); i++)
 		{
-			Supplies supplies = memo.supplies(setups.get(i), results.get(i), owns);
+			Supplies supplies = required.apply(i);
 			for (InventoryItem spell : supplies.spells)
 			{
 				if (!wornIds.contains(spell.getIds().get(0)) && listed.add(spell.getIds().get(0))) { items.add(spell); }
@@ -1025,21 +1015,11 @@ public class RaidPlan
 
 	private static InventoryItem equipmentItem(GearItem item, List<SetupResult> setups)
 	{
-		Map<Integer, InventoryItem> contents = new LinkedHashMap<>();
-		for (SetupResult setup : setups)
-		{
-			if (setup.getLoadout().getWeapon() != null && setup.getLoadout().getWeapon().getId() == item.getId())
-			{ loaded(contents, setup.getLoadout().getLoadedAmmo()); }
-			for (SpecialPlan special : setup.getSpecials())
-			{
-				if (special.getWeapon().getId() == item.getId()) { loaded(contents, special.getLoadedAmmo()); }
-			}
-		}
-		InventoryGroup group = equipmentGroup(item, setups);
+		EquipmentUse use = new EquipmentUse(item, setups);
 		return new InventoryItem(item.getName(), BestGearSetupBankView.itemIds(item), true,
-			Collections.unmodifiableList(new ArrayList<>(contents.values())), group, 0, 0, false, item.getSlot(),
-			uses(item, setups, group), wornIn(item, setups, group), specStyle(item, setups), inventoryDamage(item, group, setups),
-			inventoryAccuracy(item, group, setups));
+			Collections.unmodifiableList(new ArrayList<>(use.contents.values())), use.group, 0, 0, false, item.getSlot(),
+			use.count, use.wornIn, use.specStyle, inventoryDamage(item, use.group, setups),
+			inventoryAccuracy(item, use.group, setups));
 	}
 
 	private static double inventoryDamage(GearItem item, InventoryGroup group, List<SetupResult> setups)
@@ -1072,82 +1052,82 @@ public class RaidPlan
 			}).max().orElse(0);
 	}
 
-	/**
-	 * Setups that wear this item for its own sake or spec with it; gear only worn to fill an empty slot, or inherited
-	 * unchanged by a quick weapon switch, counts only when nothing else uses it.
-	 */
-	private static int uses(GearItem item, List<SetupResult> setups, InventoryGroup group)
+	/** One classification pass owns loaded contents, style votes and encounter provenance for an equipment entry. */
+	private static final class EquipmentUse
 	{
-		int own = 0;
-		int any = 0;
-		for (SetupResult setup : setups)
-		{
-			int use = inventoryUse(item, setup, group);
-			if (use == OWN_USE) { own++; }
-			if (use != NO_USE) { any++; }
-		}
-		return own > 0 ? own : any;
-	}
+		final Map<Integer, InventoryItem> contents = new LinkedHashMap<>();
+		final InventoryGroup group;
+		CombatClass specStyle;
+		int count;
+		long wornIn;
 
-	/** The setups counted by {@link #uses}, as {@link InventoryItem#getWornIn} bits; setups past the 64th aren't recorded. */
-	private static long wornIn(GearItem item, List<SetupResult> setups, InventoryGroup group)
-	{
-		long own = 0;
-		long any = 0;
-		for (int i = 0; i < Math.min(setups.size(), Long.SIZE); i++)
+		EquipmentUse(GearItem item, List<SetupResult> setups)
 		{
-			int use = inventoryUse(item, setups.get(i), group);
-			if (use == OWN_USE) { own |= 1L << i; }
-			if (use != NO_USE) { any |= 1L << i; }
-		}
-		return own != 0 ? own : any;
-	}
-
-	/** The first planned special using this weapon, offhand or ammunition determines its style. */
-	private static CombatClass specStyle(GearItem item, List<SetupResult> setups)
-	{
-		for (SetupResult setup : setups)
-		{
-			for (SpecialPlan plan : setup.getSpecials())
+			int[] deliberate = new int[3];
+			int[] incidental = new int[3];
+			int[] worn = new int[setups.size()];
+			boolean[] special = new boolean[setups.size()];
+			boolean hasSpecial = false;
+			for (int i = 0; i < setups.size(); i++)
 			{
-				boolean used = plan.getWeapon().getId() == item.getId()
-					|| (plan.getOffhand() != null && plan.getOffhand().getId() == item.getId())
-					|| (plan.getAmmo() != null && plan.getAmmo().getId() == item.getId());
-				if (!used || plan.getStyle() == null) { continue; }
-				switch (plan.getStyle().getType())
+				SetupResult setup = setups.get(i);
+				worn[i] = wornUse(item, setup);
+				int style = combatGroup(setup.getCombatClass()).ordinal();
+				if (worn[i] == OWN_USE) { deliberate[style]++; }
+				if (worn[i] != NO_USE) { incidental[style]++; }
+				if (setup.getLoadout().getWeapon() != null && setup.getLoadout().getWeapon().getId() == item.getId())
+				{ loaded(contents, setup.getLoadout().getLoadedAmmo()); }
+				for (SpecialPlan plan : setup.getSpecials())
 				{
-					case MAGIC: return CombatClass.MAGIC;
-					case RANGED: case ATLATL: return CombatClass.RANGED;
-					default: return CombatClass.MELEE;
+					if (plan.getWeapon().getId() == item.getId()) { loaded(contents, plan.getLoadedAmmo()); }
+					if (!specialUses(plan, item)) { continue; }
+					special[i] = hasSpecial = true;
+					if (specStyle == null && plan.getStyle() != null) { specStyle = WeaponRules.classOf(plan.getStyle()); }
 				}
 			}
+			InventoryGroup primary = mostUsed(deliberate);
+			group = item.getSubcategory().equalsIgnoreCase("pickaxe") || item.getLowerCombatName().contains("pickaxe")
+				? InventoryGroup.OTHER : primary != InventoryGroup.OTHER ? primary
+				: hasSpecial ? InventoryGroup.SPECIAL : mostUsed(incidental);
+			int ownCount = 0;
+			long own = 0;
+			for (int i = 0; i < setups.size(); i++)
+			{
+				int usage = group.compareTo(InventoryGroup.SPECIAL) >= 0 ? special[i] ? OWN_USE : worn[i]
+					: combatGroup(setups.get(i).getCombatClass()) == group ? worn[i] : NO_USE;
+				if (usage != NO_USE) { count++; if (i < Long.SIZE) { wornIn |= 1L << i; } }
+				if (usage == OWN_USE) { ownCount++; if (i < Long.SIZE) { own |= 1L << i; } }
+			}
+			if (ownCount > 0) { count = ownCount; }
+			if (own != 0) { wornIn = own; }
 		}
-		return null;
+	}
+
+	/** Deliberate worn uses take precedence; ties keep melee, ranged, magic order. */
+	private static InventoryGroup mostUsed(int[] counts)
+	{
+		int most = -1;
+		for (int i = 0; i < counts.length; i++)
+		{ if (counts[i] > 0 && (most < 0 || counts[i] > counts[most])) { most = i; } }
+		return most < 0 ? InventoryGroup.OTHER : InventoryGroup.values()[most];
+	}
+
+	private static boolean specialUses(SpecialPlan plan, GearItem item)
+	{
+		return java.util.stream.Stream.of(plan.getWeapon(), plan.getOffhand(), plan.getAmmo())
+			.anyMatch(gear -> gear != null && gear.getId() == item.getId());
 	}
 
 	private static final int NO_USE = 0;
 	private static final int ANY_USE = 1;
 	private static final int OWN_USE = 2;
 
-	/** A shared piece's display frequency comes from its selected combat style, not unrelated encounters or specs. */
-	private static int inventoryUse(GearItem item, SetupResult setup, InventoryGroup group)
-	{
-		if (group.compareTo(InventoryGroup.SPECIAL) >= 0) { return use(item, setup); }
-		return combatGroup(setup.getCombatClass()) == group ? wornUse(item, setup) : NO_USE;
-	}
-
 	/** Whether the setup wears this item for its own sake or specs with it, only wears it otherwise, or neither. */
 	private static int use(GearItem item, SetupResult setup)
 	{
 		int use = wornUse(item, setup);
 		if (use == OWN_USE) { return use; }
-		for (SpecialPlan plan : setup.getSpecials())
-		{
-			for (GearItem special : new GearItem[]{plan.getWeapon(), plan.getOffhand(), plan.getAmmo()})
-			{
-				if (special != null && special.getId() == item.getId()) { return OWN_USE; }
-			}
-		}
+		if (setup.getSpecials().stream().anyMatch(plan -> specialUses(plan, item))) { return OWN_USE; }
 		return use;
 	}
 
@@ -1167,36 +1147,7 @@ public class RaidPlan
 
 	private static InventoryGroup equipmentGroup(GearItem item, List<SetupResult> setups)
 	{
-		if (item.getSubcategory().equalsIgnoreCase("pickaxe") || item.getLowerCombatName().contains("pickaxe"))
-		{ return InventoryGroup.OTHER; }
-		InventoryGroup primary = equipmentGroup(item, setups, false);
-		return primary == InventoryGroup.OTHER ? equipmentGroup(item, setups, true) : primary;
-	}
-
-	/** The style with the most deliberate worn uses owns shared gear; ties use the fixed melee/ranged/magic order. */
-	private static InventoryGroup equipmentGroup(GearItem item, List<SetupResult> setups, boolean includeFilled)
-	{
-		int[] uses = new int[3];
-		boolean specialUse = false;
-		for (SetupResult setup : setups)
-		{
-			int worn = wornUse(item, setup);
-			if (worn == OWN_USE || (includeFilled && worn == ANY_USE))
-			{
-				uses[combatGroup(setup.getCombatClass()).ordinal()]++;
-			}
-			for (SpecialPlan plan : setup.getSpecials())
-			{
-				for (GearItem special : new GearItem[]{plan.getWeapon(), plan.getOffhand(), plan.getAmmo()})
-				{
-					if (special != null && special.getId() == item.getId()) { specialUse = true; }
-				}
-			}
-		}
-		int most = -1;
-		for (int i = 0; i < uses.length; i++)
-		{ if (uses[i] > 0 && (most < 0 || uses[i] > uses[most])) { most = i; } }
-		return most >= 0 ? InventoryGroup.values()[most] : specialUse ? InventoryGroup.SPECIAL : InventoryGroup.OTHER;
+		return new EquipmentUse(item, setups).group;
 	}
 
 	private static InventoryGroup combatGroup(CombatClass style)
@@ -1302,12 +1253,6 @@ public class RaidPlan
 		return states;
 	}
 
-	private static void addSupply(List<InventoryItem> items, InventoryItem supply)
-	{
-		Integer id = supply.getIds().get(0);
-		for (InventoryItem item : items) { if (item.getIds().get(0).equals(id)) { return; } }
-		items.add(supply);
-	}
 
 	private static InventoryItem supply(String name, List<Integer> ids)
 	{
@@ -1319,11 +1264,6 @@ public class RaidPlan
 	{
 		final List<InventoryItem> spells = new ArrayList<>();
 		final List<InventoryItem> boosts = new ArrayList<>();
-
-		Supplies(SetupResult setup, SearchResults result, IntPredicate owns)
-		{
-			this(setup, result.carriedPotions(setup), owns);
-		}
 
 		Supplies(SetupResult setup, List<Potion> potions, IntPredicate owns)
 		{
@@ -1361,7 +1301,7 @@ public class RaidPlan
 
 		private Supplies supplies(SetupResult setup, SearchResults result, IntPredicate owns)
 		{
-			return supplies.computeIfAbsent(setup, s -> new Supplies(s, result, owns));
+			return supplies.computeIfAbsent(setup, s -> new Supplies(s, result.carriedPotions(s), owns));
 		}
 
 		private SetupResult filled(SetupResult setup, GearItem ammo)

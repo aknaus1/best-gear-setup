@@ -10,6 +10,7 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -33,20 +34,18 @@ import net.runelite.api.Point;
 import java.util.concurrent.ScheduledExecutorService;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
-import net.runelite.api.MenuAction;
-import net.runelite.api.Menu;
-import net.runelite.api.MenuEntry;
+import net.runelite.api.ItemContainer;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.ScriptEvent;
 import net.runelite.api.ScriptID;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.MenuOptionClicked;
-import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.ScriptCallbackEvent;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.gameval.VarClientID;
@@ -109,55 +108,37 @@ public class BankViewTest
 		assertEquals("Original potion", bank.items[4].widget.getName());
 		assertEquals("Withdraw-1", bank.items[4].values.get("Action0"));
 		assertEquals(1, bank.items[4].widget.getItemQuantity()); assertEquals(4, bank.items[4].value("Index"));
-		assertEquals(8, bank.container.widget.getChildren().length); // six real stacks, heading, and repeated potion entry
-		Widget duplicate = bank.container.widget.getChildren()[7];
+		// The repeated potion entry is drawn in the bank's first spare item slot; no widgets are created.
+		assertEquals(bank.items.length + Fixture.SPARE_SLOTS + 1, bank.container.widget.getChildren().length);
+		Widget duplicate = bank.spares[0].widget;
+		int spareSlot = bank.spares[0].value("Index");
 		assertEquals(ItemID._4DOSE2COMBAT, duplicate.getItemId());
 		assertFalse(duplicate.isSelfHidden());
-		assertTrue(duplicate.hasListener());
-		assertTrue(Arrays.asList(duplicate.getActions()).contains("Withdraw-1"));
+		assertEquals(Arrays.asList("Withdraw-1", "Examine"), Arrays.asList(duplicate.getActions()));
 		assertTrue(duplicate.getOriginalX() != bank.items[4].value("OriginalX")
 			|| duplicate.getOriginalY() != bank.items[4].value("OriginalY"));
-		assertEquals("Withdraw-1", bank.container.children.get(0).values.get("Action0"));
+		// The game builds the spare slot's menu; a click is redirected to the real stack's bank slot.
 		MenuEntry withdraw = mock(MenuEntry.class);
-		when(withdraw.getOption()).thenReturn("Cancel");
-		Menu menu = mock(Menu.class);
-		when(bank.client.getMenu()).thenReturn(menu);
-		when(menu.createMenuEntry(anyInt())).thenAnswer(i ->
-		{
-			MenuEntry entry = mock(MenuEntry.class);
-			when(entry.setOption(any())).thenAnswer(setOption ->
-			{
-				when(entry.getOption()).thenReturn(setOption.getArgument(0));
-				bank.menuEntries.add(entry);
-				return entry;
-			});
-			return entry;
-		});
-		Point mouse = new Point(duplicate.getOriginalX() + 1, duplicate.getOriginalY() + 1);
-		when(bank.client.getMouseCanvasPosition()).thenReturn(mouse);
-		bank.view.onMenuEntryAdded(new MenuEntryAdded(withdraw));
-		assertEquals(2, bank.menuEntries.size());
-		MenuEntry duplicateExamine = bank.menuEntries.get(0);
-		verify(duplicateExamine).setOption("Examine");
-		verify(duplicateExamine).setType(MenuAction.CC_OP);
-		verify(duplicateExamine).setIdentifier(2);
-		verify(duplicateExamine).setParam0(4);
-		verify(duplicateExamine).setParam1(InterfaceID.Bankmain.ITEMS);
-		MenuEntry duplicateWithdraw = bank.menuEntries.get(1);
-		verify(duplicateWithdraw).setOption("Withdraw-1");
-		verify(duplicateWithdraw).setType(MenuAction.CC_OP);
-		verify(duplicateWithdraw).setIdentifier(1);
-		verify(duplicateWithdraw).setParam0(4);
-		verify(duplicateWithdraw).setParam1(InterfaceID.Bankmain.ITEMS);
-		assertEquals(Arrays.asList("Examine", "Withdraw-1"), bank.menuEntries.stream()
-			.map(MenuEntry::getOption).collect(java.util.stream.Collectors.toList()));
+		when(withdraw.getOption()).thenReturn("Withdraw-1");
+		when(withdraw.getParam0()).thenReturn(spareSlot);
+		when(withdraw.getParam1()).thenReturn(InterfaceID.Bankmain.ITEMS);
+		bank.view.onMenuOptionClicked(new MenuOptionClicked(withdraw));
+		verify(withdraw).setParam0(4);
 		bank.view.clear();
 		assertEquals(null, bank.view.boostGuidance(ItemID._4DOSE2COMBAT));
 		assertEquals("Original potion", bank.items[4].widget.getName());
 		assertTrue(duplicate.isSelfHidden());
 		assertEquals(-1, duplicate.getItemId());
+		assertEquals(0, duplicate.getActions().length);
+		// A cleared view leaves clicks on that slot alone.
+		MenuEntry later = mock(MenuEntry.class);
+		when(later.getOption()).thenReturn("Withdraw-1");
+		when(later.getParam0()).thenReturn(spareSlot);
+		when(later.getParam1()).thenReturn(InterfaceID.Bankmain.ITEMS);
+		bank.view.onMenuOptionClicked(new MenuOptionClicked(later));
+		verify(later, never()).setParam0(anyInt());
 		bank.view.setSelection(setup); bank.view.show();
-		assertEquals(8, bank.container.widget.getChildren().length);
+		assertEquals(bank.items.length + Fixture.SPARE_SLOTS + 1, bank.container.widget.getChildren().length);
 		assertEquals(null, bank.view.boostGuidance(ItemID._4DOSE2COMBAT));
 	}
 	/** Main code gets the client's Gson in startUp; tests use the same instance. */
@@ -380,8 +361,7 @@ public class BankViewTest
 		assertEquals(99, bank.items[6].value("OriginalX"));
 		assertEquals(180, bank.items[5].value("OriginalY"));
 		assertEquals(147, bank.items[5].value("OriginalX"));
-		assertEquals(10, bank.container.widget.getChildren().length);
-		Widget extraPrepot = bank.container.widget.getChildren()[9];
+		Widget extraPrepot = bank.spares[0].widget;
 		assertEquals(ItemID._1DOSE2ATTACK, extraPrepot.getItemId());
 		assertEquals(180, extraPrepot.getOriginalY());
 		assertEquals(195, extraPrepot.getOriginalX());
@@ -618,6 +598,27 @@ public class BankViewTest
 	}
 
 	@Test
+	public void reopeningBankRestoresOnlyALayoutThatWasShowing() throws Exception
+	{
+		Fixture bank = new Fixture();
+		bank.view.setSelection(setup(Slot.WEAPON, item(12926)));
+		bank.view.show();
+		bank.view.onWidgetClosed(new WidgetClosed(InterfaceID.BANKMAIN, 0, true));
+		assertFalse(bank.view.isActive());
+		bank.tab = 3;
+		bank.rebuild();
+		assertTrue(bank.view.isActive());
+		assertEquals(0, bank.tab);
+		assertTrue(bank.items[2].widget.isSelfHidden());
+
+		bank.view.clear();
+		bank.view.onWidgetClosed(new WidgetClosed(InterfaceID.BANKMAIN, 0, true));
+		bank.rebuild();
+		assertFalse(bank.view.isActive());
+		assertFalse(bank.items[2].widget.isSelfHidden());
+	}
+
+	@Test
 	public void closedBankOrEmptySelectionDoesNotStartASearch() throws Exception
 	{
 		Fixture bank = new Fixture();
@@ -654,7 +655,10 @@ public class BankViewTest
 	/** Minimal game-script fixture: native tab/search mode, filtering, and rebuilt bank widgets. */
 	private static class Fixture
 	{
+		/** Unused item slots the game builds after the real stacks, before the tab headings. */
+		static final int SPARE_SLOTS = 3;
 		private final WidgetState[] items;
+		private final WidgetState[] spares = new WidgetState[SPARE_SLOTS];
 		private final WidgetState container = new WidgetState(-1, 0, -1);
 		private WidgetState universe = new WidgetState(-1, 0, -1);
 		private final WidgetState heading = new WidgetState(-1, 0, 1410);
@@ -667,7 +671,6 @@ public class BankViewTest
 		private int tab;
 		private final List<Object> posted = new ArrayList<>();
 		private final Map<Integer, ItemComposition> compositions = new HashMap<>();
-		private final List<MenuEntry> menuEntries = new ArrayList<>();
 		private final BestGearSetupBankView view;
 		private final Client client;
 		private final ClientThread thread;
@@ -684,18 +687,28 @@ public class BankViewTest
 			{
 				items[4 + i] = new WidgetState(extraItems[i], 1, 4 + i);
 			}
-			Widget[] children = new Widget[items.length + 1];
+			Widget[] children = new Widget[items.length + SPARE_SLOTS + 1];
 			for (int i = 0; i < items.length; i++)
 			{
 				children[i] = items[i].widget;
 			}
-			children[items.length] = heading.widget;
+			for (int i = 0; i < SPARE_SLOTS; i++)
+			{
+				spares[i] = new WidgetState(-1, 0, items.length + i);
+				spares[i].values.put("SelfHidden", true);
+				children[items.length + i] = spares[i].widget;
+			}
+			children[children.length - 1] = heading.widget;
+			heading.values.put("OriginalHeight", 20);
 			container.values.put("Width", 460);
 			container.values.put("Height", 140);
 			container.values.put("ScrollHeight", 36);
 			container.values.put("Children", children);
 			container.values.put("OnInvTransmitListener", new Object[]{ScriptID.BANKMAIN_BUILD});
 			client = mock(Client.class);
+			ItemContainer bankItems = mock(ItemContainer.class);
+			when(bankItems.size()).thenReturn(items.length);
+			when(client.getItemContainer(InventoryID.BANK)).thenReturn(bankItems);
 			when(client.getWidget(anyInt())).thenAnswer(i -> !open ? null
 				: i.<Integer>getArgument(0) == InterfaceID.Bankmain.UNIVERSE ? universe.widget : container.widget);
 			when(client.getVarcIntValue(anyInt())).thenAnswer(i ->
@@ -753,7 +766,7 @@ public class BankViewTest
 				@Override
 				public void post(Object event) { posted.add(event); }
 			};
-			view = new BestGearSetupBankView(client, manager, bankSearch, eventBus);
+			view = new BestGearSetupBankView(client, thread, manager, bankSearch, eventBus);
 		}
 
 		private ItemComposition composition(int id)

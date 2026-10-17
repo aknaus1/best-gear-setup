@@ -3,6 +3,9 @@ package com.bestgearsetup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,12 +16,42 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import net.runelite.client.config.ConfigItemDescriptor;
+import net.runelite.client.config.ConfigManager;
 import org.junit.Test;
 
 public class SearchAssumptionsTest
 {
+	@Test public void runeliteConfigurationDefaultsAndSnapshotsShareTheSameValues()
+	{
+		// Exercise RuneLite's actual config proxy: it rejects unannotated instance methods.
+		ConfigManager manager = mock(ConfigManager.class, withSettings()
+			.useConstructor(null, mock(ScheduledExecutorService.class), null, null, null, null, null, null));
+		doCallRealMethod().when(manager).getConfig(BestGearSetupConfig.class);
+		BestGearSetupConfig live = manager.getConfig(BestGearSetupConfig.class);
+		BestGearSetupConfig defaults = new BestGearSetupConfig() { };
+		BestGearSetupConfig snapshot = SearchAssumptions.capture(live, Collections.emptyMap());
+		assertEquals("Search snapshots are plain immutable objects", SearchAssumptions.class, snapshot.getClass());
+		for (Map.Entry<String, Function<BestGearSetupConfig, Object>> entry : GETTERS.entrySet())
+		{
+			assertEquals(entry.getKey(), entry.getValue().apply(defaults), entry.getValue().apply(live));
+			assertEquals(entry.getKey(), entry.getValue().apply(defaults), entry.getValue().apply(snapshot));
+		}
+	}
+
+	@Test public void sharedEditorBindingsMatchEveryPersistedConfigKey()
+	{
+		BestGearSetupConfig defaults = new BestGearSetupConfig() { };
+		for (ConfigItemDescriptor item : ConfigItemsForTests.items())
+		{
+			String key = item.key();
+			assertEquals(key, GETTERS.get(METHOD_BY_KEY.getOrDefault(key, key)).apply(defaults),
+				ConfigSettings.getter(key).apply(defaults));
+		}
+	}
+
 	@Test public void snapshotKeepsValuesWhenPreferencesAndOverrideMapChange()
 	{
 		int[] stacks = {4};
@@ -34,7 +67,7 @@ public class SearchAssumptionsTest
 	}
 
 	/** Every config item's getter, by key; the first test below fails until a new item is added here. */
-	private static final Map<String, Function<BestGearSetupConfig, Object>> GETTERS = new LinkedHashMap<>();
+	static final Map<String, Function<BestGearSetupConfig, Object>> GETTERS = new LinkedHashMap<>();
 
 	static
 	{
@@ -138,7 +171,7 @@ public class SearchAssumptionsTest
 	}
 
 	/** Config keys that differ from their method name, which is what overrides are keyed by. */
-	private static final Map<String, String> METHOD_BY_KEY = new HashMap<>();
+	static final Map<String, String> METHOD_BY_KEY = new HashMap<>();
 
 	static
 	{

@@ -7,6 +7,8 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.EncounterPhase;
@@ -18,7 +20,6 @@ import net.runelite.api.Client;
 import net.runelite.api.Model;
 import net.runelite.api.NPC;
 import net.runelite.api.gameval.NpcID;
-import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.gameval.VarbitID;
 import org.junit.Test;
 
@@ -50,22 +51,23 @@ public class LiveRaidTest
 		assertNull(LiveRaid.wardenTarget(Collections.singletonList(akkhaNpc(NpcID.TOA_WARDEN_ELIDINIS_PHASE3))));
 	}
 
-	@Test public void akkhaUsesLivePrayerIconsAndExplicitFinalStandForms()
+	@Test public void akkhaPhaseComesFromHisNpcFormNotHisOverhead()
 	{
-		NPC boss = akkhaNpc(NpcID.AKKHA_MELEE);
-		when(boss.getOverheadArchiveIds()).thenReturn(new int[]{-1, 123, SpriteID.HEADICONS_PRAYER});
-		when(boss.getOverheadSpriteIds()).thenReturn(new short[]{-1, 0, 2});
-		assertEquals(EncounterPhase.AKKHA_IMMUNE_MAGIC, LiveRaid.akkhaPhase(boss));
-		when(boss.getOverheadArchiveIds()).thenReturn(new int[]{SpriteID.HEADICONS_PRAYER, SpriteID.HEADICONS_PRAYER});
-		when(boss.getOverheadSpriteIds()).thenReturn(new short[]{1, 2});
-		assertEquals(EncounterPhase.AKKHA_ENRAGE, LiveRaid.akkhaPhase(boss));
-		when(boss.getOverheadSpriteIds()).thenReturn(null);
-		assertNull(LiveRaid.akkhaPhase(boss));
-		for (int id : new int[]{NpcID.AKKHA_ENRAGE_INITIAL, NpcID.AKKHA_ENRAGE})
+		int[] ids = {NpcID.AKKHA_MELEE, NpcID.AKKHA_RANGE, NpcID.AKKHA_MAGE, NpcID.AKKHA_ENRAGE_INITIAL, NpcID.AKKHA_ENRAGE};
+		EncounterPhase[] phases = {EncounterPhase.AKKHA_IMMUNE_MELEE, EncounterPhase.AKKHA_IMMUNE_RANGED,
+			EncounterPhase.AKKHA_IMMUNE_MAGIC, EncounterPhase.AKKHA_ENRAGE, EncounterPhase.AKKHA_ENRAGE};
+		for (int i = 0; i < ids.length; i++)
 		{
-			when(boss.getId()).thenReturn(id);
-			assertEquals(EncounterPhase.AKKHA_ENRAGE, LiveRaid.akkhaPhase(boss));
+			NPC boss = akkhaNpc(ids[i]);
+			assertEquals(phases[i], LiveRaid.akkhaPhase(boss));
+			verify(boss, never()).getOverheadSpriteIds();
+			verify(boss, never()).getOverheadArchiveIds();
 		}
+		for (int id : new int[]{NpcID.AKKHA_SPAWN, NpcID.AKKHA_ENRAGE_SPAWN, NpcID.AKKHA_SHADOW, NpcID.TOA_WARDENS_AKKHA})
+		{
+			assertNull(LiveRaid.akkhaPhase(akkhaNpc(id)));
+		}
+		assertNull(LiveRaid.akkhaPhase(null));
 	}
 
 	@Test public void akkhaShadowsRequireVisibleVulnerabilityAndNeverOverrideFinalStand()
@@ -105,8 +107,6 @@ public class LiveRaidTest
 		NPC npc = mock(NPC.class);
 		when(npc.getId()).thenReturn(id); when(npc.getName()).thenReturn("Akkha");
 		when(npc.getHealthRatio()).thenReturn(-1);
-		when(npc.getOverheadArchiveIds()).thenReturn(new int[]{SpriteID.HEADICONS_PRAYER});
-		when(npc.getOverheadSpriteIds()).thenReturn(new short[]{0});
 		return npc;
 	}
 

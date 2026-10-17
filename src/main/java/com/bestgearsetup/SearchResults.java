@@ -22,8 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import lombok.AccessLevel;
 import lombok.Value;
+import lombok.With;
 
 /**
  * Everything the results view shows for one search.
@@ -36,6 +39,7 @@ public class SearchResults
 	/** Effective starting HP used by the calculator, which may be below the target's maximum. */
 	int startingHitpoints;
 	/** Best setups per attack type (stab, slash, crush, ranged, magic), best first. */
+	@With(AccessLevel.PACKAGE)
 	Map<AttackStyle.Type, List<SetupResult>> byType;
 	List<String> notes;
 	Map<CombatClass, OffensivePrayer> prayers;
@@ -43,6 +47,7 @@ public class SearchResults
 	Map<CombatClass, List<Potion>> potions;
 	boolean assumedLevels;
 	/** How each slot lock affected the search; empty when nothing is locked. */
+	@With(AccessLevel.PACKAGE)
 	List<LockStatus> locks;
 	/** Mark of Darkness is assumed for demonbane spells. */
 	boolean markOfDarkness;
@@ -63,10 +68,12 @@ public class SearchResults
 	 * by each setup's DPS result instance, which ammunition-filled copies keep; other setups use {@link #potions}. Always
 	 * identity-keyed: a boosted and an unboosted setup can have equal DPS results.
 	 */
+	@With(AccessLevel.PACKAGE)
 	Map<DpsResult, List<Potion>> setupPotions;
 	/** The raid's first room: its initial boost dose is drunk before entering. */
 	boolean prepotted;
 	/** Original incoming stats and search assumptions for equipment-aware overhead advice. */
+	@With(AccessLevel.PACKAGE)
 	ProtectionPrayers.Context protectionContext;
 	/** How long raid boost doses last; null for {@link BoostTiming#DEFAULT}. */
 	BoostTiming boostTiming;
@@ -113,13 +120,6 @@ public class SearchResults
 	{
 		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks, markOfDarkness,
 			rememberedLevels, warnings, thrall, raidScaling, baseDefence, prayerLevel, setupPotions, prepotted, null, null);
-	}
-
-	SearchResults withProtectionContext(ProtectionPrayers.Context context)
-	{
-		return new SearchResults(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks,
-			markOfDarkness, rememberedLevels, warnings, thrall, raidScaling, baseDefence, prayerLevel,
-			setupPotions, prepotted, context, boostTiming);
 	}
 
 	/** The same results with raid boost doses lasting as {@code timing} says. */
@@ -194,12 +194,22 @@ public class SearchResults
 		return withCandidates(candidates, setupPotions);
 	}
 
+	/** Filter candidates in search order, dropping empty tabs and retaining each setup's identity-keyed boosts. */
+	SearchResults filter(Predicate<SetupResult> usable)
+	{
+		Map<AttackStyle.Type, List<SetupResult>> candidates = new LinkedHashMap<>();
+		byType.forEach((type, setups) ->
+		{
+			List<SetupResult> kept = setups.stream().filter(usable).collect(Collectors.toList());
+			if (!kept.isEmpty()) { candidates.put(type, kept); }
+		});
+		return withCandidates(candidates);
+	}
+
 	/** Candidates from several searches, each setup keeping the boosts its own search assumed. */
 	SearchResults withCandidates(Map<AttackStyle.Type, List<SetupResult>> candidates, Map<DpsResult, List<Potion>> boosts)
 	{
-		return new SearchResults(monster, startingHitpoints, candidates, notes, prayers, potions,
-			assumedLevels, locks, markOfDarkness, rememberedLevels, warnings, thrall, raidScaling, baseDefence, prayerLevel,
-			boosts, prepotted, protectionContext, boostTiming);
+		return withByType(candidates).withSetupPotions(boosts);
 	}
 
 	/**
@@ -258,9 +268,7 @@ public class SearchResults
 		byType.forEach((type, setups) -> marked.put(type, setups.stream().map(setup -> setup.withFilledSlots(slots))
 			.collect(Collectors.toList())));
 		List<LockStatus> kept = locks.stream().filter(lock -> !slots.contains(lock.getSlot())).collect(Collectors.toList());
-		return new SearchResults(monster, startingHitpoints, marked, notes, prayers, potions,
-			assumedLevels, kept, markOfDarkness, rememberedLevels, warnings, thrall, raidScaling, baseDefence, prayerLevel,
-			setupPotions, prepotted, protectionContext, boostTiming);
+		return withByType(marked).withLocks(kept);
 	}
 
 	/** The same results in the raid's first room, whose boosts are drunk before entering. */

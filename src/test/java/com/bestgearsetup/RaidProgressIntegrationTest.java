@@ -15,7 +15,6 @@ import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GameDataLoader;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.ui.BestGearSetupPanel;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,7 +39,6 @@ import net.runelite.api.events.GameTick;
 import net.runelite.api.events.HitsplatApplied;
 import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.gameval.NpcID;
-import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Before;
@@ -75,14 +73,14 @@ public class RaidProgressIntegrationTest
 		when(client.getGameState()).thenReturn(GameState.LOGGED_IN);
 		when(client.getLocalPlayer()).thenReturn(player);
 		when(client.getVarbitValue(org.mockito.ArgumentMatchers.anyInt())).thenAnswer(call -> bits.getOrDefault(call.getArgument(0), 0));
-		Field clientField = BestGearSetupPlugin.class.getDeclaredField("client"); clientField.setAccessible(true); clientField.set(plugin, client);
+		plugin.client = client;
 		setPlan(RaidPlanType.TOB);
 	}
 
 	private void setPlan(RaidPlanType type) throws Exception
 	{
 		plan = RaidProgressTest.plan(plugin.gameData, type);
-		Field planField = BestGearSetupPlugin.class.getDeclaredField("raidPlan"); planField.setAccessible(true); planField.set(plugin, plan);
+		plugin.raidPlan = plan;
 		when(plugin.panel.getRaidType()).thenReturn(type);
 	}
 
@@ -164,8 +162,7 @@ public class RaidProgressIntegrationTest
 		NPC boss = toaNpc(NpcID.AKKHA_MELEE, "Akkha"), shadow = toaNpc(NpcID.AKKHA_SHADOW, "Akkha's Shadow");
 		Model model = mock(Model.class); when(shadow.getModel()).thenReturn(model);
 		when(model.getOverrideAmount()).thenReturn((byte) 127);
-		when(boss.getOverheadArchiveIds()).thenReturn(new int[]{SpriteID.HEADICONS_PRAYER});
-		when(boss.getOverheadSpriteIds()).thenReturn(new short[]{2});
+		when(boss.getId()).thenReturn(NpcID.AKKHA_MAGE);
 		toaWorld(14676, shadow, boss);
 		tick(); assertEquals("Akkha: Immune To Magic", plugin.raidProgress.current().getEncounter());
 		long revision = plugin.raidProgress.current().getRevision();
@@ -179,13 +176,13 @@ public class RaidProgressIntegrationTest
 			tick(); assertEquals(revision, plugin.raidProgress.current().getRevision());
 			// The shadow stays alive and targeted after it turns inactive; resume the boss's current form.
 			when(player.getInteracting()).thenReturn(shadow); when(model.getOverrideAmount()).thenReturn((byte) 127);
-			when(boss.getOverheadSpriteIds()).thenReturn(new short[]{1});
+			when(boss.getId()).thenReturn(NpcID.AKKHA_RANGE);
 			tick(); assertEquals("Akkha: Immune To Ranged", plugin.raidProgress.current().getEncounter());
-			when(player.getInteracting()).thenReturn(null); when(boss.getOverheadSpriteIds()).thenReturn(new short[]{0});
+			when(player.getInteracting()).thenReturn(null); when(boss.getId()).thenReturn(NpcID.AKKHA_MELEE);
 			tick(); assertEquals("Akkha: Immune To Melee", plugin.raidProgress.current().getEncounter());
 		}
-		// Enrage takes priority over any lingering ordinary shadows, even before its overhead arrives.
-		when(boss.getId()).thenReturn(NpcID.AKKHA_ENRAGE); when(boss.getOverheadSpriteIds()).thenReturn(null);
+		// Enrage takes priority over any lingering ordinary shadows.
+		when(boss.getId()).thenReturn(NpcID.AKKHA_ENRAGE);
 		when(model.getOverrideAmount()).thenReturn((byte) 0); when(player.getInteracting()).thenReturn(shadow);
 		tick(); assertEquals("Akkha: Final Stand (Melee Only)", plugin.raidProgress.current().getEncounter());
 		message(ChatMessageType.GAMEMESSAGE, "Challenge complete: Akkha. Duration: 3:00.");
@@ -202,13 +199,12 @@ public class RaidProgressIntegrationTest
 		NPC boss = toaNpc(NpcID.AKKHA_MELEE, "Akkha"), shadow = toaNpc(NpcID.AKKHA_SHADOW, "Akkha's Shadow");
 		Model model = mock(Model.class); when(shadow.getModel()).thenReturn(model);
 		when(model.getOverrideAmount()).thenReturn((byte) 127);
-		when(boss.getOverheadArchiveIds()).thenReturn(new int[]{SpriteID.HEADICONS_PRAYER});
-		when(boss.getOverheadSpriteIds()).thenReturn(new short[]{2});
+		when(boss.getId()).thenReturn(NpcID.AKKHA_MAGE);
 		toaWorld(14160, boss, shadow); tick();
 		assertEquals(plan.getStartingEncounter().getLabel(), plugin.raidProgress.current().getEncounter());
 		toaWorld(14676, boss, shadow); tick();
 		assertEquals("Akkha: Immune To Magic", plugin.raidProgress.current().getEncounter());
-		when(shadow.getModel()).thenReturn(null); when(boss.getOverheadSpriteIds()).thenReturn(new short[]{1});
+		when(shadow.getModel()).thenReturn(null); when(boss.getId()).thenReturn(NpcID.AKKHA_RANGE);
 		long revision = plugin.raidProgress.current().getRevision();
 		tick(); assertEquals(revision, plugin.raidProgress.current().getRevision());
 		when(shadow.getModel()).thenReturn(model); when(model.getOverrideAmount()).thenReturn((byte) 0);

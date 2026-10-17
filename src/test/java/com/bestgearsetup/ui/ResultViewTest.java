@@ -3,6 +3,10 @@ package com.bestgearsetup.ui;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.SearchResults;
+import com.bestgearsetup.BestGearSetupPlugin;
+import com.bestgearsetup.Budget;
+import com.bestgearsetup.RaidPlan;
+import com.bestgearsetup.calc.SpecialPlan;
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.CombatContext;
 import com.bestgearsetup.calc.CombatModifiers;
@@ -30,6 +34,45 @@ import org.junit.Test;
 
 public class ResultViewTest
 {
+	@Test public void sharedSpecialEquipmentAndLoadedAmmunitionArePricedOnce() throws Exception
+	{
+		GearItem weapon = pricedItem(1, "sword", Slot.WEAPON);
+		GearItem provided = pricedItem(2, "dawnbringer", Slot.WEAPON);
+		GearItem arrows = pricedItem(3, "arrows", Slot.AMMO);
+		GearItem shield = pricedItem(4, "shield", Slot.SHIELD);
+		GearItem darts = pricedItem(5, "darts", Slot.AMMO);
+		GearItem bow = pricedItem(6, "special bow", Slot.WEAPON);
+		Loadout loadout = new Loadout();
+		loadout.set(Slot.WEAPON, weapon); loadout.set(Slot.AMMO, arrows); loadout.set(Slot.SHIELD, shield);
+		loadout.setLoadedAmmo(darts);
+		SpecialPlan partner = new SpecialPlan(bow, shield, arrows, null, null, darts, null, null, null, null, 1, 0, 0);
+		SpecialPlan rotation = new SpecialPlan(provided, shield, arrows, null, null, null, null, null, null, null, 1, 0, 0,
+			null, 0, Collections.singletonList(partner), -1, null);
+		SetupResult setup = new SetupResult(CombatClass.MELEE, loadout, null, 0, 0,
+			Collections.emptySet(), Collections.emptySet(), rotation);
+		assertEquals(new java.util.HashSet<>(Arrays.asList(1, 3, 4, 5, 6)), RaidPlan.requiredItems(setup).keySet());
+		BestGearSetupPlugin plugin = org.mockito.Mockito.mock(BestGearSetupPlugin.class);
+		org.mockito.Mockito.when(plugin.price(org.mockito.ArgumentMatchers.any(GearItem.class))).thenReturn(100L);
+		org.mockito.Mockito.when(plugin.owns(org.mockito.ArgumentMatchers.any(GearItem.class)))
+			.thenAnswer(call -> ((GearItem) call.getArgument(0)).getId() == shield.getId());
+		SearchResults empty = new SearchResults(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
+			Collections.emptyMap(), Collections.emptyMap(), false);
+		SwingUtilities.invokeAndWait(() ->
+		{
+			ResultView view = new ResultView(empty, plugin, null, null, null, 10, false);
+			JLabel cost = label(view.costBox(setup), "Cost:");
+			assertTrue(cost.getText(), cost.getText().contains(">" + Budget.format(2300) + "</font>"));
+			assertTrue(cost.getText(), cost.getText().contains(">" + Budget.format(2200) + "</font>"));
+		});
+	}
+
+	private static GearItem pricedItem(int id, String name, Slot slot)
+	{
+		GearItem item = new GearItem(); item.setId(id); item.setName(name); item.setSlot(slot);
+		if (slot == Slot.AMMO) { item.setRangedStr(1); }
+		return item;
+	}
+
 	@Test
 	public void atlatlUsesRangingAndStrengthWithoutSuperAttack() throws Exception
 	{

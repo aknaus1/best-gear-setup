@@ -3,80 +3,97 @@ package com.bestgearsetup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.jar.JarEntry;
-import java.util.jar.JarOutputStream;
-import org.junit.Rule;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class CacheIdentityTest
 {
-	@Rule public final TemporaryFolder temporary = new TemporaryFolder();
+	private static final String PACKAGE = "com/bestgearsetup/";
 
-	@Test public void localJarFingerprintIsStableAndTracksBundledData() throws Exception
+	@Test public void classpathFingerprintIsPersistent()
 	{
-		Path jar = temporary.newFolder("plugin with spaces").toPath().resolve("plugin.jar");
-		writeJar(jar, "first catalogue");
-		String first = fingerprint(jar);
-		assertFalse("Packaged plugins must retain a persistent build identity", first.startsWith("session-"));
-		assertEquals(first, fingerprint(jar));
-		writeJar(jar, "changed catalogue");
-		assertNotEquals(first, fingerprint(jar));
+		String id = CacheIdentity.buildId();
+		assertFalse("Installed plugins must retain a persistent build identity", id.startsWith("session-"));
+		assertTrue(id.matches("[0-9a-f]{64}"));
+		assertEquals(id, fingerprint(new HashMap<>()));
 	}
 
-	private static void writeJar(Path path, String data) throws Exception
+	@Test public void fingerprintTracksBundledData()
 	{
-		try (JarOutputStream jar = new JarOutputStream(java.nio.file.Files.newOutputStream(path)))
-		{
-			for (String name : new String[]{"CacheIdentity.class", "CacheIdentity$1.class"})
-			{
-				jar.putNextEntry(new JarEntry("com/bestgearsetup/" + name));
-				try (InputStream source = CacheIdentity.class.getResourceAsStream(name)) { source.transferTo(jar); }
-				jar.closeEntry();
-			}
-			jar.putNextEntry(new JarEntry("com/bestgearsetup/catalogue.json"));
-			jar.write(data.getBytes(StandardCharsets.UTF_8));
-			jar.closeEntry();
-		}
+		String first = fingerprint(Map.of(PACKAGE + "slayer-targets.json", bytes("first catalogue")));
+		assertEquals(first, fingerprint(Map.of(PACKAGE + "slayer-targets.json", bytes("first catalogue"))));
+		assertNotEquals(first, fingerprint(Map.of(PACKAGE + "slayer-targets.json", bytes("changed catalogue"))));
 	}
 
-	private static String fingerprint(Path path) throws Exception
+	@Test public void fingerprintTracksClassesReachableFromThePlugin() throws Exception
 	{
-		URL file = path.toUri().toURL();
-		URL root = new URL("jar:" + file.toExternalForm() + "!/com/bestgearsetup/");
-		try (URLClassLoader loader = new URLClassLoader(new URL[]{file}, CacheIdentityTest.class.getClassLoader())
-		{
-			@Override public Enumeration<URL> getResources(String name) throws java.io.IOException
-			{
-				return "com/bestgearsetup".equals(name) ? Collections.enumeration(Collections.singleton(root))
-					: super.getResources(name);
-			}
+		String name = PACKAGE + "calc/Optimizer.class";
+		byte[] code;
+		try (InputStream in = CacheIdentity.class.getResourceAsStream("/" + name)) { code = in.readAllBytes(); }
+		byte[] changed = java.util.Arrays.copyOf(code, code.length + 1);
+		assertNotEquals(fingerprint(new HashMap<>()), fingerprint(Map.of(name, changed)));
+	}
 
-			@Override protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException
-			{
-				if (!name.startsWith("com.bestgearsetup.CacheIdentity")) { return super.loadClass(name, resolve); }
-				synchronized (getClassLoadingLock(name))
-				{
-					Class<?> type = findLoadedClass(name);
-					if (type == null) { type = findClass(name); }
-					if (resolve) { resolveClass(type); }
-					return type;
-				}
-			}
-		})
+	@Test public void missingCodeOrDataGivesASessionIdentity()
+	{
+		Map<String, byte[]> noData = new HashMap<>();
+		noData.put(PACKAGE + "wiki-gamedata.json.gz", null);
+		assertTrue(fingerprint(noData).startsWith("session-"));
+		Map<String, byte[]> noPlugin = new HashMap<>();
+		noPlugin.put(PACKAGE + "BestGearSetupPlugin.class", null);
+		String session = fingerprint(noPlugin);
+		assertTrue(session.startsWith("session-"));
+		assertNotEquals(session, fingerprint(noPlugin));
+	}
+
+	@Test public void identityCoversEveryBundledClassAndDataFile() throws Exception
+	{
+		Path main = Paths.get(CacheIdentity.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+		Set<String> classes;
+		try (Stream<Path> files = Files.walk(main.resolve(PACKAGE)))
 		{
-			Class<?> type = loader.loadClass("com.bestgearsetup.CacheIdentity");
-			Method method = type.getDeclaredMethod("buildId");
-			method.setAccessible(true);
-			return (String) method.invoke(null);
+			classes = files.filter(file -> file.toString().endsWith(".class"))
+				.map(file -> main.relativize(file).toString().replace('\\', '/').replaceFirst("\\.class$", ""))
+				.collect(Collectors.toCollection(TreeSet::new));
 		}
+		assertEquals("Every compiled plugin class must be reachable from the plugin entry point",
+			classes, new TreeSet<>(CacheIdentity.classes(CacheIdentity.BUNDLED).keySet()));
+
+		Path resources = Paths.get("src/main/resources").resolve(PACKAGE);
+		Set<String> data;
+		try (Stream<Path> files = Files.list(resources))
+		{
+			data = files.map(file -> file.getFileName().toString()).collect(Collectors.toCollection(TreeSet::new));
+		}
+		assertEquals("Every bundled data file must be part of the build identity",
+			data, new TreeSet<>(CacheIdentity.DATA_RESOURCES));
+	}
+
+	private static byte[] bytes(String text)
+	{
+		return text.getBytes(StandardCharsets.UTF_8);
+	}
+
+	/** CacheIdentity's build identity with some classpath resources overridden; a null value hides a resource. */
+	private static String fingerprint(Map<String, byte[]> overrides)
+	{
+		return CacheIdentity.build(name ->
+		{
+			if (!overrides.containsKey(name)) { return CacheIdentity.BUNDLED.apply(name); }
+			byte[] content = overrides.get(name);
+			return content == null ? null : new ByteArrayInputStream(content);
+		});
 	}
 }

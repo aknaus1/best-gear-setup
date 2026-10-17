@@ -25,34 +25,34 @@ public interface BestGearSetupConfig extends Config
 	@ConfigItem(keyName = "activeEncounter", name = "Active encounter",
 		description = "Follow the attackable NPC you are in combat with (your hits land on it, or it attacks you back) and recalculate when it changes. Tracked defence drains are included when Use active defence is enabled.",
 		section = searchSection, position = 9, hidden = true)
-	default boolean activeEncounter() { return false; }
+	default boolean activeEncounter() { return SearchAssumptions.value(this, "activeEncounter", false); }
 
 	@ConfigItem(keyName = "raidEquipmentLimit", name = "Raid equipment slots",
 		description = "Most inventory slots the raid kit may use for equipment switches (including special weapons and spare ammunition), the rune pouch, runes outside it and a carried Book of the dead. A limit, not a target: kits may use fewer. Starting worn gear is excluded. Boosts and food don't count but must also fit in 28 slots.",
 		section = searchSection, position = 10, hidden = true)
 	@Range(min = 0, max = 28)
-	default int raidEquipmentLimit() { return 20; }
+	default int raidEquipmentLimit() { return SearchAssumptions.value(this, "raidEquipmentLimit", 20); }
 
 	@ConfigItem(keyName = "raidSpellbook", name = "Raid spellbook",
 		description = "Auto compares complete kits by estimated raid combat time, including thralls and spell damage. ToB freeze roles always use Ancient. A manual choice uses one book throughout the raid. Allowed spellbooks and thrall settings still apply; Vengeance is not modeled.",
 		section = searchSection, position = 11, hidden = true)
-	default RaidSpellbook raidSpellbook() { return RaidSpellbook.AUTO; }
+	default RaidSpellbook raidSpellbook() { return SearchAssumptions.value(this, "raidSpellbook", RaidSpellbook.AUTO); }
 
 	@ConfigItem(keyName = "toaPathOrder", name = "ToA path order",
 		description = "Order of the Tombs of Amascut paths. Auto plans the raid in both orders and keeps the one with the lower estimated combat time. Smelling salts are only assumed after the first two paths.",
 		section = searchSection, position = 32, hidden = true)
-	default RaidOptions.ToaPathOrder toaPathOrder() { return RaidOptions.ToaPathOrder.BA_BA_FIRST; }
+	default RaidOptions.ToaPathOrder toaPathOrder() { return SearchAssumptions.value(this, "toaPathOrder", RaidOptions.ToaPathOrder.BA_BA_FIRST); }
 
 	@ConfigItem(keyName = "tobRole", name = "ToB role",
 		description = "South freeze: freeze and kill Maiden's clump, mage Nylo. North freeze: freeze, then help the clump or return to Maiden; melee Nylo in 3/4-player teams, mage in 5. Range DPS: chin Maiden's clump, range Nylo. Melee DPS: focus Maiden, melee Nylo.",
 		section = searchSection, position = 33, hidden = true)
-	default RaidOptions.TobRole tobRole() { return RaidOptions.TobRole.MELEE_DPS; }
+	default RaidOptions.TobRole tobRole() { return SearchAssumptions.value(this, "tobRole", RaidOptions.TobRole.MELEE_DPS); }
 
 	@ConfigItem(keyName = "quickSwitchLimit", name = "Quick switch swaps",
 		description = "Most equipment swaps a raid quick switch may make, weapon included (ToB Nylocas Vasilias forms, ToA baboons). A limit, not a target: a piece is only swapped when it raises DPS (max hit against baboons). Switching between any two forms stays within it.",
 		section = searchSection, position = 34, hidden = true)
 	@Range(min = 1, max = RaidEncounter.MAX_SWITCH_LIMIT)
-	default int quickSwitchLimit() { return RaidEncounter.DEFAULT_SWITCH_LIMIT; }
+	default int quickSwitchLimit() { return SearchAssumptions.value(this, "quickSwitchLimit", RaidEncounter.DEFAULT_SWITCH_LIMIT); }
 
 	String GROUP = "bestgearsetup";
 	String MODE_KEY = "mode";
@@ -140,7 +140,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default boolean showMenuOption()
 	{
-		return true;
+		return SearchAssumptions.value(this, "showMenuOption", true);
 	}
 
 	@ConfigItem(keyName = HIGHLIGHT_BANK_GEAR_KEY, name = "Highlight bank gear",
@@ -148,14 +148,14 @@ public interface BestGearSetupConfig extends Config
 		section = displaySection, position = 1)
 	default boolean highlightBankGear()
 	{
-		return true;
+		return SearchAssumptions.value(this, "highlightBankGear", true);
 	}
 
 	@ConfigItem(keyName = BANK_HIGHLIGHT_COLOR_KEY, name = "Bank color",
 		description = "Outline color for the selected setup's bank items", section = displaySection, position = 2)
 	default Color bankHighlightColor()
 	{
-		return new Color(0x00, 0xFF, 0x80);
+		return SearchAssumptions.value(this, "bankHighlightColor", new Color(0x00, 0xFF, 0x80));
 	}
 
 	@ConfigItem(keyName = HIGHLIGHT_INVENTORY_GEAR_KEY, name = "Highlight inventory gear",
@@ -163,14 +163,14 @@ public interface BestGearSetupConfig extends Config
 		section = displaySection, position = 3)
 	default boolean highlightInventoryGear()
 	{
-		return true;
+		return SearchAssumptions.value(this, "highlightInventoryGear", true);
 	}
 
 	@ConfigItem(keyName = INVENTORY_HIGHLIGHT_COLOR_KEY, name = "Inventory color",
 		description = "Outline color for the selected setup's inventory items", section = displaySection, position = 4)
 	default Color inventoryHighlightColor()
 	{
-		return new Color(0x00, 0xFF, 0x80);
+		return SearchAssumptions.value(this, "inventoryHighlightColor", new Color(0x00, 0xFF, 0x80));
 	}
 
 	// ------------------------------------------------------------ search
@@ -185,7 +185,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default SearchMode mode()
 	{
-		return SearchMode.BUDGET;
+		return SearchAssumptions.value(this, "mode", SearchMode.BUDGET);
 	}
 
 	@ConfigItem(
@@ -198,7 +198,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default String budget()
 	{
-		return "10m";
+		return SearchAssumptions.value(this, "budget", "10m");
 	}
 
 	@ConfigItem(
@@ -211,7 +211,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default boolean bossesOnly()
 	{
-		return false;
+		return SearchAssumptions.value(this, "bossesOnly", false);
 	}
 
 	@ConfigItem(
@@ -224,7 +224,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default boolean onSlayerTask()
 	{
-		return false;
+		return SearchAssumptions.value(this, "onSlayerTask", false);
 	}
 
 	@ConfigItem(
@@ -236,7 +236,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default boolean ancientMagicks()
 	{
-		return true;
+		return SearchAssumptions.value(this, "ancientMagicks", true);
 	}
 
 	@ConfigItem(
@@ -248,7 +248,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default boolean arceuusSpellbook()
 	{
-		return true;
+		return SearchAssumptions.value(this, "arceuusSpellbook", true);
 	}
 
 	@ConfigItem(
@@ -260,7 +260,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default boolean membersItems()
 	{
-		return true;
+		return SearchAssumptions.value(this, "membersItems", true);
 	}
 
 	@ConfigItem(
@@ -274,7 +274,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 100_000)
 	default int ammoCount()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "ammoCount", 0);
 	}
 
 	@ConfigItem(keyName = "currentHitpoints", name = "Your HP (0 = full)", hidden = true,
@@ -282,21 +282,21 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 99)
 	default int currentHitpoints()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "currentHitpoints", 0);
 	}
 
 	@ConfigItem(keyName = "wilderness", name = "In Wilderness", hidden = true,
 		description = "Plan a Wilderness fight: enable charged revenant weapon bonuses and any selected expensive-item limit.", section = searchSection, position = 20)
 	default boolean wilderness()
 	{
-		return false;
+		return SearchAssumptions.value(this, "wilderness", false);
 	}
 
 	@ConfigItem(keyName = "limitWildernessRisk", name = "Limit expensive items", hidden = true,
 		description = "In Wilderness searches, cap all equipped expensive items, including owned gear. No protected items are subtracted.")
 	default boolean limitWildernessRisk()
 	{
-		return false;
+		return SearchAssumptions.value(this, "limitWildernessRisk", false);
 	}
 
 	@ConfigItem(keyName = "maxExpensiveItems", name = "Expensive items allowed", hidden = true,
@@ -304,21 +304,21 @@ public interface BestGearSetupConfig extends Config
 	@Range(min = 0, max = 11)
 	default int maxExpensiveItems()
 	{
-		return 3;
+		return SearchAssumptions.value(this, "maxExpensiveItems", 3);
 	}
 
 	@ConfigItem(keyName = "expensiveItemThreshold", name = "Expensive at (GP)", hidden = true,
 		description = "Items worth this much or more count as expensive (e.g. 500k, 1m). Uses equipment acquisition prices, including owned items; unknown prices count as expensive. Ammo uses its per-item price.")
 	default String expensiveItemThreshold()
 	{
-		return "1m";
+		return SearchAssumptions.value(this, "expensiveItemThreshold", "1m");
 	}
 
 	@ConfigItem(keyName = "charge", name = "Assume Charge",
 		description = "Boost god spells when wearing the matching god cape.", section = boostSection, position = 6)
 	default boolean charge()
 	{
-		return false;
+		return SearchAssumptions.value(this, "charge", false);
 	}
 
 	@ConfigItem(keyName = "markOfDarkness", name = "Mark of Darkness",
@@ -326,21 +326,21 @@ public interface BestGearSetupConfig extends Config
 		section = boostSection, position = 7)
 	default boolean markOfDarkness()
 	{
-		return true;
+		return SearchAssumptions.value(this, "markOfDarkness", true);
 	}
 
 	@ConfigItem(keyName = "sunfireRunes", name = "Use sunfire runes",
 		description = "Raise fire spell minimum rolls to 10% of the maximum before tome effects.", section = boostSection, position = 8)
 	default boolean sunfireRunes()
 	{
-		return false;
+		return SearchAssumptions.value(this, "sunfireRunes", false);
 	}
 
 	@ConfigItem(keyName = "kandarinDiary", name = "Kandarin hard diary", hidden = true,
 		description = "Increase enchanted bolt proc chances by 10%.", section = searchSection, position = 24)
 	default boolean kandarinDiary()
 	{
-		return false;
+		return SearchAssumptions.value(this, "kandarinDiary", false);
 	}
 
 	@ConfigItem(
@@ -354,7 +354,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default boolean thrall()
 	{
-		return true;
+		return SearchAssumptions.value(this, "thrall", true);
 	}
 
 	@ConfigItem(keyName = "killSpecials", name = "Use special attacks",
@@ -364,7 +364,7 @@ public interface BestGearSetupConfig extends Config
 			+ "in DPS, TTK and kills/hour.", section = searchSection, position = 6, hidden = true)
 	default boolean killSpecials()
 	{
-		return true;
+		return SearchAssumptions.value(this, "killSpecials", true);
 	}
 
 	@ConfigItem(keyName = "specEnergy", name = "Spec energy",
@@ -372,7 +372,7 @@ public interface BestGearSetupConfig extends Config
 			+ "Full bar: start every kill at 100%, for single boss kills.", section = searchSection, position = 7, hidden = true)
 	default SpecEnergy specEnergy()
 	{
-		return SpecEnergy.REGENERATION;
+		return SearchAssumptions.value(this, "specEnergy", SpecEnergy.REGENERATION);
 	}
 
 	@ConfigItem(keyName = "drainSpecs", name = "Drain specs",
@@ -382,7 +382,7 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 8, hidden = true)
 	default DrainSpecs drainSpecs()
 	{
-		return DrainSpecs.EXPECTED;
+		return SearchAssumptions.value(this, "drainSpecs", DrainSpecs.EXPECTED);
 	}
 
 	@ConfigItem(keyName = "weaponPoison", name = "Weapon poison",
@@ -390,14 +390,14 @@ public interface BestGearSetupConfig extends Config
 			+ "bolts (the bundled data lists only unpoisoned items).", section = boostSection, position = 5)
 	default WeaponPoison weaponPoison()
 	{
-		return WeaponPoison.NONE;
+		return SearchAssumptions.value(this, "weaponPoison", WeaponPoison.NONE);
 	}
 
 	@ConfigItem(keyName = "forinthrySurge", name = "Forinthry Surge", hidden = true,
 		description = "Amulet of avarice gives 35% instead of 20% against revenants.", section = searchSection, position = 32)
 	default boolean forinthrySurge()
 	{
-		return false;
+		return SearchAssumptions.value(this, "forinthrySurge", false);
 	}
 
 	@ConfigItem(keyName = "soulreaperStacks", name = "Soulreaper stacks", hidden = true,
@@ -405,7 +405,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 5)
 	default int soulreaperStacks()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "soulreaperStacks", 0);
 	}
 
 	@ConfigItem(keyName = "miningLevel", name = "Mining (0 = yours)", hidden = true,
@@ -414,7 +414,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 99)
 	default int miningLevel()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "miningLevel", 0);
 	}
 
 	@ConfigItem(keyName = "raidPartySize", name = "Raid party size", hidden = true,
@@ -423,7 +423,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(min = 1, max = 100)
 	default int raidPartySize()
 	{
-		return 1;
+		return SearchAssumptions.value(this, "raidPartySize", 1);
 	}
 
 	@ConfigItem(keyName = "toaRaidLevel", name = "ToA raid level", hidden = true,
@@ -432,7 +432,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 600)
 	default int toaRaidLevel()
 	{
-		return 150;
+		return SearchAssumptions.value(this, "toaRaidLevel", 150);
 	}
 
 	@ConfigItem(keyName = "toaPathLevel", name = "ToA path level", hidden = true,
@@ -441,7 +441,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 6)
 	default int toaPathLevel()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "toaPathLevel", 0);
 	}
 
 	@ConfigItem(keyName = "toaStartingPathLevel", name = "ToA starting path level", hidden = true,
@@ -450,7 +450,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 3)
 	default int toaStartingPathLevel()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "toaStartingPathLevel", 0);
 	}
 
 	@ConfigItem(keyName = "toaWalkThePath", name = "Walk the Path", hidden = true,
@@ -458,7 +458,7 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 29)
 	default boolean toaWalkThePath()
 	{
-		return false;
+		return SearchAssumptions.value(this, "toaWalkThePath", false);
 	}
 
 	@ConfigItem(keyName = "toaMoreOverlords", name = "More Overlords", hidden = true,
@@ -467,7 +467,7 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 29)
 	default boolean toaMoreOverlords()
 	{
-		return false;
+		return SearchAssumptions.value(this, "toaMoreOverlords", false);
 	}
 
 	@ConfigItem(keyName = "raidKillShare", name = "Raid kill share", hidden = true,
@@ -476,7 +476,7 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 29)
 	default int raidKillShare()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "raidKillShare", 0);
 	}
 
 	@ConfigItem(keyName = "raidFinalBlowPercent", name = "Raid final blows", hidden = true,
@@ -485,7 +485,7 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 29)
 	default int raidFinalBlowPercent()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "raidFinalBlowPercent", 0);
 	}
 
 	@ConfigItem(keyName = "coxChallengeMode", name = "CoX Challenge Mode", hidden = true,
@@ -493,7 +493,7 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 30)
 	default boolean coxChallengeMode()
 	{
-		return false;
+		return SearchAssumptions.value(this, "coxChallengeMode", false);
 	}
 
 	@ConfigItem(keyName = PHASE_KEY, name = "Boss phase", hidden = true,
@@ -501,14 +501,14 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 31)
 	default EncounterPhase encounterPhase()
 	{
-		return EncounterPhase.STANDARD;
+		return SearchAssumptions.value(this, "encounterPhase", EncounterPhase.STANDARD);
 	}
 
 	@ConfigItem(keyName = "aoe", name = "Enable AoE", hidden = true,
 		description = "Compare total damage to grouped identical enemies in multicombat", section = searchSection, position = 13)
 	default boolean aoe()
 	{
-		return false;
+		return SearchAssumptions.value(this, "aoe", false);
 	}
 
 	@ConfigItem(keyName = "aoeTargets", name = "Grouped enemies", hidden = true,
@@ -517,7 +517,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(min = 1, max = 12)
 	default int aoeTargets()
 	{
-		return 9;
+		return SearchAssumptions.value(this, "aoeTargets", 9);
 	}
 
 	@ConfigItem(keyName = "requireFireProtection", name = "Require fire protection",
@@ -525,14 +525,14 @@ public interface BestGearSetupConfig extends Config
 		section = dragonfireSection, position = 0)
 	default boolean requireFireProtection()
 	{
-		return true;
+		return SearchAssumptions.value(this, "requireFireProtection", true);
 	}
 
 	@ConfigItem(keyName = "antifire", name = "Antifire potion",
 		description = "Active antifire potion (extended versions give the same protection)", section = dragonfireSection, position = 1)
 	default Antifire antifire()
 	{
-		return Antifire.SUPER;
+		return SearchAssumptions.value(this, "antifire", Antifire.SUPER);
 	}
 
 	@ConfigItem(keyName = "protectMagic", name = "Protect from Magic",
@@ -540,21 +540,21 @@ public interface BestGearSetupConfig extends Config
 		section = dragonfireSection, position = 2)
 	default boolean protectMagic()
 	{
-		return true;
+		return SearchAssumptions.value(this, "protectMagic", true);
 	}
 
 	@ConfigItem(keyName = DMM_ITEMS_KEY, name = "DMM equipment", description = "Include Deadman-only equipment",
 		section = equipmentSection, position = 1)
 	default boolean dmmItems()
 	{
-		return false;
+		return SearchAssumptions.value(this, "dmmItems", false);
 	}
 
 	@ConfigItem(keyName = BETA_ITEMS_KEY, name = "Beta equipment", description = "Include beta equipment when present in the bundled data",
 		section = equipmentSection, position = 3)
 	default boolean betaItems()
 	{
-		return false;
+		return SearchAssumptions.value(this, "betaItems", false);
 	}
 
 	@ConfigItem(keyName = BOUNTY_HUNTER_ITEMS_KEY, name = "BH equipment",
@@ -562,7 +562,7 @@ public interface BestGearSetupConfig extends Config
 		section = equipmentSection, position = 2)
 	default boolean bountyHunterItems()
 	{
-		return false;
+		return SearchAssumptions.value(this, "bountyHunterItems", false);
 	}
 
 	// Retain the original key so existing saved preferences continue to apply.
@@ -574,7 +574,7 @@ public interface BestGearSetupConfig extends Config
 		section = equipmentSection, position = 4)
 	default boolean requireAtlatlAmmoRecovery()
 	{
-		return true;
+		return SearchAssumptions.value(this, "requireAtlatlAmmoRecovery", true);
 	}
 
 	// ------------------------------------------------------------ options
@@ -582,31 +582,31 @@ public interface BestGearSetupConfig extends Config
 	@ConfigItem(keyName = "styleStab", name = "Stab", description = "Allow stab attacks", section = optionsSection, position = 0)
 	default boolean styleStab()
 	{
-		return true;
+		return SearchAssumptions.value(this, "styleStab", true);
 	}
 
 	@ConfigItem(keyName = "styleSlash", name = "Slash", description = "Allow slash attacks", section = optionsSection, position = 1)
 	default boolean styleSlash()
 	{
-		return true;
+		return SearchAssumptions.value(this, "styleSlash", true);
 	}
 
 	@ConfigItem(keyName = "styleCrush", name = "Crush", description = "Allow crush attacks", section = optionsSection, position = 2)
 	default boolean styleCrush()
 	{
-		return true;
+		return SearchAssumptions.value(this, "styleCrush", true);
 	}
 
 	@ConfigItem(keyName = "styleRanged", name = "Ranged", description = "Allow ranged attacks", section = optionsSection, position = 3)
 	default boolean styleRanged()
 	{
-		return true;
+		return SearchAssumptions.value(this, "styleRanged", true);
 	}
 
 	@ConfigItem(keyName = "styleMagic", name = "Magic", description = "Allow magic attacks", section = optionsSection, position = 5)
 	default boolean styleMagic()
 	{
-		return true;
+		return SearchAssumptions.value(this, "styleMagic", true);
 	}
 
 	@ConfigItem(keyName = "styleAtlatl", name = "Atlatl",
@@ -614,7 +614,7 @@ public interface BestGearSetupConfig extends Config
 		section = optionsSection, position = 4)
 	default boolean styleAtlatl()
 	{
-		return true;
+		return SearchAssumptions.value(this, "styleAtlatl", true);
 	}
 
 	@ConfigItem(
@@ -626,7 +626,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default WeaponHands weaponHands()
 	{
-		return WeaponHands.ANY;
+		return SearchAssumptions.value(this, "weaponHands", WeaponHands.ANY);
 	}
 
 	@ConfigItem(
@@ -638,7 +638,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default CalcMode calcMode()
 	{
-		return CalcMode.DPS;
+		return SearchAssumptions.value(this, "calcMode", CalcMode.DPS);
 	}
 
 	@ConfigItem(
@@ -650,7 +650,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default SearchDepth searchDepth()
 	{
-		return SearchDepth.NORMAL;
+		return SearchAssumptions.value(this, "searchDepth", SearchDepth.NORMAL);
 	}
 
 	// ------------------------------------------------------------ experience
@@ -659,14 +659,14 @@ public interface BestGearSetupConfig extends Config
 		section = experienceSection, position = 0)
 	default boolean attackXp()
 	{
-		return true;
+		return SearchAssumptions.value(this, "attackXp", true);
 	}
 
 	@ConfigItem(keyName = "strengthXp", name = "Strength XP", description = "Allow styles that give Strength experience",
 		section = experienceSection, position = 1)
 	default boolean strengthXp()
 	{
-		return true;
+		return SearchAssumptions.value(this, "strengthXp", true);
 	}
 
 	@ConfigItem(keyName = "defenceXp", name = "Defence XP",
@@ -674,7 +674,7 @@ public interface BestGearSetupConfig extends Config
 		section = experienceSection, position = 2)
 	default boolean defenceXp()
 	{
-		return true;
+		return SearchAssumptions.value(this, "defenceXp", true);
 	}
 
 	// ------------------------------------------------------------ fill
@@ -688,7 +688,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default FillMode fillMode()
 	{
-		return FillMode.NONE;
+		return SearchAssumptions.value(this, "fillMode", FillMode.NONE);
 	}
 
 	@ConfigItem(
@@ -700,7 +700,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default DefenceFocus defenceFocus()
 	{
-		return DefenceFocus.TARGET;
+		return SearchAssumptions.value(this, "defenceFocus", DefenceFocus.TARGET);
 	}
 
 	@ConfigItem(
@@ -713,7 +713,7 @@ public interface BestGearSetupConfig extends Config
 	@Units(Units.PERCENT)
 	default double fillMargin()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "fillMargin", 0.0);
 	}
 
 	// ------------------------------------------------------------ specials
@@ -724,21 +724,21 @@ public interface BestGearSetupConfig extends Config
 		hidden = true)
 	default boolean autoSpecs()
 	{
-		return true;
+		return SearchAssumptions.value(this, "autoSpecs", true);
 	}
 
 	@ConfigItem(keyName = "specVulnerability", name = "Vulnerability", description = "Target is under Vulnerability (-10% Defence)",
 		hidden = true)
 	default boolean specVulnerability()
 	{
-		return false;
+		return SearchAssumptions.value(this, "specVulnerability", false);
 	}
 
 	@ConfigItem(keyName = "specTomeOfWater", name = "...with tome of water", description = "Vulnerability cast with the tome of water (-15% Defence)",
 		hidden = true)
 	default boolean specTomeOfWater()
 	{
-		return false;
+		return SearchAssumptions.value(this, "specTomeOfWater", false);
 	}
 
 	@ConfigItem(keyName = "specElderMaul", name = "Elder maul hits", description = "Successful elder maul specials (-35% Defence each)",
@@ -746,7 +746,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 10)
 	default int specElderMaul()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "specElderMaul", 0);
 	}
 
 	@ConfigItem(keyName = "specDwh", name = "DWH hits", description = "Successful dragon warhammer specials (-30% Defence each)",
@@ -754,7 +754,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 10)
 	default int specDwh()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "specDwh", 0);
 	}
 
 	@ConfigItem(keyName = "specEmberlight", name = "Emberlight hits", description = "Successful emberlight specials (-5% + 1 of Attack/Strength/Defence, 15% on demons)",
@@ -762,7 +762,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 20)
 	default int specEmberlight()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "specEmberlight", 0);
 	}
 
 	@ConfigItem(keyName = "specArclight", name = "Arclight hits", description = "Successful arclight specials (-5% Attack/Strength/Defence, 10% on demons)",
@@ -770,7 +770,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 20)
 	default int specArclight()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "specArclight", 0);
 	}
 
 	@ConfigItem(keyName = "specTonalztics", name = "Tonalztics hits", description = "Successful Tonalztics of Ralos special hits (Defence -1/8 of the target's Magic level each)",
@@ -778,7 +778,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 20)
 	default int specTonalztics()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "specTonalztics", 0);
 	}
 
 	@ConfigItem(keyName = "specBgsDamage", name = "BGS damage", description = "Total damage dealt with Bandos godsword specials (drains Defence, then Strength, Attack, Magic)",
@@ -786,7 +786,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 2000)
 	default int specBgsDamage()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "specBgsDamage", 0);
 	}
 
 	@ConfigItem(keyName = "specSeercullDamage", name = "Seercull damage", description = "Total damage dealt with seercull specials (drains Magic level)",
@@ -794,7 +794,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 2000)
 	default int specSeercullDamage()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "specSeercullDamage", 0);
 	}
 
 	@ConfigItem(keyName = "specAyakDamage", name = "Eye of Ayak damage", description = "Total damage dealt with Eye of Ayak specials (drains magic defence)",
@@ -802,7 +802,7 @@ public interface BestGearSetupConfig extends Config
 	@Range(max = 2000)
 	default int specAyakDamage()
 	{
-		return 0;
+		return SearchAssumptions.value(this, "specAyakDamage", 0);
 	}
 
 	// ------------------------------------------------------------ boosts
@@ -816,7 +816,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default boolean usePrayers()
 	{
-		return true;
+		return SearchAssumptions.value(this, "usePrayers", true);
 	}
 
 	@ConfigItem(
@@ -829,7 +829,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default boolean raidPotions()
 	{
-		return true;
+		return SearchAssumptions.value(this, "raidPotions", true);
 	}
 
 	@ConfigItem(
@@ -843,7 +843,7 @@ public interface BestGearSetupConfig extends Config
 	)
 	default boolean divinePotions()
 	{
-		return true;
+		return SearchAssumptions.value(this, "divinePotions", true);
 	}
 
 	@ConfigItem(
@@ -858,66 +858,66 @@ public interface BestGearSetupConfig extends Config
 	@Units(Units.PERCENT)
 	default int repotBelow()
 	{
-		return 50;
+		return SearchAssumptions.value(this, "repotBelow", 50);
 	}
 
 
 	@ConfigItem(keyName = "taskMode", name = "Slayer task", description = "Auto matches your assignment to this target; On and Off override it", hidden = true)
-	default AutoState taskMode() { return AutoState.AUTO; }
+	default AutoState taskMode() { return SearchAssumptions.value(this, "taskMode", AutoState.AUTO); }
 
 	@ConfigItem(keyName = "autoRaid", name = "Use active raid", description = "Read scaling from a matching live raid target; otherwise use the values below", hidden = true)
-	default boolean autoRaid() { return true; }
+	default boolean autoRaid() { return SearchAssumptions.value(this, "autoRaid", true); }
 
 	@ConfigItem(keyName = "meleePotionChoice", name = "Melee potion", description = "Best available uses ownership rules, plus overloads / smelling salts inside their raid when raid potions are included; named boosts and None override that choice", section = boostSection, position = 1)
-	default PotionOptions.Melee meleePotion() { return PotionOptions.Melee.BEST; }
+	default PotionOptions.Melee meleePotion() { return SearchAssumptions.value(this, "meleePotion", PotionOptions.Melee.BEST); }
 
 	@ConfigItem(keyName = "rangedPotionChoice", name = "Ranged potion", description = "Best available uses ownership rules, plus overloads / smelling salts inside their raid when raid potions are included; named boosts and None override that choice", section = boostSection, position = 2)
-	default PotionOptions.Ranged rangedPotion() { return PotionOptions.Ranged.BEST; }
+	default PotionOptions.Ranged rangedPotion() { return SearchAssumptions.value(this, "rangedPotion", PotionOptions.Ranged.BEST); }
 
 	@ConfigItem(keyName = "magicPotionChoice", name = "Magic potion", description = "Best available uses ownership rules, plus overloads / smelling salts inside their raid when raid potions are included; named boosts and None override that choice", section = boostSection, position = 3)
-	default PotionOptions.Magic magicPotion() { return PotionOptions.Magic.BEST; }
+	default PotionOptions.Magic magicPotion() { return SearchAssumptions.value(this, "magicPotion", PotionOptions.Magic.BEST); }
 
 	// ------------------------------------------------------------ managed from the side panel
 
 	@ConfigItem(keyName = POTION_KEY_PREFIX + "MELEE", name = "", description = "", hidden = true)
 	default String potionMelee()
 	{
-		return "best";
+		return SearchAssumptions.value(this, "potionMelee", "best");
 	}
 
 	@ConfigItem(keyName = POTION_KEY_PREFIX + "RANGED", name = "", description = "", hidden = true)
 	default String potionRanged()
 	{
-		return "best";
+		return SearchAssumptions.value(this, "potionRanged", "best");
 	}
 
 	@ConfigItem(keyName = POTION_KEY_PREFIX + "MAGIC", name = "", description = "", hidden = true)
 	default String potionMagic()
 	{
-		return "best";
+		return SearchAssumptions.value(this, "potionMagic", "best");
 	}
 
 	@ConfigItem(keyName = LOCKS_KEY, name = "", description = "", hidden = true)
 	default String locks()
 	{
-		return "";
+		return SearchAssumptions.value(this, "locks", "");
 	}
 
 	@ConfigItem(keyName = EXCLUDED_KEY, name = "", description = "", hidden = true)
 	default String excluded()
 	{
-		return "";
+		return SearchAssumptions.value(this, "excluded", "");
 	}
 
 	@ConfigItem(keyName = RAID_STYLES_KEY, name = "", description = "", hidden = true)
 	default String raidStyles()
 	{
-		return "";
+		return SearchAssumptions.value(this, "raidStyles", "");
 	}
 
 	@ConfigItem(keyName = SEEN_FIGHT_OPTIONS_KEY, name = "", description = "", hidden = true)
 	default String seenFightOptions()
 	{
-		return "";
+		return SearchAssumptions.value(this, "seenFightOptions", "");
 	}
 }

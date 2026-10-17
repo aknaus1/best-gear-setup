@@ -1,6 +1,5 @@
 package com.bestgearsetup;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -20,6 +19,7 @@ import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
@@ -27,11 +27,9 @@ import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -380,44 +378,34 @@ public class ProfileSearchCacheTest
 			Map.of("one:searchCache.encounter.build", CacheIdentity.buildId()), records);
 	}
 
-	@Test public void codecWritesBareNumbersWhereTheDecoderKnowsTheirType() throws Exception
+	@Test public void codecRebindsTheCatalogueAndKeepsSearchStateAndNonFiniteNumbers()
 	{
-		Set<Integer> ids = new LinkedHashSet<>(List.of(28672, 4097));
-		List<Object> graph = Arrays.asList(new DpsResult(11.732854485908735, 52, 0.79, 4, 20.5, null), ids,
-			Map.of(5, 7L), Double.NaN, 3L, new int[] {1, 2}, new double[] {0.5, Double.POSITIVE_INFINITY});
+		GearItem saved = new GearItem(); saved.setId(4151); saved.setName("whip"); saved.setSlot(Slot.WEAPON);
+		GearItem live = new GearItem(); live.setId(4151); live.setName("whip"); live.setSlot(Slot.WEAPON);
+		Loadout loadout = new Loadout(); loadout.set(Slot.WEAPON, saved); loadout.setStyle(AttackStyle.parse("flick,slash,accurate"));
+		Monster monster = new Monster(); monster.setName("Akkha"); monster.setPhase(EncounterPhase.AKKHA_IMMUNE_MELEE); monster.setToaRaidLevel(300);
+		DpsResult dps = new DpsResult(Double.NaN, 52, 0.79, 4, Double.POSITIVE_INFINITY, null);
+		SearchResults result = new SearchResults(monster, 100, Map.of(AttackStyle.Type.SLASH,
+			List.of(new SetupResult(CombatClass.MELEE, loadout, dps, 0))), Collections.emptyList(), Collections.emptyMap(),
+			Collections.emptyMap(), false);
+		GameData catalogue = mock(GameData.class);
+		when(catalogue.getItem(Slot.WEAPON, 4151)).thenReturn(live);
 		SearchResultCodec codec = new SearchResultCodec(gson);
-		JsonObject stored = codec.encode(graph);
-		String json = stored.toString();
-		// Stored positionally: the DPS node lists its values in its type's field order.
-		com.google.gson.JsonArray types = stored.getAsJsonArray("types");
-		int type = -1;
-		for (int i = 0; i < types.size(); i++)
-		{
-			if (types.get(i).getAsJsonArray().get(0).getAsString().equals(DpsResult.class.getName())) { type = i; }
-		}
-		List<String> names = new ArrayList<>();
-		types.get(type).getAsJsonArray().get(1).getAsJsonArray().forEach(name -> names.add(name.getAsString()));
-		com.google.gson.JsonArray node = null;
-		for (com.google.gson.JsonElement element : stored.getAsJsonArray("nodes"))
-		{
-			com.google.gson.JsonArray candidate = element.getAsJsonArray();
-			if (candidate.get(0).getAsJsonPrimitive().isNumber() && candidate.get(0).getAsInt() == type) { node = candidate; }
-		}
-		assertTrue(json, node.get(names.indexOf("dps") + 1).getAsJsonPrimitive().isNumber()
-			&& node.get(names.indexOf("dps") + 1).getAsDouble() == 11.732854485908735
-			&& node.get(names.indexOf("maxHit") + 1).getAsJsonPrimitive().isNumber() && node.get(names.indexOf("maxHit") + 1).getAsInt() == 52);
-		assertTrue(json, json.contains("[28672,4097]"));
-		assertTrue("Untyped Longs and non-finite doubles stay tagged", json.contains("\"number\":\"Long\"") && json.contains("NaN"));
-		List<?> restored = codec.decode(new JsonParser().parse(json).getAsJsonObject(), List.class);
-		DpsResult dps = (DpsResult) restored.get(0);
-		assertEquals(11.732854485908735, dps.getDps(), 0);
-		assertEquals(52, dps.getMaxHit());
-		assertEquals(ids, restored.get(1));
-		assertEquals(Map.of(5, 7L), restored.get(2));
-		assertTrue(((Double) restored.get(3)).isNaN());
-		assertEquals(3L, restored.get(4));
-		assertArrayEquals(new int[] {1, 2}, (int[]) restored.get(5));
-		assertArrayEquals(new double[] {0.5, Double.POSITIVE_INFINITY}, (double[]) restored.get(6), 0);
+		String json = codec.encode(result).toString();
+		SearchResults restored = codec.decode(new JsonParser().parse(json), SearchResults.class, catalogue);
+		SetupResult setup = restored.getByType().get(AttackStyle.Type.SLASH).get(0);
+		assertSame(live, setup.getLoadout().getWeapon());
+		assertSame(AttackStyle.parse("flick,slash,accurate"), setup.getLoadout().getStyle());
+		assertEquals(dps, setup.getDps());
+		assertEquals(EncounterPhase.AKKHA_IMMUNE_MELEE, restored.getMonster().getPhase());
+		assertEquals(300, restored.getMonster().getToaRaidLevel());
+		assertEquals(Slot.WEAPON, codec.decode(codec.encode(saved), GearItem.class).getSlot());
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void codecRejectsReferencesToObjectsNotYetRead()
+	{
+		new SearchResultCodec(gson).decode(new JsonParser().parse("{\"combatClass\":\"MELEE\",\"loadout\":0}"), SetupResult.class);
 	}
 
 	@Test public void diskRecordsAndHashesSurviveTwoSeparateJavaProcesses() throws Exception

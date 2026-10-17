@@ -31,11 +31,6 @@ final class PrayerUnlocks
 	{
 	}
 
-	static boolean isGated(String prayer)
-	{
-		return GATED.contains(prayer.toLowerCase(Locale.ROOT));
-	}
-
 	/** Whether a varbit records one of the unlocks. */
 	static boolean isUnlockVarbit(int varbitId)
 	{

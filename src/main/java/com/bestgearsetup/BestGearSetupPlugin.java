@@ -177,27 +177,27 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	@Inject
-	private Client client;
+	Client client;
 
 	@Inject
 	ClientThread clientThread;
 
 	@Inject
-	private ClientToolbar clientToolbar;
+	ClientToolbar clientToolbar;
 
 
 	@Inject
 	BestGearSetupConfig config;
 
 	@Inject
-	private ConfigManager configManager;
+	ConfigManager configManager;
 
 	@Inject
-	private GameDataLoader api;
+	GameDataLoader api;
 
 	/** The client's Gson; Plugin Hub builds reject plugins that create their own. */
 	@Inject
-	private Gson gson;
+	Gson gson;
 
 	@Inject
 	private ItemManager itemManager;
@@ -225,7 +225,7 @@ public class BestGearSetupPlugin extends Plugin
 	@Inject
 	private PartyService partyService;
 
-	private LiveSpecs liveSpecs;
+	LiveSpecs liveSpecs;
 	/** A {@link PartySpecs}, held as Object so this class never loads the Special Attack Counter's classes. */
 	private Object partySpecs;
 	StoredItemsBridge storedItemsBridge;
@@ -279,7 +279,7 @@ public class BestGearSetupPlugin extends Plugin
 	 * and Karuulm. One planned from the panel alone didn't, so the first live engagement still searches.
 	 */
 	volatile boolean searchedLive;
-	private volatile RaidPlan raidPlan;
+	volatile RaidPlan raidPlan;
 	final RaidProgress raidProgress = new RaidProgress();
 	private final Map<NPC, MonsterSummary> raidNpcTargets = new IdentityHashMap<>();
 	private long publishedRaidProgress = -1;
@@ -1639,7 +1639,7 @@ public class BestGearSetupPlugin extends Plugin
 		});
 	}
 
-	private SearchResults computeSearch(GameData data, MonsterSummary summary, PlayerLevels knownLevels, boolean rememberedLevels,
+	SearchResults computeSearch(GameData data, MonsterSummary summary, PlayerLevels knownLevels, boolean rememberedLevels,
 		Set<String> prayerUnlocks, Boolean kourendElite, boolean karuulmDungeon, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
 		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid, List<String> detectedNotes, Set<AttackStyle.Type> allowedStyles, Set<Integer> extraExcluded, RaidSpellbook spellbook, RaidLoadout raidLoadout, DoubleConsumer publishProgress) throws IOException
 	{
@@ -1654,7 +1654,7 @@ public class BestGearSetupPlugin extends Plugin
 	 * @param switchFrom the worn setup a raid quick switch keeps all but the weapon and a few other pieces of (the
 	 *                   quick switch limit); null for none
 	 */
-	private SearchResults computeSearch(GameData data, MonsterSummary summary, PlayerLevels knownLevels, boolean rememberedLevels,
+	SearchResults computeSearch(GameData data, MonsterSummary summary, PlayerLevels knownLevels, boolean rememberedLevels,
 		Set<String> prayerUnlocks, Boolean kourendElite, boolean karuulmDungeon, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
 		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid, List<String> detectedNotes, Set<AttackStyle.Type> allowedStyles, Set<Integer> extraExcluded, RaidSpellbook spellbook, RaidLoadout raidLoadout, DoubleConsumer publishProgress,
 		Map<List<Object>, List<SetupResult>> sharedTabs, Loadout switchFrom) throws IOException
@@ -1893,20 +1893,13 @@ public class BestGearSetupPlugin extends Plugin
 					settings.toBuilder().excluded(Collections.emptySet()).build()));
 		if (cancelled.getAsBoolean()) { return null; }
 		progress.complete();
-		Map<AttackStyle.Type, List<SetupResult>> supplied = new LinkedHashMap<>();
-		byType.forEach((type, setups) ->
-		{
-			List<SetupResult> usable = setups.stream().filter(setup -> SpellRunes.suppliesAllowed(setup.getLoadout(), setup.getSupportSpells(), excludedSupplies))
-				.filter(setup -> found.potionsForSetup(setup).stream().noneMatch(potion -> excludedSupplies.contains(potion.getId())))
-				.collect(Collectors.toList());
-			if (!usable.isEmpty()) { supplied.put(type, usable); }
-		});
-		return found.withCandidates(supplied);
+		return found.filter(setup -> SpellRunes.suppliesAllowed(setup.getLoadout(), setup.getSupportSpells(), excludedSupplies)
+			&& found.potionsForSetup(setup).stream().noneMatch(potion -> excludedSupplies.contains(potion.getId())));
 	}
 
 
 	/** Refresh one fight using only the raid kit already selected, without re-planning every boss. */
-	private boolean refreshRaidEncounter(RaidPlan plan, GameData data, MonsterSummary summary, PlayerLevels levels,
+	boolean refreshRaidEncounter(RaidPlan plan, GameData data, MonsterSummary summary, PlayerLevels levels,
 		boolean remembered, Set<String> prayerUnlocks, Boolean diary, int mining, Map<Integer, Long> quotes,
 		Set<Integer> owned, Map<Integer, Long> quantities, int generation, BestGearSetupConfig config,
 		LiveRaid liveRaid, List<String> notes, DoubleConsumer publishProgress) throws IOException
@@ -1916,13 +1909,8 @@ public class BestGearSetupPlugin extends Plugin
 		if (encounter == null) { return false; }
 		Set<Integer> excluded = liveRaid.adaptive() ? Collections.emptySet() : outsideKit(plan, data);
 		Set<Integer> encounterOwned = new HashSet<>(owned);
-		Map<String, Object> overrides = new HashMap<>();
-		overrides.put("coxChallengeMode", plan.getType() == RaidPlanType.COX_CM);
-		overrides.put("encounterPhase", encounter.getPhase());
-		overrides.put("onSlayerTask", false);
-		overrides.put("aoe", false);
-		overrides.put("wilderness", false);
-		if (!encounter.isRaidSupplies()) { overrides.put("raidPotions", false); }
+		Map<String, Object> overrides = raidOverrides(plan.getType(), encounter, liveRaid.adaptive() && encounter.isShared()
+			? (Integer) liveRaid.values.getOrDefault("raidPartySize", encounter.getKillShare()) : encounter.getKillShare());
 		if (!liveRaid.adaptive())
 		{
 			if (encounter.isUnboosted()) { unboostAll(overrides, config); }
@@ -1932,11 +1920,6 @@ public class BestGearSetupPlugin extends Plugin
 		if (plan.getType() == RaidPlanType.TOA) { overrides.put("toaPathOrder", ToaPathLevels.orderOf(plan.getEncounters())); }
 		// A quick switch stays a switch from the plan's full setup, within the plan's limit and with the boost it gave it.
 		overrides.put("quickSwitchLimit", encounter.getSwitchLimit());
-		// Spec energy follows the plan's rooms: a setup opens on a full bar only where the plan spent one.
-		overrides.put("specEnergy", SpecEnergy.FULL_BAR);
-		overrides.put("raidKillShare", liveRaid.adaptive() && encounter.isShared()
-			? liveRaid.values.getOrDefault("raidPartySize", encounter.getKillShare()) : encounter.getKillShare());
-		overrides.put("raidFinalBlowPercent", (int) Math.round(encounter.getFinalBlow() * 100));
 		int index = plan.getEncounters().indexOf(encounter);
 		boolean fullBar = plan.getSetups().get(index).usesFullBar();
 		boolean unknownHandPhase = summary.getName().startsWith("great olm") && summary.getName().contains("hand")
@@ -2037,18 +2020,12 @@ public class BestGearSetupPlugin extends Plugin
 	private static SearchResults compatibleSwitches(RaidPlan plan, SearchResults found, int index, int[] group, int base)
 	{
 		if (group == null) { return found; }
-		Map<AttackStyle.Type, List<SetupResult>> candidates = new EnumMap<>(AttackStyle.Type.class);
-		found.getByType().forEach((type, setups) ->
+		return found.filter(setup ->
 		{
-			List<SetupResult> kept = setups.stream().filter(setup ->
-			{
-				List<SetupResult> trial = new ArrayList<>(plan.getSetups());
-				trial.set(index, plan.fillAmmoFor(setup, found));
-				return RaidEncounter.fullSetups(group, trial, plan.getEncounters()).contains(base);
-			}).collect(Collectors.toList());
-			if (!kept.isEmpty()) { candidates.put(type, kept); }
+			List<SetupResult> trial = new ArrayList<>(plan.getSetups());
+			trial.set(index, plan.fillAmmoFor(setup, found));
+			return RaidSwitches.fullSetups(group, trial, plan.getEncounters()).contains(base);
 		});
-		return found.withCandidates(candidates);
 	}
 
 	/** Every item the kit doesn't carry, so a search can only use the kit's equipment and loaded ammunition. */
@@ -2056,12 +2033,7 @@ public class BestGearSetupPlugin extends Plugin
 	{
 		Set<Integer> allowed = new HashSet<>();
 		plan.getEquipment().forEach(item -> allowed.add(item.getId()));
-		for (SetupResult setup : plan.getSetups())
-		{
-			if (setup.getLoadout().getLoadedAmmo() != null) { allowed.add(setup.getLoadout().getLoadedAmmo().getId()); }
-			setup.getSpecials().stream().filter(special -> special.getLoadedAmmo() != null)
-				.forEach(special -> allowed.add(special.getLoadedAmmo().getId()));
-		}
+		plan.getSetups().forEach(setup -> allowed.addAll(RaidPlan.requiredItems(setup).keySet()));
 		Set<Integer> excluded = new HashSet<>();
 		for (Slot slot : Slot.values())
 		{
@@ -2171,7 +2143,7 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	/** Compare complete feasible kits on each allowed spellbook, and for ToA's Auto path order in each path order, before publishing one raid plan. */
-	private void runRaidSearch(GameData data, MonsterSummary active, PlayerLevels levels, boolean remembered,
+	void runRaidSearch(GameData data, MonsterSummary active, PlayerLevels levels, boolean remembered,
 		Set<String> prayerUnlocks, Boolean diary, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
 		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid,
 		List<String> detectedNotes, RaidPlanType type, DoubleConsumer publishProgress) throws IOException
@@ -2295,7 +2267,7 @@ public class BestGearSetupPlugin extends Plugin
 		});
 	}
 
-	private void clearSearchCaches()
+	void clearSearchCaches()
 	{
 		raidCache.clear();
 		encounterCache.clear();
@@ -2385,7 +2357,7 @@ public class BestGearSetupPlugin extends Plugin
 	 * are keyed by the setup's DPS result instance, so a setup instance another search already returned (with the same
 	 * levels, hence the same DPS) is listed once, keeping the fewer boosts.
 	 */
-	private static void addCandidates(Map<AttackStyle.Type, List<SetupResult>> candidates, Map<DpsResult, List<Potion>> boosts,
+	static void addCandidates(Map<AttackStyle.Type, List<SetupResult>> candidates, Map<DpsResult, List<Potion>> boosts,
 		SearchResults found)
 	{
 		found.getByType().forEach((type, setups) -> setups.forEach(setup ->
@@ -2586,6 +2558,27 @@ public class BestGearSetupPlugin extends Plugin
 		RaidKitUnavailable(String message) { super(message); }
 	}
 
+	/**
+	 * Assumptions shared by planned and live raid encounters. Each setup opens on a full spec bar, with its
+	 * regenerated-energy alternative; the kit follows the raid's energy (RaidEncounter#energyAfter) instead of the
+	 * Spec energy setting. Specs cover one player's share of each kill, with its final blows. CoX overloads come
+	 * after Tekton and ToA smelling salts after the first two paths; ToB hands out none.
+	 */
+	private static Map<String, Object> raidOverrides(RaidPlanType type, RaidEncounter encounter, int killShare)
+	{
+		Map<String, Object> overrides = new HashMap<>();
+		overrides.put("coxChallengeMode", type == RaidPlanType.COX_CM);
+		overrides.put("encounterPhase", encounter.getPhase());
+		overrides.put("onSlayerTask", false);
+		overrides.put("aoe", false);
+		overrides.put("wilderness", false);
+		overrides.put("specEnergy", SpecEnergy.FULL_BAR);
+		overrides.put("raidKillShare", killShare);
+		overrides.put("raidFinalBlowPercent", (int) Math.round(encounter.getFinalBlow() * 100));
+		if (!encounter.isRaidSupplies()) { overrides.put("raidPotions", false); }
+		return overrides;
+	}
+
 	/** A book or path order stopped at the faster plan already found: its own best is only known to be no faster. */
 	private static final class RaidKitSlower extends IllegalStateException
 	{
@@ -2597,7 +2590,7 @@ public class BestGearSetupPlugin extends Plugin
 	 * Consolidation only looks for kits faster than {@code beat} combat seconds, the whole party's (infinity for
 	 * none), and throws {@link RaidKitSlower} when that cut it short without one.
 	 */
-	private RaidPlan planRaidSpellbook(GameData data, MonsterSummary active, PlayerLevels levels, boolean remembered,
+	RaidPlan planRaidSpellbook(GameData data, MonsterSummary active, PlayerLevels levels, boolean remembered,
 		Set<String> prayerUnlocks, Boolean diary, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
 		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid,
 		List<String> detectedNotes, RaidPlanType type, RaidSpellbook spellbook, DoubleConsumer publishProgress,
@@ -2613,20 +2606,7 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			RaidEncounter encounter = encounters.get(index);
 			if (cancelled.getAsBoolean()) { return null; }
-			Map<String, Object> overrides = new HashMap<>();
-			overrides.put("coxChallengeMode", type == RaidPlanType.COX_CM);
-			overrides.put("encounterPhase", encounter.getPhase());
-			overrides.put("onSlayerTask", false);
-			overrides.put("wilderness", false);
-			overrides.put("aoe", false);
-			// Each setup is planned opening on a full spec bar, with its regenerated-energy alternative; the kit
-			// planner follows the raid's energy (RaidEncounter#energyAfter) instead of the Spec energy setting.
-			overrides.put("specEnergy", SpecEnergy.FULL_BAR);
-			// Specs are planned over one player's share of each kill, with the kill's final blows.
-			overrides.put("raidKillShare", encounter.getKillShare());
-			overrides.put("raidFinalBlowPercent", (int) Math.round(encounter.getFinalBlow() * 100));
-			// CoX overloads come after Tekton and ToA smelling salts after the first two paths; ToB hands out none.
-			if (!encounter.isRaidSupplies()) { overrides.put("raidPotions", false); }
+			Map<String, Object> overrides = raidOverrides(type, encounter, encounter.getKillShare());
 			if (unboosted) { unboost(overrides, config, encounter.getFixedClass()); }
 			if (encounter.isUnboosted()) { unboostAll(overrides, config); }
 			freezeHeart(overrides, encounter, config, data, owned);
@@ -2754,7 +2734,10 @@ public class BestGearSetupPlugin extends Plugin
 				RaidEncounter encounter = encounters.get(index);
 				String duty = encounter.getLoadoutRequirement() == RaidLoadout.ICE_BARRAGE
 					? " Ice Barrage needs 94 Magic after boosts, Ancient spells and usable magic gear; manual casting is supported. Check rune exclusions and locks."
-					: " Check owned gear, locks and allowed styles.";
+					// Like a single search: an empty inventory finds nothing here, so point at the mode, not the gear.
+					: config.mode() == SearchMode.INVENTORY_ONLY
+						? " Only your inventory and worn equipment are used; withdraw your raid gear or change the mode."
+						: " Check owned gear, locks and allowed styles.";
 				throw new RaidKitUnavailable("No usable setup for " + encounter.getLabel() + "." + duty);
 			}
 			results.add(result);
@@ -2828,19 +2811,7 @@ public class BestGearSetupPlugin extends Plugin
 		Set<Integer> ids = new HashSet<>();
 		if (setup != null)
 		{
-			for (Slot slot : Slot.values())
-			{
-				addBankHighlightItem(ids, setup.getLoadout().get(slot));
-			}
-			addBankHighlightItem(ids, setup.getLoadout().getLoadedAmmo());
-			for (SpecialPlan special : setup.getSpecials())
-			{
-				// A raid-provided spec weapon (the Dawnbringer) is picked up in the room, not withdrawn.
-				if (!RaidPlan.providedInRaid(special.getWeapon())) { addBankHighlightItem(ids, special.getWeapon()); }
-				addBankHighlightItem(ids, special.getOffhand());
-				addBankHighlightItem(ids, special.getAmmo());
-				addBankHighlightItem(ids, special.getLoadedAmmo());
-			}
+			RaidPlan.requiredItems(setup).values().forEach(item -> addBankHighlightItem(ids, item));
 			for (List<Integer> spellItem : SpellRunes.bankItems(setup, this::ownsItem))
 			{
 				ids.addAll(spellItem);
@@ -2876,17 +2847,13 @@ public class BestGearSetupPlugin extends Plugin
 		setInventoryHighlightedSetup(plan.getStartingSetup());
 		Set<Integer> ids = new HashSet<>();
 		plan.getEquipment().forEach(item -> addBankHighlightItem(ids, item));
+		plan.getSetups().forEach(setup -> RaidPlan.requiredItems(setup).values().forEach(item -> addBankHighlightItem(ids, item)));
 		plan.getInventory().forEach(item ->
 		{
 			ids.addAll(item.getIds());
 			item.getContents().forEach(rune -> ids.addAll(rune.getIds()));
 		});
 		plan.prepotItems().forEach(item -> ids.addAll(item.getIds()));
-		for (SetupResult setup : plan.getSetups())
-		{
-			addBankHighlightItem(ids, setup.getLoadout().getLoadedAmmo());
-			setup.getSpecials().forEach(special -> addBankHighlightItem(ids, special.getLoadedAmmo()));
-		}
 		publishBankHighlights(ids);
 		if (bankView != null)
 		{

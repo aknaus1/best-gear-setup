@@ -20,8 +20,6 @@ import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.ui.BestGearSetupPanel;
 import com.google.gson.Gson;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -79,11 +77,7 @@ public class RaidSearchTest
 		};
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.config = base;
 		plugin.panel = mock(BestGearSetupPanel.class);
-		Field api = BestGearSetupPlugin.class.getDeclaredField("api"); api.setAccessible(true); api.set(plugin, loader);
-		Method search = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods()).filter(m -> m.getName().equals("runRaidSearch")).findFirst().get();
-		search.setAccessible(true);
-		Method refresh = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods()).filter(m -> m.getName().equals("refreshRaidEncounter")).findFirst().get();
-		refresh.setAccessible(true);
+		plugin.api = loader;
 		RaidPlan[] result = {null};
 		SearchResults[] active = {null};
 		doAnswer(call -> { result[0] = call.getArgument(0); return null; }).when(plugin.panel).showRaidResults(any(RaidPlan.class), any());
@@ -96,7 +90,7 @@ public class RaidSearchTest
 			if (role.freezes())
 			{ weapons.stream().filter(w -> w.getName().equals("ancient staff")).forEach(w -> roleOwned.remove(w.getId())); }
 			result[0] = null;
-			search.invoke(plugin, data, RaidPlanType.TOB.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
+			plugin.runRaidSearch(data, RaidPlanType.TOB.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
 				Collections.emptySet(), true, 99, Collections.emptyMap(), roleOwned, quantities, 0, config, new LiveRaid(), Collections.emptyList(),
 				RaidPlanType.TOB, (java.util.function.DoubleConsumer) percent -> { });
 			SwingUtilities.invokeAndWait(() -> { });
@@ -149,7 +143,7 @@ public class RaidSearchTest
 					continue;
 				}
 				active[0] = null;
-				assertEquals(true, refresh.invoke(plugin, plan, data, encounter.getTarget(), PlayerLevels.maxed(), false,
+				assertEquals(true, plugin.refreshRaidEncounter(plan, data, encounter.getTarget(), PlayerLevels.maxed(), false,
 					Collections.emptySet(), true, 99, Collections.emptyMap(), roleOwned, quantities, 0, config, new LiveRaid(), Collections.emptyList(),
 					(java.util.function.DoubleConsumer) percent -> { }));
 				SwingUtilities.invokeAndWait(() -> { });
@@ -168,7 +162,7 @@ public class RaidSearchTest
 				{
 					RaidEncounter encounter = plan.getEncounters().get(member);
 					active[0] = null;
-					assertEquals(true, refresh.invoke(plugin, plan, data, encounter.getTarget(), PlayerLevels.maxed(), false,
+					assertEquals(true, plugin.refreshRaidEncounter(plan, data, encounter.getTarget(), PlayerLevels.maxed(), false,
 						Collections.emptySet(), true, 99, Collections.emptyMap(), roleOwned, quantities, 0, config, new LiveRaid(), Collections.emptyList(),
 						(java.util.function.DoubleConsumer) percent -> { }));
 					SwingUtilities.invokeAndWait(() -> { });
@@ -178,7 +172,7 @@ public class RaidSearchTest
 						List<SetupResult> trial = new ArrayList<>(plan.getSetups());
 						trial.set(member, setup);
 						assertTrue("Live refresh preserves the chosen base and extra slot",
-							RaidEncounter.fullSetups(group, trial, plan.getEncounters()).contains(fullIndex));
+							RaidSwitches.fullSetups(group, trial, plan.getEncounters()).contains(fullIndex));
 					}
 				}
 			}
@@ -222,16 +216,14 @@ public class RaidSearchTest
 		};
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.config = config;
 		plugin.panel = mock(BestGearSetupPanel.class);
-		Field api = BestGearSetupPlugin.class.getDeclaredField("api"); api.setAccessible(true); api.set(plugin, loader);
-		Method search = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods()).filter(m -> m.getName().equals("runRaidSearch")).findFirst().get();
-		search.setAccessible(true);
+		plugin.api = loader;
 		RaidPlan[] result = {null};
 		doAnswer(call -> { result[0] = call.getArgument(0); return null; }).when(plugin.panel).showRaidResults(any(RaidPlan.class), any());
 		for (RaidPlanType type : Arrays.asList(RaidPlanType.COX_CM, RaidPlanType.TOA, RaidPlanType.TOB))
 		{
 			result[0] = null;
 			List<Double> progress = new ArrayList<>();
-			search.invoke(plugin, data, type.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
+			plugin.runRaidSearch(data, type.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
 				Collections.emptySet(), true, 99, Collections.emptyMap(), owned, quantities, 0, config, new LiveRaid(), Collections.emptyList(), type, (java.util.function.DoubleConsumer) progress::add);
 			SwingUtilities.invokeAndWait(() -> { });
 			assertNotNull(type.toString(), result[0]);
@@ -251,7 +243,7 @@ public class RaidSearchTest
 			{
 				BestGearSetupConfig manual = SearchAssumptions.capture(config, Collections.singletonMap("raidSpellbook", book));
 				result[0] = null;
-				search.invoke(plugin, data, type.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
+				plugin.runRaidSearch(data, type.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
 					Collections.emptySet(), true, 99, Collections.emptyMap(), owned, quantities, 0, manual, new LiveRaid(),
 					Collections.emptyList(), type, (java.util.function.DoubleConsumer) percent -> { });
 				SwingUtilities.invokeAndWait(() -> { });
@@ -272,7 +264,7 @@ public class RaidSearchTest
 			{
 				BestGearSetupConfig noThralls = SearchAssumptions.capture(config, Collections.singletonMap("thrall", false));
 				result[0] = null;
-				search.invoke(plugin, data, type.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
+				plugin.runRaidSearch(data, type.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
 					Collections.emptySet(), true, 99, Collections.emptyMap(), owned, quantities, 0, noThralls, new LiveRaid(),
 					Collections.emptyList(), type, (java.util.function.DoubleConsumer) percent -> { });
 				SwingUtilities.invokeAndWait(() -> { });
@@ -286,7 +278,7 @@ public class RaidSearchTest
 					full.getSpells().stream().filter(spell -> "standard".equals(spell.getSpellbook())).collect(java.util.stream.Collectors.toList()),
 					Collections.emptyMap(), Collections.emptyMap());
 				result[0] = null;
-				search.invoke(plugin, standardOnly, type.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
+				plugin.runRaidSearch(standardOnly, type.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
 					Collections.emptySet(), true, 99, Collections.emptyMap(), owned, quantities, 0, config, new LiveRaid(),
 					Collections.emptyList(), type, (java.util.function.DoubleConsumer) percent -> { });
 				SwingUtilities.invokeAndWait(() -> { });
@@ -318,10 +310,8 @@ public class RaidSearchTest
 				SearchResults[] active = {null};
 				doAnswer(call -> { active[0] = call.getArgument(2); return null; }).when(plugin.panel)
 					.showRaidResults(any(RaidPlan.class), any(), any(SearchResults.class));
-				Method refresh = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods()).filter(m -> m.getName().equals("refreshRaidEncounter")).findFirst().get();
-				refresh.setAccessible(true);
 				BestGearSetupConfig specs = SearchAssumptions.capture(config, Collections.singletonMap("killSpecials", true));
-				assertEquals(true, refresh.invoke(plugin, plan, data, p1.getTarget(), PlayerLevels.maxed(),
+				assertEquals(true, plugin.refreshRaidEncounter(plan, data, p1.getTarget(), PlayerLevels.maxed(),
 					false, Collections.emptySet(), true, 99, Collections.emptyMap(), owned, quantities, 0, specs, new LiveRaid(), Collections.emptyList(), (java.util.function.DoubleConsumer) percent -> { }));
 				SwingUtilities.invokeAndWait(() -> { });
 				assertNotNull(active[0]);
@@ -361,10 +351,8 @@ public class RaidSearchTest
 				SearchResults[] active = {null};
 				doAnswer(call -> { active[0] = call.getArgument(2); return null; }).when(plugin.panel)
 					.showRaidResults(any(RaidPlan.class), any(), any(SearchResults.class));
-				Method refresh = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods()).filter(m -> m.getName().equals("refreshRaidEncounter")).findFirst().get();
-				refresh.setAccessible(true);
 				BestGearSetupConfig drained = SearchAssumptions.capture(config, Collections.singletonMap("specDwh", 1));
-				assertEquals(true, refresh.invoke(plugin, original, data, original.getEncounters().get(0).getTarget(), PlayerLevels.maxed(),
+				assertEquals(true, plugin.refreshRaidEncounter(original, data, original.getEncounters().get(0).getTarget(), PlayerLevels.maxed(),
 					false, Collections.emptySet(), true, 99, Collections.emptyMap(), owned, quantities, 0, drained, new LiveRaid(), Collections.emptyList(), (java.util.function.DoubleConsumer) percent -> { }));
 				SwingUtilities.invokeAndWait(() -> { });
 				assertNotNull(active[0]);
@@ -372,6 +360,33 @@ public class RaidSearchTest
 				Set<Integer> kit = new HashSet<>(); original.getEquipment().forEach(item -> kit.add(item.getId()));
 				active[0].getByType().values().forEach(list -> list.forEach(setup -> assertTrue(kit.containsAll(RaidPlan.gear(setup).keySet()))));
 			}
+		}
+	}
+
+	@Test public void inventoryOnlyRaidWithNothingCarriedPointsAtTheMode() throws Exception
+	{
+		GameDataLoader loader = new GameDataLoader(new Gson());
+		GameData data = loader.loadGameData();
+		BestGearSetupConfig config = new BestGearSetupConfig()
+		{
+			@Override public SearchMode mode() { return SearchMode.INVENTORY_ONLY; }
+			@Override public SearchDepth searchDepth() { return SearchDepth.FAST; }
+			@Override public RaidSpellbook raidSpellbook() { return RaidSpellbook.ARCEUUS; }
+		};
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.config = config;
+		plugin.panel = mock(BestGearSetupPanel.class);
+		plugin.api = loader;
+		try
+		{
+			plugin.runRaidSearch(data, RaidPlanType.TOA.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
+				Collections.emptySet(), true, 99, Collections.emptyMap(), Collections.emptySet(), Collections.emptyMap(), 0, config,
+				new LiveRaid(), Collections.emptyList(), RaidPlanType.TOA, (java.util.function.DoubleConsumer) percent -> { });
+			org.junit.Assert.fail("Nothing carried must not plan a raid kit");
+		}
+		catch (IllegalStateException e)
+		{
+			assertTrue(e.getMessage(), e.getMessage().contains("No usable setup for Baboon Brawlers"));
+			assertTrue(e.getMessage(), e.getMessage().contains("Only your inventory and worn equipment are used"));
 		}
 	}
 
@@ -399,16 +414,14 @@ public class RaidSearchTest
 		};
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.config = config;
 		plugin.panel = mock(BestGearSetupPanel.class);
-		Field api = BestGearSetupPlugin.class.getDeclaredField("api"); api.setAccessible(true); api.set(plugin, loader);
-		Method plan = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods()).filter(m -> m.getName().equals("planRaidSpellbook")).findFirst().get();
-		plan.setAccessible(true);
-		Map<Integer, Map<List<Object>, List<SetupResult>>> shared = new HashMap<>();
+		plugin.api = loader;
+		Map<List<Object>, Map<List<Object>, List<SetupResult>>> shared = new HashMap<>();
 		for (RaidSpellbook book : RaidSpellbook.candidates(RaidPlanType.TOB, config))
 		{
 			RaidPlan[] plans = new RaidPlan[2];
 			for (int run = 0; run < 2; run++)
 			{
-				plans[run] = (RaidPlan) plan.invoke(plugin, data, RaidPlanType.TOB.encounters(data).get(0).getTarget(), PlayerLevels.maxed(),
+				plans[run] = plugin.planRaidSpellbook(data, RaidPlanType.TOB.encounters(data).get(0).getTarget(), PlayerLevels.maxed(),
 					false, null, true, 99, Collections.emptyMap(), owned, quantities, 0, config, new LiveRaid(), Collections.emptyList(),
 					RaidPlanType.TOB, book, (java.util.function.DoubleConsumer) percent -> { }, run == 0 ? shared : new HashMap<>(),
 					Double.POSITIVE_INFINITY);

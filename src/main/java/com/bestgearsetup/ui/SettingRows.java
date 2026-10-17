@@ -1,6 +1,7 @@
 package com.bestgearsetup.ui;
 
 import com.bestgearsetup.BestGearSetupConfig;
+import com.bestgearsetup.ConfigSettings;
 import com.bestgearsetup.BestGearSetupPlugin;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -44,7 +45,7 @@ final class SettingRows
 	private final int spinnerColumns;
 	/** Runs after a change is saved, e.g. to show or hide dependent rows. */
 	private final Runnable onChange;
-	private final Map<String, Setting> settings = new LinkedHashMap<>();
+	private final Map<String, Function<BestGearSetupConfig, Object>> settings = new LinkedHashMap<>();
 	private final Map<String, JComponent> controls = new HashMap<>();
 	private final Map<String, JPanel> rows = new HashMap<>();
 	private boolean syncing;
@@ -62,18 +63,14 @@ final class SettingRows
 		}
 	}
 
-	static Setting setting(String key, Function<BestGearSetupConfig, Object> getter)
-	{
-		return new Setting(key, getter);
-	}
-
 	/** Build the row editing this setting, named {@code key + "Row"}; its control is named after the key. */
-	JPanel add(Setting entry)
+	JPanel add(String key)
 	{
-		ConfigItemDescriptor descriptor = descriptors.get(entry.key);
+		Function<BestGearSetupConfig, Object> getter = ConfigSettings.getter(key);
+		ConfigItemDescriptor descriptor = descriptors.get(key);
 		if (descriptor == null)
 		{
-			throw new IllegalStateException("Missing setting " + entry.key);
+			throw new IllegalStateException("Missing setting " + key);
 		}
 		ConfigItem item = descriptor.getItem();
 		Object type = descriptor.getType();
@@ -105,7 +102,7 @@ final class SettingRows
 			Controls.field(field);
 			Runnable commit = () ->
 			{
-				if (!field.getText().equals(entry.getter.apply(config)))
+				if (!field.getText().equals(getter.apply(config)))
 				{
 					save(item, field.getText());
 				}
@@ -150,10 +147,10 @@ final class SettingRows
 		}
 		control.setName(item.keyName());
 		control.setToolTipText(item.description());
-		row.setName(entry.key + "Row");
-		settings.put(entry.key, entry);
-		controls.put(entry.key, control);
-		rows.put(entry.key, row);
+		row.setName(key + "Row");
+		settings.put(key, getter);
+		controls.put(key, control);
+		rows.put(key, row);
 		return row;
 	}
 
@@ -198,10 +195,10 @@ final class SettingRows
 		syncing = true;
 		try
 		{
-			for (Setting entry : settings.values())
+			for (Map.Entry<String, Function<BestGearSetupConfig, Object>> entry : settings.entrySet())
 			{
-				Object value = entry.getter.apply(config);
-				JComponent control = control(entry.key);
+				Object value = entry.getValue().apply(config);
+				JComponent control = control(entry.getKey());
 				if (control instanceof JCheckBox)
 				{
 					((JCheckBox) control).setSelected((boolean) value);
@@ -281,20 +278,4 @@ final class SettingRows
 		return wrap;
 	}
 
-	static final class Setting
-	{
-		private final String key;
-		private final Function<BestGearSetupConfig, Object> getter;
-
-		private Setting(String key, Function<BestGearSetupConfig, Object> getter)
-		{
-			this.key = key;
-			this.getter = getter;
-		}
-
-		String getKey()
-		{
-			return key;
-		}
-	}
 }

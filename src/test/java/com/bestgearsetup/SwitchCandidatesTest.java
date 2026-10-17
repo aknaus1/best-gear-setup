@@ -15,7 +15,6 @@ import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -91,9 +90,7 @@ public class SwitchCandidatesTest
 	private static void addCandidates(Map<AttackStyle.Type, List<SetupResult>> candidates, Map<DpsResult, List<Potion>> boosts,
 		SearchResults found) throws Exception
 	{
-		Method add = BestGearSetupPlugin.class.getDeclaredMethod("addCandidates", Map.class, Map.class, SearchResults.class);
-		add.setAccessible(true);
-		add.invoke(null, candidates, boosts, found);
+		BestGearSetupPlugin.addCandidates(candidates, boosts, found);
 	}
 
 	private static SearchResults result(SetupResult setup, Potion boost)

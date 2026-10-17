@@ -9,7 +9,6 @@ import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.Slot;
 import java.awt.Color;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,7 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.runelite.client.config.ConfigItem;
 import net.runelite.api.gameval.ItemID;
 import org.junit.Test;
 
@@ -137,19 +135,19 @@ public class SearchInputsTest
 	@Test
 	public void allCalculationSettingsParticipateAndPresentationSettingsDoNot() throws Exception
 	{
-		for (Method method : BestGearSetupConfig.class.getDeclaredMethods())
+		for (Map.Entry<String, java.util.function.Function<BestGearSetupConfig, Object>> getter : SearchAssumptionsTest.GETTERS.entrySet())
 		{
-			if (!method.isAnnotationPresent(ConfigItem.class)) { continue; }
-			Object value = method.invoke(config);
+			String name = getter.getKey();
+			Object value = getter.getValue().apply(config);
 			Object different = value instanceof Boolean ? !(Boolean) value : value instanceof Integer ? (Integer) value + 1
 				: value instanceof Double ? (Double) value + 1 : value instanceof String ? value + "changed"
 				: value instanceof Color ? Color.PINK
 				: value.getClass().getEnumConstants()[(((Enum<?>) value).ordinal() + 1) % value.getClass().getEnumConstants().length];
-			BestGearSetupConfig changed = SearchAssumptions.capture(config, Collections.singletonMap(method.getName(), different));
+			BestGearSetupConfig changed = SearchAssumptions.capture(config, Collections.singletonMap(name, different));
 			for (boolean encounter : new boolean[]{false, true})
 			{
-				assertEquals(method.getName(), SearchInputs.PRESENTATION.contains(method.getName())
-					|| encounter && SearchInputs.KIT_ONLY.contains(method.getName()),
+				assertEquals(name, SearchInputs.PRESENTATION.contains(name)
+					|| encounter && SearchInputs.KIT_ONLY.contains(name),
 					SearchInputs.settings(config, encounter).equals(SearchInputs.settings(changed, encounter)));
 			}
 		}

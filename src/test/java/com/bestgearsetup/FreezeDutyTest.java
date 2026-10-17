@@ -102,8 +102,8 @@ public class FreezeDutyTest
 		SetupResult melee = maiden(meleeGear, 8);
 		SetupResult fromMelee = freeze(meleeGear, 2, 1);
 		int[] group = {0, 1};
-		assertTrue(RaidEncounter.fullSetups(group, Arrays.asList(mage, fromMelee), encounters).isEmpty());
-		assertEquals(Collections.singletonList(0), RaidEncounter.fullSetups(group, Arrays.asList(melee, fromMelee), encounters));
+		assertTrue(RaidSwitches.fullSetups(group, Arrays.asList(mage, fromMelee), encounters).isEmpty());
+		assertEquals(Collections.singletonList(0), RaidSwitches.fullSetups(group, Arrays.asList(melee, fromMelee), encounters));
 		// The finished kit may wear a carried piece in an empty Maiden slot, but not one that lowers magic attack.
 		Loadout filled = meleeGear.copy();
 		filled.set(Slot.RING, item(300, Slot.RING));

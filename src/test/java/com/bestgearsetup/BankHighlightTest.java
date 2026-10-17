@@ -254,8 +254,7 @@ public class BankHighlightTest
 		net.runelite.api.Client client = mock(net.runelite.api.Client.class);
 		net.runelite.api.widgets.Widget chest = mock(net.runelite.api.widgets.Widget.class);
 		when(client.getWidget(net.runelite.api.gameval.InterfaceID.RaidsStoragePrivate.UNIVERSE)).thenReturn(chest);
-		java.lang.reflect.Field field = BestGearSetupPlugin.class.getDeclaredField("client");
-		field.setAccessible(true); field.set(plugin, client);
+		plugin.client = client;
 		return chest;
 	}
 

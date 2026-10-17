@@ -1,0 +1,82 @@
+[
+{"names": ["prefix:tekton"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Tekton only attacks with melee.", "prayers": ["MELEE"]}]},
+{"names": ["prefix:ice demon"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Keep Protect from Missiles active: it makes the ice demon use snowballs rather than Ice Burst and reduces their damage. Step away from the targeted tiles.", "prayers": ["MISSILES"]}]},
+{"names": ["prefix:lizardman shaman (chambers of xeric)"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Shamans spit ranged attacks; they also melee adjacent players. Their jump and purple spawns aren't prayable: move away.", "prayers": ["MISSILES"]}]},
+{"names": ["prefix:vanguard (melee)"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Use Melee against the melee Vanguard, which can approach you. Keep other Vanguards out of range where possible.", "prayers": ["MELEE"]}]},
+{"names": ["prefix:vanguard (ranged)"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Use Missiles against the ranged Vanguard. Prayer reduces its projectile damage and accuracy; move away from the other targeted tiles.", "prayers": ["MISSILES"]}]},
+{"names": ["prefix:vanguard (magic)"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Use Magic against the magic Vanguard. Prayer reduces its projectile damage and accuracy; move away from the other targeted tiles.", "prayers": ["MAGIC"]}]},
+{"names": ["prefix:vespula"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Vespula's stings are ranged.", "prayers": ["MISSILES"]}]},
+{"names": ["prefix:abyssal portal"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Vespula keeps stinging with ranged while you attack the portal.", "prayers": ["MISSILES"]}]},
+{"names": ["prefix:guardian (chambers of xeric)"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Usually none: step out of the slam. Its slam is melee, so use Protect from Melee only if you tank it."}]},
+{"names": ["prefix:vasa nistirio"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Use Missiles for Vasa's boulders and dodge their targeted area. Use Magic when joining the stunned players during his teleport special; stunned players cannot pray.", "prayers": ["MISSILES", "MAGIC"]}]},
+{"names": ["prefix:glowing crystal"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "The crystal doesn't attack."}]},
+{"names": ["prefix:skeletal mystic"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Mystics cast magic at range and also melee adjacent players; fight them from distance.", "prayers": ["MAGIC"]}]},
+{"names": ["prefix:muttadile (small)"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"when": ["melee"], "note": "The small muttadile bites in melee range.", "prayers": ["MELEE"]},
+	{"note": "At distance the small muttadile uses ranged.", "prayers": ["MISSILES"]}]},
+{"names": ["prefix:muttadile (large)"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"when": ["melee"], "note": "The large muttadile bites hard in melee range; step back and it uses ranged and magic.", "prayers": ["MELEE"]},
+	{"note": "Keep Protect from Missiles at distance: the large muttadile's ranged attacks hit harder and more accurately than its magic. Stay out of melee and stomp range.", "prayers": ["MISSILES"]}]},
+{"names": ["prefix:deathly ranger"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Deathly rangers use ranged.", "prayers": ["MISSILES"]}]},
+{"names": ["prefix:deathly mage"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Deathly mages use magic.", "prayers": ["MAGIC"]}]},
+{"names": ["prefix:great olm"], "page": "Chambers_of_Xeric/Strategies", "cases": [
+	{"note": "Maintain the prayer for Olm's head's current style, updating it for subsequent attacks after a style change; ordinary attacks aren't reliably telegraphed. His coloured spheres can be prayed against before impact. The head keeps attacking while you damage either hand.", "prayers": ["MAGIC", "MISSILES"]}]},
+{"names": ["prefix:ba-ba"], "page": "Tombs_of_Amascut/Strategies", "cases": [
+	{"note": "Ba-Ba's attacks are melee; dodge her boulders and falling rocks.", "prayers": ["MELEE"]}]},
+{"names": ["prefix:akkha's shadow"], "page": "Tombs_of_Amascut/Strategies", "cases": [
+	{"note": "The shadow doesn't make ordinary attacks; Akkha keeps attacking while you damage it. Match Akkha's current form with Melee, Missiles or Magic before he attacks; he can approach ranged and magic setups too.", "prayers": ["MELEE", "MISSILES", "MAGIC"]}]},
+{"names": ["prefix:akkha"], "page": "Tombs_of_Amascut/Strategies", "cases": [
+	{"note": "Akkha cycles melee, ranged and magic forms: maintain the matching prayer before he attacks, using his form / overhead as the cue. He can approach ranged and magic setups. Perfect butterfly kiting avoids melee; an ordinary ranged setup doesn't guarantee that.", "prayers": ["MELEE", "MISSILES", "MAGIC"]}]},
+{"names": ["prefix:zebak"], "page": "Tombs_of_Amascut/Strategies", "cases": [
+	{"when": ["melee"], "note": "Zebak can't be tanked in melee range; step back between his ranged and magic rocks.", "prayers": ["MISSILES", "MAGIC", "MELEE"]},
+	{"note": "Zebak alternates ranged and magic rocks: pray against each. He bites players next to him.", "prayers": ["MISSILES", "MAGIC"]}]},
+{"names": ["prefix:obelisk (tombs of amascut)"], "page": "Tombs_of_Amascut/Strategies", "cases": [
+	{"note": "P1 charged orbs and energy trough damage aren't blocked by overhead prayers. Desynchronise the Wardens, share / separate for the appropriate orb and heal; avoid UFOs."}]},
+{"names": ["prefix:elidinis' warden (core-ejected)", "prefix:tumeken's warden (core-ejected)"], "page": "Tombs_of_Amascut/Strategies", "cases": [
+	{"note": "The core doesn't attack."}]},
+{"names": ["prefix:elidinis' warden (phase 3)", "prefix:tumeken's warden (phase 3)"], "page": "Tombs_of_Amascut/Strategies", "cases": [
+	{"note": "Dodge the Warden's floor attacks. Match the supporting Akkha / Zebak echo's Magic or Missiles attacks; prayer does not block the Warden's floor damage.", "prayers": ["MAGIC", "MISSILES"]}]},
+{"names": ["prefix:elidinis' warden"], "page": "Tombs_of_Amascut/Strategies", "cases": [
+	{"note": "The Warden alternates magic and ranged projectiles: pray against each. Dodge its slam.", "prayers": ["MAGIC", "MISSILES"]}]},
+{"names": ["prefix:tumeken's warden"], "page": "Tombs_of_Amascut/Strategies", "cases": [
+	{"when": ["melee"], "note": "P2: use Melee between projectile attacks if Tumeken's Warden reaches you; match its Magic / Missiles projectiles. Dodge obelisk beams and floor attacks.", "prayers": ["MELEE", "MAGIC", "MISSILES"]},
+	{"note": "P2: match the Warden's Magic / Missiles projectiles and keep out of melee reach; Tumeken's Warden can approach you. Dodge obelisk beams and floor attacks.", "prayers": ["MAGIC", "MISSILES"]}]},
+{"names": ["prefix:the maiden of sugadinti"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"note": "Maiden's blood attacks are magic.", "prayers": ["MAGIC"]}]},
+{"names": ["prefix:nylocas matomenos (entry mode maiden)", "prefix:nylocas matomenos (normal mode maiden)", "prefix:nylocas matomenos (hard mode maiden)"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"note": "The nylocas don't attack; keep Protect from Magic against Maiden.", "prayers": ["MAGIC"]}]},
+{"names": ["prefix:pestilent bloat"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"note": "None: step out from under Bloat before it stomps and dodge the falling flesh."}]},
+{"names": ["prefix:nylocas vasilias (melee)"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"note": "Vasilias attacks with its current form's style and changes form every few attacks.", "prayers": ["MELEE"]}]},
+{"names": ["prefix:nylocas vasilias (ranged)"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"note": "Vasilias attacks with its current form's style and changes form every few attacks.", "prayers": ["MISSILES"]}]},
+{"names": ["prefix:nylocas vasilias (magic)"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"note": "Vasilias attacks with its current form's style and changes form every few attacks.", "prayers": ["MAGIC"]}]},
+{"names": ["prefix:sotetseg"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"when": ["melee"], "note": "Tanking in melee range: Protect from Melee against its melee, switching to Magic or Missiles for its magic and ranged orbs.", "prayers": ["MELEE", "MAGIC", "MISSILES"]},
+	{"note": "Sotetseg alternates magic and ranged orbs: pray against each.", "prayers": ["MAGIC", "MISSILES"]}]},
+{"names": ["prefix:xarpus"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"note": "None needed: Xarpus's spit is typeless, so no overhead reduces it (Protect from Missiles is only habit). Avoid the acid pools."}]},
+{"names": ["prefix:verzik vitur (phase 1)"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"note": "Hide behind a pillar; her P1 attack is magic.", "prayers": ["MAGIC"]}]},
+{"names": ["prefix:verzik vitur (phase 2)"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"note": "Keep Protect from Missiles during Verzik P2. Step off the urn bomb tiles and step back between melee attacks to avoid her slam.", "prayers": ["MISSILES"]}]},
+{"names": ["prefix:verzik vitur (phase 3)"], "page": "Theatre_of_Blood/Strategies", "cases": [
+	{"when": ["melee"], "note": "Pray against her magic and ranged attacks. Her melee is typeless and no prayer blocks it: stay out of her melee range unless you are tanking. Every fifth attack is a special.", "prayers": ["MAGIC", "MISSILES"]},
+	{"note": "Verzik P3 rotates magic and ranged at distance; every fifth attack is a special.", "prayers": ["MAGIC", "MISSILES"]}]}
+]

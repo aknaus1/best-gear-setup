@@ -1234,7 +1234,7 @@ public class RaidPlannerTest
 			wearing(CombatClass.RANGED, 5, 200, 101, 102, 103, 104),
 			wearing(CombatClass.MAGIC, 5, 300, 101, 102, 103, 104));
 		List<SearchResults> results = Arrays.asList(result(setups.get(0)), result(setups.get(1)), result(setups.get(2)));
-		assertEquals(Collections.singletonList(1), RaidEncounter.fullSetups(new int[]{0, 1, 2}, setups, encounters));
+		assertEquals(Collections.singletonList(1), RaidSwitches.fullSetups(new int[]{0, 1, 2}, setups, encounters));
 		assertEquals(1, RaidPlanner.fullSetupChoice(encounters, results, setups)[0]);
 		// Copies made for style overrides and kit search must retain the role restriction.
 		assertFalse(encounters.get(0).withStyleChoice(RaidStyle.AUTO).withPrepotted().withStartable().isFullSwitchSetup());
@@ -1255,8 +1255,8 @@ public class RaidPlannerTest
 		magicCape.getLoadout().set(Slot.CAPE, item(802, Slot.CAPE));
 		SetupResult magicNeck = wearing(CombatClass.MAGIC, 1, 300, 101, 102, 103, 104);
 		magicNeck.getLoadout().set(Slot.NECK, item(803, Slot.NECK));
-		assertTrue(RaidEncounter.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedNeck, magicCape), encounters).isEmpty());
-		assertEquals(Collections.singletonList(0), RaidEncounter.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedCape, magicCape), encounters));
+		assertTrue(RaidSwitches.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedNeck, magicCape), encounters).isEmpty());
+		assertEquals(Collections.singletonList(0), RaidSwitches.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedCape, magicCape), encounters));
 		List<SearchResults> results = Arrays.asList(result(full), result(rangedNeck, rangedCape), result(magicCape, magicNeck));
 		RaidPlan plan = RaidPlanner.select(RaidPlanType.TOB, RaidSpellbook.ARCEUUS, encounters, results, 28, Long.MAX_VALUE,
 			id -> true, gear -> 0, 0, id -> 0, () -> false);
@@ -1265,7 +1265,7 @@ public class RaidPlannerTest
 		assertEquals(magicCape, plan.getSetups().get(2));
 		assertEquals(Arrays.asList(full, rangedCape, magicCape), RaidConsolidator.best(results, encounters));
 		SetupResult weaponOnly = wearing(CombatClass.MAGIC, 3, 300, 101, 102, 103, 104);
-		assertEquals(Collections.singletonList(0), RaidEncounter.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedCape, weaponOnly), encounters));
+		assertEquals(Collections.singletonList(0), RaidSwitches.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedCape, weaponOnly), encounters));
 	}
 
 	@Test public void aLargerSwitchLimitLetsQuickSwitchesShareMoreSlots()
@@ -1282,7 +1282,7 @@ public class RaidPlannerTest
 		SetupResult magicCape = wearing(CombatClass.MAGIC, 10, 300, 101, 102, 103, 104);
 		magicCape.getLoadout().set(Slot.CAPE, item(802, Slot.CAPE));
 		// Neck and cape are two shared extra slots: allowed with three swaps, so the faster ranged neck is kept.
-		assertEquals(Collections.singletonList(0), RaidEncounter.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedNeck, magicCape), encounters));
+		assertEquals(Collections.singletonList(0), RaidSwitches.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedNeck, magicCape), encounters));
 		List<SearchResults> results = Arrays.asList(result(full), result(rangedNeck, rangedCape), result(magicCape));
 		RaidPlan plan = RaidPlanner.select(RaidPlanType.TOB, RaidSpellbook.ARCEUUS, encounters, results, 28, Long.MAX_VALUE,
 			id -> true, gear -> 0, 0, id -> 0, () -> false);
@@ -1293,14 +1293,14 @@ public class RaidPlannerTest
 		SetupResult magicCapeRing = wearing(CombatClass.MAGIC, 11, 300, 101, 102, 103, 104);
 		magicCapeRing.getLoadout().set(Slot.CAPE, item(802, Slot.CAPE));
 		magicCapeRing.getLoadout().set(Slot.RING, item(804, Slot.RING));
-		assertTrue(RaidEncounter.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedNeck, magicCapeRing), encounters).isEmpty());
+		assertTrue(RaidSwitches.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedNeck, magicCapeRing), encounters).isEmpty());
 		// One swap is the weapon alone.
 		List<RaidEncounter> weaponOnly = new ArrayList<>();
 		encounters.forEach(encounter -> weaponOnly.add(encounter.withSwitchLimit(1)));
-		assertTrue(RaidEncounter.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedCape, magicCape), weaponOnly).isEmpty());
+		assertTrue(RaidSwitches.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedCape, magicCape), weaponOnly).isEmpty());
 		SetupResult rangedWeapon = wearing(CombatClass.RANGED, 4, 200, 101, 102, 103, 104);
 		SetupResult magicWeapon = wearing(CombatClass.MAGIC, 3, 300, 101, 102, 103, 104);
-		assertEquals(Collections.singletonList(0), RaidEncounter.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedWeapon, magicWeapon), weaponOnly));
+		assertEquals(Collections.singletonList(0), RaidSwitches.fullSetups(new int[]{0, 1, 2}, Arrays.asList(full, rangedWeapon, magicWeapon), weaponOnly));
 	}
 
 	@Test public void extraSlotChoicesAreTheLargestSetsBesideTheWeapon()

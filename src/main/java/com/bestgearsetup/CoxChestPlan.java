@@ -2,7 +2,6 @@ package com.bestgearsetup;
 
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.Slot;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -123,19 +122,10 @@ public class CoxChestPlan
 
 	private static boolean uses(SetupResult setup, GearItem item)
 	{
-		// Keep filled/prayer/defence pieces too: advice must preserve the published loadouts.
-		for (Slot slot : Slot.values())
-		{
-			GearItem worn = setup.getLoadout().get(slot);
-			if (worn != null && worn.getId() == item.getId()) { return true; }
-		}
-		if (setup.getSpecials().stream().anyMatch(spec -> same(item, spec.getWeapon()) || same(item, spec.getOffhand())
-			|| same(item, spec.getAmmo()) || same(item, spec.getLoadedAmmo()))) { return true; }
-		if (same(item, setup.getLoadout().getLoadedAmmo())) { return true; }
+		// Filled/prayer/defence pieces are required too: preserve the published loadouts.
+		if (RaidPlan.requiredItems(setup).containsKey(item.getId())) { return true; }
 		return SpellRunes.bankItems(setup, id -> false).stream().anyMatch(ids -> ids.contains(item.getId()));
 	}
-
-	private static boolean same(GearItem a, GearItem b) { return b != null && a.getId() == b.getId(); }
 
 	private static boolean toolNeeded(GearItem item, RaidEncounter fight)
 	{

@@ -19,7 +19,6 @@ import net.runelite.api.Skill;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.NpcID;
-import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.gameval.VarPlayerID;
 
@@ -96,25 +95,23 @@ final class LiveRaid
 		return region == 15186 || region == 14162 || region == 14674 || region == 15698;
 	}
 
-	/** Read Akkha's protection prayer, or his explicit final-stand form; otherwise leave the phase unchanged. */
+	/**
+	 * Akkha's phase from his NPC form, as with any other monster's variants. Each style form prays against the
+	 * style it attacks with (OSRS Wiki), and the final stand prays magic and ranged; other forms leave it unchanged.
+	 */
 	static EncounterPhase akkhaPhase(NPC npc)
 	{
-		if (npc == null || !"akkha".equalsIgnoreCase(npc.getName())) { return null; }
-		if (npc.getId() == NpcID.AKKHA_ENRAGE_INITIAL || npc.getId() == NpcID.AKKHA_ENRAGE)
-		{ return EncounterPhase.AKKHA_ENRAGE; }
-		int[] archives = npc.getOverheadArchiveIds();
-		short[] sprites = npc.getOverheadSpriteIds();
-		if (archives == null || sprites == null) { return null; }
-		boolean melee = false, ranged = false, magic = false;
-		for (int i = 0; i < Math.min(archives.length, sprites.length); i++)
+		if (npc == null) { return null; }
+		switch (npc.getId())
 		{
-			if (archives[i] != SpriteID.HEADICONS_PRAYER) { continue; }
-			melee |= sprites[i] == 0;
-			ranged |= sprites[i] == 1 || sprites[i] == 6;
-			magic |= sprites[i] == 2 || sprites[i] == 6;
+			case NpcID.AKKHA_MELEE: return EncounterPhase.AKKHA_IMMUNE_MELEE;
+			case NpcID.AKKHA_RANGE: return EncounterPhase.AKKHA_IMMUNE_RANGED;
+			case NpcID.AKKHA_MAGE: return EncounterPhase.AKKHA_IMMUNE_MAGIC;
+			case NpcID.AKKHA_ENRAGE_INITIAL:
+			case NpcID.AKKHA_ENRAGE:
+				return EncounterPhase.AKKHA_ENRAGE;
+			default: return null;
 		}
-		return ranged && magic ? EncounterPhase.AKKHA_ENRAGE : melee ? EncounterPhase.AKKHA_IMMUNE_MELEE
-			: ranged ? EncounterPhase.AKKHA_IMMUNE_RANGED : magic ? EncounterPhase.AKKHA_IMMUNE_MAGIC : null;
 	}
 
 	/**

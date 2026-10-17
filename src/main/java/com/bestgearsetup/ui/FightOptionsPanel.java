@@ -1,6 +1,5 @@
 package com.bestgearsetup.ui;
 
-import static com.bestgearsetup.ui.SettingRows.setting;
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.RaidPlanType;
@@ -10,7 +9,6 @@ import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterSummary;
-import com.bestgearsetup.ui.SettingRows.Setting;
 import java.awt.Component;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,48 +28,6 @@ import net.runelite.client.ui.ColorScheme;
 /** Boss lookup assumptions, edited here while configuration stores their existing keys. */
 class FightOptionsPanel extends JPanel
 {
-	/** The settings shown here and their getters; {@link SettingRows} builds their editors. */
-	private static final List<Setting> SETTINGS = Arrays.asList(
-		setting("activeEncounter", BestGearSetupConfig::activeEncounter),
-		setting("taskMode", BestGearSetupConfig::taskMode),
-		setting("autoRaid", BestGearSetupConfig::autoRaid),
-		setting("currentHitpoints", BestGearSetupConfig::currentHitpoints),
-		setting("aoe", BestGearSetupConfig::aoe),
-		setting("aoeTargets", BestGearSetupConfig::aoeTargets),
-		setting("wilderness", BestGearSetupConfig::wilderness),
-		setting("limitWildernessRisk", BestGearSetupConfig::limitWildernessRisk),
-		setting("maxExpensiveItems", BestGearSetupConfig::maxExpensiveItems),
-		setting("expensiveItemThreshold", BestGearSetupConfig::expensiveItemThreshold),
-		setting("forinthrySurge", BestGearSetupConfig::forinthrySurge),
-		setting("soulreaperStacks", BestGearSetupConfig::soulreaperStacks),
-		setting("thrall", BestGearSetupConfig::thrall),
-		setting("killSpecials", BestGearSetupConfig::killSpecials),
-		setting("specEnergy", BestGearSetupConfig::specEnergy),
-		setting("drainSpecs", BestGearSetupConfig::drainSpecs),
-		setting("miningLevel", BestGearSetupConfig::miningLevel),
-		setting("raidPartySize", BestGearSetupConfig::raidPartySize),
-		setting("toaRaidLevel", BestGearSetupConfig::toaRaidLevel),
-		setting("toaPathLevel", BestGearSetupConfig::toaPathLevel),
-		setting("toaStartingPathLevel", BestGearSetupConfig::toaStartingPathLevel),
-		setting("toaWalkThePath", BestGearSetupConfig::toaWalkThePath),
-		setting("toaMoreOverlords", BestGearSetupConfig::toaMoreOverlords),
-		setting("coxChallengeMode", BestGearSetupConfig::coxChallengeMode),
-		setting("raidEquipmentLimit", BestGearSetupConfig::raidEquipmentLimit),
-		setting("raidSpellbook", BestGearSetupConfig::raidSpellbook),
-		setting("toaPathOrder", BestGearSetupConfig::toaPathOrder),
-		setting("tobRole", BestGearSetupConfig::tobRole),
-		setting("quickSwitchLimit", BestGearSetupConfig::quickSwitchLimit),
-		setting("autoSpecs", BestGearSetupConfig::autoSpecs),
-		setting("specVulnerability", BestGearSetupConfig::specVulnerability),
-		setting("specTomeOfWater", BestGearSetupConfig::specTomeOfWater),
-		setting("specElderMaul", BestGearSetupConfig::specElderMaul),
-		setting("specDwh", BestGearSetupConfig::specDwh),
-		setting("specEmberlight", BestGearSetupConfig::specEmberlight),
-		setting("specArclight", BestGearSetupConfig::specArclight),
-		setting("specTonalztics", BestGearSetupConfig::specTonalztics),
-		setting("specBgsDamage", BestGearSetupConfig::specBgsDamage),
-		setting("specSeercullDamage", BestGearSetupConfig::specSeercullDamage),
-		setting("specAyakDamage", BestGearSetupConfig::specAyakDamage));
 	/** Pre-fight drains, counted in the collapsed section's heading when any is set. */
 	private static final String[] PREPARATION = {"specVulnerability", "specTomeOfWater", "specElderMaul", "specDwh",
 		"specEmberlight", "specArclight", "specTonalztics", "specBgsDamage", "specSeercullDamage", "specAyakDamage"};
@@ -108,14 +64,8 @@ class FightOptionsPanel extends JPanel
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		this.config = config;
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
-		// Build the controls first, then place them in one-level sections by purpose.
+		// Build controls as their one-level sections are populated.
 		settingRows = new SettingRows(plugin, config, items, SPINNER_COLUMNS, this::updateVisibility);
-		for (Setting entry : SETTINGS)
-		{
-			settingRows.add(entry);
-		}
-		wildernessTip = control("wilderness").getToolTipText();
-		spellbookTip = control("raidSpellbook").getToolTipText();
 		SidebarSection conditions = accordion.create("fightConditions", "Fight conditions");
 		addRows(conditions, "activeEncounter", "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
 			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "thrall");
@@ -137,6 +87,8 @@ class FightOptionsPanel extends JPanel
 		addRows(preparationSection, "autoSpecs");
 		addRows(preparationSection, PREPARATION);
 		add(BestGearSetupPanel.left(preparationSection));
+		wildernessTip = control("wilderness").getToolTipText();
+		spellbookTip = control("raidSpellbook").getToolTipText();
 		refresh();
 	}
 
@@ -144,7 +96,7 @@ class FightOptionsPanel extends JPanel
 	{
 		for (String key : keys)
 		{
-			section.getContent().add(settingRows.row(key));
+			section.getContent().add(settingRows.add(key));
 		}
 	}
 

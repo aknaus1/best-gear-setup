@@ -4,11 +4,11 @@ import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Slot;
+import com.google.gson.JsonArray;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -137,113 +137,8 @@ public final class ProtectionPrayers
 	private static final Advice UNKNOWN = new Advice(null, Collections.emptyList(),
 		"The Wiki attack data for this target can't be read, so check its Wiki page.", true);
 
-	/** Curated raid advice by name prefix, most specific first: {melee range, from distance}. */
-	private static final Map<String, Advice[]> RAIDS = new LinkedHashMap<>();
-	/** The Wiki strategy pages each raid's advice was checked against. */
-	private static final String COX_SOURCE = "https://oldschool.runescape.wiki/w/Chambers_of_Xeric/Strategies";
-	private static final String TOA_SOURCE = "https://oldschool.runescape.wiki/w/Tombs_of_Amascut/Strategies";
-	private static final String TOB_SOURCE = "https://oldschool.runescape.wiki/w/Theatre_of_Blood/Strategies";
-
-	static
-	{
-		// Chambers of Xeric
-		both(COX_SOURCE, "tekton", advice("Tekton only attacks with melee.", Overhead.MELEE));
-		both(COX_SOURCE, "ice demon", advice("Keep Protect from Missiles active: it makes the ice demon use snowballs rather "
-			+ "than Ice Burst and reduces their damage. Step away from the targeted tiles.", Overhead.MISSILES));
-		both(COX_SOURCE, "lizardman shaman (chambers of xeric)", advice("Shamans spit ranged attacks; they also melee adjacent "
-			+ "players. Their jump and purple spawns aren't prayable: move away.", Overhead.MISSILES));
-		both(COX_SOURCE, "vanguard (melee)", advice("Use Melee against the melee Vanguard, which can approach you. Keep other "
-			+ "Vanguards out of range where possible.", Overhead.MELEE));
-		both(COX_SOURCE, "vanguard (ranged)", advice("Use Missiles against the ranged Vanguard. Prayer reduces its projectile "
-			+ "damage and accuracy; move away from the other targeted tiles.", Overhead.MISSILES));
-		both(COX_SOURCE, "vanguard (magic)", advice("Use Magic against the magic Vanguard. Prayer reduces its projectile "
-			+ "damage and accuracy; move away from the other targeted tiles.", Overhead.MAGIC));
-		both(COX_SOURCE, "vespula", advice("Vespula's stings are ranged.", Overhead.MISSILES));
-		both(COX_SOURCE, "abyssal portal", advice("Vespula keeps stinging with ranged while you attack the portal.", Overhead.MISSILES));
-		both(COX_SOURCE, "guardian (chambers of xeric)", advice("Usually none: step out of the slam. Its slam is melee, so use "
-			+ "Protect from Melee only if you tank it."));
-		both(COX_SOURCE, "vasa nistirio", advice("Use Missiles for Vasa's boulders and dodge their targeted area. Use Magic "
-			+ "when joining the stunned players during his teleport special; stunned players cannot pray.",
-			Overhead.MISSILES, Overhead.MAGIC));
-		both(COX_SOURCE, "glowing crystal", advice("The crystal doesn't attack."));
-		both(COX_SOURCE, "skeletal mystic", advice("Mystics cast magic at range and also melee adjacent players; fight them from "
-			+ "distance.", Overhead.MAGIC));
-		raid(COX_SOURCE, "muttadile (small)", advice("The small muttadile bites in melee range.", Overhead.MELEE),
-			advice("At distance the small muttadile uses ranged.", Overhead.MISSILES));
-		raid(COX_SOURCE, "muttadile (large)", advice("The large muttadile bites hard in melee range; step back and it uses ranged "
-			+ "and magic.", Overhead.MELEE), advice("Keep Protect from Missiles at distance: the large muttadile's "
-			+ "ranged attacks hit harder and more accurately than its magic. Stay out of melee and stomp range.", Overhead.MISSILES));
-		both(COX_SOURCE, "deathly ranger", advice("Deathly rangers use ranged.", Overhead.MISSILES));
-		both(COX_SOURCE, "deathly mage", advice("Deathly mages use magic.", Overhead.MAGIC));
-		both(COX_SOURCE, "great olm", advice("Maintain the prayer for Olm's head's current style, updating it for subsequent "
-			+ "attacks after a style change; ordinary attacks aren't reliably telegraphed. His coloured spheres can be "
-			+ "prayed against before impact. The head keeps attacking while you damage either hand.", Overhead.MAGIC, Overhead.MISSILES));
-		// Tombs of Amascut
-		both(TOA_SOURCE, "ba-ba", advice("Ba-Ba's attacks are melee; dodge her boulders and falling rocks.", Overhead.MELEE));
-		// Listed before "akkha" so the shadows get their own advice; the Wiki gives them no attack style.
-		both(TOA_SOURCE, "akkha's shadow", advice("The shadow doesn't make ordinary attacks; Akkha keeps attacking while you "
-			+ "damage it. Match Akkha's current form with Melee, Missiles or Magic before he attacks; he can approach "
-			+ "ranged and magic setups too.", Overhead.MELEE, Overhead.MISSILES, Overhead.MAGIC));
-		both(TOA_SOURCE, "akkha", advice("Akkha cycles melee, ranged and magic forms: maintain the matching prayer before he "
-			+ "attacks, using his form / overhead as the cue. He can approach ranged and magic setups. Perfect "
-			+ "butterfly kiting avoids melee; an ordinary ranged setup doesn't guarantee that.",
-			Overhead.MELEE, Overhead.MISSILES, Overhead.MAGIC));
-		raid(TOA_SOURCE, "zebak", advice("Zebak can't be tanked in melee range; step back between his ranged and magic rocks.",
-			Overhead.MISSILES, Overhead.MAGIC, Overhead.MELEE), advice("Zebak alternates ranged and magic rocks: pray "
-			+ "against each. He bites players next to him.", Overhead.MISSILES, Overhead.MAGIC));
-		both(TOA_SOURCE, "obelisk (tombs of amascut)", advice("P1 charged orbs and energy trough damage aren't blocked by "
-			+ "overhead prayers. Desynchronise the Wardens, share / separate for the appropriate orb and heal; avoid UFOs."));
-		raid(TOA_SOURCE, "elidinis' warden (core-ejected)", advice("The core doesn't attack."), advice("The core doesn't attack."));
-		raid(TOA_SOURCE, "tumeken's warden (core-ejected)", advice("The core doesn't attack."), advice("The core doesn't attack."));
-		both(TOA_SOURCE, "elidinis' warden (phase 3)", advice("Dodge the Warden's floor attacks. Match the supporting Akkha / Zebak "
-			+ "echo's Magic or Missiles attacks; prayer does not block the Warden's floor damage.", Overhead.MAGIC, Overhead.MISSILES));
-		both(TOA_SOURCE, "tumeken's warden (phase 3)", advice("Dodge the Warden's floor attacks. Match the supporting Akkha / Zebak "
-			+ "echo's Magic or Missiles attacks; prayer does not block the Warden's floor damage.", Overhead.MAGIC, Overhead.MISSILES));
-		both(TOA_SOURCE, "elidinis' warden", advice("The Warden alternates magic and ranged projectiles: pray against each. Dodge "
-			+ "its slam.", Overhead.MAGIC, Overhead.MISSILES));
-		raid(TOA_SOURCE, "tumeken's warden", advice("P2: use Melee between projectile attacks if Tumeken's Warden reaches you; "
-			+ "match its Magic / Missiles projectiles. Dodge obelisk beams and floor attacks.", Overhead.MELEE, Overhead.MAGIC, Overhead.MISSILES),
-			advice("P2: match the Warden's Magic / Missiles projectiles and keep out of melee reach; Tumeken's Warden "
-				+ "can approach you. Dodge obelisk beams and floor attacks.", Overhead.MAGIC, Overhead.MISSILES));
-		// Theatre of Blood
-		both(TOB_SOURCE, "the maiden of sugadinti", advice("Maiden's blood attacks are magic.", Overhead.MAGIC));
-		// Only the Maiden room's nylocas: the Verzik room's use their own Wiki data.
-		for (String mode : new String[]{"entry", "normal", "hard"})
-		{
-			both(TOB_SOURCE, "nylocas matomenos (" + mode + " mode maiden)", advice("The nylocas don't attack; keep Protect from Magic "
-				+ "against Maiden.", Overhead.MAGIC));
-		}
-		both(TOB_SOURCE, "pestilent bloat", advice("None: step out from under Bloat before it stomps and dodge the falling flesh."));
-		both(TOB_SOURCE, "nylocas vasilias (melee)", advice("Vasilias attacks with its current form's style and changes form every "
-			+ "few attacks.", Overhead.MELEE));
-		both(TOB_SOURCE, "nylocas vasilias (ranged)", advice("Vasilias attacks with its current form's style and changes form every "
-			+ "few attacks.", Overhead.MISSILES));
-		both(TOB_SOURCE, "nylocas vasilias (magic)", advice("Vasilias attacks with its current form's style and changes form every "
-			+ "few attacks.", Overhead.MAGIC));
-		raid(TOB_SOURCE, "sotetseg", advice("Tanking in melee range: Protect from Melee against its melee, switching to Magic or "
-			+ "Missiles for its magic and ranged orbs.", Overhead.MELEE, Overhead.MAGIC, Overhead.MISSILES),
-			advice("Sotetseg alternates magic and ranged orbs: pray against each.", Overhead.MAGIC, Overhead.MISSILES));
-		both(TOB_SOURCE, "xarpus", advice("None needed: Xarpus's spit is typeless, so no overhead reduces it (Protect from Missiles "
-			+ "is only habit). Avoid the acid pools."));
-		both(TOB_SOURCE, "verzik vitur (phase 1)", advice("Hide behind a pillar; her P1 attack is magic.", Overhead.MAGIC));
-		both(TOB_SOURCE, "verzik vitur (phase 2)", advice("Keep Protect from Missiles during Verzik P2. Step off the urn bomb "
-			+ "tiles and step back between melee attacks to avoid her slam.", Overhead.MISSILES));
-		raid(TOB_SOURCE, "verzik vitur (phase 3)", advice("Pray against her magic and ranged attacks. Her melee is typeless and no "
-			+ "prayer blocks it: stay out of her melee range unless you are tanking. Every fifth attack is a special.",
-			Overhead.MAGIC, Overhead.MISSILES),
-			advice("Verzik P3 rotates magic and ranged at distance; every fifth attack is a special.",
-				Overhead.MAGIC, Overhead.MISSILES));
-	}
-
-	private static void both(String source, String prefix, Advice advice)
-	{
-		raid(source, prefix, advice, advice);
-	}
-
-	private static void raid(String source, String prefix, Advice meleeRange, Advice distance)
-	{
-		RAIDS.put(prefix, new Advice[]{meleeRange.withSource(source), distance.withSource(source)});
-	}
+	/** Curated raid advice by name prefix, most specific first. */
+	private static final JsonArray RAIDS = EncounterPrayers.load("raid-prayers.json");
 
 	private static Advice advice(String note, Overhead... prayers)
 	{
@@ -381,15 +276,7 @@ public final class ProtectionPrayers
 	/** Curated raid advice, or null when the target has none (falling back to its Wiki attack styles). */
 	static Advice curated(Monster monster, boolean meleeRange)
 	{
-		String name = monster.getLowerName();
-		for (Map.Entry<String, Advice[]> rule : RAIDS.entrySet())
-		{
-			if (name.startsWith(rule.getKey()))
-			{
-				return rule.getValue()[meleeRange ? 0 : 1];
-			}
-		}
-		return null;
+		return EncounterPrayers.match(RAIDS, monster.getLowerName(), null, meleeRange);
 	}
 
 	/**

@@ -1661,8 +1661,57 @@ public class Optimizer
 		drainedOrdinary.put(SpecialAttacks.NONE, ordinary);
 		// A drain only pays while it lasts: not at all on targets that restore their Defence straight away.
 		boolean drainsLast = settings.getDrainSpecs() != DrainSpecs.DAMAGE_ONLY && CombatRules.drainPersistence(ctx.getMonster()) > 0;
-		Specced best = null;
-		double bestScore = metric(ordinary);
+		Specced[] best = {null};
+		double[] bestScore = {metric(ordinary)};
+		forEachSpec(worn, cls, wornCost, specCtx, progress, (weapon, o, spec, choice) ->
+		{
+			Loadout held = choice.getLoadout();
+			DpsResult opening = choice.getResult();
+			long extra = choice.getCost();
+			boolean draining = drainsLast && spec.getDrain() != SpecialAttack.Drain.NONE;
+			SpecialRotation.Fight fight = draining ? drainingFight(worn, held, opening, specCtx, drainedOrdinary) : null;
+			SpecialRotation.Blend blend = rotation(fight, spec, ordinary, opening, hp, regen, settings.getSpecEnergy());
+			double score = blend == null ? Double.NEGATIVE_INFINITY : metric(blend.getResult());
+			if (blend == null || !(score > bestScore[0] + EPS || best[0] != null && Math.abs(score - bestScore[0]) <= EPS
+				&& extra < best[0].getPlan().getExtraCost()))
+			{
+				return;
+			}
+			DpsResult drained = null;
+			if (draining)
+			{
+				// Shown as the ordinary attacks after one landed spec of average damage.
+				int damage = (int) Math.round(opening.getAccuracy() > 0
+					? opening.getPrimaryDps() * opening.getExpectedSpeedTicks() * 0.6 / opening.getAccuracy() : 0);
+				drained = fight.ordinary(SpecialAttacks.NONE.landed(spec.getDrain(), damage));
+			}
+			SpecItems items = specItems(worn, weapon, held);
+			// A raid may not have a full bar for this fight: the same spec on regenerated energy alone.
+			boolean fullBar = settings.getSpecEnergy() == SpecEnergy.FULL_BAR;
+			SpecialRotation.Blend regenerated = fullBar
+				? rotation(fight, spec, ordinary, opening, hp, regen, SpecEnergy.REGENERATION) : null;
+			best[0] = new Specced(new SpecialPlan(weapon, items.getOffhand(), items.getAmmo(), o.getStyle(), o.getSpell(),
+				held.getLoadedAmmo(), spec, opening, ordinary, drained, blend.getSpecsPerKill(), extra, items.getUnpriced(),
+				!fullBar ? null : regenerated == null ? ordinary : regenerated.getResult(),
+				regenerated == null ? 0 : regenerated.getSpecsPerKill()), blend.getResult(), worn);
+			bestScore[0] = score;
+		});
+		return best[0];
+	}
+
+	/** A usable spec weapon and style, held with its strongest affordable equipment. */
+	private interface SpecCandidate
+	{
+		void accept(GearItem weapon, Option option, SpecialAttack spec, Held held);
+	}
+
+	/**
+	 * Every usable weapon of the combat class with a spec, in each style, held with the worn armour and bought within
+	 * what the budget has left. The held loadout is reused between styles: a candidate that is kept must copy it.
+	 */
+	private void forEachSpec(Loadout worn, CombatClass cls, long wornCost, CombatContext specCtx, DoubleConsumer progress,
+		SpecCandidate candidate)
+	{
 		List<GearItem> specialWeapons = specWeapons(cls);
 		int weaponIndex = 0;
 		for (GearItem weapon : specialWeapons)
@@ -1673,58 +1722,20 @@ public class Optimizer
 			{
 				continue;
 			}
-			boolean same = weapon == worn.getWeapon();
-			long weaponCost = same ? 0 : itemCost(weapon) + ammoCost(base.getLoadedAmmo());
+			long weaponCost = weapon == worn.getWeapon() ? 0 : itemCost(weapon) + ammoCost(base.getLoadedAmmo());
 			for (Option o : options(weapon, specClass(weapon, cls), true))
 			{
 				base.setStyle(o.getStyle());
 				base.setSpell(o.getSpell());
 				SpecialAttack spec = SpecialAttack.of(base, specCtx);
-				if (spec == null || spec.getEnergy() <= 0)
+				Held held = spec == null || spec.getEnergy() <= 0 ? null
+					: strongestHeld(worn, weapon, base, weaponCost, wornCost, specCtx);
+				if (held != null)
 				{
-					continue;
-				}
-				Held choice = strongestHeld(worn, weapon, base, weaponCost, wornCost, specCtx);
-				if (choice == null)
-				{
-					continue;
-				}
-				Loadout held = choice.getLoadout();
-				DpsResult opening = choice.getResult();
-				long extra = choice.getCost();
-				boolean draining = drainsLast && spec.getDrain() != SpecialAttack.Drain.NONE;
-				SpecialRotation.Fight fight = draining ? drainingFight(worn, held, opening, specCtx, drainedOrdinary) : null;
-				SpecialRotation.Blend blend = rotation(fight, spec, ordinary, opening, hp, regen, settings.getSpecEnergy());
-				DpsResult drained = null;
-				if (draining)
-				{
-					// Shown as the ordinary attacks after one landed spec of average damage.
-					int damage = (int) Math.round(opening.getAccuracy() > 0
-						? opening.getPrimaryDps() * opening.getExpectedSpeedTicks() * 0.6 / opening.getAccuracy() : 0);
-					drained = fight.ordinary(SpecialAttacks.NONE.landed(spec.getDrain(), damage));
-				}
-				if (blend == null)
-				{
-					continue;
-				}
-				double score = metric(blend.getResult());
-				if (score > bestScore + EPS || best != null && Math.abs(score - bestScore) <= EPS
-					&& extra < best.getPlan().getExtraCost())
-				{
-					SpecItems items = specItems(worn, weapon, held);
-					// A raid may not have a full bar for this fight: the same spec on regenerated energy alone.
-					boolean fullBar = settings.getSpecEnergy() == SpecEnergy.FULL_BAR;
-					SpecialRotation.Blend regenerated = fullBar
-						? rotation(fight, spec, ordinary, opening, hp, regen, SpecEnergy.REGENERATION) : null;
-					best = new Specced(new SpecialPlan(weapon, items.getOffhand(), items.getAmmo(), o.getStyle(), o.getSpell(),
-						held.getLoadedAmmo(), spec, opening, ordinary, drained, blend.getSpecsPerKill(), extra, items.getUnpriced(),
-						!fullBar ? null : regenerated == null ? ordinary : regenerated.getResult(),
-						regenerated == null ? 0 : regenerated.getSpecsPerKill()), blend.getResult(), worn);
-					bestScore = score;
+					candidate.accept(weapon, o, spec, held);
 				}
 			}
 		}
-		return best;
 	}
 
 	/** One player's share of each kill in a raid fight, which their own spec energy is spent over. */
@@ -1767,45 +1778,20 @@ public class Optimizer
 		// Each weapon's strongest style, as a damage spec or a draining opener.
 		Map<GearItem, SpecChoice> damage = new LinkedHashMap<>();
 		Map<GearItem, SpecChoice> drains = new LinkedHashMap<>();
-		List<GearItem> specialWeapons = specWeapons(cls);
-		int weaponIndex = 0;
-		for (GearItem weapon : specialWeapons)
+		forEachSpec(worn, cls, wornCost, specCtx, progress, (weapon, o, spec, held) ->
 		{
-			progress.accept(0.7 * weaponIndex++ / Math.max(1, specialWeapons.size()));
-			Loadout base = specLoadout(worn, weapon);
-			if (base == null)
+			SpecItems items = specItems(worn, weapon, held.getLoadout());
+			boolean draining = drainsLast && spec.getDrain() != SpecialAttack.Drain.NONE;
+			SpecChoice choice = new SpecChoice(weapon, o, held.getLoadout().copy(), held.getResult(), spec, items.getOffhand(),
+				items.getAmmo(), held.getCost(), items.getUnpriced(), draining
+				? drainingFight(worn, held.getLoadout().copy(), held.getResult(), specCtx, drainedOrdinary) : null);
+			Map<GearItem, SpecChoice> role = draining ? drains : damage;
+			SpecChoice kept = role.get(weapon);
+			if (kept == null || choice.gainPerEnergy(rate) > kept.gainPerEnergy(rate))
 			{
-				continue;
+				role.put(weapon, choice);
 			}
-			boolean same = weapon == worn.getWeapon();
-			long weaponCost = same ? 0 : itemCost(weapon) + ammoCost(base.getLoadedAmmo());
-			for (Option o : options(weapon, specClass(weapon, cls), true))
-			{
-				base.setStyle(o.getStyle());
-				base.setSpell(o.getSpell());
-				SpecialAttack spec = SpecialAttack.of(base, specCtx);
-				if (spec == null || spec.getEnergy() <= 0)
-				{
-					continue;
-				}
-				Held held = strongestHeld(worn, weapon, base, weaponCost, wornCost, specCtx);
-				if (held == null)
-				{
-					continue;
-				}
-				SpecItems items = specItems(worn, weapon, held.getLoadout());
-				boolean draining = drainsLast && spec.getDrain() != SpecialAttack.Drain.NONE;
-				SpecChoice choice = new SpecChoice(weapon, o, held.getLoadout().copy(), held.getResult(), spec, items.getOffhand(),
-					items.getAmmo(), held.getCost(), items.getUnpriced(), draining
-					? drainingFight(worn, held.getLoadout().copy(), held.getResult(), specCtx, drainedOrdinary) : null);
-				Map<GearItem, SpecChoice> role = draining ? drains : damage;
-				SpecChoice kept = role.get(weapon);
-				if (kept == null || choice.gainPerEnergy(rate) > kept.gainPerEnergy(rate))
-				{
-					role.put(weapon, choice);
-				}
-			}
-		}
+		});
 		// The few damage specs gaining the most per energy, and the draining openers that alone finish the kill soonest.
 		List<SpecChoice> damageChoices = new ArrayList<>(damage.values());
 		damageChoices.sort(Comparator.comparingDouble((SpecChoice c) -> -c.gainPerEnergy(rate)));

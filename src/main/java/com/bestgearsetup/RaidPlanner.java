@@ -13,7 +13,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -177,11 +176,11 @@ final class RaidPlanner
 		Map<SetupResult, Collection<GearItem>> pricedItems = new IdentityHashMap<>();
 		// Without a budget the cost is only shown, so only the chosen kit is priced.
 		Function<SetupResult, Collection<GearItem>> pricing = budget == Long.MAX_VALUE ? null
-			: setup -> pricedItems.computeIfAbsent(setup, s -> priced(s, memo).values());
+			: setup -> pricedItems.computeIfAbsent(setup, s -> RaidPlan.requiredItems(s).values());
 		List<State> beam = Collections.singletonList(new State());
 		// One switch group member must wear a full setup the others quick-switch from; checked as each member joins.
 		List<int[]> groups = RaidEncounter.switchGroups(encounters);
-		SwitchGroups switches = new SwitchGroups(encounters, results, groups);
+		RaidSwitches switches = new RaidSwitches(encounters, results);
 		long found = 0;
 		for (int index = 0; index < results.size(); index++)
 		{
@@ -225,7 +224,7 @@ final class RaidPlanner
 						State state = new State(previous, setup, encounters, secondsOf, fought, seconds, memo, pricing, itemCost);
 						if (state.cost < 0 && budget != Long.MAX_VALUE || state.cost > budget || Double.isNaN(state.energy)) { continue; }
 						if (index == results.size() - 1 && !groups.isEmpty()
-							&& fullSetupChoice(encounters, results, state.setups) == null) { continue; }
+							&& switches.fullSetupChoice(state.setups) == null) { continue; }
 						List<SetupResult> filled = RaidPlan.fill(state.setups, context, memo);
 						// Switches alone are the cheap early reject; the packed spell supplies count too.
 						if (RaidPlan.carriedEquipment(state.gear.keySet(), filled.get(0)) > limit) { continue; }
@@ -287,7 +286,8 @@ final class RaidPlanner
 								if (member <= index)
 								{
 									SetupResult memberSetup = state.setups.get(member);
-									signature.add(java.util.Arrays.asList(memberSetup.getLoadout(), memberSetup.getSwitchFrom() == null));
+									signature.add(java.util.Arrays.asList(memberSetup.getLoadout(), encounters.get(member).isFreeze()
+										? memberSetup.getSwitchFrom() : memberSetup.getSwitchFrom() == null));
 								}
 							}
 						}
@@ -348,45 +348,7 @@ final class RaidPlanner
 	 */
 	static int[] fullSetupChoice(List<RaidEncounter> encounters, List<SearchResults> results, List<SetupResult> setups)
 	{
-		List<int[]> groups = RaidEncounter.switchGroups(encounters);
-		List<List<Integer>> options = new ArrayList<>();
-		for (int[] group : groups)
-		{
-			List<Integer> full = RaidEncounter.fullSetups(group, setups, encounters);
-			if (full.isEmpty()) { return null; }
-			options.add(full);
-		}
-		int[] choice = new int[groups.size()];
-		return chooseFull(groups, options, 0, choice, results, setups) ? choice : null;
-	}
-
-	private static boolean chooseFull(List<int[]> groups, List<List<Integer>> options, int group, int[] choice,
-		List<SearchResults> results, List<SetupResult> setups)
-	{
-		if (group < groups.size())
-		{
-			for (int full : options.get(group))
-			{
-				choice[group] = full;
-				if (chooseFull(groups, options, group + 1, choice, results, setups)) { return true; }
-			}
-			return false;
-		}
-		Set<Integer> quick = new HashSet<>();
-		for (int g = 0; g < groups.size(); g++)
-		{
-			for (int member : groups.get(g)) { if (member != choice[g]) { quick.add(member); } }
-		}
-		Set<Integer> carried = new HashSet<>();
-		Set<Integer> needed = new HashSet<>();
-		for (int index = 0; index < setups.size(); index++)
-		{
-			for (Potion potion : results.get(index).carriedPotions(setups.get(index)))
-			{
-				if (!potion.isRaidSupply()) { (quick.contains(index) ? needed : carried).add(potion.getId()); }
-			}
-		}
-		return carried.containsAll(needed);
+		return new RaidSwitches(encounters, results).fullSetupChoice(setups);
 	}
 
 	/**
@@ -434,118 +396,6 @@ final class RaidPlanner
 			Math.round(encounter.energyAfter(100, setup, () -> seconds.get(setup)) / ENERGY_STEP));
 	}
 
-	/**
-	 * Switch group consistency for partial kits ({@link RaidEncounter#fullSetups}): some member wears a full setup,
-	 * already chosen or one of a later member's full candidates, that every chosen other member is a quick switch
-	 * from within the group's shared extra slots, and each later member still has a quick switch that fits them. A
-	 * kit failing this can never complete its group, so it is dropped before it crowds consistent kits out of the
-	 * beam; one passing it may still fail once the group is complete, where the exact check applies.
-	 */
-	private static final class SwitchGroups
-	{
-		private final List<RaidEncounter> encounters;
-		private final int[][] groupAt;
-		/** By planning position: distinct loadouts of usable full setups, and usable quick switches. */
-		private final List<List<Loadout>> bases = new ArrayList<>();
-		private final List<List<SetupResult>> quicks = new ArrayList<>();
-		/** Whether a later member has a quick switch from a base within some extra slots, by member, base and slots. */
-		private final Map<List<Object>, Boolean> reachable = new HashMap<>();
-		/**
-		 * {@link #completable} by planning position (which names the group and its chosen members), then the chosen
-		 * members' loadouts, whether each specs and whether each is a full setup.
-		 */
-		private final Map<List<Object>, Boolean> checked = new HashMap<>();
-
-		SwitchGroups(List<RaidEncounter> encounters, List<SearchResults> results, List<int[]> groups)
-		{
-			this.encounters = encounters;
-			groupAt = new int[encounters.size()][];
-			groups.forEach(group -> java.util.Arrays.stream(group).forEach(member -> groupAt[member] = group));
-			for (int index = 0; index < encounters.size(); index++)
-			{
-				List<SetupResult> usable = groupAt[index] == null || results.get(index).hasBlockingLock() ? Collections.emptyList()
-					: results.get(index).getByType().values().stream().flatMap(List::stream)
-						.filter(setup -> setup.getDps().getPrimaryDps() > 0).collect(Collectors.toList());
-				bases.add(encounters.get(index).isFullSwitchSetup() ? usable.stream().filter(setup -> setup.getSwitchFrom() == null)
-					.map(SetupResult::getLoadout).distinct().collect(Collectors.toList()) : Collections.emptyList());
-				quicks.add(usable.stream().filter(setup -> setup.getSpecial() == null).collect(Collectors.toList()));
-			}
-		}
-
-		/** Whether these setups, by planning position up to {@code index}, can still complete that position's group. */
-		boolean completable(int index, List<SetupResult> setups)
-		{
-			int[] group = groupAt[index];
-			if (group == null) { return true; }
-			if (index == group[group.length - 1]) { return !RaidEncounter.fullSetups(group, setups, encounters).isEmpty(); }
-			// Many kits share their group members' setups; only the group and what the check reads tell those apart.
-			List<Object> key = new ArrayList<>();
-			key.add(index);
-			for (int member : group)
-			{
-				if (member > index) { break; }
-				SetupResult setup = setups.get(member);
-				key.add(java.util.Arrays.asList(setup.getLoadout(), setup.getSpecial() == null, setup.getSwitchFrom() == null));
-			}
-			return checked.computeIfAbsent(key, k -> prefixFits(group, index, setups));
-		}
-
-		private boolean prefixFits(int[] group, int index, List<SetupResult> setups)
-		{
-			for (int full : group)
-			{
-				if (!encounters.get(full).isFullSwitchSetup()) { continue; }
-				if (full <= index)
-				{
-					SetupResult base = setups.get(full);
-					if (base.getSwitchFrom() == null && fits(group, index, full, base.getLoadout(), setups)) { return true; }
-					continue;
-				}
-				for (Loadout base : bases.get(full)) { if (fits(group, index, full, base, setups)) { return true; } }
-			}
-			return false;
-		}
-
-		private boolean fits(int[] group, int index, int full, Loadout base, List<SetupResult> setups)
-		{
-			int limit = encounters.get(full).getSwitchLimit();
-			Set<Slot> extras = EnumSet.noneOf(Slot.class);
-			for (int member : group)
-			{
-				if (member == full || member > index) { continue; }
-				SetupResult setup = setups.get(member);
-				if (setup.getSpecial() != null || !encounters.get(member).switchableFrom(setup, base)) { return false; }
-				Set<Slot> changed = setup.getLoadout().switchSlotsFrom(base);
-				if (changed.size() > limit) { return false; }
-				changed.remove(Slot.WEAPON);
-				extras.addAll(changed);
-				if (extras.size() > limit - 1) { return false; }
-			}
-			for (int member : group)
-			{
-				if (member != full && member > index && !reachable(member, base, extras, limit)) { return false; }
-			}
-			return true;
-		}
-
-		private boolean reachable(int member, Loadout base, Set<Slot> extras, int limit)
-		{
-			return reachable.computeIfAbsent(java.util.Arrays.asList(member, base, extras), key ->
-			{
-				for (SetupResult quick : quicks.get(member))
-				{
-					if (!encounters.get(member).switchableFrom(quick, base)) { continue; }
-					Set<Slot> changed = quick.getLoadout().switchSlotsFrom(base);
-					if (changed.size() > limit) { continue; }
-					changed.remove(Slot.WEAPON);
-					changed.addAll(extras);
-					if (changed.size() <= limit - 1) { return true; }
-				}
-				return false;
-			});
-		}
-	}
-
 	private static final class Option
 	{
 		final Set<Integer> gear;
@@ -561,9 +411,8 @@ final class RaidPlanner
 	static long cost(List<SetupResult> setups, IntPredicate owns, ToLongFunction<GearItem> price, int ammoCount,
 		IntToLongFunction quantities)
 	{
-		RaidPlan.Memo memo = new RaidPlan.Memo();
 		Map<Integer, GearItem> all = new LinkedHashMap<>();
-		setups.forEach(setup -> all.putAll(priced(setup, memo)));
+		setups.forEach(setup -> all.putAll(RaidPlan.requiredItems(setup)));
 		long total = 0;
 		for (GearItem item : all.values())
 		{
@@ -572,15 +421,6 @@ final class RaidPlanner
 			total += value;
 		}
 		return total;
-	}
-
-	/** A setup's gear plus loaded darts, which are bought with the weapon's ammunition count. */
-	private static Map<Integer, GearItem> priced(SetupResult setup, RaidPlan.Memo memo)
-	{
-		Map<Integer, GearItem> items = new LinkedHashMap<>(memo.gear(setup));
-		RaidPlan.put(items, setup.getLoadout().getLoadedAmmo());
-		setup.getSpecials().forEach(special -> RaidPlan.put(items, special.getLoadedAmmo()));
-		return items;
 	}
 
 	/** Purchase cost of one unique piece: 0 when held, -1 when it must be bought but has no price. */

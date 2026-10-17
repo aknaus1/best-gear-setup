@@ -1,6 +1,5 @@
 package com.bestgearsetup;
 
-import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.FreezeDuty;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.SetupResult;
@@ -12,11 +11,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -269,13 +265,7 @@ final class RaidConsolidator
 	private static SearchResults keepFreezeAccuracy(SearchResults found, double minimum)
 	{
 		if (found == null || minimum <= 0) { return found; }
-		Map<AttackStyle.Type, List<SetupResult>> candidates = new LinkedHashMap<>();
-		found.getByType().forEach((type, setups) ->
-		{
-			List<SetupResult> kept = setups.stream().filter(setup -> FreezeDuty.reaches(setup, minimum)).collect(Collectors.toList());
-			if (!kept.isEmpty()) { candidates.put(type, kept); }
-		});
-		return found.withCandidates(candidates);
+		return found.filter(setup -> FreezeDuty.reaches(setup, minimum));
 	}
 
 	private static DoubleConsumer range(DoubleConsumer progress, double start, double span)
@@ -578,107 +568,36 @@ final class RaidConsolidator
 	 */
 	static SetupResult fastest(SearchResults result, RaidEncounter encounter)
 	{
-		return fastest(result.getByType().values().stream().flatMap(List::stream).collect(Collectors.toList()), result, encounter,
-			new IdentityHashMap<>());
-	}
-
-	/** As above among these setups, remembering each setup's time in {@code times} for later calls. */
-	private static SetupResult fastest(List<SetupResult> setups, SearchResults result, RaidEncounter encounter,
-		Map<SetupResult, Double> times)
-	{
+		// Each setup's time is estimated once: a comparator would recompute it for both sides of every comparison.
 		SetupResult best = null;
 		double bestSeconds = Double.POSITIVE_INFINITY;
-		for (SetupResult setup : setups)
+		for (List<SetupResult> setups : result.getByType().values())
 		{
-			double seconds = times.computeIfAbsent(setup, s -> encounter.estimatedSeconds(result, s));
-			if (best == null || seconds < bestSeconds
-				|| seconds == bestSeconds && setup.getDps().getPrimaryDps() > best.getDps().getPrimaryDps())
-			{ best = setup; bestSeconds = seconds; }
+			for (SetupResult setup : setups)
+			{
+				double seconds = encounter.estimatedSeconds(result, setup);
+				if (best == null || seconds < bestSeconds
+					|| seconds == bestSeconds && setup.getDps().getPrimaryDps() > best.getDps().getPrimaryDps())
+				{ best = setup; bestSeconds = seconds; }
+			}
 		}
 		return best;
 	}
 
-	/**
-	 * Each encounter's fastest setup, except in a switch group: there the member whose fastest setup, with the other
-	 * members' fastest quick switches from it, takes the least time (each member's fastest when none qualifies).
-	 */
+	/** Each encounter's fastest setup, with compatible quick switches ranked together. */
 	static List<SetupResult> best(List<SearchResults> results, List<RaidEncounter> encounters)
 	{
-		// Each setup's time, by encounter: switch groups rank the same candidates for every full setup and extra slots.
-		List<Map<SetupResult, Double>> times = new ArrayList<>();
-		List<SetupResult> best = new ArrayList<>();
-		for (int index = 0; index < results.size(); index++)
-		{
-			times.add(new IdentityHashMap<>());
-			best.add(fastest(results.get(index).getByType().values().stream().flatMap(List::stream).collect(Collectors.toList()),
-				results.get(index), encounters.get(index), times.get(index)));
-		}
-		for (int[] group : RaidEncounter.switchGroups(encounters))
-		{
-			List<SetupResult> each = best;
-			List<SetupResult> chosen = null;
-			double fastest = Double.POSITIVE_INFINITY;
-			for (int full : group)
-			{
-				if (!encounters.get(full).isFullSwitchSetup()) { continue; }
-				SetupResult base = fastest(results.get(full).getByType().values().stream().flatMap(List::stream)
-					.filter(setup -> setup.getSwitchFrom() == null).collect(Collectors.toList()), results.get(full), encounters.get(full),
-					times.get(full));
-				if (base == null) { continue; }
-				// Slots the members' quick switches change besides the weapon; the group shares some of them.
-				int limit = encounters.get(full).getSwitchLimit();
-				Set<Slot> used = EnumSet.noneOf(Slot.class);
-				for (int member : group)
-				{
-					if (member == full) { continue; }
-					RaidEncounter quickMember = encounters.get(member);
-					results.get(member).getByType().values().stream().flatMap(List::stream)
-						.filter(setup -> setup.getSpecial() == null && quickMember.switchableFrom(setup, base.getLoadout()))
-						.map(setup -> setup.getLoadout().switchSlotsFrom(base.getLoadout()))
-						.filter(changed -> changed.size() <= limit).forEach(used::addAll);
-				}
-				for (Set<Slot> extras : RaidEncounter.extraSlotChoices(used, limit))
-				{
-					List<SetupResult> trial = new ArrayList<>(each);
-					trial.set(full, base);
-					double seconds = times.get(full).get(base);
-					for (int member : group)
-					{
-						if (member == full) { continue; }
-						SetupResult quick = fastest(results.get(member).getByType().values().stream().flatMap(List::stream)
-							.filter(setup -> setup.getSpecial() == null && encounters.get(member).switchableFrom(setup, base.getLoadout())
-								&& RaidEncounter.quickSwitchAllows(setup.getLoadout(), base.getLoadout(), extras))
-							.collect(Collectors.toList()), results.get(member), encounters.get(member), times.get(member));
-						if (quick == null) { seconds = Double.POSITIVE_INFINITY; break; }
-						trial.set(member, quick);
-						seconds += times.get(member).get(quick);
-					}
-					if (seconds < fastest) { fastest = seconds; chosen = trial; }
-				}
-			}
-			if (chosen != null) { best = chosen; }
-		}
-		return best;
+		return new RaidSwitches(encounters, results).best();
 	}
 
 	private static Set<Integer> gear(SetupResult setup)
 	{
-		Set<Integer> ids = new HashSet<>(RaidPlan.gear(setup).keySet());
-		if (setup.getLoadout().getLoadedAmmo() != null) { ids.add(setup.getLoadout().getLoadedAmmo().getId()); }
-		setup.getSpecials().stream().filter(special -> special.getLoadedAmmo() != null)
-			.forEach(special -> ids.add(special.getLoadedAmmo().getId()));
-		return ids;
+		return RaidPlan.requiredItems(setup).keySet();
 	}
 
 	private static SearchResults filter(SearchResults result, Set<Integer> excluded)
 	{
-		Map<AttackStyle.Type, List<SetupResult>> candidates = new LinkedHashMap<>();
-		result.getByType().forEach((type, setups) ->
-		{
-			List<SetupResult> usable = setups.stream().filter(setup -> gear(setup).stream().noneMatch(excluded::contains)).collect(Collectors.toList());
-			if (!usable.isEmpty()) { candidates.put(type, usable); }
-		});
-		return result.withCandidates(candidates);
+		return result.filter(setup -> gear(setup).stream().noneMatch(excluded::contains));
 	}
 
 	static double seconds(List<SetupResult> setups, List<SearchResults> results, List<RaidEncounter> encounters)

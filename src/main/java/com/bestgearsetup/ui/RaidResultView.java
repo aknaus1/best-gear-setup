@@ -120,7 +120,6 @@ class RaidResultView extends JPanel
 		return summary;
 	}
 
-	static String inventoryTooltip(RaidPlan.InventoryItem item) { return InventoryView.tooltip(item); }
 
 	/** One total per boost type, even though every planned bottle has its own inventory cell. */
 	static String boostSummary(RaidPlan plan)

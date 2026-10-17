@@ -25,6 +25,8 @@ import java.util.Set;
 import java.util.function.DoubleSupplier;
 import java.util.stream.Collectors;
 import lombok.Value;
+import lombok.Builder;
+import lombok.AccessLevel;
 import net.runelite.api.gameval.ItemID;
 
 /** One combat target or required attack style in a complete raid. */
@@ -166,106 +168,47 @@ public class RaidEncounter
 
 	public RaidEncounter(String label, MonsterSummary target, int repetitions, EncounterPhase phase, AttackStyle.Type... styles)
 	{
-		this(new Spec(label, target, repetitions, phase, required(styles)));
+		this(label, target, required(styles), repetitions, 1, phase, RaidStyle.AUTO, label, RaidStyle.AUTO,
+			true, RaidLoadout.ANY, false, null, true, DEFAULT_SWITCH_LIMIT, false, false, false, 0, false, 1, true, 1, null);
 	}
 
-	private RaidEncounter(Spec spec)
+	@Builder(toBuilder = true, access = AccessLevel.PRIVATE)
+	private RaidEncounter(String label, MonsterSummary target, Set<AttackStyle.Type> requiredStyles, double repetitions,
+		double share, EncounterPhase phase, RaidStyle preferredStyle, String styleKey, RaidStyle styleChoice,
+		boolean raidSupplies, RaidLoadout loadoutRequirement, boolean displayOnly, String switchGroup,
+		boolean fullSwitchSetup, int switchLimit, boolean prepotted, boolean startable, boolean unboosted,
+		double restBefore, boolean refill, int partySize, boolean shared, double finalBlow, Downs downs)
 	{
 		// Zero is allowed: a fight the party may not reach (e.g. no Vasa crystal before he dies) still shapes the kit.
-		if (!(spec.repetitions >= 0)) { throw new IllegalArgumentException("Encounter repetitions must not be negative"); }
-		if (!(spec.share > 0 && spec.share <= 1)) { throw new IllegalArgumentException("Encounter share must be in (0, 1]"); }
-		this.label = spec.label;
-		this.target = spec.target;
-		this.repetitions = spec.repetitions;
-		this.share = spec.share;
-		this.phase = spec.phase;
-		this.requiredStyles = spec.required;
-		this.usableStyles = usable(spec.target, spec.phase, spec.required);
-		this.preferredStyle = spec.preferred;
-		this.styleKey = spec.styleKey;
-		this.styleChoice = spec.choice;
-		this.raidSupplies = spec.raidSupplies;
-		this.loadoutRequirement = spec.loadoutRequirement;
-		this.displayOnly = spec.displayOnly;
-		this.switchGroup = spec.switchGroup;
-		this.prepotted = spec.prepotted;
-		this.startable = spec.startable;
-		this.unboosted = spec.unboosted;
-		this.restBefore = spec.restBefore;
-		this.refill = spec.refill;
-		this.partySize = spec.partySize;
-		this.shared = spec.shared;
-		this.finalBlow = spec.finalBlow;
-		this.downs = spec.downs;
-		this.fullSwitchSetup = spec.fullSwitchSetup;
-		this.switchLimit = spec.switchLimit;
-		this.styleFallback = spec.choice != RaidStyle.AUTO && within(spec.choice).isEmpty();
-		this.styles = Collections.unmodifiableSet(stylesFor(spec.choice));
-	}
-
-	/** An encounter's inputs, from which the derived style sets are recomputed; the with* copies change one. */
-	private static final class Spec
-	{
-		final String label;
-		final MonsterSummary target;
-		final EncounterPhase phase;
-		final Set<AttackStyle.Type> required;
-		double repetitions;
-		double share = 1;
-		RaidStyle preferred = RaidStyle.AUTO;
-		String styleKey;
-		RaidStyle choice = RaidStyle.AUTO;
-		boolean raidSupplies = true;
-		RaidLoadout loadoutRequirement = RaidLoadout.ANY;
-		boolean displayOnly;
-		String switchGroup;
-		boolean fullSwitchSetup = true;
-		int switchLimit = DEFAULT_SWITCH_LIMIT;
-		boolean prepotted;
-		boolean startable;
-		boolean unboosted;
-		double restBefore;
-		boolean refill;
-		int partySize = 1;
-		boolean shared = true;
-		double finalBlow = 1;
-		Downs downs;
-
-		Spec(String label, MonsterSummary target, double repetitions, EncounterPhase phase, Set<AttackStyle.Type> required)
-		{
-			this.label = label;
-			this.target = target;
-			this.repetitions = repetitions;
-			this.phase = phase;
-			this.required = required;
-			this.styleKey = label;
-		}
-	}
-
-	/** This encounter's inputs, to copy it with one of them changed. */
-	private Spec spec()
-	{
-		Spec spec = new Spec(label, target, repetitions, phase, requiredStyles);
-		spec.share = share;
-		spec.preferred = preferredStyle;
-		spec.styleKey = styleKey;
-		spec.choice = styleChoice;
-		spec.raidSupplies = raidSupplies;
-		spec.loadoutRequirement = loadoutRequirement;
-		spec.displayOnly = displayOnly;
-		spec.switchGroup = switchGroup;
-		spec.fullSwitchSetup = fullSwitchSetup;
-		spec.switchLimit = switchLimit;
-		spec.prepotted = prepotted;
-		spec.startable = startable;
-		spec.unboosted = unboosted;
-		spec.restBefore = restBefore;
-		spec.refill = refill;
-		spec.partySize = partySize;
-		spec.shared = shared;
-		spec.finalBlow = finalBlow;
-		spec.downs = downs;
-		return spec;
+		if (!(repetitions >= 0)) { throw new IllegalArgumentException("Encounter repetitions must not be negative"); }
+		if (!(share > 0 && share <= 1)) { throw new IllegalArgumentException("Encounter share must be in (0, 1]"); }
+		this.label = label;
+		this.target = target;
+		this.repetitions = repetitions;
+		this.share = share;
+		this.phase = phase;
+		this.requiredStyles = requiredStyles;
+		this.usableStyles = usable(target, phase, requiredStyles);
+		this.preferredStyle = preferredStyle;
+		this.styleKey = styleKey;
+		this.styleChoice = styleChoice;
+		this.raidSupplies = raidSupplies;
+		this.loadoutRequirement = loadoutRequirement;
+		this.displayOnly = displayOnly;
+		this.switchGroup = switchGroup;
+		this.prepotted = prepotted;
+		this.startable = startable;
+		this.unboosted = unboosted;
+		this.restBefore = restBefore;
+		this.refill = refill;
+		this.partySize = partySize;
+		this.shared = shared;
+		this.finalBlow = finalBlow;
+		this.downs = downs;
+		this.fullSwitchSetup = fullSwitchSetup;
+		this.switchLimit = switchLimit;
+		this.styleFallback = styleChoice != RaidStyle.AUTO && within(styleChoice).isEmpty();
+		this.styles = Collections.unmodifiableSet(stylesFor(styleChoice));
 	}
 
 	private static Set<AttackStyle.Type> required(AttackStyle.Type... styles)
@@ -342,54 +285,40 @@ public class RaidEncounter
 
 	RaidEncounter withPreferredStyle(RaidStyle preferred)
 	{
-		Spec spec = spec();
-		spec.preferred = preferred;
-		return new RaidEncounter(spec);
+		return toBuilder().preferredStyle(preferred).build();
 	}
 
 	RaidEncounter withStyleChoice(RaidStyle choice)
 	{
-		Spec spec = spec();
-		spec.choice = choice;
-		return new RaidEncounter(spec);
+		return toBuilder().styleChoice(choice).build();
 	}
 
 	/** Share a style choice with the other phases of the same fight. */
 	RaidEncounter withStyleKey(String key)
 	{
-		Spec spec = spec();
-		spec.styleKey = key;
-		return new RaidEncounter(spec);
+		return toBuilder().styleKey(key).build();
 	}
 
 	RaidEncounter withRaidSupplies(boolean available)
 	{
-		Spec spec = spec();
-		spec.raidSupplies = available;
-		return new RaidEncounter(spec);
+		return toBuilder().raidSupplies(available).build();
 	}
 
 	RaidEncounter withLoadoutRequirement(RaidLoadout requirement)
 	{
-		Spec spec = spec();
-		spec.loadoutRequirement = requirement;
-		return new RaidEncounter(spec);
+		return toBuilder().loadoutRequirement(requirement).build();
 	}
 
 	/** Fought this many times (an expectation when fractional) in the combat-time objective. */
 	RaidEncounter withRepetitions(double times)
 	{
-		Spec spec = spec();
-		spec.repetitions = times;
-		return new RaidEncounter(spec);
+		return toBuilder().repetitions(times).build();
 	}
 
 	/** Each time, only this share of the target's hitpoints is dealt (a phase of one HP pool). */
 	RaidEncounter withShare(double fraction)
 	{
-		Spec spec = spec();
-		spec.share = fraction;
-		return new RaidEncounter(spec);
+		return toBuilder().share(fraction).build();
 	}
 
 	/**
@@ -398,11 +327,7 @@ public class RaidEncounter
 	 */
 	RaidEncounter withEnergy(double restBefore, boolean refill, int party)
 	{
-		Spec spec = spec();
-		spec.restBefore = restBefore;
-		spec.refill = refill;
-		spec.partySize = Math.max(1, party);
-		return new RaidEncounter(spec);
+		return toBuilder().restBefore(restBefore).refill(refill).partySize(Math.max(1, party)).build();
 	}
 
 	/**
@@ -461,26 +386,19 @@ public class RaidEncounter
 	/** Damaged only while down between walks, in these ticks ({@link Downs}). */
 	RaidEncounter withDowns(Downs cycle)
 	{
-		Spec spec = spec();
-		spec.downs = cycle;
-		return new RaidEncounter(spec);
+		return toBuilder().downs(cycle).build();
 	}
 
 	/** Each player kills their own (adds), and none of the kills is followed by a pause. */
 	RaidEncounter withKillsEach()
 	{
-		Spec spec = spec();
-		spec.shared = false;
-		spec.finalBlow = 0;
-		return new RaidEncounter(spec);
+		return toBuilder().shared(false).finalBlow(0).build();
 	}
 
 	/** This share of the encounter's kills is followed by a pause ({@link #finalBlow}). */
 	RaidEncounter withFinalBlow(double share)
 	{
-		Spec spec = spec();
-		spec.finalBlow = share;
-		return new RaidEncounter(spec);
+		return toBuilder().finalBlow(share).build();
 	}
 
 	/** Players sharing each kill: the party for a boss, 1 for adds each player kills. */
@@ -497,9 +415,7 @@ public class RaidEncounter
 
 	RaidEncounter withDisplayOnly()
 	{
-		Spec spec = spec();
-		spec.displayOnly = true;
-		return new RaidEncounter(spec);
+		return toBuilder().displayOnly(true).build();
 	}
 
 	RaidEncounter withSwitchGroup(String group)
@@ -509,25 +425,18 @@ public class RaidEncounter
 
 	RaidEncounter withSwitchGroup(String group, boolean fullSetup)
 	{
-		Spec spec = spec();
-		spec.switchGroup = group;
-		spec.fullSwitchSetup = fullSetup;
-		return new RaidEncounter(spec);
+		return toBuilder().switchGroup(group).fullSwitchSetup(fullSetup).build();
 	}
 
 	RaidEncounter withSwitchLimit(int limit)
 	{
-		Spec spec = spec();
-		spec.switchLimit = Math.max(1, Math.min(MAX_SWITCH_LIMIT, limit));
-		return new RaidEncounter(spec);
+		return toBuilder().switchLimit(Math.max(1, Math.min(MAX_SWITCH_LIMIT, limit))).build();
 	}
 
 	/** In a freeze's switch group, whose switch may swap every slot ({@link #FREEZE_SWITCH_LIMIT}). */
 	RaidEncounter withFreezeSwitches()
 	{
-		Spec spec = spec();
-		spec.switchLimit = FREEZE_SWITCH_LIMIT;
-		return new RaidEncounter(spec);
+		return toBuilder().switchLimit(FREEZE_SWITCH_LIMIT).build();
 	}
 
 	/** A freeze duty: Ice Barrage is cast to freeze, and each cast should land ({@link FreezeDuty}). */
@@ -562,23 +471,17 @@ public class RaidEncounter
 
 	RaidEncounter withPrepotted()
 	{
-		Spec spec = spec();
-		spec.prepotted = true;
-		return new RaidEncounter(spec);
+		return toBuilder().prepotted(true).build();
 	}
 
 	RaidEncounter withStartable()
 	{
-		Spec spec = spec();
-		spec.startable = true;
-		return new RaidEncounter(spec);
+		return toBuilder().startable(true).build();
 	}
 
 	RaidEncounter withUnboosted()
 	{
-		Spec spec = spec();
-		spec.unboosted = true;
-		return new RaidEncounter(spec);
+		return toBuilder().unboosted(true).build();
 	}
 
 	/** Indices of the encounters the kit may start in, in list order; the first encounter when none is marked. */
@@ -601,40 +504,6 @@ public class RaidEncounter
 		groups.values().stream().filter(group -> group.size() > 1)
 			.forEach(group -> out.add(group.stream().mapToInt(Integer::intValue).toArray()));
 		return out;
-	}
-
-	/** Allowed full-setup encounters whose setup every other member's is a quick switch from. */
-	static List<Integer> fullSetups(int[] group, List<SetupResult> setups, List<RaidEncounter> encounters)
-	{
-		List<Integer> out = new ArrayList<>();
-		for (int full : group)
-		{
-			if (!encounters.get(full).isFullSwitchSetup() || setups.get(full).getSwitchFrom() != null) { continue; }
-			int limit = encounters.get(full).getSwitchLimit();
-			boolean quick = true;
-			Set<Slot> otherSlots = EnumSet.noneOf(Slot.class);
-			for (int other : group)
-			{
-				if (other == full) { continue; }
-				if (setups.get(other).getSpecial() != null
-					|| !encounters.get(other).switchableFrom(setups.get(other), setups.get(full).getLoadout())) { quick = false; break; }
-				Set<Slot> changed = setups.get(other).getLoadout().switchSlotsFrom(setups.get(full).getLoadout());
-				if (changed.size() > limit) { quick = false; break; }
-				changed.remove(Slot.WEAPON);
-				otherSlots.addAll(changed);
-				if (otherSlots.size() > limit - 1) { quick = false; break; }
-			}
-			if (quick) { out.add(full); }
-		}
-		return out;
-	}
-
-	/** A switch changing the weapon and only slots among the group's chosen extra slots. */
-	static boolean quickSwitchAllows(Loadout setup, Loadout worn, Set<Slot> extras)
-	{
-		Set<Slot> changed = setup.switchSlotsFrom(worn);
-		changed.remove(Slot.WEAPON);
-		return extras.containsAll(changed);
 	}
 
 	/**

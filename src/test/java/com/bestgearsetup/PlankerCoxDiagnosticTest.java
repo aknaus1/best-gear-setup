@@ -4,7 +4,6 @@ import com.bestgearsetup.calc.*;
 import com.bestgearsetup.data.*;
 import com.google.gson.Gson;
 import java.io.*;
-import java.lang.reflect.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.IntPredicate;
@@ -12,7 +11,6 @@ import java.util.function.IntToLongFunction;
 import java.util.function.ToLongFunction;
 import javax.swing.SwingUtilities;
 import org.junit.Test;
-import net.runelite.client.config.ConfigItem;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 
@@ -44,29 +42,31 @@ public class PlankerCoxDiagnosticTest
 		System.getProperties().stringPropertyNames().stream().filter(name -> name.startsWith("bgs.planker.set."))
 			.forEach(name -> OVERRIDES.put(name.substring("bgs.planker.set.".length()), System.getProperty(name)));
 		OwnershipRules.init(net.runelite.http.api.RuneLiteAPI.GSON);
+		CacheIdentity.init(net.runelite.http.api.RuneLiteAPI.GSON);
 		// A copy of the profiles directory keeps a comparison's inputs fixed while the client saves the live one.
 		Path profiles = Paths.get(System.getProperty("bgs.planker.dir",
 			Paths.get(System.getProperty("user.home"), ".runelite", "profiles2").toString()));
 		Properties character = pluginProperties(profiles.resolve("$rsprofile--1.properties"));
 		Properties saved = pluginProperties(profiles.resolve(System.getProperty("bgs.planker.settings", "Planker-454709730071000.properties")));
 		BestGearSetupConfig defaults = new BestGearSetupConfig() {};
-		BestGearSetupConfig config = (BestGearSetupConfig) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{BestGearSetupConfig.class}, (proxy, method, args) -> {
-			ConfigItem item = method.getAnnotation(ConfigItem.class);
-			String value = item == null ? null : OVERRIDES.containsKey(item.keyName()) ? OVERRIDES.get(item.keyName())
-				: saved.getProperty("bestgearsetup." + item.keyName());
-			if (value == null) { return method.invoke(defaults, args); }
-			Class<?> type = method.getReturnType();
-			if (type == boolean.class) { return Boolean.parseBoolean(value); }
-			if (type == int.class) { return Integer.parseInt(value); }
-			if (type == double.class) { return Double.parseDouble(value); }
-			if (type.isEnum()) { return Enum.valueOf((Class) type, value); }
-			if (type == String.class) { return value; }
-			return method.invoke(defaults, args);
-		});
+		Map<String, Object> settings = new HashMap<>();
+		for (net.runelite.client.config.ConfigItemDescriptor item : ConfigItemsForTests.items())
+		{
+			String key = item.getItem().keyName();
+			String value = OVERRIDES.containsKey(key) ? OVERRIDES.get(key) : saved.getProperty("bestgearsetup." + key);
+			String name = SearchAssumptionsTest.METHOD_BY_KEY.getOrDefault(key, key);
+			Object parsed = value == null ? null : parse(value, SearchAssumptionsTest.GETTERS.get(name).apply(defaults));
+			if (parsed != null) { settings.put(name, parsed); }
+		}
+		BestGearSetupConfig config = SearchAssumptions.capture(defaults, settings);
 		String prefix = "bestgearsetup.rsprofile." + System.getProperty("bgs.planker.profile", "av_BWTSC") + ".";
-		Map<Integer, Long> quantities = OwnedItems.combine(Arrays.asList(OwnedItems.parseQuantities(character.getProperty(prefix + "ownedBank")),
-			OwnedItems.parseQuantities(character.getProperty(prefix + "ownedInventory")), OwnedItems.parseQuantities(character.getProperty(prefix + "ownedWorn"))),
-			OwnedItems.parseQuantities(character.getProperty(prefix + "ownedManual")).keySet());
+		// Like the client (OwnedItems.capture), an Inventory + equipped only search sees just the carried stacks.
+		Map<Integer, Long> quantities = config.mode() == SearchMode.INVENTORY_ONLY
+			? OwnedItems.combine(Arrays.asList(OwnedItems.parseQuantities(character.getProperty(prefix + "ownedInventory")),
+				OwnedItems.parseQuantities(character.getProperty(prefix + "ownedWorn"))), Collections.emptySet())
+			: OwnedItems.combine(Arrays.asList(OwnedItems.parseQuantities(character.getProperty(prefix + "ownedBank")),
+				OwnedItems.parseQuantities(character.getProperty(prefix + "ownedInventory")), OwnedItems.parseQuantities(character.getProperty(prefix + "ownedWorn"))),
+				OwnedItems.parseQuantities(character.getProperty(prefix + "ownedManual")).keySet());
 		Set<Integer> owned = new HashSet<>(OwnedItems.expand(quantities.keySet()));
 		Gson gson = new Gson(); GameDataLoader loader = new GameDataLoader(gson); GameData data = loader.loadGameData();
 		// Folded cosmetic items share stats; expose cache-name-independent copies for owned exact identities.
@@ -108,9 +108,8 @@ public class PlankerCoxDiagnosticTest
 				Thread t = new Thread(r, "diagnostic-helper"); t.setDaemon(true); return t;
 			});
 		}
-		Field api = BestGearSetupPlugin.class.getDeclaredField("api"); api.setAccessible(true); api.set(plugin, loader);
+		plugin.api = loader;
 		RaidPlan[] found = {null}; doAnswer(call -> { found[0] = call.getArgument(0); return null; }).when(plugin.panel).showRaidResults(any(RaidPlan.class), any());
-		Method search = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods()).filter(m -> m.getName().equals("runRaidSearch")).findFirst().get(); search.setAccessible(true);
 		List<String> stages = Collections.synchronizedList(new ArrayList<>());
 		long started = System.nanoTime();
 		// Search activity messages (e.g. "Packing raid kit", "Comparing shared gear") with their time since start.
@@ -142,7 +141,7 @@ public class PlankerCoxDiagnosticTest
 		}
 		try
 		{
-			search.invoke(plugin, data, raidType.encounters(data).get(0).getTarget(), levels, true,
+			plugin.runRaidSearch(data, raidType.encounters(data).get(0).getTarget(), levels, true,
 				new HashSet<>(Arrays.asList(character.getProperty(prefix + "prayerUnlocks", "chivalry,piety,rigour").split(","))),
 				Boolean.parseBoolean(character.getProperty(prefix + "detectedKandarinHard", "false")),
 				levelValues.length > 8 ? lv[8] : 70, Collections.emptyMap(), owned, quantities, 0,
@@ -347,8 +346,8 @@ public class PlankerCoxDiagnosticTest
 				CombatContext special = ctx.withModifiers(ctx.getModifiers().toBuilder().specialAttack(true).build());
 				SpecialRotation.Fight fight = new SpecialRotation.Fight()
 				{
-					@Override public DpsResult ordinary(SpecialAttacks drains) { return DpsCalculator.calculate(worn, drained(ctx, drains)); }
-					@Override public DpsResult spec(SpecialAttacks drains) { return DpsCalculator.calculate(spec, drained(special, drains)); }
+					@Override public DpsResult ordinary(SpecialAttacks drains) { return DpsCalculator.calculate(worn, ctx.withDrains(drains)); }
+					@Override public DpsResult spec(SpecialAttacks drains) { return DpsCalculator.calculate(spec, special.withDrains(drains)); }
 				};
 				report.append(" reducerAccuracy=").append(fight.spec(SpecialAttacks.NONE).getAccuracy());
 				for (int count = 0; count <= 2; count++)
@@ -415,8 +414,8 @@ public class PlankerCoxDiagnosticTest
 					if (spec.get(Slot.SHIELD) == null && fangSetup != null) { spec.set(Slot.SHIELD, fangSetup.getLoadout().get(Slot.SHIELD)); }
 					SpecialRotation.Fight fight = new SpecialRotation.Fight()
 					{
-						@Override public DpsResult ordinary(SpecialAttacks drains) { return DpsCalculator.calculate(chosenWorn, drained(ctx, drains)); }
-						@Override public DpsResult spec(SpecialAttacks drains) { return DpsCalculator.calculate(spec, drained(special, drains)); }
+						@Override public DpsResult ordinary(SpecialAttacks drains) { return DpsCalculator.calculate(chosenWorn, ctx.withDrains(drains)); }
+						@Override public DpsResult spec(SpecialAttacks drains) { return DpsCalculator.calculate(spec, special.withDrains(drains)); }
 					};
 					report.append(" ownHammerAccuracy=").append(fight.spec(SpecialAttacks.NONE).getAccuracy());
 					for (int count = 0; count <= 2; count++)
@@ -432,16 +431,15 @@ public class PlankerCoxDiagnosticTest
 		}
 	}
 
-	/** CombatContext#withDrains is package-private in calc; reach it reflectively. */
-	private static CombatContext drained(CombatContext ctx, SpecialAttacks drains)
+	/** A saved setting as its default's type; null for types the diagnostic leaves at their default. */
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private static Object parse(String value, Object fallback)
 	{
-		try
-		{
-			Method with = CombatContext.class.getDeclaredMethod("withDrains", SpecialAttacks.class);
-			with.setAccessible(true);
-			return (CombatContext) with.invoke(ctx, drains);
-		}
-		catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }
+		if (fallback instanceof Boolean) { return Boolean.parseBoolean(value); }
+		if (fallback instanceof Integer) { return Integer.parseInt(value); }
+		if (fallback instanceof Double) { return Double.parseDouble(value); }
+		if (fallback instanceof Enum) { return Enum.valueOf((Class) ((Enum<?>) fallback).getDeclaringClass(), value); }
+		return fallback instanceof String ? value : null;
 	}
 
 	private static int boost(List<Potion> potions, String skill, int base)

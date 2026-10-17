@@ -38,8 +38,8 @@ final class ProfileSearchCache<V>
 	static final int RAID_BYTES = 640 * 1024;
 	static final int ENCOUNTER_RECORDS = 64;
 	static final int ENCOUNTER_BYTES = 1152 * 1024;
-	/** 2: positional nodes (SearchResultCodec) and raid plans saved with only their chosen setups. */
-	private static final int SCHEMA = 2;
+	/** 3: Gson fields with write-order references (SearchResultCodec); raid plans keep only their chosen setups. */
+	private static final int SCHEMA = 3;
 	private static final int MAX_EXPANDED_BYTES = 32 * 1024 * 1024;
 	/** Keep each synced setting small; RuneLite rejects full raid records stored as one large value. */
 	static final int CHUNK_SIZE = 16 * 1024;
@@ -120,7 +120,7 @@ final class ProfileSearchCache<V>
 				log.info("Saved {} search is from a different plugin build; searching again", kind);
 				return null;
 			}
-			V result = codec.decode(saved.getAsJsonObject("result"), type, catalogue);
+			V result = codec.decode(saved.get("result"), type, catalogue);
 			validate(result);
 			log.info("Restored {} search from profile cache", kind);
 			return result;

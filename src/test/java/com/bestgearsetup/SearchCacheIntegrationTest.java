@@ -23,11 +23,7 @@ import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.ui.BestGearSetupPanel;
 import com.google.gson.Gson;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -101,8 +97,6 @@ public class SearchCacheIntegrationTest
 	private MonsterSummary target;
 	private RaidPlan shown;
 	private final List<Double> progress = new ArrayList<>();
-	private Method raidSearch;
-	private Method encounterSearch;
 
 	@Before
 	public void setUp() throws Exception
@@ -130,21 +124,14 @@ public class SearchCacheIntegrationTest
 		plugin.config = base;
 		plugin.ownedItems = mock(OwnedItems.class);
 		plugin.panel = mock(BestGearSetupPanel.class);
-		Field api = BestGearSetupPlugin.class.getDeclaredField("api"); api.setAccessible(true); api.set(plugin, loader);
-		raidSearch = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods())
-			.filter(method -> method.getName().equals("runRaidSearch")).findFirst().get();
-		raidSearch.setAccessible(true);
-		encounterSearch = Arrays.stream(BestGearSetupPlugin.class.getDeclaredMethods())
-			.filter(method -> method.getName().equals("computeSearch"))
-			.max(java.util.Comparator.comparingInt(Method::getParameterCount)).get();
-		encounterSearch.setAccessible(true);
+		plugin.api = loader;
 		doAnswer(call -> { shown = call.getArgument(0); return null; }).when(plugin.panel).showRaidResults(any(RaidPlan.class), any());
 	}
 
 	private void raid(BestGearSetupConfig config) throws Exception
 	{
 		shown = null; progress.clear();
-		raidSearch.invoke(plugin, data, target, PlayerLevels.maxed(), false, Collections.emptySet(), true, 99,
+		plugin.runRaidSearch(data, target, PlayerLevels.maxed(), false, Collections.emptySet(), true, 99,
 			Collections.emptyMap(), owned, quantities, plugin.searchGeneration.incrementAndGet(), config, new LiveRaid(),
 			Collections.emptyList(), RaidPlanType.TOB, (DoubleConsumer) progress::add);
 	}
@@ -156,7 +143,7 @@ public class SearchCacheIntegrationTest
 
 	private SearchResults encounter(BestGearSetupConfig config, PlayerLevels levels, Map<Integer, Long> prices) throws Exception
 	{
-		return (SearchResults) encounterSearch.invoke(plugin, data, target, levels, false, Collections.emptySet(), true,
+		return plugin.computeSearch(data, target, levels, false, Collections.emptySet(), true,
 			false, 99, prices, owned, quantities, plugin.searchGeneration.get(), config, new LiveRaid(), Collections.emptyList(),
 			Collections.emptySet(), Collections.emptySet(), null, RaidLoadout.ANY, (DoubleConsumer) percent -> { }, null, null);
 	}
@@ -345,7 +332,7 @@ public class SearchCacheIntegrationTest
 			encounter(PlayerLevels.maxed(), Collections.emptyMap());
 			org.junit.Assert.fail("The loader should fail");
 		}
-		catch (InvocationTargetException e) { assertTrue(e.getCause() instanceof IOException); }
+		catch (IOException expected) { }
 		loader.fail = false;
 		loader.afterRead = plugin.searchGeneration::incrementAndGet;
 		assertNull(encounter(PlayerLevels.maxed(), Collections.emptyMap()));
@@ -362,13 +349,9 @@ public class SearchCacheIntegrationTest
 		List<Runnable> clientThread = new ArrayList<>();
 		plugin.clientThread = mock(ClientThread.class);
 		doAnswer(call -> { clientThread.add(call.getArgument(0)); return null; }).when(plugin.clientThread).invokeLater(any(Runnable.class));
-		for (Map.Entry<String, Object> injected : Map.<String, Object>of("configManager", profile.config, "gson", new Gson()).entrySet())
-		{
-			Field field = BestGearSetupPlugin.class.getDeclaredField(injected.getKey());
-			field.setAccessible(true); field.set(plugin, injected.getValue());
-		}
-		Method clear = BestGearSetupPlugin.class.getDeclaredMethod("clearSearchCaches");
-		clear.setAccessible(true); clear.invoke(plugin);
+		plugin.configManager = profile.config;
+		plugin.gson = new Gson();
+		plugin.clearSearchCaches();
 		raid(base); flush();
 		assertNotNull(shown);
 		assertTrue("The search itself must not write the profile, so no ConfigChanged runs on its thread", profile.records.isEmpty());

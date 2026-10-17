@@ -328,7 +328,7 @@ class ResultView extends JPanel
 			body.add(BestGearSetupPanel.left(specBox(special, l, selected.getSpecial())));
 		}
 		body.add(spacer(4));
-		body.add(BestGearSetupPanel.left(costBox(l, selected.getSpecial())));
+		body.add(BestGearSetupPanel.left(costBox(selected)));
 		body.add(spacer(6));
 		body.add(BestGearSetupPanel.left(styleRow(l)));
 		JComponent protection = protectionRow(results.protectionFor(selected));
@@ -513,35 +513,14 @@ class ResultView extends JPanel
 		return box;
 	}
 
-	private JPanel costBox(Loadout l, SpecialPlan special)
+	JPanel costBox(SetupResult setup)
 	{
 		long total = 0;
 		long ownedValue = 0;
 		int unpriced = 0;
-		for (Slot slot : Slot.values())
+		for (GearItem item : RaidPlan.requiredItems(setup).values())
 		{
-			long[] v = value(l.get(slot));
-			total += v[0];
-			ownedValue += v[1];
-			unpriced += (int) v[2];
-		}
-		List<GearItem> extras = new ArrayList<>();
-		extras.add(l.getLoadedAmmo());
-		for (SpecialPlan plan : special == null ? Collections.<SpecialPlan>emptyList() : special.getAll())
-		{
-			if (plan.getWeapon() != l.getWeapon())
-			{
-				// The spec weapon (and a spec blowpipe's darts) are carried in the inventory.
-				// A raid-provided spec weapon (the Dawnbringer) is picked up in the room and costs nothing.
-				extras.add(RaidPlan.providedInRaid(plan.getWeapon()) ? null : plan.getWeapon());
-				extras.add(plan.getLoadedAmmo());
-			}
-			extras.add(plan.getOffhand());
-			extras.add(plan.getAmmo());
-		}
-		for (GearItem extra : extras)
-		{
-			long[] v = value(extra);
+			long[] v = value(item);
 			total += v[0];
 			ownedValue += v[1];
 			unpriced += (int) v[2];

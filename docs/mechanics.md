@@ -6,7 +6,7 @@ This page covers what the plugin assumes and what it enforces. For installation 
 ## Complete raids and active encounters
 
 Selected raid plans track live progress independently of the ordinary **Active encounter** option. Entry
-selects the plan's starting worn setup. Combat targets and Akkha's observed overhead select saved encounter
+selects the plan's starting worn setup. Combat targets and Akkha's NPC form select saved encounter
 setups, and room completion selects the next room without running the optimizer. The inventory highlights
 follow the selected worn setup; bank highlighting retains the full packed kit. Manual browsing remains
 available between progress events.
@@ -299,7 +299,7 @@ or when the NPC attacks back while the player targets it; clicking, walking up t
 does not. With several NPCs hit at once (AoE, chinning) the targeted one leads. Combat lapses after 16 ticks
 without either signal, or when the NPC dies or despawns.
 New NPC instances and transformed IDs trigger a search, unless the results already shown (or being searched)
-are for the same monster: the same variant (NPC id and version) and, for Akkha, the same protection prayer, and
+are for the same monster: the same variant (NPC id and version), and
 they came from a live engagement or a right-click on the NPC. Results planned from the panel alone (such as a
 raid's first room) didn't read the live raid scaling, Slayer task location or Karuulm, so the first live
 engagement still searches.

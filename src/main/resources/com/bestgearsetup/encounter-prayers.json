@@ -1,0 +1,130 @@
+[
+{"names": ["prefix:penance "], "page": "Barbarian_Assault", "cases": [
+	{"note": "Prayers are disabled in Barbarian Assault. Use armour, healing and the encounter's role mechanics instead of an overhead."}]},
+{"names": ["earth warrior champion"], "page": "Champions%27_Challenge", "cases": [
+	{"note": "This champion's challenge disallows Prayer; protection overheads cannot be used."}]},
+{"names": ["tztok-jad", "jaltok-jad"], "page": "TzHaar_Fight_Cave/Strategies", "cases": [
+	{"when": ["melee"], "note": "Keep Melee between attacks: his melee has no warning. Switch to Magic or Missiles from the raised-legs / stomp animation, then return to Melee.", "prayers": ["MELEE", "MAGIC", "MISSILES"]},
+	{"note": "Stay outside melee range. Switch to Magic for raised legs and Missiles for the stomp before the delayed hit; melee has no reaction window.", "prayers": ["MAGIC", "MISSILES"]}]},
+{"names": ["phosani's nightmare"], "page": "Phosani%27s_Nightmare/Strategies", "cases": [
+	{"note": "Read each attack animation: claws mean Melee, pink petals mean Magic, and the contortion means Missiles. React during the wind-up. Melee threatens the tank and nearby players. The curse remaps prayer buttons; Phosani P3 disables correct prayers at attack start, so reactivate during the wind-up.", "prayers": ["MELEE", "MAGIC", "MISSILES"]}]},
+{"names": ["the nightmare"], "page": "The_Nightmare/Strategies", "cases": [
+	{"note": "Read each attack animation: claws mean Melee, pink petals mean Magic, and the contortion means Missiles. React during the wind-up. Melee threatens the tank and nearby players. The curse remaps prayer buttons; Phosani P3 disables correct prayers at attack start, so reactivate during the wind-up.", "prayers": ["MELEE", "MAGIC", "MISSILES"]}]},
+{"names": ["scurrius"], "page": "Scurrius", "cases": [
+	{"note": "Keep Melee against tail swipes while adjacent. Switch to Magic for electricity and Missiles for flying fur before their projectiles hit; dodge falling bricks. All setups must follow the fight's attacks.", "prayers": ["MELEE", "MAGIC", "MISSILES"]}]},
+{"names": ["the leviathan"], "page": "The_Leviathan/Strategies", "cases": [
+	{"note": "Pray before projectile impact: blue Magic, green Missiles, orange Melee. Melee orbs reach you at distance too. Dodge boulders and special attacks; don't use armour to choose a fixed overhead.", "prayers": ["MAGIC", "MISSILES", "MELEE"]}]},
+{"names": ["the whisperer"], "page": "The_Whisperer/Strategies", "cases": [
+	{"note": "Switch Magic / Missiles to match each volley before impact, including mixed volleys later in the fight. Freeze her after specials to prevent melee; dodge tentacles and use the special's safe areas.", "prayers": ["MAGIC", "MISSILES"]}]},
+{"names": ["doom of mokhaiotl"], "page": "Doom_of_Mokhaiotl/Strategies", "cases": [
+	{"when": ["has:(delve 1)", "!melee"], "note": "Pray before impact: blue Magic, green Missiles, red Melee. Melee projectiles occur from delve 2 and can reach you at distance. Restore the overhead after rock explosions disable it; dodge debris and specials. Standing next to Doom also exposes you to a prayer-piercing tongue attack.", "prayers": ["MAGIC", "MISSILES"]},
+	{"note": "Pray before impact: blue Magic, green Missiles, red Melee. Melee projectiles occur from delve 2 and can reach you at distance. Restore the overhead after rock explosions disable it; dodge debris and specials. Standing next to Doom also exposes you to a prayer-piercing tongue attack.", "prayers": ["MAGIC", "MISSILES", "MELEE"]}]},
+{"names": ["yama"], "page": "Yama/Strategies", "cases": [
+	{"when": ["melee"], "note": "Follow Yama's attack cues and current ranged / magic cycle; use Melee for his close-range attack. Protection reduces rather than eliminates all damage, especially in P3. Dodge specials.", "prayers": ["MELEE", "MAGIC", "MISSILES"]},
+	{"note": "Follow Yama's ranged / magic attack cues, switching to the matching overhead. Stay outside melee range and dodge shadow crashes / waves; P3 can still chip through prayer.", "prayers": ["MAGIC", "MISSILES"]}]},
+{"names": ["alchemical hydra"], "page": "Alchemical_Hydra/Strategies", "cases": [
+	{"note": "Count three ordinary attacks of each style, then switch Magic / Missiles before the next attack. Specials don't count. In the extinguished phase alternate after every ordinary attack. The first style is random; don't wait for ordinary projectiles to land.", "prayers": ["MAGIC", "MISSILES"]}]},
+{"names": ["crystalline hunllef", "corrupted hunllef"], "page": "The_Gauntlet/Strategies", "cases": [
+	{"note": "Keep Missiles for the initial ranged cycle; switch after each four boss attacks using the style-change cue. Keep the correct prayer active when the attack launches, not at impact. Reactivate prayers after the disabling attack; dodge floor hazards and tornadoes.", "prayers": ["MISSILES", "MAGIC"]}]},
+{"names": ["cerberus"], "page": "Cerberus/Strategies", "cases": [
+	{"note": "Keep Magic for ordinary attacks; their prayer is checked at launch. Her predictable triple attack is Magic, Missiles, Melee. For summoned souls, read the left-to-right colours and activate each matching prayer before that ghost attacks. This is not reactive switching for random ordinary attacks.", "prayers": ["MAGIC", "MISSILES", "MELEE"]}]},
+{"names": ["demonic gorilla"], "page": "Demonic_gorilla/Strategies", "cases": [
+	{"note": "Keep the prayer matching its current style. It changes style after three unsuccessful attacks; prepare for the next style before it attacks. Melee may be unannounced, including when it approaches a ranged setup. Dodge falling rocks.", "prayers": ["MAGIC", "MISSILES", "MELEE"]}]},
+{"names": ["tormented demon"], "page": "Tormented_Demon/Strategies", "cases": [
+	{"note": "Keep the prayer matching the demon's current attack style. It changes attack style after its fire-bomb special; dodge the bombs and read the next style cue. It can approach to melee regardless of your weapon. Its own protection prayer is a separate mechanic.", "prayers": ["MAGIC", "MISSILES", "MELEE"]}]},
+{"names": ["manticore"], "page": "Fortis_Colosseum/Strategies", "cases": [
+	{"note": "Read the charged orb order and activate each matching prayer BEFORE its projectile launches, one tick apart. Standard order is Magic / Missiles or Missiles / Magic, then Melee; the melee orb reaches you at distance. Mantimayhem can change the pattern. Don't react to mid-flight orbs.", "prayers": ["MAGIC", "MISSILES", "MELEE"]}]},
+{"names": ["jal-ak"], "page": "Jal-Ak", "cases": [
+	{"note": "The blob reads your overhead three ticks before its attack and chooses the counter style. Change to the matching prayer before projectile launch; don't camp one overhead. In melee range it can also melee, so keep space while solving the wave.", "prayers": ["MAGIC", "MISSILES", "MELEE"]}]},
+{"names": ["phantom muspah"], "page": "Phantom_Muspah/Strategies", "cases": [
+	{"when": ["has:(teleporting)"], "note": "No overhead blocks the teleport / lightning hazards; move to safety. Resume the appropriate form's prayer when ordinary attacks restart."},
+	{"when": ["has:(melee)"], "note": "Use Melee during the melee form, even with a ranged weapon: it approaches you. Freeze / kite or step back before it attacks to prevent prayer-piercing damage; switch when the form changes.", "prayers": ["MELEE"]},
+	{"note": "Keep Missiles for ordinary ranged attacks, checked at animation start. Switch to Magic immediately on the charged purple-orb wind-up, BEFORE launch, then return to Missiles. Switch to Melee for melee form; the prayer-shield phase also needs prayer-draining attacks.", "prayers": ["MISSILES", "MAGIC"]}]},
+{"names": ["strange creature"], "when": ["!has:shadows of custodia"], "page": "Phantom_Muspah/Strategies", "cases": [
+	{"when": ["has:(teleporting)"], "note": "No overhead blocks the teleport / lightning hazards; move to safety. Resume the appropriate form's prayer when ordinary attacks restart."},
+	{"when": ["has:(melee)"], "note": "Use Melee during the melee form, even with a ranged weapon: it approaches you. Freeze / kite or step back before it attacks to prevent prayer-piercing damage; switch when the form changes.", "prayers": ["MELEE"]},
+	{"note": "Keep Missiles for ordinary ranged attacks, checked at animation start. Switch to Magic immediately on the charged purple-orb wind-up, BEFORE launch, then return to Missiles. Switch to Melee for melee form; the prayer-shield phase also needs prayer-draining attacks.", "prayers": ["MISSILES", "MAGIC"]}]},
+{"names": ["araxxor"], "page": "Araxxor/Strategies", "cases": [
+	{"note": "Keep Melee while in melee range, including the enraged phase. Outside melee range he uses Magic / Missiles against your weaker defence and approaches you; return to Melee when he reaches you. Acid, cleaves and araxytes require movement.", "prayers": ["MELEE"]}]},
+{"names": ["venenatis", "spindel"], "page": "Venenatis/Strategies", "cases": [
+	{"when": ["melee"], "note": "Keep Melee while next to the spider. At distance follow its ranged / magic attack cycle, changing before the next attack. Kill spiderlings to restore prayer effectiveness and avoid the prayer-draining web.", "prayers": ["MELEE"]},
+	{"note": "At distance follow the spider's current Magic / Missiles attack cycle; change before the next attack. If adjacent, use Melee. Kill spiderlings and avoid the web; don't assume every ordinary projectile can be reacted to mid-flight.", "prayers": ["MAGIC", "MISSILES", "MELEE"]}]},
+{"names": ["balance elemental"], "page": "While_Guthix_Sleeps", "cases": [
+	{"when": ["has:(ranged)"], "note": "Follow the visible current attack form, not the projectile's appearance. The balance elemental gives a short reaction window (shorter below half health); all three protection prayers may be needed as forms change.", "prayers": ["MISSILES", "MELEE", "MAGIC"]},
+	{"when": ["has:(magic)"], "note": "Follow the visible current attack form, not the projectile's appearance. The balance elemental gives a short reaction window (shorter below half health); all three protection prayers may be needed as forms change.", "prayers": ["MAGIC", "MELEE", "MISSILES"]},
+	{"note": "Follow the visible current attack form, not the projectile's appearance. The balance elemental gives a short reaction window (shorter below half health); all three protection prayers may be needed as forms change.", "prayers": ["MELEE", "MAGIC", "MISSILES"]}]},
+{"names": ["nex"], "page": "Nex/Strategies", "cases": [
+	{"note": "Pray by phase and who Nex targets: Magic for smoke / blood / ice, Missiles for shadow, and Melee when tanking close-range attacks or the final phase. Kiting and melee distancing change which attacks you receive. Her attacks pierce prayers; don't switch reactively against every random projectile.", "prayers": ["MAGIC", "MISSILES", "MELEE"]}]},
+{"names": ["maggot king"], "page": "Maggot_King/Strategies", "cases": [
+	{"note": "Start with Missiles; switch Magic / Missiles by the post-screech phase. Turn OFF overheads during the white-aura screech or it damages you repeatedly. Later, dodge the melee slams or use Melee to reduce their damage. Don't choose a fixed prayer from the merged infobox max hits.", "prayers": ["MISSILES", "MAGIC", "MELEE"]}]},
+{"names": ["galvek"], "page": "Dragon_Slayer_II", "cases": [
+	{"when": ["class:MELEE"], "note": "The tank-armour melee method keeps Magic throughout the fight. Use a fire shield plus antifire, restore prayer after pink breath, and dodge fireballs, traps, waves and rock tombs.", "prayers": ["MAGIC"]},
+	{"when": ["has:(fire)"], "note": "Use Magic in the fire phase and Missiles from the air phase onward. Change by phase rather than reacting to ordinary projectiles. Use a fire shield plus antifire and dodge the lethal specials.", "prayers": ["MAGIC"]},
+	{"note": "Use Magic in the fire phase and Missiles from the air phase onward. Change by phase rather than reacting to ordinary projectiles. Use a fire shield plus antifire and dodge the lethal specials.", "prayers": ["MISSILES"]}]},
+{"names": ["the mimic"], "page": "The_Mimic", "cases": [
+	{"note": "Keep Melee against the Mimic even while using ranged or magic. Move away from thrown sweets and keep attacking the boss; its summoned minions are separate attackers.", "prayers": ["MELEE"]}]},
+{"names": ["glough"], "page": "Monkey_Madness_II", "cases": [
+	{"when": ["melee"], "note": "Use the early-phase safespots; overheads don't block his second-phase ranged damage. In the final phase use Melee when close and Magic at distance, with movement to manage his push / pull attacks.", "prayers": ["MELEE"]},
+	{"note": "Use the early-phase safespots; overheads don't block his second-phase ranged damage. In the final phase use Melee when close and Magic at distance, with movement to manage his push / pull attacks.", "prayers": ["MAGIC"]}]},
+{"names": ["shellbane gryphon"], "page": "Shellbane_Gryphon/Strategies", "cases": [
+	{"note": "Keep Melee and equip a tortugan shield: without it, melee hits pierce protection prayer. Occasional ranged hits remain; dodge corrosive spit, whirlwind and knockback specials.", "prayers": ["MELEE"]}]},
+{"names": ["the hueycoatl"], "page": "The_Hueycoatl/Strategies", "cases": [
+	{"note": "For minimum damage, match each feather's colour with Magic, Missiles or Melee before impact, including while attacking body or tail. In teams, an assigned pillar prayer may take priority to maintain the damage buff. Dodge lightning and tail shockwaves.", "prayers": ["MAGIC", "MISSILES", "MELEE"]}]},
+{"names": ["zulrah"], "page": "Zulrah/Strategies", "cases": [
+	{"when": ["has:magma"], "note": "Magma form's directed attacks aren't blocked by overheads; move after it targets your tile. Resume the appropriate prayer when the next form appears."},
+	{"when": ["has:tanzanite"], "note": "Keep Magic in tanzanite form; random ranged attacks cannot reliably be prayer-switched reactively. Read the rotation and change overhead before the next form's attack.", "prayers": ["MAGIC"]},
+	{"note": "Keep Missiles in ordinary serpentine phases. In the rotation's Jad phase, alternate Magic / Missiles BEFORE each launch according to the known rotation; do not wait for impact. The infobox form alone doesn't identify Jad phase.", "prayers": ["MISSILES"]}]},
+{"names": ["sarachnis"], "page": "Sarachnis/Strategies", "cases": [
+	{"when": ["melee"], "note": "Use Melee while she is next to you and Missiles when her web separates you. Change before the next attack, not in reaction to an ordinary projectile. Aranea boots prevent the web and can remove the need for this switch; magic spawns are separate attackers.", "prayers": ["MELEE", "MISSILES"]},
+	{"note": "Use Melee while she is next to you and Missiles when her web separates you. Change before the next attack, not in reaction to an ordinary projectile. Aranea boots prevent the web and can remove the need for this switch; magic spawns are separate attackers.", "prayers": ["MISSILES", "MELEE"]}]},
+{"names": ["callisto", "artio"], "page": "Callisto/Strategies", "cases": [
+	{"when": ["melee"], "note": "Keep Missiles while freezing and keeping the bear away; use Melee if it reaches you (melee pierces prayer). Switch to Magic for the visible knockback orb before impact, then return to the ordinary attack prayer. Avoid traps.", "prayers": ["MELEE", "MAGIC", "MISSILES"]},
+	{"note": "Keep Missiles while freezing and keeping the bear away; use Melee if it reaches you (melee pierces prayer). Switch to Magic for the visible knockback orb before impact, then return to the ordinary attack prayer. Avoid traps.", "prayers": ["MISSILES", "MAGIC", "MELEE"]}]},
+{"names": ["vardorvis"], "page": "Vardorvis/Strategies", "cases": [
+	{"note": "Keep Melee for Vardorvis; switch to Missiles for the head's green projectile before it hits, then return to Melee. Dodge axes; missed head attacks disable protection prayers.", "prayers": ["MELEE", "MISSILES"]}]},
+{"names": ["vet'ion", "calvar'ion"], "page": "Vet%27ion/Strategies", "cases": [
+	{"note": "Use Melee for the summoned skeletal hellhounds. The boss's lightning and shield bash must be dodged; this overhead does not block those attacks.", "prayers": ["MELEE"]}]},
+{"names": ["kephri"], "page": "Kephri", "cases": [
+	{"note": "No overhead blocks Kephri's ground-targeted fireballs: step away from the shadow. Eggs and dung also require movement. Use the matching overhead for any attacking scarab bodyguard instead."}]},
+{"names": ["sol heredit"], "page": "Sol_Heredit", "cases": [
+	{"note": "Only use Melee for the timed triple parry, activating it just before each spear hit. Praying early makes Sol disable it. His ordinary spear / shield AoE is typeless and must be dodged; an overhead is not needed for those attacks.", "prayers": ["MELEE"]}]},
+{"names": ["zalcano"], "page": "Zalcano", "cases": [
+	{"note": "Overheads don't protect against Zalcano's hazards; dodge rockfalls, avoid red symbols and move away from explosive rocks."}]},
+{"names": ["corporeal beast"], "page": "Corporeal_Beast", "cases": [
+	{"note": "Keep Magic; it only reduces his magic damage, rather than fully blocking it. Avoid melee and stomp range; move away from the dark core.", "prayers": ["MAGIC"]}]},
+{"names": ["chaos elemental"], "page": "Chaos_Elemental/Strategies", "cases": [
+	{"note": "Keep Magic. The ordinary projectile's damage style cannot be identified visually, so reactive switching is not possible.", "prayers": ["MAGIC"]}]},
+{"names": ["kalphite queen"], "page": "Kalphite_Queen/Strategies", "cases": [
+	{"note": "Keep Magic in both forms. Magic and ranged attacks bypass the usual accuracy roll, so armour alone cannot make them miss; Missiles is a similar alternative in solo fights. Her own overheads indicate defensive bonuses, not your prayer choice.", "prayers": ["MAGIC"]}]},
+{"names": ["basilisk knight", "basilisk sentinel"], "page": "Basilisk_Knight/Strategies", "cases": [
+	{"note": "Keep Magic; tank ordinary melee with armour or keep out of melee reach. A mirror / V's shield is still required.", "prayers": ["MAGIC"]}]},
+{"names": ["lizardman shaman"], "when": ["!has:chambers of xeric"], "page": "Lizardman_shaman/Strategies", "cases": [
+	{"note": "Keep Missiles against the ranged spit; stay clear of melee, jumps and purple spawns. Shayzien armour and poison protection are separate requirements.", "prayers": ["MISSILES"]}]},
+{"names": ["kree'arra"], "page": "Kree%27arra/Strategies", "cases": [
+	{"note": "Keep Missiles against Kree'arra's main attack. His ranged-magic attack deals magic damage despite its ranged accuracy; normal armour accuracy estimates do not describe all of his attack mechanics.", "prayers": ["MISSILES"]}]},
+{"names": ["general graardor"], "page": "General_Graardor/Strategies", "cases": [
+	{"when": ["melee"], "note": "Keep Melee while tanking Graardor. Armour covers ranged hits; non-tanks in teams generally use Missiles. Minions are separate attackers and require different priorities after the boss dies.", "prayers": ["MELEE"]},
+	{"note": "Keep Missiles while safely kiting / freezing Graardor. If he reaches you, use Melee. Minions remain separate attackers; this assumes the movement method keeps his melee out of reach.", "prayers": ["MISSILES"]}]},
+{"names": ["commander zilyana"], "page": "Commander_Zilyana/Strategies", "cases": [
+	{"when": ["class:MAGIC"], "note": "While safely kiting Zilyana, ranged setups use Magic and magic setups use Missiles to cover the more dangerous minion for that armour. Zilyana herself only attacks when she reaches melee distance; don't stand still to tank her rapid attacks.", "prayers": ["MISSILES"]},
+	{"when": ["melee"], "note": "While safely kiting Zilyana, ranged setups use Magic and magic setups use Missiles to cover the more dangerous minion for that armour. Zilyana herself only attacks when she reaches melee distance; don't stand still to tank her rapid attacks.", "prayers": ["MELEE"]},
+	{"note": "While safely kiting Zilyana, ranged setups use Magic and magic setups use Missiles to cover the more dangerous minion for that armour. Zilyana herself only attacks when she reaches melee distance; don't stand still to tank her rapid attacks.", "prayers": ["MAGIC"]}]},
+{"names": ["k'ril tsutsaroth"], "page": "K%27ril_Tsutsaroth/Strategies", "cases": [
+	{"when": ["melee"], "note": "Solo / conventional melee tanks keep Melee, but it can trigger his prayer-smash special. A team tank in high melee-defence armour can use Magic instead. Restore prayer after smashes.", "prayers": ["MELEE"]},
+	{"note": "Use Missiles when safely binding / kiting K'ril to cover the ranged minion. The boss only attacks in melee distance; switch to Melee if reached. Bodyguard damage and team roles affect the choice.", "prayers": ["MISSILES"]}]},
+{"names": ["duke sucellus"], "page": "Duke_Sucellus/Strategies", "cases": [
+	{"when": ["melee"], "note": "Keep Melee and step behind the pillar after each attack to avoid the slam. Prayer only reduces slam damage; dodge gaze, icicles and gas.", "prayers": ["MELEE"]},
+	{"note": "Keep Magic if fighting outside melee reach; Duke uses magic there. His intended melee method uses Melee and pillar movement. Specials require movement.", "prayers": ["MAGIC"]}]},
+{"names": ["dawn"], "page": "Grotesque_Guardians/Strategies", "cases": [
+	{"note": "Keep Missiles against Dawn and avoid falling debris / her freezing projectile. Switch to Melee when moving to Dusk.", "prayers": ["MISSILES"]}]},
+{"names": ["dusk"], "page": "Grotesque_Guardians/Strategies", "cases": [
+	{"when": ["melee"], "note": "Keep Melee while attacking Dusk up close; in his final form use Missiles if separated from him, then return to Melee when adjacent. Dodge specials.", "prayers": ["MELEE"]},
+	{"when": ["has:first form"], "note": "Keep Melee while attacking Dusk up close; in his final form use Missiles if separated from him, then return to Melee when adjacent. Dodge specials.", "prayers": ["MELEE"]},
+	{"note": "Keep Melee while attacking Dusk up close; in his final form use Missiles if separated from him, then return to Melee when adjacent. Dodge specials.", "prayers": ["MISSILES"]}]},
+{"names": ["obor"], "page": "Obor", "cases": [
+	{"note": "Keep Missiles for the usual melee or snare-and-magic method. It reduces rather than completely blocks his ranged damage; keep food and maintain distance when snaring.", "prayers": ["MISSILES"]}]},
+{"names": ["branda the fire queen", "eldric the ice king"], "page": "Royal_Titans", "cases": [
+	{"note": "Keep Melee against the titans' stomp, including the arena-wide stomp in the later phase. When only one titan remains it can pierce prayer. Spells and elementals require movement / target changes.", "prayers": ["MELEE"]}]},
+{"names": ["amoxliatl"], "page": "Amoxliatl", "cases": [
+	{"note": "Keep Magic and restore it during the wind-up after her prayer-disabling attack. It mitigates the initial spikes / icicle, but persistent pools require movement.", "prayers": ["MAGIC"]}]}
+]

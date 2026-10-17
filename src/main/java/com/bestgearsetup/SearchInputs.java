@@ -5,7 +5,6 @@ import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.Slot;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,14 +15,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.stream.Collectors;
-import net.runelite.client.config.ConfigItem;
 
 /** Value keys of immutable search inputs; container locations and equipped markers aren't calculation inputs. */
 final class SearchInputs
 {
-	private static final List<Method> SETTINGS = Arrays.stream(BestGearSetupConfig.class.getDeclaredMethods())
-		.filter(method -> method.isAnnotationPresent(ConfigItem.class))
-		.collect(Collectors.toList());
 	/** Settings that only affect presentation or which search is selected. */
 	static final Set<String> PRESENTATION = Set.of("activeEncounter", "showMenuOption", "highlightBankGear",
 		"bankHighlightColor", "highlightInventoryGear", "inventoryHighlightColor", "bossesOnly", "seenFightOptions");
@@ -70,23 +65,11 @@ final class SearchInputs
 		return new SearchInputs(extended, catalogue);
 	}
 
-	/** Includes newly added config items automatically; values are scalars, strings or immutable enums. */
+	/** The shared binding table is checked against every annotated config item by SearchAssumptionsTest. */
 	static Map<String, Object> settings(BestGearSetupConfig config, boolean encounter)
 	{
-		Map<String, Object> values = new HashMap<>();
-		for (Method method : SETTINGS)
-		{
-			String name = method.getName();
-			if (PRESENTATION.contains(name) || encounter && KIT_ONLY.contains(name)) { continue; }
-			try
-			{
-				values.put(name, method.invoke(config));
-			}
-			catch (ReflectiveOperationException e)
-			{
-				throw new IllegalStateException("Cannot capture search setting " + name, e);
-			}
-		}
+		Map<String, Object> values = ConfigSettings.read(config);
+		values.keySet().removeIf(name -> PRESENTATION.contains(name) || encounter && KIT_ONLY.contains(name));
 		return Collections.unmodifiableMap(values);
 	}
 

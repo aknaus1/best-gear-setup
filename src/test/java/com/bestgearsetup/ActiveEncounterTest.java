@@ -9,7 +9,6 @@ import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.ui.BestGearSetupPanel;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import javax.swing.SwingUtilities;
@@ -22,12 +21,12 @@ import net.runelite.api.Player;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.HitsplatApplied;
 import net.runelite.api.events.NpcDespawned;
-import net.runelite.api.gameval.SpriteID;
+import net.runelite.api.gameval.NpcID;
 import org.junit.Test;
 
 public class ActiveEncounterTest
 {
-	@Test public void tracksAkkhaOverheadChangesWithoutAnNpcIdChange() throws Exception
+	@Test public void tracksAkkhaFormChanges() throws Exception
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
 		plugin.ownedItems = new OwnedItems(null, null);
@@ -37,25 +36,24 @@ public class ActiveEncounterTest
 		when(player.getInteracting()).thenReturn(npc); when(npc.getInteracting()).thenReturn(player); when(npc.getId()).thenReturn(11789); when(npc.getName()).thenReturn("Akkha");
 		when(npc.getHealthRatio()).thenReturn(100); when(npc.getTransformedComposition()).thenReturn(composition);
 		when(composition.getActions()).thenReturn(new String[]{"Attack"});
-		when(npc.getOverheadArchiveIds()).thenReturn(new int[]{SpriteID.HEADICONS_PRAYER});
 		MonsterSummary akkha = new MonsterSummary(); akkha.setId(11789); akkha.setName("akkha");
 		plugin.gameData = new GameData(Collections.singletonList(akkha), Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
 		plugin.config = new BestGearSetupConfig() { @Override public boolean activeEncounter() { return true; } };
 		plugin.panel = mock(BestGearSetupPanel.class);
-		Field field = BestGearSetupPlugin.class.getDeclaredField("client"); field.setAccessible(true); field.set(plugin, client);
-		short[] icons = {0, 1, 2, 6};
+		plugin.client = client;
+		int[] forms = {NpcID.AKKHA_MELEE, NpcID.AKKHA_RANGE, NpcID.AKKHA_MAGE, NpcID.AKKHA_ENRAGE};
 		EncounterPhase[] phases = {EncounterPhase.AKKHA_IMMUNE_MELEE, EncounterPhase.AKKHA_IMMUNE_RANGED,
 			EncounterPhase.AKKHA_IMMUNE_MAGIC, EncounterPhase.AKKHA_ENRAGE};
-		for (int i = 0; i < icons.length; i++)
+		for (int i = 0; i < forms.length; i++)
 		{
-			when(npc.getOverheadSpriteIds()).thenReturn(new short[]{icons[i]});
+			when(npc.getId()).thenReturn(forms[i]);
 			org.junit.Assert.assertEquals(phases[i], LiveRaid.akkhaPhase(npc));
 			plugin.onGameTick(new GameTick()); SwingUtilities.invokeAndWait(() -> { });
 			plugin.onGameTick(new GameTick()); SwingUtilities.invokeAndWait(() -> { });
 			verify(plugin.panel, times(i + 1)).selectActiveMonster(akkha);
 		}
-		when(npc.getName()).thenReturn("Ba-Ba");
+		when(npc.getId()).thenReturn(NpcID.AKKHA_SPAWN);
 		org.junit.Assert.assertNull(LiveRaid.akkhaPhase(npc));
 	}
 
@@ -84,7 +82,7 @@ public class ActiveEncounterTest
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
 		plugin.config = config;
 		plugin.panel = mock(BestGearSetupPanel.class);
-		Field field = BestGearSetupPlugin.class.getDeclaredField("client"); field.setAccessible(true); field.set(plugin, client);
+		plugin.client = client;
 		plugin.onGameTick(new GameTick());
 		SwingUtilities.invokeAndWait(() -> { });
 		plugin.onGameTick(new GameTick());
@@ -249,7 +247,7 @@ public class ActiveEncounterTest
 				Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
 			plugin.config = new BestGearSetupConfig() { @Override public boolean activeEncounter() { return true; } };
 			plugin.panel = mock(BestGearSetupPanel.class);
-			Field field = BestGearSetupPlugin.class.getDeclaredField("client"); field.setAccessible(true); field.set(plugin, client);
+			plugin.client = client;
 		}
 
 		NPC npc(int id, String name)

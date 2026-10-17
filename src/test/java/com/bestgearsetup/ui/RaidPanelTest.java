@@ -270,7 +270,7 @@ public class RaidPanelTest
 		RaidPlan.InventoryItem fire = new RaidPlan.InventoryItem("Fire runes", Collections.singletonList(554), false);
 		RaidPlan.InventoryItem blood = new RaidPlan.InventoryItem("Blood runes", Collections.singletonList(565), false);
 		RaidPlan.InventoryItem pouch = new RaidPlan.InventoryItem("Rune pouch", Collections.singletonList(12791), false, Arrays.asList(fire, blood));
-		String tooltip = RaidResultView.inventoryTooltip(pouch);
+		String tooltip = InventoryView.tooltip(pouch);
 		assertTrue(tooltip.contains("Fire runes"));
 		assertTrue(tooltip.contains("Blood runes"));
 	}

@@ -13,7 +13,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.data.MonsterSummary;
-import java.lang.reflect.Field;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.List;
@@ -77,23 +76,16 @@ public class StoredItemsIntegrationTest
 		plugin.config = new BestGearSetupConfig() { };
 		Client client = mock(Client.class);
 		when(client.getGameState()).thenReturn(GameState.LOGGED_IN);
-		set("client", client);
+		plugin.client = client;
 		ClientThread clientThread = mock(ClientThread.class);
 		doAnswer(call -> { callbacks.add(call.getArgument(0)); return null; }).when(clientThread).invokeLater(any(Runnable.class));
-		set("clientThread", clientThread);
+		plugin.clientThread = clientThread;
 		plugin.storedItemsBridge = new StoredItemsBridge(config, events, plugin.ownedItems);
 		events.register(plugin.storedItemsBridge);
 		events.register(new Provider());
 		plugin.gearIds = Set.of(4151, 11840, 9242);
 		plugin.consumableIds = Set.of(9242);
 		plugin.searchAmmoCount = 1000;
-	}
-
-	private void set(String name, Object value) throws Exception
-	{
-		Field field = BestGearSetupPlugin.class.getDeclaredField(name);
-		field.setAccessible(true);
-		field.set(plugin, value);
 	}
 
 	private void tick() throws Exception

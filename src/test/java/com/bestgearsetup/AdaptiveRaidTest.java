@@ -17,7 +17,6 @@ import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.ui.BestGearSetupPanel;
-import java.lang.reflect.Field;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -100,7 +99,7 @@ public class AdaptiveRaidTest
 		plugin.ownedItems.inventory = Map.of(4587, 1L, 11804, 1L);
 		plugin.ownedItems.bank = Map.of(4151, 1L);
 		plugin.ownedItems.rebuild(false);
-		set("client", client); set("api", loader); set("configManager", mock(ConfigManager.class));
+		plugin.client = client; plugin.api = loader; plugin.configManager = mock(ConfigManager.class);
 		plan = RaidProgressTest.plan(data, RaidPlanType.TOA);
 		List<RaidEncounter> encounters = RaidPlanType.TOA.encounters(data, RaidScaling.Settings.SOLO, RaidOptions.of(plugin.config));
 		List<SearchResults> orderedResults = new ArrayList<>();
@@ -112,7 +111,7 @@ public class AdaptiveRaidTest
 			orderedResults.add(plan.getResults().get(index)); orderedSetups.add(plan.getSetups().get(index));
 		}
 		plan = plan.withEncounters(encounters, orderedResults, orderedSetups);
-		set("raidPlan", plan);
+		plugin.raidPlan = plan;
 		when(client.getGameState()).thenReturn(GameState.LOGGED_IN);
 		when(client.getLocalPlayer()).thenReturn(player); when(client.getTopLevelWorldView()).thenReturn(world);
 		when(client.getWorldView(WorldView.TOPLEVEL)).thenReturn(world);
@@ -132,7 +131,7 @@ public class AdaptiveRaidTest
 		when(npcs.iterator()).thenAnswer(call -> Collections.singletonList(boss).iterator());
 		when(npcs.byIndex(7)).thenReturn(boss); when(world.npcs()).thenReturn((IndexedObjectSet) npcs);
 		region(15188);
-		specs = new LiveSpecs(client, mock(ClientThread.class), plugin.config, ignored -> { }); set("liveSpecs", specs);
+		specs = new LiveSpecs(client, mock(ClientThread.class), plugin.config, ignored -> { }); plugin.liveSpecs = specs;
 		ExecutorService executor = mock(ExecutorService.class); plugin.executor = executor;
 		doAnswer(call ->
 		{
@@ -140,11 +139,6 @@ public class AdaptiveRaidTest
 		}).when(executor).submit(any(Runnable.class));
 		doAnswer(call -> { published.add(call.getArgument(2)); publishedEncounters.add(call.<RaidEncounter>getArgument(1).getLabel()); return null; }).when(plugin.panel)
 			.showLiveRaidResults(any(RaidPlan.class), any(), any(SearchResults.class));
-	}
-
-	private void set(String name, Object value) throws Exception
-	{
-		Field field = BestGearSetupPlugin.class.getDeclaredField(name); field.setAccessible(true); field.set(plugin, value);
 	}
 
 	private void region(int region)
@@ -180,8 +174,7 @@ public class AdaptiveRaidTest
 			.flatMap(s -> java.util.Arrays.stream(Slot.values()).map(s.getLoadout()::get))
 			.filter(java.util.Objects::nonNull).noneMatch(i -> i.getId() == 4151));
 		assertEquals(0, first.getByType().values().iterator().next().get(0).getBuyCost());
-		Field saved = BestGearSetupPlugin.class.getDeclaredField("raidPlan"); saved.setAccessible(true);
-		assertTrue("The original packing plan stays intact", saved.get(plugin) == plan);
+		assertTrue("The original packing plan stays intact", plugin.raidPlan == plan);
 		tick(); assertTrue("Unchanged circumstances do not schedule another calculation", jobs.isEmpty());
 		bits.put(VarbitID.TOA_CLIENT_APMEKEN_LEVEL, 4); tick();
 		assertTrue(work().getRaidScaling().contains("path level 4"));

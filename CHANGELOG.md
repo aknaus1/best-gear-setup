@@ -3,6 +3,17 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Say when a raid search finds nothing because Inventory + equipped only mode sees no carried gear.
+- Share raid switch compatibility across planning and consolidation, and simplify validated encounter copies.
+- Read and write saved results directly in their existing compact format, removing the intermediate cache graph.
+- Share immutable configuration bindings across search snapshots, cache keys and both settings editors.
+- Share kit requirements, inventory packing and bank layout; count reused special equipment only once in displayed costs.
+- Keep freeze search provenance when merging partial raid kits, retaining feasible switches from different base gear.
+- Draw repeated bank layout entries in the bank's spare item slots so they keep the game's own withdraw options.
+- Follow Akkha's phases by his NPC form instead of reading his overhead prayer.
+
 ## 1.1.1
 
 - Add Beta raid planning for CM CoX, ToA and ToB: shared kits, encounter setups, spellbook

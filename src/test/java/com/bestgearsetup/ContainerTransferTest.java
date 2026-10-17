@@ -6,7 +6,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.data.MonsterSummary;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -45,9 +44,7 @@ public class ContainerTransferTest
 		};
 		plugin.ownedItems = new OwnedItems(mock(ConfigManager.class), items);
 		plugin.config = new BestGearSetupConfig() { @Override public boolean activeEncounter() { return false; } };
-		Field client = BestGearSetupPlugin.class.getDeclaredField("client");
-		client.setAccessible(true);
-		client.set(plugin, mock(Client.class));
+		plugin.client = mock(Client.class);
 		plugin.gearIds = new HashSet<>(Arrays.asList(4151, 11840, 9242));
 		plugin.consumableIds = new HashSet<>(Arrays.asList(9242));
 		plugin.searchAmmoCount = 100_000;

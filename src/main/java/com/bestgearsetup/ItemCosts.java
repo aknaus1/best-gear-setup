@@ -227,23 +227,4 @@ public final class ItemCosts
 	{
 		return components(first).equals(components(second));
 	}
-
-	/** Whether an owned mapped item already contains everything needed for its base component. */
-	public static boolean containsComponents(int ownedItem, int baseItem)
-	{
-		Map<Integer, Long> owned = components(ownedItem);
-		Map<Integer, Long> required = components(baseItem);
-		if (required.isEmpty())
-		{
-			return false;
-		}
-		for (Map.Entry<Integer, Long> component : required.entrySet())
-		{
-			if (owned.getOrDefault(component.getKey(), 0L) < component.getValue())
-			{
-				return false;
-			}
-		}
-		return true;
-	}
 }
