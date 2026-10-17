@@ -53,6 +53,11 @@ import org.junit.Test;
 /** Real event scheduling and real encounter calculations, with only the game API and UI mocked. */
 public class AdaptiveRaidTest
 {
+	@org.junit.Before public void initializeCacheIdentity()
+	{
+		CacheIdentity.init(net.runelite.http.api.RuneLiteAPI.GSON);
+	}
+
 	private final BestGearSetupPlugin plugin = new BestGearSetupPlugin();
 	private final Client client = mock(Client.class);
 	private final Player player = mock(Player.class);

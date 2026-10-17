@@ -46,6 +46,11 @@ import org.junit.Test;
 /** The actual optimizer and kit planner run once; cache hits must bypass them, not just paint faster. */
 public class SearchCacheIntegrationTest
 {
+	@org.junit.Before public void initializeCacheIdentity()
+	{
+		CacheIdentity.init(net.runelite.http.api.RuneLiteAPI.GSON);
+	}
+
 	private static final class Loader extends GameDataLoader
 	{
 		int reads;

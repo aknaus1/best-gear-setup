@@ -343,6 +343,7 @@ public class BestGearSetupPlugin extends Plugin
 	{
 		// Before any event handler can reach ownership rules (bank and inventory changes).
 		OwnershipRules.init(gson);
+		CacheIdentity.init(gson);
 		int life = lifecycle.incrementAndGet();
 		clearSearchCaches();
 		raidProgress.reset();

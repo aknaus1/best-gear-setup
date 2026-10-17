@@ -56,6 +56,11 @@ import org.junit.rules.TemporaryFolder;
 
 public class ProfileSearchCacheTest
 {
+	@org.junit.Before public void initializeCacheIdentity()
+	{
+		CacheIdentity.init(net.runelite.http.api.RuneLiteAPI.GSON);
+	}
+
 	private final Gson gson = new Gson();
 	final ConfigManager config = mock(ConfigManager.class);
 	final Map<String, String> records = new HashMap<>();
@@ -435,7 +440,8 @@ public class ProfileSearchCacheTest
 	{
 		public static void main(String[] args) throws Exception
 		{
-			ProfileSearchCacheTest fixture = new ProfileSearchCacheTest(); fixture.profile();
+			ProfileSearchCacheTest fixture = new ProfileSearchCacheTest();
+			fixture.initializeCacheIdentity(); fixture.profile();
 			Path file = java.nio.file.Paths.get(args[1]);
 			Properties saved = new Properties();
 			SearchInputs key = fixture.key(1);

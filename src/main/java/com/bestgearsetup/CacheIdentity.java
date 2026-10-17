@@ -32,17 +32,23 @@ import java.util.stream.Collectors;
 /** Deterministic value identities, including the installed calculation code and bundled data. */
 final class CacheIdentity
 {
-	private static final Gson GSON = new Gson();
+	private static volatile Gson gson;
 	private static final Map<GameData, String> DATA = Collections.synchronizedMap(new WeakHashMap<>());
 	private static final String BUILD = build();
 
 	private CacheIdentity() { }
 
+	/** Initialized with the client's injected serializer before searches can run. */
+	static void init(Gson clientGson)
+	{
+		gson = java.util.Objects.requireNonNull(clientGson);
+	}
+
 	static String buildId() { return BUILD; }
 
 	static String data(GameData data)
 	{
-		return DATA.computeIfAbsent(data, value -> digest(json(GSON.toJsonTree(value))));
+		return DATA.computeIfAbsent(data, value -> digest(json(gson.toJsonTree(value))));
 	}
 
 	static String digest(String text)
@@ -107,7 +113,7 @@ final class CacheIdentity
 			List<String> entries = new ArrayList<>();
 			((Map<?, ?>) value).forEach((key, item) -> entries.add(value(key) + "=" + value(item)));
 			Collections.sort(entries);
-			return "map" + GSON.toJson(entries);
+			return "map" + gson.toJson(entries);
 		}
 		if (value instanceof Collection)
 		{
@@ -120,9 +126,9 @@ final class CacheIdentity
 			}
 			List<String> entries = items.stream().map(CacheIdentity::value).collect(Collectors.toList());
 			if (value instanceof Set) { Collections.sort(entries); }
-			return (value instanceof Set ? "set" : "list") + GSON.toJson(entries);
+			return (value instanceof Set ? "set" : "list") + gson.toJson(entries);
 		}
-		return value.getClass().getName() + ":" + json(GSON.toJsonTree(value));
+		return value.getClass().getName() + ":" + json(gson.toJsonTree(value));
 	}
 
 	/** Gson object member order is not a stable identity; sort members recursively. */

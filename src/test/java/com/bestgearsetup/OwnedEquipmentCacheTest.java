@@ -30,6 +30,11 @@ import org.junit.Test;
 /** Identical owned gear must retrieve the same cached result, including halfway through split-tick transfers. */
 public class OwnedEquipmentCacheTest
 {
+	@org.junit.Before public void initializeCacheIdentity()
+	{
+		CacheIdentity.init(net.runelite.http.api.RuneLiteAPI.GSON);
+	}
+
 	private OwnedItems owned;
 	private final BestGearSetupConfig config = new BestGearSetupConfig() { @Override public int ammoCount() { return 100; } };
 	private GameData data;

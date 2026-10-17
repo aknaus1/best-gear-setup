@@ -23,6 +23,11 @@ import org.junit.Test;
 
 public class SearchInputsTest
 {
+	@org.junit.Before public void initializeCacheIdentity()
+	{
+		CacheIdentity.init(net.runelite.http.api.RuneLiteAPI.GSON);
+	}
+
 	private final BestGearSetupConfig config = new BestGearSetupConfig() { @Override public int ammoCount() { return 100; } };
 	private final MonsterSummary target = new MonsterSummary();
 	private final Set<Integer> owned = new HashSet<>(Set.of(9242, 379));

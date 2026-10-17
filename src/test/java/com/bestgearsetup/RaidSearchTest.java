@@ -36,6 +36,11 @@ import org.junit.Test;
 /** Exercise the real raid search pipeline with a small, real owned kit instead of synthetic DPS. */
 public class RaidSearchTest
 {
+	@org.junit.Before public void initializeCacheIdentity()
+	{
+		CacheIdentity.init(net.runelite.http.api.RuneLiteAPI.GSON);
+	}
+
 	@Test public void everyTobRoleProducesItsRequiredPrimaryAttacksAndRefreshPreservesThem() throws Exception
 	{
 		GameDataLoader loader = new GameDataLoader(new Gson());
