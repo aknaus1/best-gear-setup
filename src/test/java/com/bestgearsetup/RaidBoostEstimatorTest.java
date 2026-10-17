@@ -34,6 +34,13 @@ public class RaidBoostEstimatorTest
 		assertEquals(2, items.size());
 		assertEquals(5, items.get(0).getEstimatedDoses());
 		assertEquals(2, items.get(0).getBottles());
+		assertEquals("Each needed bottle gets its own inventory cell", items.get(0).getIds(), items.get(1).getIds());
+		List<Integer> ids = items.get(0).getIds();
+		assertDoseOrder(ids, ItemID._4DOSEDIVINECOMBAT, ItemID._3DOSEDIVINECOMBAT,
+			ItemID._2DOSEDIVINECOMBAT, ItemID._1DOSEDIVINECOMBAT);
+		assertDoseOrder(ids, ItemID._4DOSE2COMBAT, ItemID._3DOSE2COMBAT,
+			ItemID._2DOSE2COMBAT, ItemID._1DOSE2COMBAT);
+		assertTrue(ids.indexOf(ItemID._1DOSEDIVINECOMBAT) < ids.indexOf(ItemID._4DOSE2COMBAT));
 	}
 
 	@Test public void samePhysicalPotionForTwoSkillsIsConsumedOnce()
@@ -191,7 +198,7 @@ public class RaidBoostEstimatorTest
 			setup).get(0);
 		assertEquals(3, item.getEstimatedDoses());
 		assertEquals("super combat potion", item.getName());
-		assertEquals(Integer.valueOf(ItemID._4DOSE2COMBAT), item.getIds().get(0));
+		assertEquals(Integer.valueOf(ItemID._4DOSEDIVINECOMBAT), item.getIds().get(0));
 		// 0% lets the whole boost run out; 100% repots after every level.
 		assertEquals(2, doses(1500, timing(0, 99, 99), combat()));
 		assertEquals(50, doses(1500, timing(100, 99, 99), combat()));
@@ -226,6 +233,10 @@ public class RaidBoostEstimatorTest
 	{
 		SetupResult setup = setup(1, 1);
 		return estimate(fight(), result(hp, setup, potions).withBoostTiming(timing), setup).get(0).getEstimatedDoses();
+	}
+	private static void assertDoseOrder(List<Integer> ids, int... doses)
+	{
+		for (int i = 1; i < doses.length; i++) { assertTrue(ids.indexOf(doses[i - 1]) < ids.indexOf(doses[i])); }
 	}
 	private static BoostTiming timing(int percent, int attack, int strength)
 	{

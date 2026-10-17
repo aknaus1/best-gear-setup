@@ -27,7 +27,7 @@ public class InventoryBoostTest
 		});
 	}
 
-	@Test public void smallCombatSwitchesStayConsecutiveAndFreeSupplySlotsStayAtTheEnd() throws Exception
+	@Test public void weaponOnlySwitchesStayCompactWithPotionsLast() throws Exception
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
@@ -44,10 +44,10 @@ public class InventoryBoostTest
 			JPanel grid = findGrid(view);
 			assertEquals(28, grid.getComponentCount());
 			assertEquals("Sword", ((JComponent) grid.getComponent(0)).getToolTipText());
-			assertEquals("Bow", ((JComponent) grid.getComponent(1)).getToolTipText());
-			assertEquals("Staff", ((JComponent) grid.getComponent(2)).getToolTipText());
 			assertEquals("Potion", ((JComponent) grid.getComponent(3)).getToolTipText());
+			assertEquals("Bow", ((JComponent) grid.getComponent(1)).getToolTipText());
 			assertEquals("Free slot for supplies", ((JComponent) grid.getComponent(4)).getToolTipText());
+			assertEquals("Staff", ((JComponent) grid.getComponent(2)).getToolTipText());
 			assertTrue(Arrays.stream(view.getComponents()).filter(c -> c instanceof JPanel)
 				.flatMap(c -> Arrays.stream(((JPanel) c).getComponents())).anyMatch(c -> c instanceof javax.swing.JButton
 					&& "Inventory (4 / 28)".equals(((javax.swing.JButton) c).getText())));
@@ -64,7 +64,7 @@ public class InventoryBoostTest
 			view.showItems(Arrays.asList(bottle, bottle), item -> RaidPlan.PotionUse.BROUGHT);
 			JPanel grid = findGrid(view);
 			assertEquals(28, grid.getComponentCount());
-			assertTrue(((JComponent) grid.getComponent(0)).getToolTipText().contains("Estimated 5 doses; bring 2"));
+			assertTrue(((JComponent) grid.getComponent(0)).getToolTipText().contains("~5 doses · 2 bottles"));
 			assertEquals(((JComponent) grid.getComponent(0)).getToolTipText(), ((JComponent) grid.getComponent(1)).getToolTipText());
 			assertEquals("Free slot for supplies", ((JComponent) grid.getComponent(2)).getToolTipText());
 		});

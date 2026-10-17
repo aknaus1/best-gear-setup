@@ -762,6 +762,8 @@ public class RaidPlannerTest
 		assertEquals(1, plan.getInventory().size());
 		assertEquals("amethyst dart", plan.getInventory().get(0).getContents().get(0).getName());
 		assertEquals(Integer.valueOf(182), plan.inventoryFor(start).get(0).getContents().get(0).getIds().get(0));
+		assertEquals("Loaded darts are not duplicated as potion copies", 1,
+			BestGearSetupBankView.raidCellsFor(plan, 182).size());
 	}
 
 	@Test public void multipleAmmoTypesRemainCorrectForTheirWeapons()
@@ -847,7 +849,7 @@ public class RaidPlannerTest
 		assertEquals(Integer.valueOf(16), cells.get(121));
 		assertEquals(Integer.valueOf(17), cells.get(122));
 		assertEquals(Integer.valueOf(4), cells.get(123));
-		assertEquals(Integer.valueOf(5), cells.get(124));
+		assertEquals(Integer.valueOf(12), cells.get(124));
 		assertEquals(55, BestGearSetupBankView.inventoryCell(27));
 		assertEquals(4, cells.size());
 	}
@@ -1014,11 +1016,9 @@ public class RaidPlannerTest
 			Collections.emptyMap(), Collections.singletonMap(CombatClass.MAGIC, Collections.singletonList(combat)), false);
 		List<SearchResults> results = Arrays.asList(result(start), magicResult, result(ranged), result(melee), result(tool));
 		List<RaidPlan.InventoryItem> inventory = RaidPlan.inventory(setups, results, id -> id == ItemID.DIVINE_RUNE_POUCH);
-		// Three two-piece switches, each a vertical pair: melee leads the tie for the main switch, then magic and
-		// ranged in the order the raid needs them. The pouch and book complete the two rows, then the special and
-		// tool start the third.
-		assertEquals(Arrays.asList(400, 200, 300, ItemID.DIVINE_RUNE_POUCH, 401, 201, 301, ItemID.BOOK_OF_THE_DEAD,
-			500, 600, ItemID._4DOSE2COMBAT), inventory.stream().map(i -> i.getIds().get(0))
+		// The carried melee alternative has the largest switch even though the starting attack is melee.
+		assertEquals(Arrays.asList(400, 500, 600, ItemID.DIVINE_RUNE_POUCH, 401, ItemID.BOOK_OF_THE_DEAD,
+			300, 301, 200, 201, ItemID._4DOSEDIVINECOMBAT), inventory.stream().map(i -> i.getIds().get(0))
 			.collect(java.util.stream.Collectors.toList()));
 		Map<Integer, GearItem> gear = new java.util.LinkedHashMap<>();
 		setups.forEach(s -> gear.putAll(RaidPlan.gear(s)));
@@ -1026,27 +1026,23 @@ public class RaidPlannerTest
 			setups, new ArrayList<>(gear.values()), inventory, 28, 0);
 		assertEquals(inventory, plan.inventoryFor(start));
 		Map<Integer, Integer> bank = BestGearSetupBankView.raidCellsFor(plan);
-		for (int i = 0; i < inventory.size(); i++)
-		{ assertEquals(Integer.valueOf(BestGearSetupBankView.inventoryCell(i)), bank.get(inventory.get(i).getIds().get(0))); }
+		List<RaidPlan.InventoryItem> display = RaidPlan.inventoryLayout(inventory);
+		for (int i = 0; i < display.size(); i++)
+		{ if (display.get(i) != null) { assertEquals(Integer.valueOf(BestGearSetupBankView.inventoryCell(i)), bank.get(display.get(i).getIds().get(0))); } }
 		List<RaidPlan.InventoryItem> switched = plan.inventoryFor(magic);
-		// Each style's switch stays together, read down the columns of its two-row block.
-		List<RaidPlan.InventoryItem> columns = new ArrayList<>(switched);
-		columns.sort(java.util.Comparator.comparingInt(item ->
+		// Each two-piece switch follows either the row path (vertical) or column path (horizontal).
+		List<Integer> switchedIds = RaidPlan.inventoryLayout(switched).stream().map(i -> i == null ? 0 : i.getIds().get(0))
+			.collect(java.util.stream.Collectors.toList());
+		for (List<Integer> pair : Arrays.asList(Arrays.asList(100, 101), Arrays.asList(400, 401), Arrays.asList(300, 301)))
 		{
-			int slot = switched.indexOf(item);
-			return slot / 8 * 8 + slot % 4 * 2 + slot / 4 % 2;
-		}));
-		java.util.Set<RaidPlan.InventoryGroup> finished = EnumSet.noneOf(RaidPlan.InventoryGroup.class);
-		for (int i = 1; i < columns.size(); i++)
-		{
-			if (columns.get(i).getGroup() != columns.get(i - 1).getGroup()) { finished.add(columns.get(i - 1).getGroup()); }
-			assertFalse(columns.get(i).isEquipment() && columns.get(i).getGroup().compareTo(RaidPlan.InventoryGroup.SPECIAL) < 0
-				&& finished.contains(columns.get(i).getGroup()));
+			int first = switchedIds.indexOf(pair.get(0));
+			int second = switchedIds.indexOf(pair.get(1));
+			assertTrue(second == first + 4 || (second == first + 1 && first / 4 == second / 4));
 		}
 		assertEquals(switched.size(), switched.stream().map(i -> i.getIds().get(0)).distinct().count());
 		List<RaidPlan.InventoryItem> single = RaidPlan.inventoryForSetup(magic, magicResult, id -> id == ItemID.DIVINE_RUNE_POUCH);
 		// Only a spec switch, so no row for spell supplies to fill: they go last.
-		assertEquals(Arrays.asList(500, ItemID._4DOSE2COMBAT, ItemID.DIVINE_RUNE_POUCH, ItemID.BOOK_OF_THE_DEAD),
+		assertEquals(Arrays.asList(500, ItemID._4DOSEDIVINECOMBAT, ItemID.DIVINE_RUNE_POUCH, ItemID.BOOK_OF_THE_DEAD),
 			single.stream().map(i -> i.getIds().get(0)).collect(java.util.stream.Collectors.toList()));
 		assertEquals(single, RaidPlan.inventoryForSetup(magic, Collections.singletonList(combat), id -> id == ItemID.DIVINE_RUNE_POUCH));
 		Map<Integer, Integer> singleBank = BestGearSetupBankView.cellsFor(magic, Collections.singletonList(combat),
@@ -1203,7 +1199,7 @@ public class RaidPlannerTest
 		List<RaidPlan.InventoryItem> prepots = switchGroupPlan(true, false, divine).prepotItems();
 		assertEquals(1, prepots.size());
 		assertEquals("divine combat potion", prepots.get(0).getName());
-		assertEquals(Integer.valueOf(ItemID._4DOSEDIVINECOMBAT), prepots.get(0).getIds().get(0));
+		assertEquals(Integer.valueOf(ItemID._1DOSEDIVINECOMBAT), prepots.get(0).getIds().get(0));
 		assertTrue("An ordinary bottle still matches", prepots.get(0).getIds().contains(ItemID._4DOSE2COMBAT));
 	}
 
@@ -1212,13 +1208,16 @@ public class RaidPlannerTest
 		RaidPlan prepotted = switchGroupPlan(true, false);
 		List<RaidPlan.InventoryItem> prepots = prepotted.prepotItems();
 		assertEquals(1, prepots.size());
-		assertEquals(Integer.valueOf(ItemID._4DOSE2COMBAT), prepots.get(0).getIds().get(0));
+		assertEquals(Integer.valueOf(ItemID._1DOSEDIVINECOMBAT), prepots.get(0).getIds().get(0));
 		Map<Integer, Integer> bank = BestGearSetupBankView.raidCellsFor(prepotted);
 		assertTrue(RaidPlan.hasEquipmentSwitches(prepotted.getInventory()));
 		assertEquals("Prepots sit below the worn equipment", Integer.valueOf(40), bank.get(ItemID._4DOSE2COMBAT));
 		assertEquals(RaidPlan.PotionUse.PREPOT, BestGearSetupBankView.raidTagsFor(prepotted).get(ItemID._4DOSE2COMBAT));
 		RaidPlan both = switchGroupPlan(true, true);
-		assertTrue("A carried boost is already in the inventory", both.prepotItems().isEmpty());
+		assertEquals("A boost carried into the raid is still listed as a prepot", 1, both.prepotItems().size());
+		assertEquals("Prepot and carried inventory each get a cell", 2,
+			BestGearSetupBankView.raidCellsFor(both, ItemID._4DOSE2COMBAT).size());
+		assertEquals(Integer.valueOf(40), BestGearSetupBankView.raidCellsFor(both, ItemID._4DOSE2COMBAT).get(0));
 		assertEquals(RaidPlan.PotionUse.BOTH, BestGearSetupBankView.raidTagsFor(both).get(ItemID._4DOSE2COMBAT));
 		assertEquals(RaidPlan.PotionUse.BROUGHT,
 			BestGearSetupBankView.raidTagsFor(switchGroupPlan(false, true)).get(ItemID._4DOSE2COMBAT));

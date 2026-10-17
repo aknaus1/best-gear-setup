@@ -13,12 +13,14 @@ import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.Slot;
+import com.bestgearsetup.data.WikiGameData;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.gameval.InventoryID;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
 import net.runelite.http.api.RuneLiteAPI;
@@ -103,6 +105,30 @@ public class OwnedEquipmentCacheTest
 		container(InventoryID.INV, new Item(4152, 1), new Item(9242, 40));
 		owned.settle(); owned.settle(); assertHit(original);
 		assertEquals(Long.valueOf(60), owned.capture(SearchMode.OWNED_ONLY).getQuantities().get(9242));
+	}
+
+	@Test public void tridentChargeStatesKeepCachedResultsAcrossBankAndEquipmentTransfers() throws Exception
+	{
+		data = WikiGameData.get(RuneLiteAPI.GSON).getEquipment();
+		for (int[] states : new int[][]{
+			{ItemID.TOTS, ItemID.TOTS_CHARGED, ItemID.TOTS_UNCHARGED},
+			{ItemID.TOTS_ORN, ItemID.TOTS_CHARGED_ORN, ItemID.TOTS_UNCHARGED_ORN}})
+		{
+			container(InventoryID.BANK, new Item(states[0], 1));
+			container(InventoryID.INV); container(InventoryID.WORN);
+			owned.rebuild(true);
+			SearchInputs original = key(SearchMode.OWNED_ONLY);
+			cache.put(original, result, cache.epoch());
+			container(InventoryID.BANK); owned.settle(); assertHit(original);
+			container(InventoryID.INV, new Item(states[1], 1));
+			owned.settle(); owned.settle(); assertHit(original);
+			SearchInputs carried = key(SearchMode.INVENTORY_ONLY);
+			container(InventoryID.WORN, new Item(states[2], 1));
+			container(InventoryID.INV); owned.settle(); owned.settle(); assertHit(original);
+			assertEquals(carried, key(SearchMode.INVENTORY_ONLY));
+			container(InventoryID.WORN); container(InventoryID.BANK, new Item(states[0], 1));
+			owned.settle(); owned.settle(); assertHit(original);
+		}
 	}
 
 	@Test public void storedGearLocationAndRecordedTimestampDoNotEnterTheCacheHash()

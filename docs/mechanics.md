@@ -481,7 +481,29 @@ open the sidebar or perform any game action.
   Empty bank placeholders are skipped. You can change **Highlight bank gear** and **Bank color** under
   **Display & interaction** in the plugin settings.
 - The **bank gear layout** shows just the selected setup's equipment and ammunition from your bank,
-  arranged like the equipment slots in the sidebar. Any extra variants appear underneath.
+  arranged like the equipment slots in the sidebar. Already-worn items are removed before grouping the carried
+  switches, largest first. A hybrid starting outfit's attack style does not suppress its carried armour switches.
+  Groups with fewer than two core equipment slots fill spare cells instead of reserving a block.
+  For a hybrid outfit with its weapon already equipped, a carried main weapon matching the worn armour
+  leads the equipped weapon's carried armour group as a stand-in. This moves the actual item once;
+  it does not add an inventory slot or change its combat classification. Ambiguous armour or an absent
+  matching carried weapon leaves the normal order unchanged.
+  Selecting another encounter recomputes this from its actual worn equipment.
+  Shared gear follows the style with the most deliberate worn uses; filled slots and unchanged armour inherited
+  by quick switches do not override that style. Usage counts then include only that style's encounters.
+  Each style's main weapon leads its core; the other core pieces are the most-used item per equipment slot,
+  used at least half as often as its most-used carried piece: cape/backpack, other gear by descending damage
+  then accuracy, and offhand.
+  Occasional pieces, alternate weapons and specials follow as extras; a unique equipment slot is not automatically core gear.
+  Two-row blocks fill 1,5,2,6,3,7,4,8, then 9,13,10,14,11,15,12,16. Two-column blocks fill 1,2,5,6,9,10,...
+  and 3,4,7,8,11,12,... . The whole inventory uses one orientation. Rows are preferred whenever the core switches
+  and carried items fit; columns are used when rows cannot preserve those groups within 28 cells.
+  Passive supplies such as the rune pouch can use spare edge cells. Spare gear fills the remaining gaps;
+  potions finish the lowest occupied row or go immediately below it. Earlier gaps are used for potions only
+  when needed to fit a full inventory. If extras prevent whole-style blocks, the main switches
+  keep their blocks and remaining extras use space outside them. If even the main switches cannot fit in
+  separate blocks within 28 cells, the layout preserves every item in paired-row click order. Any
+  extra item variants appear underneath.
   - If the setup casts a spell, its runes appear to the right of the head slot, along with runes for any
     Mark of Darkness, Charge or thrall the DPS assumes (plus the Book of the dead for a thrall).
     Elemental runes that the equipped staff or tome provides are left out, and combination, sunfire and

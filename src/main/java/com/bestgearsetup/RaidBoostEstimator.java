@@ -85,7 +85,7 @@ final class RaidBoostEstimator
 			boolean reusable = need.potion.getName().toLowerCase(java.util.Locale.ROOT).contains("heart");
 			int bottles = reusable ? 1 : (need.doses + 3) / 4;
 			RaidPlan.InventoryItem item = new RaidPlan.InventoryItem((need.divine ? "divine " : "") + need.potion.getName(),
-				Collections.unmodifiableList(new ArrayList<>(BoostAccess.itemIds(need.potion, need.divine))), false,
+				Collections.unmodifiableList(new ArrayList<>(BoostAccess.inventoryItemIds(need.potion))), false,
 				Collections.emptyList(), RaidPlan.InventoryGroup.BOOSTS, reusable ? 0 : need.doses, bottles, reusable);
 			for (int bottle = 0; bottle < bottles; bottle++) { out.add(item); }
 		}

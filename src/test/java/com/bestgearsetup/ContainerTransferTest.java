@@ -8,6 +8,7 @@ import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.data.MonsterSummary;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.SwingUtilities;
@@ -17,6 +18,7 @@ import net.runelite.api.ItemContainer;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.gameval.InventoryID;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
 import net.runelite.http.api.RuneLiteAPI;
@@ -158,6 +160,76 @@ public class ContainerTransferTest
 			assertNoRefresh();
 			plugin.lastSearched = null;
 			container(InventoryID.INV);
+		}
+	}
+
+	@Test
+	public void chargedEquipmentTransfersKeepTheSameSearch() throws Exception
+	{
+		int[][] states = {
+			{ItemID.TOTS, ItemID.TOTS_CHARGED, ItemID.TOTS_UNCHARGED},
+			{ItemID.TOTS_ORN, ItemID.TOTS_CHARGED_ORN, ItemID.TOTS_UNCHARGED_ORN},
+			{ItemID.TOTS_I_CHARGED, ItemID.TOTS_I_UNCHARGED},
+			{ItemID.TOTS_I_CHARGED_ORN, ItemID.TOTS_I_UNCHARGED_ORN},
+			{ItemID.TOXIC_TOTS_CHARGED, ItemID.TOXIC_TOTS_UNCHARGED},
+			{ItemID.TOXIC_TOTS_CHARGED_ORN, ItemID.TOXIC_TOTS_UNCHARGED_ORN},
+			{ItemID.TOXIC_TOTS_I_CHARGED_ORN, ItemID.TOXIC_TOTS_I_UNCHARGED_ORN},
+			{ItemID.TOXIC_BLOWPIPE_LOADED, ItemID.TOXIC_BLOWPIPE},
+			{ItemID.SERPENTINE_HELM_CHARGED, ItemID.SERPENTINE_HELM},
+			{ItemID.TUMEKENS_SHADOW, ItemID.TUMEKENS_SHADOW_UNCHARGED},
+			{ItemID.AMULET_OF_GLORY_6, ItemID.AMULET_OF_GLORY_1}
+		};
+		for (int[] family : states)
+		{
+			for (int id : family)
+			{
+				assertEquals("Charge states must share ownership: " + family[0] + " and " + id,
+					OwnedItems.expand(Collections.singleton(family[0])),
+					OwnedItems.expand(Collections.singleton(id)));
+			}
+			for (boolean sourceFirst : new boolean[]{true, false})
+			{
+				plugin.lastSearched = null;
+				container(InventoryID.INV); container(InventoryID.WORN);
+				container(InventoryID.BANK, new Item(family[0], 1));
+				plugin.gearIds = new HashSet<>();
+				for (int id : family) { plugin.gearIds.add(id); }
+				searched(SearchMode.OWNED_ONLY);
+				// Withdraw, equip, unequip and deposit while the game changes charge-state ids.
+				int[] containers = {InventoryID.BANK, InventoryID.INV, InventoryID.WORN, InventoryID.INV, InventoryID.BANK};
+				for (int step = 1; step < containers.length; step++)
+				{
+					int id = family[step % family.length];
+					if (sourceFirst) { container(containers[step - 1]); }
+					else { container(containers[step], new Item(id, 1)); }
+					tick(); // The transfer's second container packet can arrive on the following tick.
+					if (sourceFirst) { container(containers[step], new Item(id, 1)); }
+					else { container(containers[step - 1]); }
+					assertNoRefresh();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void losingOrUpgradingATridentStillRefreshes() throws Exception
+	{
+		plugin.gearIds = new HashSet<>(Arrays.asList(ItemID.TOTS, ItemID.TOTS_CHARGED,
+			ItemID.TOTS_UNCHARGED, ItemID.TOTS_I_CHARGED, ItemID.TOXIC_TOTS_CHARGED));
+		container(InventoryID.INV, new Item(ItemID.TOTS, 1));
+		searched(SearchMode.OWNED_ONLY);
+		container(InventoryID.INV);
+		tick(); tick();
+		assertEquals("Actually losing a charged trident must refresh", 1, reruns.get());
+		for (int upgrade : new int[]{ItemID.TOTS_I_CHARGED, ItemID.TOXIC_TOTS_CHARGED})
+		{
+			plugin.lastSearched = null;
+			container(InventoryID.INV, new Item(ItemID.TOTS, 1));
+			searched(SearchMode.OWNED_ONLY);
+			int before = reruns.get();
+			container(InventoryID.INV, new Item(upgrade, 1));
+			tick(); tick();
+			assertEquals("Enhanced and swamp tridents must retain separate ownership", before + 1, reruns.get());
 		}
 	}
 

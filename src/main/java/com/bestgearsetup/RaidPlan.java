@@ -189,6 +189,7 @@ public class RaidPlan
 		}
 		supplies.boosts.forEach(boost -> addSupply(items, boost));
 		packRunes(items, owns);
+		weaponStandIn(items, setup, setups);
 		sortInventory(items);
 		return items;
 	}
@@ -226,6 +227,7 @@ public class RaidPlan
 			if (!item.isEquipment() && !worn.contains(item.getIds().get(0)) && !listed.contains(item.getIds().get(0)))
 			{ carried.add(item); }
 		}
+		weaponStandIn(carried, setup, setups);
 		sortInventory(carried);
 		return carried;
 	}
@@ -315,11 +317,11 @@ public class RaidPlan
 	/** When a raid boost is drunk, shown as a tag on its icon and explained in its tooltip. */
 	public enum PotionUse
 	{
-		PREPOT("Pre", "Prepot: drink before entering the raid; not carried in"),
-		BROUGHT("Bring", "Brought into the raid in the inventory"),
-		BOTH("Both", "Prepot before entering, and brought into the raid for later rooms"),
+		PREPOT("Pre", "Drink before raid"),
+		BROUGHT("Bring", "Carry into raid"),
+		BOTH("Both", "Drink before raid; carry in"),
 		/** Handed out inside the raid (overloads, smelling salts): no tag, since it is neither withdrawn nor carried in. */
-		SUPPLIED(null, "Handed out inside the raid");
+		SUPPLIED(null, "Provided in raid");
 
 		private final String tag;
 		private final String description;
@@ -356,11 +358,31 @@ public class RaidPlan
 		int uses;
 		/**
 		 * Bit {@code i} set when encounter setup {@code i} counts toward {@link #uses}; 0 for supplies or when unknown.
-		 * Pieces worn in the same encounters form a switch.
+		 * Encounter provenance; display priority uses the total usage count.
 		 */
 		long wornIn;
-		/** The combat style a special weapon specs with; null for other items. */
+		/** The combat style special-attack equipment is used with; null for other items. */
 		CombatClass specStyle;
+		/** Offensive bonuses for this item's combat group, used only to order carried switches. */
+		double damageBonus;
+		int accuracyBonus;
+		/** Display group when this carried weapon stands in for the weapon currently equipped. */
+		InventoryGroup weaponStandInFor;
+
+		public InventoryItem(String name, List<Integer> ids, boolean equipment, List<InventoryItem> contents,
+			InventoryGroup group, int estimatedDoses, int bottles, boolean reusable, Slot slot, int uses,
+			long wornIn, CombatClass specStyle, double damageBonus, int accuracyBonus)
+		{
+			this(name, ids, equipment, contents, group, estimatedDoses, bottles, reusable, slot, uses, wornIn,
+				specStyle, damageBonus, accuracyBonus, null);
+		}
+
+		public InventoryItem(String name, List<Integer> ids, boolean equipment, List<InventoryItem> contents,
+			InventoryGroup group, int estimatedDoses, int bottles, boolean reusable, Slot slot, int uses,
+			long wornIn, CombatClass specStyle)
+		{
+			this(name, ids, equipment, contents, group, estimatedDoses, bottles, reusable, slot, uses, wornIn, specStyle, 0, 0);
+		}
 
 		public InventoryItem(String name, List<Integer> ids, boolean equipment, List<InventoryItem> contents,
 			InventoryGroup group, int estimatedDoses, int bottles, boolean reusable, Slot slot, int uses)
@@ -392,262 +414,275 @@ public class RaidPlan
 		}
 	}
 
-	/** Top-to-bottom inventory order; shared gear belongs to the first combat class that uses it. */
+	/** Combat classification; shared gear follows its most frequent deliberate combat use. */
 	public enum InventoryGroup
 	{
 		MELEE_GEAR, RANGED_GEAR, MAGIC_GEAR, SPECIAL, OTHER, BOOSTS, RUNES
 	}
 
 	/** Fixed switch order within each combat group, independent of encounter and candidate traversal. */
-	private static final List<Slot> INVENTORY_SLOTS = java.util.Arrays.asList(Slot.WEAPON, Slot.SHIELD, Slot.HEAD,
-		Slot.BODY, Slot.LEGS, Slot.CAPE, Slot.NECK, Slot.HANDS, Slot.FEET, Slot.RING, Slot.AMMO);
+	private static final List<Slot> INVENTORY_SLOTS = java.util.Arrays.asList(Slot.WEAPON, Slot.CAPE, Slot.HEAD,
+		Slot.BODY, Slot.LEGS, Slot.NECK, Slot.HANDS, Slot.FEET, Slot.RING, Slot.AMMO, Slot.SHIELD);
+	/** Weapon, back slot, offensive bonuses (damage then accuracy), and finally the offhand. */
+	private static final Comparator<InventoryItem> SWITCH_ORDER = Comparator.comparingInt((InventoryItem item) ->
+		item.getSlot() == Slot.WEAPON ? 0 : item.getSlot() == Slot.CAPE ? 1 : item.getSlot() == Slot.SHIELD ? 3 : 2)
+		.thenComparing(Comparator.comparingDouble(InventoryItem::getDamageBonus).reversed())
+		.thenComparing(Comparator.comparingInt(InventoryItem::getAccuracyBonus).reversed())
+		.thenComparingInt(item -> item.getSlot() == null ? INVENTORY_SLOTS.size() : INVENTORY_SLOTS.indexOf(item.getSlot()));
 
 	private static final int INVENTORY_COLUMNS = 4;
-	/** Switches fill blocks two rows tall, column by column. */
-	private static final int SWITCH_BLOCK = 2 * INVENTORY_COLUMNS;
-	private static final int AUXILIARY = 1;
-	private static final int FILLER = 2;
-	private static final int SPECIALS = 3;
-	private static final int TOOLS = 4;
-	private static final int ONE_OFF = 5;
-	private static final int BOOSTS = 6;
+	/** Stable tie breakers keep repeated rendering and encounter traversal from rearranging a switch. */
+	private static final Comparator<InventoryItem> GEAR_ORDER = SWITCH_ORDER
+		.thenComparing(InventoryItem::getName, String.CASE_INSENSITIVE_ORDER)
+		.thenComparingInt(item -> item.getIds().get(0));
 
-	/**
-	 * Display order, packed with no gaps, the way players lay out a raid inventory: the main switch (the combat
-	 * style with the most carried gear) on top, then the other styles' switches in prayer-book order (magic, ranged,
-	 * melee), in two-row blocks (see {@link #switchBlocks}). Spell supplies fill those blocks' free cells; special
-	 * weapons, in the same style order, start a new row below, and spell supplies the blocks can't hold complete
-	 * it, the rune pouch at the row's end. Then tools, then one-off gear, then boosts. One-off gear is a situational
-	 * piece never worn alongside its style's switch (a salve amulet worn only at an undead boss), or a style's only
-	 * carried piece other than a weapon it switches to repeatedly.
-	 */
+	/** Sort carried entries by their physical layout; empty display cells never count as carried items. */
 	static void sortInventory(List<InventoryItem> items)
 	{
-		Map<InventoryGroup, Long> anchors = switchEncounters(items);
-		Map<InventoryGroup, Integer> sizes = new java.util.EnumMap<>(InventoryGroup.class);
-		for (InventoryItem item : items) { if (isCoreGear(item, anchors)) { sizes.merge(item.getGroup(), 1, Integer::sum); } }
-		// The largest style's gear; on a tie, the first style.
-		InventoryGroup main = sizes.entrySet().stream()
-			.max(Map.Entry.<InventoryGroup, Integer>comparingByValue().thenComparing(Map.Entry.comparingByKey(Comparator.reverseOrder())))
-			.map(Map.Entry::getKey).orElse(null);
-		Map<InventoryItem, Integer> sections = new IdentityHashMap<>();
-		for (InventoryItem item : items) { sections.put(item, section(item, main, sizes, anchors)); }
-		// Within a style, pieces worn in exactly the same encounters are one set: the largest set first.
-		Map<InventoryGroup, Map<Long, Integer>> sets = new java.util.EnumMap<>(InventoryGroup.class);
-		for (InventoryItem item : items)
-		{
-			if (sections.get(item) <= AUXILIARY)
-			{ sets.computeIfAbsent(item.getGroup(), group -> new HashMap<>()).merge(item.getWornIn(), 1, Integer::sum); }
-		}
-		Map<InventoryItem, Integer> setSizes = new IdentityHashMap<>();
-		for (InventoryItem item : items)
-		{ setSizes.put(item, sections.get(item) <= AUXILIARY ? sets.get(item.getGroup()).get(item.getWornIn()) : 0); }
-		items.sort(Comparator.comparingInt((InventoryItem item) -> sections.get(item))
-			.thenComparingInt(item -> prayerOrder(sections.get(item) == SPECIALS ? item.getSpecStyle() : style(item.getGroup())))
-			.thenComparingInt(item -> -setSizes.get(item))
-			.thenComparingLong(item -> sections.get(item) <= AUXILIARY ? item.getWornIn() : 0)
-			.thenComparingInt(item -> SpellRunes.pouchCapacity(item.getIds().get(0)) > 0 ? 0 : 1)
-			.thenComparing(InventoryItem::getGroup)
-			.thenComparingInt(item -> item.getSlot() == null ? INVENTORY_SLOTS.size() : INVENTORY_SLOTS.indexOf(item.getSlot()))
-			// Rune packing puts the pouch first and keeps loose stacks in spell order.
-			.thenComparing(item -> item.getGroup() == InventoryGroup.RUNES ? "" : item.getName(), String.CASE_INSENSITIVE_ORDER)
-			.thenComparingInt(item -> item.getGroup() == InventoryGroup.RUNES ? 0 : item.getIds().get(0)));
-		List<InventoryItem> blocks = switchBlocks(items, sections, setSizes, false);
-		if (blocks == null) { blocks = switchBlocks(items, sections, setSizes, true); }
-		if (blocks != null)
-		{
-			items.clear();
-			items.addAll(blocks);
-			return;
-		}
-		int switches = (int) items.stream().filter(item -> sections.get(item) <= AUXILIARY).count();
-		int gap = (INVENTORY_COLUMNS - switches % INVENTORY_COLUMNS) % INVENTORY_COLUMNS;
-		List<InventoryItem> spare = new ArrayList<>();
-		for (int i = switches + gap; i < items.size(); i++)
-		{
-			if (sections.get(items.get(i)) == FILLER) { spare.add(items.get(i)); }
-		}
-		items.removeAll(spare);
-		items.addAll(spare);
+		List<InventoryItem> packed = inventoryLayout(items).stream().filter(item -> item != null).collect(Collectors.toList());
+		items.clear();
+		items.addAll(packed);
 	}
 
 	/**
-	 * Switches in blocks two rows tall, filled column by column, each style and each set of two or more pieces
-	 * starting a new column: a four-piece set forms a square and a two-piece switch a vertical pair, quicker to click
-	 * through than a row (1, 5, 2, 6 rather than 1, 2, 3, 4). Spell supplies take the blocks' free cells, and any
-	 * left over follow the specials; then the rest fill any cells still free and continue row by row. With
-	 * {@code lastInRows}, the last block's switches run along its rows instead, for a kit with too little else to
-	 * fill that block's columns. Null without switches, or when nothing is left to fill a free cell between items,
-	 * which would shift every later item and break the columns.
+	 * Already-worn items have been removed. Group the remaining multi-piece switches, largest first;
+	 * weapon-only swaps and isolated pieces fill spare cells. An attack label never excludes a whole style:
+	 * a trident worn with ranged armour still needs its carried magic armour kept together.
+	 * Prefer a consistent paired-row layout for the whole inventory;
+	 * use paired columns when rows cannot preserve the core switches within the inventory's capacity.
+	 * Supplies fill spare cells without moving a combat item off its switch path.
 	 */
-	private static List<InventoryItem> switchBlocks(List<InventoryItem> sorted, Map<InventoryItem, Integer> sections,
-		Map<InventoryItem, Integer> setSizes, boolean lastInRows)
+	public static List<InventoryItem> inventoryLayout(List<InventoryItem> items)
 	{
-		List<InventoryItem> switches = new ArrayList<>();
-		List<InventoryItem> fillers = new ArrayList<>();
-		List<InventoryItem> specials = new ArrayList<>();
-		List<InventoryItem> later = new ArrayList<>();
-		for (InventoryItem item : sorted)
+		List<List<InventoryItem>> groups = new ArrayList<>();
+		List<List<InventoryItem>> primaryGroups = new ArrayList<>();
+		List<InventoryItem> looseGear = new ArrayList<>();
+		for (InventoryGroup group : new InventoryGroup[]{InventoryGroup.MELEE_GEAR,
+			InventoryGroup.RANGED_GEAR, InventoryGroup.MAGIC_GEAR})
 		{
-			int section = sections.get(item);
-			(section <= AUXILIARY ? switches : section == FILLER ? fillers : section == SPECIALS ? specials : later).add(item);
+			List<InventoryItem> gear = items.stream().filter(item -> layoutGroup(item) == group)
+				.sorted(Comparator.comparingInt(InventoryItem::getUses).reversed().thenComparing(GEAR_ORDER))
+				.collect(Collectors.toList());
+			Map<Slot, InventoryItem> primary = new LinkedHashMap<>();
+			List<InventoryItem> extras = new ArrayList<>();
+			int frequentUses = gear.stream().filter(item -> item.getGroup() != InventoryGroup.SPECIAL
+				&& item.getWeaponStandInFor() == null)
+				.mapToInt(InventoryItem::getUses).max().orElse(0);
+			for (InventoryItem item : gear)
+			{
+				// A unique slot is not automatically core gear. It must be used at least half as often as
+				// the style's most-used carried piece. Its main weapon still leads shared accessories.
+				boolean mainWeapon = item.getSlot() == Slot.WEAPON && !primary.containsKey(Slot.WEAPON);
+				if (item.getGroup() == InventoryGroup.SPECIAL || (!mainWeapon && item.getUses() * 2 < frequentUses)
+					|| primary.putIfAbsent(item.getSlot(), item) != null)
+				{ extras.add(item); }
+			}
+			List<InventoryItem> ordered = new ArrayList<>(primary.values());
+			ordered.sort(GEAR_ORDER);
+			extras.sort(Comparator.comparingInt((InventoryItem item) -> item.getSlot() == Slot.WEAPON ? 0 : 1)
+				.thenComparing(Comparator.comparingInt(InventoryItem::getUses).reversed()).thenComparing(GEAR_ORDER));
+			ordered.addAll(extras);
+			if (!ordered.isEmpty())
+			{
+				if (primary.size() < 2) { looseGear.addAll(ordered); }
+				else
+				{
+					groups.add(ordered);
+					primaryGroups.add(ordered.subList(0, primary.size()));
+				}
+			}
 		}
-		if (switches.isEmpty()) { return null; }
-		java.util.TreeMap<Integer, InventoryItem> cells = new java.util.TreeMap<>();
-		int next = 0;
-		InventoryItem previous = null;
-		List<Integer> places = new ArrayList<>();
-		for (InventoryItem item : switches)
+		List<Integer> order = java.util.stream.IntStream.range(0, groups.size()).boxed()
+			.sorted(Comparator.comparingInt((Integer i) -> -groups.get(i).size())
+				.thenComparingInt(i -> -primaryGroups.get(i).size()).thenComparingInt(i -> i)).collect(Collectors.toList());
+		List<List<InventoryItem>> orderedGroups = order.stream().map(groups::get).collect(Collectors.toList());
+		List<List<InventoryItem>> orderedPrimary = order.stream().map(primaryGroups::get).collect(Collectors.toList());
+		groups.clear(); groups.addAll(orderedGroups);
+		primaryGroups.clear(); primaryGroups.addAll(orderedPrimary);
+		looseGear.sort(Comparator.comparingInt((InventoryItem item) -> item.getSlot() == Slot.WEAPON ? 0 : 1)
+			.thenComparing(Comparator.comparingInt(InventoryItem::getUses).reversed())
+			.thenComparing(RaidPlan::combatGroup).thenComparing(GEAR_ORDER));
+		List<InventoryItem> supplies = items.stream().filter(item -> !isCombatGear(item))
+			.sorted(Comparator.comparingInt(RaidPlan::supplyOrder)
+				.thenComparing(item -> isSpellSupply(item) ? "" : item.getName(), String.CASE_INSENSITIVE_ORDER)
+				.thenComparingInt(item -> isSpellSupply(item) ? 0 : item.getIds().get(0)))
+			.collect(Collectors.toList());
+		if (groups.isEmpty()) { looseGear.addAll(supplies); return looseGear; }
+
+		SwitchLayout best = switchLayout(groups, primaryGroups);
+		List<InventoryItem> cells = new ArrayList<>(Collections.nCopies(28, null));
+		if (best.paths != null)
 		{
-			boolean newStyle = previous != null && item.getGroup() != previous.getGroup();
-			boolean newSet = previous != null && item.getWornIn() != previous.getWornIn() && setSizes.get(item) > 1;
-			if ((newStyle || newSet) && next % 2 == 1) { next++; }
-			previous = item;
-			places.add(next++);
+			for (int g = 0; g < groups.size(); g++)
+			{
+				List<InventoryItem> gear = groups.get(g);
+				List<Integer> path = best.paths.get(g);
+				for (int i = 0; i < Math.min(gear.size(), path.size()); i++) { cells.set(path.get(i), gear.get(i)); }
+				if (gear.size() > path.size()) { looseGear.addAll(gear.subList(path.size(), gear.size())); }
+			}
 		}
-		int last = (next - 1) / SWITCH_BLOCK * SWITCH_BLOCK;
-		int end = last + SWITCH_BLOCK;
-		java.util.function.IntUnaryOperator cellAt = index -> lastInRows && index >= last ? index : blockCell(index);
-		int row = last;
-		for (int i = 0; i < switches.size(); i++)
+		else
 		{
-			cells.put(lastInRows && places.get(i) >= last ? row++ : blockCell(places.get(i)), switches.get(i));
+			// Some kits cannot have disjoint rectangles (e.g. three nine-piece switches in 28 cells).
+			// Preserve every item and its click priority rather than hiding gear outside the inventory.
+			List<InventoryItem> gear = groups.stream().flatMap(List::stream).collect(Collectors.toList());
+			if (gear.size() > 28) { gear.addAll(looseGear); gear.addAll(supplies); return gear; }
+			for (int i = 0; i < gear.size(); i++) { cells.set(rowSwitchCell(i), gear.get(i)); }
 		}
-		java.util.Iterator<InventoryItem> filler = fillers.iterator();
-		for (int i = 0; i < end && filler.hasNext(); i++)
+		// Passive supplies can occupy an outer edge (the pouch in the reference layout). Spare gear
+		// follows the complete switches; potions finish the lowest occupied row rather than filling top holes.
+		fillInventorySpace(cells, supplies.stream().filter(item -> item.getGroup() != InventoryGroup.BOOSTS).collect(Collectors.toList()));
+		fillInventorySpace(cells, looseGear);
+		List<InventoryItem> boosts = supplies.stream().filter(item -> item.getGroup() == InventoryGroup.BOOSTS).collect(Collectors.toList());
+		int last = cells.size() - 1;
+		while (last >= 0 && cells.get(last) == null) { last--; }
+		int rowEnd = (last / 4 + 1) * 4;
+		int boostStart = rowEnd - last - 1 >= boosts.size() ? rowEnd - boosts.size() : rowEnd;
+		if (boostStart + boosts.size() <= 28)
 		{
-			if (!cells.containsKey(cellAt.applyAsInt(i))) { cells.put(cellAt.applyAsInt(i), filler.next()); }
+			for (int i = 0; i < boosts.size(); i++) { cells.set(boostStart + i, boosts.get(i)); }
 		}
-		// Spell supplies the blocks can't hold complete the specials' row rather than pushing them off it.
-		List<InventoryItem> rest = new ArrayList<>(specials);
-		filler.forEachRemaining(rest::add);
-		rest.addAll(later);
-		int cell = 0;
-		for (InventoryItem item : rest)
+		else
 		{
-			while (cells.containsKey(cell)) { cell++; }
-			cells.put(cell, item);
+			// A full inventory may need earlier gaps. Fill the lowest available cells first, preserving bottles.
+			List<Integer> free = java.util.stream.IntStream.range(0, cells.size()).filter(i -> cells.get(i) == null)
+				.boxed().collect(Collectors.toList());
+			int start = Math.max(0, free.size() - boosts.size());
+			int used = 0;
+			for (int i = start; i < free.size() && used < boosts.size(); i++) { cells.set(free.get(i), boosts.get(used++)); }
+			cells.addAll(boosts.subList(used, boosts.size()));
 		}
-		if (cells.lastKey() != cells.size() - 1) { return null; }
-		// The rune pouch, rarely touched in the raid, takes the outermost spell supply cell: the rightmost, then the top.
-		List<Integer> supplies = new ArrayList<>();
-		cells.forEach((at, item) -> { if (sections.get(item) == FILLER) { supplies.add(at); } });
-		Integer pouch = supplies.stream().filter(at -> SpellRunes.pouchCapacity(cells.get(at).getIds().get(0)) > 0).findFirst().orElse(null);
-		if (pouch != null)
-		{
-			int corner = supplies.stream().min(Comparator.comparingInt((Integer at) -> -(at % INVENTORY_COLUMNS))
-				.thenComparingInt(at -> at)).get();
-			cells.put(pouch, cells.put(corner, cells.get(pouch)));
-		}
-		return new ArrayList<>(cells.values());
+		while (!cells.isEmpty() && cells.get(cells.size() - 1) == null) { cells.remove(cells.size() - 1); }
+		return cells;
 	}
 
-	/** The inventory slot of a switch block's {@code index}th cell, counted down each column. */
-	private static int blockCell(int index)
+	private static void fillInventorySpace(List<InventoryItem> cells, List<InventoryItem> items)
 	{
-		int column = index % SWITCH_BLOCK / 2;
-		return index / SWITCH_BLOCK * SWITCH_BLOCK + index % 2 * INVENTORY_COLUMNS + column;
+		java.util.Iterator<InventoryItem> next = items.iterator();
+		for (int cell = 0; cell < cells.size() && next.hasNext(); cell++)
+		{ if (cells.get(cell) == null) { cells.set(cell, next.next()); } }
+		next.forEachRemaining(cells::add);
 	}
 
-	/** {@link #sortInventory} order: main switch, other switches, fillers, specials, tools, one-off gear, boosts. */
-	private static int section(InventoryItem item, InventoryGroup main, Map<InventoryGroup, Integer> sizes,
-		Map<InventoryGroup, Long> anchors)
+	/** Prefer rows for both full groups and core switches before considering a uniform column layout. */
+	private static SwitchLayout switchLayout(List<List<InventoryItem>> groups, List<List<InventoryItem>> primaryGroups)
 	{
-		if (isCombatGear(item))
+		SwitchLayout best = new SwitchLayout();
+		for (boolean columns : new boolean[]{false, true})
 		{
-			if (!isCoreGear(item, anchors)) { return ONE_OFF; }
-			if (item.getGroup() == main) { return 0; }
-			// A style's lone piece is an occasional swap, unless it's a weapon several encounters switch to.
-			boolean lone = sizes.get(item.getGroup()) == 1 && (item.getUses() == 1 || item.getSlot() != Slot.WEAPON);
-			return lone ? ONE_OFF : AUXILIARY;
+			for (List<List<InventoryItem>> switches : java.util.Arrays.asList(groups, primaryGroups))
+			{
+				findSwitchLayout(switches, groups, 0, 0, -1, columns, new ArrayList<>(), best);
+				if (best.paths != null) { return best; }
+			}
 		}
-		int id = item.getIds().get(0);
-		if (item.getGroup() == InventoryGroup.RUNES || SpellRunes.isSpellSupply(id) || SpellRunes.pouchCapacity(id) > 0)
-		{ return FILLER; }
-		switch (item.getGroup())
+		return best;
+	}
+
+	/** All style blocks in a candidate use one orientation; compactness only breaks ties within it. */
+	private static void findSwitchLayout(List<List<InventoryItem>> groups, List<List<InventoryItem>> carried,
+		int group, int occupied, int previousStart,
+		boolean columns, List<List<Integer>> paths, SwitchLayout best)
+	{
+		if (group == groups.size())
 		{
-			case SPECIAL: return SPECIALS;
-			case BOOSTS: return BOOSTS;
-			default: return TOOLS;
+			int required = 0;
+			for (int g = 0; g < groups.size(); g++) { required += Math.max(carried.get(g).size(), paths.get(g).size()); }
+			if (required > 28) { return; }
+			int rows = (32 - Integer.numberOfLeadingZeros(occupied) + 3) / 4;
+			int score = rows * 100 + Integer.bitCount(occupied);
+			if (score < best.score)
+			{
+				best.score = score;
+				best.paths = new ArrayList<>(paths);
+			}
+			return;
 		}
+		int size = groups.get(group).size();
+		if (size > (columns ? 14 : 8)) { return; }
+		for (int start = 0; start < 28; start++)
+		{
+			if (start <= previousStart || (columns ? start % 2 != 0 : start % 8 != 0)) { continue; }
+			int capacity = columns ? (size + 1) / 2 * 2 : 8;
+			// The seventh row has only four cells; it can still hold a small final group.
+			if (!columns && start == 24) { capacity = 4; }
+			List<Integer> path = new ArrayList<>();
+			int mask = 0;
+			for (int i = 0; i < capacity; i++)
+			{
+				int cell = start + (columns ? columnSwitchCell(i, 0) : rowSwitchCell(i));
+				if (cell >= 28) { break; }
+				path.add(cell);
+				mask |= 1 << cell;
+			}
+			if (path.size() != capacity || path.size() < size || (mask & occupied) != 0) { continue; }
+			paths.add(path);
+			findSwitchLayout(groups, carried, group + 1, occupied | mask, start, columns, paths, best);
+			paths.remove(paths.size() - 1);
+		}
+	}
+
+	private static final class SwitchLayout
+	{
+		private int score = Integer.MAX_VALUE;
+		private List<List<Integer>> paths;
+	}
+
+	/** Zero-based paired-row click path: 1,5,2,6,3,7,4,8; then 9,13,... */
+	static int rowSwitchCell(int index)
+	{
+		if (index >= 24 && index < 28) { return index; }
+		return index / 8 * 8 + index % 2 * INVENTORY_COLUMNS + index % 8 / 2;
+	}
+
+	/** Zero-based paired-column click path: 1,2,5,6,... or 3,4,7,8,... */
+	static int columnSwitchCell(int index, int side)
+	{
+		return index / 2 * INVENTORY_COLUMNS + index % 2 + side * 2;
 	}
 
 	private static boolean isCombatGear(InventoryItem item)
 	{
-		return item.isEquipment() && item.getGroup().compareTo(InventoryGroup.SPECIAL) < 0;
+		return combatGroup(item) != null;
 	}
 
-	/**
-	 * Each style's switches, as the encounters their pieces are worn in: pieces worn in a shared encounter belong
-	 * together. Every set of two or more pieces counts, and so does the largest set (most pieces, then most uses,
-	 * then the earliest encounters) when every piece is worn apart; a lone piece worn apart from the rest doesn't.
-	 */
-	private static Map<InventoryGroup, Long> switchEncounters(List<InventoryItem> items)
+	/** Known special-attack styles join the extra weapons of that combat group. */
+	private static InventoryGroup combatGroup(InventoryItem item)
 	{
-		// Per style, sets of pieces worn together: {encounters, pieces, uses}.
-		Map<InventoryGroup, List<long[]>> together = new java.util.EnumMap<>(InventoryGroup.class);
-		for (InventoryItem item : items)
+		if (!item.isEquipment()) { return null; }
+		if (item.getGroup().compareTo(InventoryGroup.SPECIAL) < 0) { return item.getGroup(); }
+		if (item.getGroup() != InventoryGroup.SPECIAL || item.getSpecStyle() == null) { return null; }
+		switch (item.getSpecStyle())
 		{
-			if (!isCombatGear(item) || item.getWornIn() == 0) { continue; }
-			List<long[]> sets = together.computeIfAbsent(item.getGroup(), group -> new ArrayList<>());
-			long[] merged = {item.getWornIn(), 1, item.getUses()};
-			for (boolean joined = true; joined; )
-			{
-				joined = false;
-				for (java.util.Iterator<long[]> it = sets.iterator(); it.hasNext(); )
-				{
-					long[] set = it.next();
-					if ((set[0] & merged[0]) == 0) { continue; }
-					merged[0] |= set[0]; merged[1] += set[1]; merged[2] += set[2];
-					it.remove();
-					joined = true;
-				}
-			}
-			sets.add(merged);
-		}
-		Map<InventoryGroup, Long> switches = new java.util.EnumMap<>(InventoryGroup.class);
-		together.forEach((group, sets) ->
-		{
-			long worn = sets.stream().max(Comparator.comparingLong((long[] set) -> set[1])
-				.thenComparingLong(set -> set[2]).thenComparingLong(set -> -Long.lowestOneBit(set[0]))).get()[0];
-			for (long[] set : sets) { if (set[1] > 1) { worn |= set[0]; } }
-			switches.put(group, worn);
-		});
-		return switches;
-	}
-
-	/**
-	 * Combat gear that belongs in its style's switch ({@link #switchEncounters}). A salve amulet swapped into the worn
-	 * gear only at an undead boss, where the rest of its style's switch isn't worn, is a situational piece instead.
-	 * Weapons and gear without recorded encounters always belong.
-	 */
-	private static boolean isCoreGear(InventoryItem item, Map<InventoryGroup, Long> switches)
-	{
-		if (!isCombatGear(item)) { return false; }
-		Long worn = switches.get(item.getGroup());
-		return worn == null || item.getWornIn() == 0 || item.getSlot() == Slot.WEAPON || (item.getWornIn() & worn) != 0;
-	}
-
-	/** Prayer-book order: magic, ranged, melee, then anything without a style. */
-	private static int prayerOrder(CombatClass style)
-	{
-		return style == CombatClass.MAGIC ? 0 : style == CombatClass.RANGED ? 1 : style == CombatClass.MELEE ? 2 : 3;
-	}
-
-	private static CombatClass style(InventoryGroup group)
-	{
-		switch (group)
-		{
-			case MELEE_GEAR: return CombatClass.MELEE;
-			case RANGED_GEAR: return CombatClass.RANGED;
-			case MAGIC_GEAR: return CombatClass.MAGIC;
+			case MELEE: return InventoryGroup.MELEE_GEAR;
+			case RANGED: return InventoryGroup.RANGED_GEAR;
+			case MAGIC: return InventoryGroup.MAGIC_GEAR;
 			default: return null;
 		}
 	}
 
+	/** Retain specials/tools/boosts/runes order and pouch-first spell packing. */
+	private static int supplyOrder(InventoryItem item)
+	{
+		if (item.getGroup() == InventoryGroup.SPECIAL) { return 0; }
+		if (item.getGroup() == InventoryGroup.BOOSTS) { return 2; }
+		if (isSpellSupply(item))
+		{
+			if (SpellRunes.pouchCapacity(item.getIds().get(0)) > 0) { return 3; }
+			return item.getGroup() == InventoryGroup.RUNES ? 5 : 4;
+		}
+		return 1;
+	}
+
+	private static boolean isSpellSupply(InventoryItem item)
+	{
+		int id = item.getIds().get(0);
+		return item.getGroup() == InventoryGroup.RUNES || SpellRunes.isSpellSupply(id) || SpellRunes.pouchCapacity(id) > 0;
+	}
+
 	/**
-	 * Boosts drunk before entering for the prepotted first room and not carried in ({@link PotionUse#PREPOT}): withdrawn,
-	 * drunk and banked again. A boost also carried in ({@link PotionUse#BOTH}) is already an inventory entry.
+	 * Boosts drunk before entering for the prepotted first room. A boost also carried into the raid is listed here and
+	 * again in the inventory.
 	 */
 	public List<InventoryItem> prepotItems()
 	{
@@ -658,13 +693,16 @@ public class RaidPlan
 			for (Potion potion : results.get(i).potionsForSetup(setups.get(i)))
 			{
 				boolean divine = results.get(i).getBoostTiming().isDivine(potion);
-				List<Integer> ids = new ArrayList<>(BoostAccess.itemIds(potion, divine));
-				if (ids.isEmpty() || prepots.containsKey(ids.get(0)) || potionUse(potion) != PotionUse.PREPOT) { continue; }
+				List<Integer> ids = new ArrayList<>(BoostAccess.prepotItemIds(potion));
+				if (ids.isEmpty() || prepots.containsKey(ids.get(0))) { continue; }
 				prepots.put(ids.get(0), new InventoryItem((divine ? "divine " : "") + potion.getName(),
 					Collections.unmodifiableList(ids), false, Collections.emptyList(), InventoryGroup.BOOSTS));
 			}
 		}
-		return new ArrayList<>(prepots.values());
+		List<InventoryItem> ordered = new ArrayList<>(prepots.values());
+		ordered.sort(Comparator.comparing((InventoryItem item) -> !item.getName().startsWith("divine "))
+			.thenComparing(InventoryItem::getName, String.CASE_INSENSITIVE_ORDER));
+		return ordered;
 	}
 
 	static Map<Integer, GearItem> gear(SetupResult setup)
@@ -805,8 +843,52 @@ public class RaidPlan
 			}
 		}
 		packRunes(items, owns);
-		if (display) { sortInventory(items); }
+		if (display)
+		{
+			weaponStandIn(items, setups.get(start), setups);
+			sortInventory(items);
+		}
 		return items;
+	}
+
+	/** Keep a real carried weapon in the equipped weapon's switch position for hybrid outfits. */
+	private static void weaponStandIn(List<InventoryItem> items, SetupResult current, List<SetupResult> setups)
+	{
+		GearItem weapon = current.getLoadout().getWeapon();
+		if (weapon == null) { return; }
+		InventoryGroup target = equipmentGroup(weapon, setups);
+		if (target.ordinal() > InventoryGroup.MAGIC_GEAR.ordinal()
+			|| items.stream().anyMatch(item -> item.getGroup() == target && item.getSlot() == Slot.WEAPON)
+			|| items.stream().filter(item -> item.getGroup() == target && item.getSlot() != Slot.WEAPON)
+				.map(InventoryItem::getSlot).distinct().count() < 2) { return; }
+		int[] armour = new int[3];
+		for (Slot slot : new Slot[]{Slot.BODY, Slot.LEGS, Slot.HEAD, Slot.CAPE})
+		{
+			GearItem worn = current.getLoadout().get(slot);
+			if (worn == null) { continue; }
+			InventoryGroup style = equipmentGroup(worn, setups);
+			if (style.ordinal() < armour.length)
+			{ armour[style.ordinal()] += slot == Slot.BODY || slot == Slot.LEGS ? 2 : 1; }
+		}
+		int best = -1;
+		for (int i = 0; i < armour.length; i++)
+		{ if (armour[i] > 0 && (best < 0 || armour[i] > armour[best])) { best = i; } }
+		if (best < 0 || best == target.ordinal()) { return; }
+		for (int i = 0; i < armour.length; i++)
+		{ if (i != best && armour[i] == armour[best]) { return; } }
+		InventoryGroup source = InventoryGroup.values()[best];
+		InventoryItem standIn = items.stream().filter(item -> item.getGroup() == source && item.getSlot() == Slot.WEAPON)
+			.sorted(Comparator.comparingInt(InventoryItem::getUses).reversed().thenComparing(GEAR_ORDER)).findFirst().orElse(null);
+		if (standIn == null) { return; }
+		items.set(items.indexOf(standIn), new InventoryItem(standIn.getName(), standIn.getIds(), standIn.isEquipment(),
+			standIn.getContents(), standIn.getGroup(), standIn.getEstimatedDoses(), standIn.getBottles(), standIn.isReusable(),
+			standIn.getSlot(), standIn.getUses(), standIn.getWornIn(), standIn.getSpecStyle(), standIn.getDamageBonus(),
+			standIn.getAccuracyBonus(), target));
+	}
+
+	private static InventoryGroup layoutGroup(InventoryItem item)
+	{
+		return item.getWeaponStandInFor() == null ? combatGroup(item) : item.getWeaponStandInFor();
 	}
 
 	/** Every worn slot's item id, unlike {@link #wornIds} including items provided in the raid. */
@@ -956,22 +1038,54 @@ public class RaidPlan
 				if (special.getWeapon().getId() == item.getId()) { loaded(contents, special.getLoadedAmmo()); }
 			}
 		}
+		InventoryGroup group = equipmentGroup(item, setups);
 		return new InventoryItem(item.getName(), BestGearSetupBankView.itemIds(item), true,
-			Collections.unmodifiableList(new ArrayList<>(contents.values())), equipmentGroup(item, setups), 0, 0, false, item.getSlot(),
-			uses(item, setups), wornIn(item, setups), specStyle(item, setups));
+			Collections.unmodifiableList(new ArrayList<>(contents.values())), group, 0, 0, false, item.getSlot(),
+			uses(item, setups, group), wornIn(item, setups, group), specStyle(item, setups), inventoryDamage(item, group, setups),
+			inventoryAccuracy(item, group, setups));
+	}
+
+	private static double inventoryDamage(GearItem item, InventoryGroup group, List<SetupResult> setups)
+	{
+		if (group == InventoryGroup.MAGIC_GEAR) { return item.getMagicStr(); }
+		if (group == InventoryGroup.MELEE_GEAR) { return item.getMeleeStr(); }
+		if (group != InventoryGroup.RANGED_GEAR) { return 0; }
+		boolean atlatl = setups.stream().anyMatch(setup -> setup.getCombatClass() == CombatClass.RANGED
+			&& use(item, setup) == OWN_USE && WeaponRules.scalesWithStrength(setup.getLoadout().getWeapon()));
+		return atlatl ? item.getMeleeStr() : item.getRangedStr();
+	}
+
+	private static int inventoryAccuracy(GearItem item, InventoryGroup group, List<SetupResult> setups)
+	{
+		if (group == InventoryGroup.MAGIC_GEAR) { return item.getMagicBonus(); }
+		if (group == InventoryGroup.RANGED_GEAR) { return item.getRangedBonus(); }
+		if (group != InventoryGroup.MELEE_GEAR) { return 0; }
+		return setups.stream().filter(setup -> setup.getCombatClass() == CombatClass.MELEE && use(item, setup) == OWN_USE)
+			.mapToInt(setup ->
+			{
+				com.bestgearsetup.calc.AttackStyle attack = setup.getLoadout().getStyle();
+				if (attack == null) { return Math.max(item.getStabBonus(), Math.max(item.getSlashBonus(), item.getCrushBonus())); }
+				switch (attack.getType())
+				{
+					case STAB: return item.getStabBonus();
+					case SLASH: return item.getSlashBonus();
+					case CRUSH: return item.getCrushBonus();
+					default: return 0;
+				}
+			}).max().orElse(0);
 	}
 
 	/**
 	 * Setups that wear this item for its own sake or spec with it; gear only worn to fill an empty slot, or inherited
 	 * unchanged by a quick weapon switch, counts only when nothing else uses it.
 	 */
-	private static int uses(GearItem item, List<SetupResult> setups)
+	private static int uses(GearItem item, List<SetupResult> setups, InventoryGroup group)
 	{
 		int own = 0;
 		int any = 0;
 		for (SetupResult setup : setups)
 		{
-			int use = use(item, setup);
+			int use = inventoryUse(item, setup, group);
 			if (use == OWN_USE) { own++; }
 			if (use != NO_USE) { any++; }
 		}
@@ -979,27 +1093,30 @@ public class RaidPlan
 	}
 
 	/** The setups counted by {@link #uses}, as {@link InventoryItem#getWornIn} bits; setups past the 64th aren't recorded. */
-	private static long wornIn(GearItem item, List<SetupResult> setups)
+	private static long wornIn(GearItem item, List<SetupResult> setups, InventoryGroup group)
 	{
 		long own = 0;
 		long any = 0;
 		for (int i = 0; i < Math.min(setups.size(), Long.SIZE); i++)
 		{
-			int use = use(item, setups.get(i));
+			int use = inventoryUse(item, setups.get(i), group);
 			if (use == OWN_USE) { own |= 1L << i; }
 			if (use != NO_USE) { any |= 1L << i; }
 		}
 		return own != 0 ? own : any;
 	}
 
-	/** The style a special weapon specs with, from its first planned special; null when no setup specs with it. */
+	/** The first planned special using this weapon, offhand or ammunition determines its style. */
 	private static CombatClass specStyle(GearItem item, List<SetupResult> setups)
 	{
 		for (SetupResult setup : setups)
 		{
 			for (SpecialPlan plan : setup.getSpecials())
 			{
-				if (plan.getWeapon().getId() != item.getId() || plan.getStyle() == null) { continue; }
+				boolean used = plan.getWeapon().getId() == item.getId()
+					|| (plan.getOffhand() != null && plan.getOffhand().getId() == item.getId())
+					|| (plan.getAmmo() != null && plan.getAmmo().getId() == item.getId());
+				if (!used || plan.getStyle() == null) { continue; }
 				switch (plan.getStyle().getType())
 				{
 					case MAGIC: return CombatClass.MAGIC;
@@ -1015,18 +1132,18 @@ public class RaidPlan
 	private static final int ANY_USE = 1;
 	private static final int OWN_USE = 2;
 
+	/** A shared piece's display frequency comes from its selected combat style, not unrelated encounters or specs. */
+	private static int inventoryUse(GearItem item, SetupResult setup, InventoryGroup group)
+	{
+		if (group.compareTo(InventoryGroup.SPECIAL) >= 0) { return use(item, setup); }
+		return combatGroup(setup.getCombatClass()) == group ? wornUse(item, setup) : NO_USE;
+	}
+
 	/** Whether the setup wears this item for its own sake or specs with it, only wears it otherwise, or neither. */
 	private static int use(GearItem item, SetupResult setup)
 	{
-		int use = NO_USE;
-		for (Slot slot : Slot.values())
-		{
-			GearItem worn = setup.getLoadout().get(slot);
-			if (worn == null || worn.getId() != item.getId()) { continue; }
-			GearItem inherited = setup.getSwitchFrom() == null ? null : setup.getSwitchFrom().get(slot);
-			if (!setup.getFilledSlots().contains(slot) && (inherited == null || inherited.getId() != item.getId())) { return OWN_USE; }
-			use = ANY_USE;
-		}
+		int use = wornUse(item, setup);
+		if (use == OWN_USE) { return use; }
 		for (SpecialPlan plan : setup.getSpecials())
 		{
 			for (GearItem special : new GearItem[]{plan.getWeapon(), plan.getOffhand(), plan.getAmmo()})
@@ -1037,6 +1154,20 @@ public class RaidPlan
 		return use;
 	}
 
+	/** Filled and unchanged inherited equipment is incidental wear, not a vote for another combat style. */
+	private static int wornUse(GearItem item, SetupResult setup)
+	{
+		for (Slot slot : Slot.values())
+		{
+			GearItem worn = setup.getLoadout().get(slot);
+			if (worn == null || worn.getId() != item.getId()) { continue; }
+			GearItem inherited = setup.getSwitchFrom() == null ? null : setup.getSwitchFrom().get(slot);
+			if (!setup.getFilledSlots().contains(slot) && (inherited == null || inherited.getId() != item.getId())) { return OWN_USE; }
+			return ANY_USE;
+		}
+		return NO_USE;
+	}
+
 	private static InventoryGroup equipmentGroup(GearItem item, List<SetupResult> setups)
 	{
 		if (item.getSubcategory().equalsIgnoreCase("pickaxe") || item.getLowerCombatName().contains("pickaxe"))
@@ -1045,34 +1176,36 @@ public class RaidPlan
 		return primary == InventoryGroup.OTHER ? equipmentGroup(item, setups, true) : primary;
 	}
 
-	/** Prefer combat use over filled slots and unchanged gear inherited by a quick weapon switch. */
+	/** The style with the most deliberate worn uses owns shared gear; ties use the fixed melee/ranged/magic order. */
 	private static InventoryGroup equipmentGroup(GearItem item, List<SetupResult> setups, boolean includeFilled)
 	{
-		InventoryGroup group = InventoryGroup.OTHER;
+		int[] uses = new int[3];
+		boolean specialUse = false;
 		for (SetupResult setup : setups)
 		{
-			for (Slot slot : Slot.values())
+			int worn = wornUse(item, setup);
+			if (worn == OWN_USE || (includeFilled && worn == ANY_USE))
 			{
-				GearItem worn = setup.getLoadout().get(slot);
-				GearItem inherited = setup.getSwitchFrom() == null ? null : setup.getSwitchFrom().get(slot);
-				if (worn != null && worn.getId() == item.getId() && (includeFilled || !setup.getFilledSlots().contains(slot)
-					&& (inherited == null || inherited.getId() != item.getId())))
-				{
-					InventoryGroup combat = setup.getCombatClass() == CombatClass.MELEE ? InventoryGroup.MELEE_GEAR
-						: setup.getCombatClass() == CombatClass.RANGED ? InventoryGroup.RANGED_GEAR : InventoryGroup.MAGIC_GEAR;
-					if (combat.compareTo(group) < 0) { group = combat; }
-				}
+				uses[combatGroup(setup.getCombatClass()).ordinal()]++;
 			}
 			for (SpecialPlan plan : setup.getSpecials())
 			{
 				for (GearItem special : new GearItem[]{plan.getWeapon(), plan.getOffhand(), plan.getAmmo()})
 				{
-					if (special != null && special.getId() == item.getId() && InventoryGroup.SPECIAL.compareTo(group) < 0)
-					{ group = InventoryGroup.SPECIAL; }
+					if (special != null && special.getId() == item.getId()) { specialUse = true; }
 				}
 			}
 		}
-		return group;
+		int most = -1;
+		for (int i = 0; i < uses.length; i++)
+		{ if (uses[i] > 0 && (most < 0 || uses[i] > uses[most])) { most = i; } }
+		return most >= 0 ? InventoryGroup.values()[most] : specialUse ? InventoryGroup.SPECIAL : InventoryGroup.OTHER;
+	}
+
+	private static InventoryGroup combatGroup(CombatClass style)
+	{
+		return style == CombatClass.MELEE ? InventoryGroup.MELEE_GEAR
+			: style == CombatClass.RANGED ? InventoryGroup.RANGED_GEAR : InventoryGroup.MAGIC_GEAR;
 	}
 
 	private static void loaded(Map<Integer, InventoryItem> contents, GearItem darts)
@@ -1200,7 +1333,7 @@ public class RaidPlan
 			for (List<Integer> ids : SpellRunes.bankItems(setup, owns)) { spells.add(supply(SpellRunes.supplyName(ids.get(0)), ids)); }
 			for (Potion potion : potions)
 			{
-				List<Integer> ids = new ArrayList<>(BoostAccess.itemIds(potion));
+				List<Integer> ids = new ArrayList<>(BoostAccess.inventoryItemIds(potion));
 				if (!potion.isRaidSupply() && !ids.isEmpty())
 				{
 					boosts.add(new InventoryItem(potion.getName(), Collections.unmodifiableList(ids), false,

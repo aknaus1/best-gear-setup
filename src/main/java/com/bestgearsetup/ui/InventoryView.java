@@ -88,9 +88,10 @@ class InventoryView extends JPanel
 		setVisible(RaidPlan.hasEquipmentSwitches(carried));
 		chestAdvice = chestTooltip(chest);
 		grid.removeAll();
+		List<RaidPlan.InventoryItem> layout = RaidPlan.inventoryLayout(carried);
 		for (int i = 0; i < 28; i++)
 		{
-			RaidPlan.InventoryItem item = i < carried.size() ? carried.get(i) : null;
+			RaidPlan.InventoryItem item = i < layout.size() ? layout.get(i) : null;
 			GameData data = plugin == null ? null : plugin.getGameData();
 			GearItem gear = item == null || data == null ? null : data.findItem(item.getIds().get(0));
 			JComponent cell = gear == null ? new Cell(item, item == null ? null : potionUse.apply(item), items, plugin)
@@ -158,9 +159,9 @@ class InventoryView extends JPanel
 		if (item.getBottles() > 0)
 		{
 			return "<html><b>" + BestGearSetupPanel.escape(item.getName()) + "</b><br>"
-				+ (item.isReusable() ? "Bring 1 reusable item" : "Estimated " + item.getEstimatedDoses()
-					+ " doses; bring " + item.getBottles() + " four-dose bottle" + (item.getBottles() == 1 ? "" : "s"))
-				+ "<br>Each bottle occupies one slot; dose quantities are not ownership-validated.</html>";
+				+ (item.isReusable() ? "Bring 1 reusable item" : "~" + item.getEstimatedDoses()
+					+ " doses · " + item.getBottles() + " bottles")
+				+ "</html>";
 		}
 		if (item.getContents().isEmpty()) { return item.getName(); }
 		StringBuilder tip = new StringBuilder("<html><b>").append(BestGearSetupPanel.escape(item.getName())).append("</b>");

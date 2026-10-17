@@ -3004,6 +3004,13 @@ public class BestGearSetupPlugin extends Plugin
 		for (GearItem copy : copies)
 		{
 			ids.addAll(BestGearSetupBankView.itemIds(copy));
+			for (int state : OwnershipRules.reviewedStates(copy.getId()))
+			{
+				if (ItemCosts.equivalent(copy.getId(), state))
+				{
+					ids.add(state);
+				}
+			}
 		}
 		return new ArrayList<>(ids);
 	}

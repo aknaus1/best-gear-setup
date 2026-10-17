@@ -10,6 +10,7 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 import com.bestgearsetup.calc.Loadout;
@@ -28,14 +29,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.runelite.api.Point;
 import java.util.concurrent.ScheduledExecutorService;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
+import net.runelite.api.MenuAction;
+import net.runelite.api.Menu;
+import net.runelite.api.MenuEntry;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.ScriptEvent;
 import net.runelite.api.ScriptID;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.ScriptCallbackEvent;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.ScriptPreFired;
@@ -90,11 +96,12 @@ public class BankViewTest
 			false, Collections.emptyList(), RaidPlan.InventoryGroup.BOOSTS, 5, 2, false);
 		when(plan.getInventory()).thenReturn(Arrays.asList(bottle, bottle,
 			new RaidPlan.InventoryItem("Rune", Collections.singletonList(200), false)));
-		bank.items[4].widget.setName("Original potion"); bank.items[4].widget.setAction(0, "Withdraw-1");
+		bank.items[4].widget.setName("Original potion");
+		bank.items[4].widget.setAction(0, "Withdraw-1");
+		bank.items[4].widget.setAction(1, "Examine");
 		bank.view.setRaidSelection(plan, BestGearSetupBankView::itemIds);
 		assertTrue(bank.view.show());
-		assertTrue(bank.view.boostGuidance(ItemID._4DOSE2COMBAT).contains("Withdraw 2 four-dose bottles"));
-		assertTrue(bank.view.boostGuidance(ItemID._4DOSE2COMBAT).contains("estimated 5 doses"));
+		assertTrue(bank.view.boostGuidance(ItemID._4DOSE2COMBAT).contains("Bring 2 bottles (~5 doses)"));
 		assertEquals(243, bank.items[4].value("OriginalX"));
 		assertEquals(243, bank.items[5].value("OriginalX")); // runes retain their separate supply group
 		assertEquals(72, bank.items[4].value("OriginalY"));
@@ -102,11 +109,55 @@ public class BankViewTest
 		assertEquals("Original potion", bank.items[4].widget.getName());
 		assertEquals("Withdraw-1", bank.items[4].values.get("Action0"));
 		assertEquals(1, bank.items[4].widget.getItemQuantity()); assertEquals(4, bank.items[4].value("Index"));
-		assertEquals(7, bank.container.widget.getChildren().length); // six real stacks and the existing heading
+		assertEquals(8, bank.container.widget.getChildren().length); // six real stacks, heading, and repeated potion entry
+		Widget duplicate = bank.container.widget.getChildren()[7];
+		assertEquals(ItemID._4DOSE2COMBAT, duplicate.getItemId());
+		assertFalse(duplicate.isSelfHidden());
+		assertTrue(duplicate.hasListener());
+		assertTrue(Arrays.asList(duplicate.getActions()).contains("Withdraw-1"));
+		assertTrue(duplicate.getOriginalX() != bank.items[4].value("OriginalX")
+			|| duplicate.getOriginalY() != bank.items[4].value("OriginalY"));
+		assertEquals("Withdraw-1", bank.container.children.get(0).values.get("Action0"));
+		MenuEntry withdraw = mock(MenuEntry.class);
+		when(withdraw.getOption()).thenReturn("Cancel");
+		Menu menu = mock(Menu.class);
+		when(bank.client.getMenu()).thenReturn(menu);
+		when(menu.createMenuEntry(anyInt())).thenAnswer(i ->
+		{
+			MenuEntry entry = mock(MenuEntry.class);
+			when(entry.setOption(any())).thenAnswer(setOption ->
+			{
+				when(entry.getOption()).thenReturn(setOption.getArgument(0));
+				bank.menuEntries.add(entry);
+				return entry;
+			});
+			return entry;
+		});
+		Point mouse = new Point(duplicate.getOriginalX() + 1, duplicate.getOriginalY() + 1);
+		when(bank.client.getMouseCanvasPosition()).thenReturn(mouse);
+		bank.view.onMenuEntryAdded(new MenuEntryAdded(withdraw));
+		assertEquals(2, bank.menuEntries.size());
+		MenuEntry duplicateExamine = bank.menuEntries.get(0);
+		verify(duplicateExamine).setOption("Examine");
+		verify(duplicateExamine).setType(MenuAction.CC_OP);
+		verify(duplicateExamine).setIdentifier(2);
+		verify(duplicateExamine).setParam0(4);
+		verify(duplicateExamine).setParam1(InterfaceID.Bankmain.ITEMS);
+		MenuEntry duplicateWithdraw = bank.menuEntries.get(1);
+		verify(duplicateWithdraw).setOption("Withdraw-1");
+		verify(duplicateWithdraw).setType(MenuAction.CC_OP);
+		verify(duplicateWithdraw).setIdentifier(1);
+		verify(duplicateWithdraw).setParam0(4);
+		verify(duplicateWithdraw).setParam1(InterfaceID.Bankmain.ITEMS);
+		assertEquals(Arrays.asList("Examine", "Withdraw-1"), bank.menuEntries.stream()
+			.map(MenuEntry::getOption).collect(java.util.stream.Collectors.toList()));
 		bank.view.clear();
 		assertEquals(null, bank.view.boostGuidance(ItemID._4DOSE2COMBAT));
 		assertEquals("Original potion", bank.items[4].widget.getName());
+		assertTrue(duplicate.isSelfHidden());
+		assertEquals(-1, duplicate.getItemId());
 		bank.view.setSelection(setup); bank.view.show();
+		assertEquals(8, bank.container.widget.getChildren().length);
 		assertEquals(null, bank.view.boostGuidance(ItemID._4DOSE2COMBAT));
 	}
 	/** Main code gets the client's Gson in startUp; tests use the same instance. */
@@ -305,6 +356,39 @@ public class BankViewTest
 	}
 
 	@Test
+	public void extraPrepotDosesAreArrangedHighToLow() throws Exception
+	{
+		Fixture bank = new Fixture(ItemID._1DOSE2ATTACK, ItemID._2DOSE2ATTACK, ItemID._3DOSE2ATTACK,
+			ItemID._4DOSE2ATTACK);
+		SetupResult setup = setup(Slot.WEAPON, item(12926));
+		RaidPlan plan = mock(RaidPlan.class);
+		when(plan.getStartingSetup()).thenReturn(setup);
+		when(plan.getEquipment()).thenReturn(Collections.emptyList());
+		when(plan.getInventory()).thenReturn(Collections.emptyList());
+		when(plan.getSetups()).thenReturn(Collections.emptyList());
+		when(plan.prepotItems()).thenReturn(Collections.singletonList(new RaidPlan.InventoryItem("Super attack",
+			Arrays.asList(ItemID._1DOSE2ATTACK, ItemID._2DOSE2ATTACK, ItemID._3DOSE2ATTACK, ItemID._4DOSE2ATTACK),
+			false, Collections.emptyList(), RaidPlan.InventoryGroup.BOOSTS)));
+
+		bank.view.setRaidSelection(plan, BestGearSetupBankView::itemIds);
+		assertTrue(bank.view.show());
+		// The one-dose prepot fills the selected cell; its extras remain grouped high-dose-first.
+		assertEquals(72, bank.items[4].value("OriginalY"));
+		assertEquals(180, bank.items[7].value("OriginalY"));
+		assertEquals(51, bank.items[7].value("OriginalX"));
+		assertEquals(180, bank.items[6].value("OriginalY"));
+		assertEquals(99, bank.items[6].value("OriginalX"));
+		assertEquals(180, bank.items[5].value("OriginalY"));
+		assertEquals(147, bank.items[5].value("OriginalX"));
+		assertEquals(10, bank.container.widget.getChildren().length);
+		Widget extraPrepot = bank.container.widget.getChildren()[9];
+		assertEquals(ItemID._1DOSE2ATTACK, extraPrepot.getItemId());
+		assertEquals(180, extraPrepot.getOriginalY());
+		assertEquals(195, extraPrepot.getOriginalX());
+		assertFalse(extraPrepot.isSelfHidden());
+	}
+
+	@Test
 	public void filterIncludesVariantsAmmoAndPlaceholdersButSkipsUnrelatedItems() throws Exception
 	{
 		Fixture bank = new Fixture();
@@ -354,6 +438,39 @@ public class BankViewTest
 		assertEquals(252, bank.items[4].value("OriginalY"));
 		assertEquals(288, bank.items[1].value("OriginalY"));
 		assertEquals(324, bank.container.value("ScrollHeight"));
+	}
+
+	@Test
+	public void depositedTridentChargeStateReplacesFullPlaceholderWithoutReselecting() throws Exception
+	{
+		GameData data = new GameDataLoader(RuneLiteAPI.GSON).loadGameData();
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.gameData = data;
+		for (int[] states : new int[][]{{ItemID.TOTS, ItemID.TOTS_CHARGED}})
+		{
+			Fixture bank = new Fixture(states[0], states[1], ItemID.TOTS_I_CHARGED, ItemID.TOXIC_TOTS_CHARGED);
+			bank.items[4].values.put("ItemQuantity", 0);
+			bank.items[5].values.put("ItemId", -1); // The deposited item is still in inventory.
+			bank.view.setSelection(setup(Slot.WEAPON, data.findItem(states[0])), Collections.emptyList(),
+				plugin::bankItemIds, id -> false);
+			assertTrue(bank.view.show());
+			assertFalse("The selected trident's placeholder initially fills the weapon cell", bank.items[4].widget.isSelfHidden());
+			bank.items[5].values.put("ItemId", states[1]); // Deposit a different charge state.
+			bank.items[5].widget.setAction(0, "Withdraw-1");
+			bank.rebuild();
+			assertEquals("Deposited charge state must pass the existing bank filter", 1, bank.filter(states[1]));
+			assertFalse(bank.items[5].widget.isSelfHidden());
+			assertTrue("Real deposited gear takes precedence over the full placeholder", bank.items[4].widget.isSelfHidden());
+			assertEquals(51, bank.items[5].value("OriginalX"));
+			assertEquals(72, bank.items[5].value("OriginalY"));
+			assertEquals(states[1], bank.items[5].widget.getItemId());
+			assertEquals("Withdraw-1", bank.items[5].values.get("Action0"));
+			assertEquals("Enhanced tridents remain separate", 0, bank.filter(ItemID.TOTS_I_CHARGED));
+			assertEquals("Swamp tridents remain separate", 0, bank.filter(ItemID.TOXIC_TOTS_CHARGED));
+			bank.items[5].values.put("ItemId", -1); // Withdraw it again: restore the placeholder.
+			bank.rebuild();
+			assertFalse(bank.items[4].widget.isSelfHidden());
+			assertTrue(bank.view.isActive());
+		}
 	}
 
 	@Test
@@ -550,6 +667,7 @@ public class BankViewTest
 		private int tab;
 		private final List<Object> posted = new ArrayList<>();
 		private final Map<Integer, ItemComposition> compositions = new HashMap<>();
+		private final List<MenuEntry> menuEntries = new ArrayList<>();
 		private final BestGearSetupBankView view;
 		private final Client client;
 		private final ClientThread thread;
@@ -708,6 +826,8 @@ public class BankViewTest
 			values.put("ItemId", id);
 			values.put("ItemQuantity", quantity);
 			values.put("Index", index);
+			values.put("OriginalWidth", 36);
+			values.put("OriginalHeight", 32);
 			values.put("DragDeadZone", 5);
 			values.put("DragDeadTime", 5);
 			// A property bag: setters store under the property name, getters read it back (setHidden is SelfHidden).
@@ -716,12 +836,23 @@ public class BankViewTest
 			when(widget.getText()).thenAnswer(i -> values.get("Text"));
 			when(widget.getOnInvTransmitListener()).thenAnswer(i -> values.get("OnInvTransmitListener"));
 			when(widget.getOnOpListener()).thenAnswer(i -> values.get("OnOpListener"));
+			when(widget.getActions()).thenAnswer(i -> actions());
+			when(widget.hasListener()).thenAnswer(i -> flag("HasListener"));
 			when(widget.getItemId()).thenAnswer(i -> intValue("ItemId"));
 			when(widget.getItemQuantity()).thenAnswer(i -> intValue("ItemQuantity"));
+			when(widget.getIndex()).thenAnswer(i -> intValue("Index"));
+			when(widget.getItemQuantityMode()).thenAnswer(i -> intValue("ItemQuantityMode"));
+			when(widget.getOriginalWidth()).thenAnswer(i -> intValue("OriginalWidth"));
+			when(widget.getOriginalHeight()).thenAnswer(i -> intValue("OriginalHeight"));
+			when(widget.getOpacity()).thenAnswer(i -> intValue("Opacity"));
+			when(widget.getCanvasLocation()).thenAnswer(i ->
+				new Point(intValue("OriginalX"), intValue("OriginalY")));
 			when(widget.getDragDeadTime()).thenAnswer(i -> intValue("DragDeadTime"));
 			when(widget.getDragDeadZone()).thenAnswer(i -> intValue("DragDeadZone"));
-			when(widget.getHeight()).thenAnswer(i -> intValue("Height"));
-			when(widget.getWidth()).thenAnswer(i -> intValue("Width"));
+			when(widget.getHeight()).thenAnswer(i -> values.containsKey("Height")
+				? intValue("Height") : intValue("OriginalHeight"));
+			when(widget.getWidth()).thenAnswer(i -> values.containsKey("Width")
+				? intValue("Width") : intValue("OriginalWidth"));
 			when(widget.getOriginalX()).thenAnswer(i -> intValue("OriginalX"));
 			when(widget.getOriginalY()).thenAnswer(i -> intValue("OriginalY"));
 			when(widget.getScrollHeight()).thenAnswer(i -> intValue("ScrollHeight"));
@@ -737,6 +868,10 @@ public class BankViewTest
 			when(widget.setOriginalY(anyInt())).thenAnswer(store("OriginalY"));
 			when(widget.setOriginalWidth(anyInt())).thenAnswer(store("OriginalWidth"));
 			when(widget.setOriginalHeight(anyInt())).thenAnswer(store("OriginalHeight"));
+			when(widget.setItemId(anyInt())).thenAnswer(store("ItemId"));
+			when(widget.setItemQuantity(anyInt())).thenAnswer(store("ItemQuantity"));
+			when(widget.setItemQuantityMode(anyInt())).thenAnswer(store("ItemQuantityMode"));
+			when(widget.setOpacity(anyInt())).thenAnswer(store("Opacity"));
 			when(widget.setScrollHeight(anyInt())).thenAnswer(store("ScrollHeight"));
 			when(widget.setScrollY(anyInt())).thenAnswer(store("ScrollY"));
 			when(widget.setSpriteId(anyInt())).thenAnswer(store("SpriteId"));
@@ -749,9 +884,13 @@ public class BankViewTest
 			doAnswer(i -> values.keySet().removeIf(key -> key.startsWith("Action"))).when(widget).clearActions();
 			when(widget.createChild(anyInt(), anyInt())).thenAnswer(i ->
 			{
-				WidgetState child = new WidgetState(-1, 0, children.size());
+				Widget[] current = (Widget[]) values.get("Children");
+				int childIndex = current == null ? 0 : current.length;
+				WidgetState child = new WidgetState(-1, 0, childIndex);
 				children.add(child);
-				values.put("Children", children.stream().map(c -> c.widget).toArray(Widget[]::new));
+				Widget[] expanded = current == null ? new Widget[1] : Arrays.copyOf(current, current.length + 1);
+				expanded[childIndex] = child.widget;
+				values.put("Children", expanded);
 				return child.widget;
 			});
 		}
@@ -769,6 +908,15 @@ public class BankViewTest
 		{
 			Object value = values.get(property);
 			return value == null ? 0 : (int) value;
+		}
+
+		private String[] actions()
+		{
+			int count = values.keySet().stream().filter(key -> key.startsWith("Action"))
+				.mapToInt(key -> Integer.parseInt(key.substring("Action".length()))).max().orElse(-1) + 1;
+			String[] actions = new String[count];
+			for (int i = 0; i < count; i++) { actions[i] = (String) values.get("Action" + i); }
+			return actions;
 		}
 
 		private boolean flag(String property)

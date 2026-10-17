@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,7 +22,11 @@ import java.util.function.IntPredicate;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
+import net.runelite.api.MenuAction;
+import net.runelite.api.MenuEntry;
+import net.runelite.api.Point;
 import net.runelite.api.ScriptID;
+import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.ScriptCallbackEvent;
 import net.runelite.api.events.ScriptPostFired;
@@ -32,6 +37,7 @@ import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.vars.InputType;
 import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetType;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
@@ -60,6 +66,8 @@ class BestGearSetupBankView
 	private final EventBus eventBus;
 	private volatile Layout selection = Layout.EMPTY;
 	private final Map<Widget, int[]> dragSettings = new IdentityHashMap<>();
+	private final List<Widget> duplicateWidgets = new ArrayList<>();
+	private final Map<Integer, Widget> duplicateSources = new HashMap<>();
 	private boolean active;
 
 	@Inject
@@ -101,14 +109,27 @@ class BestGearSetupBankView
 	{
 		List<RaidPlan.InventoryItem> inventory = plan.getInventory();
 		Layout layout = new Layout(RaidPlan.hasEquipmentSwitches(inventory));
+		List<RaidPlan.InventoryItem> display = layout.inventory ? RaidPlan.inventoryLayout(inventory) : inventory;
 		Loadout worn = plan.getStartingSetup().getLoadout();
 		for (Slot slot : Slot.values()) { addItem(layout, itemIds, worn.get(slot), CELLS[slot.ordinal()]); }
-		// Already in inventory group order (RaidPlan.inventory).
+		// The bank grid mirrors the inventory's physical switch cells, including empty cells in partial blocks.
 		int spellCell = 0;
 		int boostCell = 0;
-		for (int i = 0; i < inventory.size(); i++)
+		int loadingCell = layout.extraRowsStart;
+		List<RaidPlan.InventoryItem> prepots = plan.prepotItems();
+		int prepotCell = 0;
+		for (RaidPlan.InventoryItem item : prepots)
 		{
-			RaidPlan.InventoryItem item = inventory.get(i);
+			int cell = !layout.inventory ? reservedCell(BOOST_CELLS, boostCell++)
+				: prepotCell < PREPOT_CELLS.length ? PREPOT_CELLS[prepotCell++] : loadingCell++;
+			layout.add(item.getIds(), cell, BOOST);
+			layout.prepotCells.add(cell);
+			rankBoostDosesHighToLow(layout, item.getIds());
+		}
+		for (int i = 0; i < display.size(); i++)
+		{
+			RaidPlan.InventoryItem item = display.get(i);
+			if (item == null) { continue; }
 			GearItem gear = plan.getEquipment().stream().filter(g -> g.getId() == item.getIds().get(0)).findFirst().orElse(null);
 			int cell = layout.inventory ? inventoryCell(i) : item.getGroup() == RaidPlan.InventoryGroup.BOOSTS
 				? reservedCell(BOOST_CELLS, boostCell++) : reservedCell(SPELL_CELLS, spellCell++);
@@ -122,27 +143,27 @@ class BestGearSetupBankView
 			String drunk = use == null || use.getTag() == null ? "" : use.getDescription();
 			if (item.getBottles() > 0)
 			{
-				String guidance = (item.isReusable() ? "Bring 1 reusable " + item.getName()
-					: "Withdraw " + item.getBottles() + " four-dose bottles of " + item.getName()
-						+ " / estimated " + item.getEstimatedDoses() + " doses. Partial bottles may need more slots.")
+				String guidance = (item.isReusable() ? "Bring 1 " + item.getName() + " (reusable)"
+					: "Bring " + item.getBottles() + " bottles (~" + item.getEstimatedDoses() + " doses)")
 					+ (use == RaidPlan.PotionUse.BOTH ? " " + drunk : "");
-				item.getIds().forEach(id -> layout.boostGuidance.putIfAbsent(id, guidance));
+				item.getIds().forEach(id -> layout.boostGuidance.put(id, guidance));
 			}
 			if (!drunk.isEmpty())
 			{
-				item.getIds().forEach(id -> layout.tags.putIfAbsent(id, use));
-				item.getIds().forEach(id -> layout.boostGuidance.putIfAbsent(id, drunk));
+				item.getIds().forEach(id ->
+				{
+					if (use == RaidPlan.PotionUse.BOTH || !layout.tags.containsKey(id)) { layout.tags.put(id, use); }
+				});
+				if (item.getBottles() == 0)
+				{
+					item.getIds().forEach(id -> layout.boostGuidance.putIfAbsent(id, drunk));
+				}
 			}
 		}
 		// Darts already loaded into blowpipes need bank withdrawal but occupy no carried switch slot.
-		int loadingCell = layout.extraRowsStart;
-		// Boosts only drunk before entering are withdrawn too, tagged so they aren't carried in by mistake.
-		int prepotCell = 0;
-		for (RaidPlan.InventoryItem item : plan.prepotItems())
+		// Boosts only drunk before entering are tagged; carried prepots keep the more specific "both" guidance.
+		for (RaidPlan.InventoryItem item : prepots)
 		{
-			int cell = !layout.inventory ? reservedCell(BOOST_CELLS, boostCell++)
-				: prepotCell < PREPOT_CELLS.length ? PREPOT_CELLS[prepotCell++] : loadingCell++;
-			layout.add(item.getIds(), cell, BOOST);
 			item.getIds().forEach(id -> layout.tags.putIfAbsent(id, RaidPlan.PotionUse.PREPOT));
 			item.getIds().forEach(id -> layout.boostGuidance.putIfAbsent(id, RaidPlan.PotionUse.PREPOT.getDescription()));
 		}
@@ -171,9 +192,36 @@ class BestGearSetupBankView
 			: item.getGroup() == RaidPlan.InventoryGroup.RUNES ? SPELL : GEAR;
 	}
 
+	private static void rankBoostDosesHighToLow(Layout layout, List<Integer> ids)
+	{
+		Map<Integer, List<Integer>> families = new LinkedHashMap<>();
+		for (int id : ids)
+		{
+			families.computeIfAbsent(ItemVariationMapping.map(id), ignored -> new ArrayList<>()).add(id);
+		}
+		for (List<Integer> family : families.values())
+		{
+			Collections.reverse(family);
+			for (int id : family)
+			{
+				layout.boostDoseRanks.put(id, layout.boostDoseRanks.size());
+			}
+		}
+	}
+
 	static Map<Integer, Integer> raidCellsFor(RaidPlan plan)
 	{
 		return Collections.unmodifiableMap(layoutForRaid(plan, BestGearSetupBankView::itemIds).cells);
+	}
+
+	static List<Integer> raidCellsFor(RaidPlan plan, int itemId)
+	{
+		Layout layout = layoutForRaid(plan, BestGearSetupBankView::itemIds);
+		List<Integer> cells = new ArrayList<>();
+		Integer first = layout.cells.get(itemId);
+		if (first != null) { cells.add(first); }
+		cells.addAll(layout.duplicateCells.getOrDefault(itemId, Collections.emptyList()));
+		return Collections.unmodifiableList(cells);
 	}
 
 	static Map<Integer, Integer> cellsFor(SetupResult setup)
@@ -196,6 +244,7 @@ class BestGearSetupBankView
 	{
 		List<RaidPlan.InventoryItem> inventory = setup == null ? Collections.emptyList() : RaidPlan.inventoryForSetup(setup, potions, owns);
 		Layout layout = new Layout(RaidPlan.hasEquipmentSwitches(inventory));
+		List<RaidPlan.InventoryItem> display = layout.inventory ? RaidPlan.inventoryLayout(inventory) : inventory;
 		if (setup != null)
 		{
 			Loadout loadout = setup.getLoadout();
@@ -207,9 +256,10 @@ class BestGearSetupBankView
 			int loadingCell = layout.extraRowsStart;
 			int spellCell = 0;
 			int boostCell = 0;
-			for (int i = 0; i < inventory.size(); i++)
+			for (int i = 0; i < display.size(); i++)
 			{
-				RaidPlan.InventoryItem item = inventory.get(i);
+				RaidPlan.InventoryItem item = display.get(i);
+				if (item == null) { continue; }
 				GearItem equipment = gear.get(item.getIds().get(0));
 				int cell = layout.inventory ? inventoryCell(i) : item.getGroup() == RaidPlan.InventoryGroup.BOOSTS
 					? reservedCell(BOOST_CELLS, boostCell++) : reservedCell(SPELL_CELLS, spellCell++);
@@ -258,7 +308,13 @@ class BestGearSetupBankView
 		private final Map<Integer, Integer> groups = new HashMap<>();
 		/** Insertion order: a cell's own item, then its alternatives (doses by type, substitutes) in order. */
 		private final Map<Integer, Integer> ranks = new HashMap<>();
+		/** Dose order for extra boost stacks; distinct from cell priority, which may prefer low-dose prepots. */
+		private final Map<Integer, Integer> boostDoseRanks = new HashMap<>();
 		private final Set<Integer> primary = new HashSet<>();
+		/** Repeated item IDs at additional cells; the ID order within a cell controls which available dose is shown. */
+		private final Map<Integer, List<Integer>> duplicateCells = new LinkedHashMap<>();
+		private final Map<Integer, List<Integer>> duplicateCandidates = new LinkedHashMap<>();
+		private final Set<Integer> prepotCells = new HashSet<>();
 		private final Map<Integer, String> boostGuidance = new HashMap<>();
 		/** When a raid boost is drunk (prepot, brought or both), tagged on its bank stack. */
 		private final Map<Integer, RaidPlan.PotionUse> tags = new HashMap<>();
@@ -279,7 +335,8 @@ class BestGearSetupBankView
 			boolean first = true;
 			for (int id : ids)
 			{
-				if (cells.putIfAbsent(id, cell) == null)
+				Integer existing = cells.putIfAbsent(id, cell);
+				if (existing == null)
 				{
 					groups.put(id, group);
 					ranks.put(id, ranks.size());
@@ -287,6 +344,13 @@ class BestGearSetupBankView
 					{
 						primary.add(id);
 					}
+				}
+				else if (existing != cell && group == BOOST && groups.get(id) == BOOST)
+				{
+					List<Integer> cells = duplicateCells.computeIfAbsent(id, ignored -> new ArrayList<>());
+					if (!cells.contains(cell)) { cells.add(cell); }
+					List<Integer> candidates = duplicateCandidates.computeIfAbsent(cell, ignored -> new ArrayList<>());
+					if (!candidates.contains(id)) { candidates.add(id); }
 				}
 				first = false;
 			}
@@ -351,6 +415,7 @@ class BestGearSetupBankView
 	{
 		boolean reset = isActive();
 		active = false;
+		resetDuplicateWidgets();
 		restoreDragging();
 		if (reset)
 		{
@@ -422,7 +487,11 @@ class BestGearSetupBankView
 			return id;
 		}
 		int canonical = itemManager.canonicalize(id);
-		return layout.cells.containsKey(canonical) ? canonical : null;
+		if (layout.cells.containsKey(canonical))
+		{
+			return canonical;
+		}
+		return null;
 	}
 
 	@Subscribe(priority = -1)
@@ -432,10 +501,12 @@ class BestGearSetupBankView
 		{
 			// Let a normal search open on its first click, without rebuilding inside the script VM.
 			active = false;
+			resetDuplicateWidgets();
 			restoreDragging();
 		}
 		else if (event.getScriptId() == ScriptID.BANKMAIN_BUILD)
 		{
+			resetDuplicateWidgets();
 			restoreDragging();
 			if (client.getVarbitValue(VarbitID.BANK_CURRENTTAB) != 0
 				|| client.getVarcIntValue(VarClientID.MESLAYERMODE) == InputType.SEARCH.getType())
@@ -478,10 +549,14 @@ class BestGearSetupBankView
 		}
 		Layout layout = selection;
 		Set<Integer> occupied = new HashSet<>();
+		Set<Widget> usedDuplicateWidgets = Collections.newSetFromMap(new IdentityHashMap<>());
 		Map<Widget, Integer> matches = new IdentityHashMap<>();
+		Map<Integer, Widget> placedByCell = new HashMap<>();
+		Map<Integer, Widget> sources = new HashMap<>();
+		resetDuplicateWidgets();
 		for (Widget item : bank.getChildren())
 		{
-			if (item == null || item.isSelfHidden())
+			if (item == null || item.isSelfHidden() || duplicateWidgets.contains(item))
 			{
 				continue;
 			}
@@ -494,6 +569,7 @@ class BestGearSetupBankView
 			else
 			{
 				matches.put(item, key);
+				if (!isPlaceholder(item)) { sources.putIfAbsent(key, item); }
 			}
 		}
 		// Each cell's own item claims it first; the best-ranked alternative fills it in its absence (the
@@ -513,6 +589,7 @@ class BestGearSetupBankView
 			if (occupied.add(cell))
 			{
 				place(item, cell);
+				placedByCell.put(cell, item);
 				lastCell = Math.max(lastCell, cell);
 			}
 			else if (isPlaceholder(item))
@@ -525,29 +602,124 @@ class BestGearSetupBankView
 				extras.get(layout.groups.get(key)).add(item);
 			}
 		}
+		for (int cell : layout.prepotCells)
+		{
+			Widget source = placedByCell.get(cell);
+			if (source == null || isPlaceholder(source)) { continue; }
+			int id = matches.get(source);
+			Widget duplicate = duplicateWidgets.stream().filter(widget -> !usedDuplicateWidgets.contains(widget))
+				.findFirst().orElse(null);
+			if (duplicate == null)
+			{
+				duplicate = bank.createChild(-1, WidgetType.GRAPHIC);
+				duplicateWidgets.add(duplicate);
+			}
+			usedDuplicateWidgets.add(duplicate);
+			configureDuplicateWidget(duplicate, source, cell);
+			matches.put(duplicate, id);
+			extras.get(BOOST).add(duplicate);
+		}
 		// Extra rows start below every placed cell; gear, spell items and boosts each begin a new row,
 		// and so does each potion type (every dose of one potion together, highest first).
 		int next = Math.max(layout.extraRowsStart, (lastCell / 8 + 1) * 8);
+		Map<Integer, List<Widget>> boostsByType = new LinkedHashMap<>();
+		for (Widget item : extras.get(BOOST))
+		{
+			int itemType = ItemVariationMapping.map(matches.get(item));
+			boostsByType.computeIfAbsent(itemType, ignored -> new ArrayList<>()).add(item);
+		}
+		for (List<Widget> boosts : boostsByType.values())
+		{
+			// Candidate priority can be low-dose-first for prepots; bank extras always display high-dose-first.
+			boosts.sort(Comparator.comparingInt(item -> layout.boostDoseRanks
+				.getOrDefault(matches.get(item), layout.ranks.get(matches.get(item)))));
+		}
 		for (int group : layout.inventory ? new int[]{GEAR, BOOST, SPELL} : new int[]{GEAR, SPELL, BOOST})
 		{
-			Integer type = null;
-			for (Widget item : extras.get(group))
+			if (group == BOOST)
 			{
-				int itemType = ItemVariationMapping.map(matches.get(item));
-				if (group == BOOST && type != null && type != itemType)
+				for (List<Widget> boosts : boostsByType.values())
 				{
+					for (Widget item : boosts)
+					{
+						place(item, next);
+						lastCell = next++;
+					}
 					next = (next + 7) / 8 * 8;
 				}
-				type = itemType;
-				place(item, next);
-				lastCell = next++;
 			}
-			next = (next + 7) / 8 * 8;
+			else
+			{
+				for (Widget item : extras.get(group))
+				{
+					place(item, next);
+					lastCell = next++;
+				}
+				next = (next + 7) / 8 * 8;
+			}
+		}
+		for (Map.Entry<Integer, List<Integer>> entry : layout.duplicateCandidates.entrySet())
+		{
+			int cell = entry.getKey();
+			if (!occupied.add(cell)) { continue; }
+			for (int id : entry.getValue())
+			{
+				Widget source = sources.get(id);
+				if (source == null) { continue; }
+				Widget duplicate = duplicateWidgets.stream().filter(widget -> !usedDuplicateWidgets.contains(widget))
+					.findFirst().orElse(null);
+				if (duplicate == null)
+				{
+					duplicate = bank.createChild(-1, WidgetType.GRAPHIC);
+					duplicateWidgets.add(duplicate);
+				}
+				usedDuplicateWidgets.add(duplicate);
+				configureDuplicateWidget(duplicate, source, cell);
+				lastCell = Math.max(lastCell, cell);
+				break;
+			}
 		}
 		bank.setScrollHeight(lastCell < 0 ? 0 : (lastCell / 8 + 1) * 36);
 		bank.setScrollY(Math.max(0, Math.min(bank.getScrollY(), bank.getScrollHeight() - bank.getHeight())));
 		client.setVarcIntValue(VarClientID.BANK_SCROLLPOS, bank.getScrollY());
 		return bank.getScrollHeight();
+	}
+
+	private void configureDuplicateWidget(Widget duplicate, Widget source, int cell)
+	{
+		duplicate.setOriginalWidth(source.getOriginalWidth());
+		duplicate.setOriginalHeight(source.getOriginalHeight());
+		duplicate.setItemId(source.getItemId());
+		duplicate.setItemQuantity(source.getItemQuantity());
+		duplicate.setItemQuantityMode(source.getItemQuantityMode());
+		duplicate.setName(source.getName());
+		duplicate.setOpacity(source.getOpacity());
+		duplicate.clearActions();
+		String[] actions = source.getActions();
+		if (actions != null)
+		{
+			for (int i = actions.length - 1; i >= 0; i--)
+			{
+				if (actions[i] != null) { duplicate.setAction(i, actions[i]); }
+			}
+		}
+		Object[] onOpListener = source.getOnOpListener();
+		if (onOpListener != null) { duplicate.setOnOpListener(onOpListener); }
+		duplicate.setHasListener(true);
+		duplicateSources.put(duplicate.getIndex(), source);
+		place(duplicate, cell);
+		duplicate.setHidden(false);
+	}
+
+	private void resetDuplicateWidgets()
+	{
+		duplicateSources.clear();
+		for (Widget duplicate : duplicateWidgets)
+		{
+			duplicate.setHidden(true);
+			duplicate.setItemId(-1);
+			duplicate.setItemQuantity(0);
+		}
 	}
 
 	private static boolean isPlaceholder(Widget item)
@@ -579,6 +751,46 @@ class BestGearSetupBankView
 		dragSettings.clear();
 	}
 
+	@Subscribe(priority = -1)
+	public void onMenuEntryAdded(MenuEntryAdded event)
+	{
+		if (!isActive() || !"Cancel".equals(event.getOption()))
+		{
+			return;
+		}
+		Point mouse = client.getMouseCanvasPosition();
+		if (mouse == null) { return; }
+		for (Widget duplicate : duplicateWidgets)
+		{
+			if (duplicate.isSelfHidden()) { continue; }
+			Point location = duplicate.getCanvasLocation();
+			if (location == null || mouse.getX() < location.getX() || mouse.getY() < location.getY()
+				|| mouse.getX() >= location.getX() + duplicate.getWidth()
+				|| mouse.getY() >= location.getY() + duplicate.getHeight())
+			{
+				continue;
+			}
+			Widget source = duplicateSources.get(duplicate.getIndex());
+			if (source == null) { continue; }
+			String[] actions = source.getActions();
+			if (actions == null) { continue; }
+			for (int i = actions.length - 1; i >= 0; i--)
+			{
+				String action = actions[i];
+				if (action == null || action.isEmpty()) { continue; }
+				MenuEntry entry = client.getMenu().createMenuEntry(-1);
+				entry.setOption(action);
+				entry.setTarget(source.getName());
+				entry.setType(MenuAction.CC_OP);
+				entry.setIdentifier(i + 1);
+				entry.setParam0(source.getIndex());
+				entry.setParam1(InterfaceID.Bankmain.ITEMS);
+				entry.setItemId(source.getItemId());
+			}
+			return;
+		}
+	}
+
 	@Subscribe(priority = 1)
 	public void onMenuOptionClicked(MenuOptionClicked event)
 	{
@@ -587,6 +799,7 @@ class BestGearSetupBankView
 			|| option.equals("View all items") || option.startsWith("Potion store"))
 		{
 			active = false;
+			resetDuplicateWidgets();
 			restoreDragging();
 		}
 	}
@@ -598,6 +811,7 @@ class BestGearSetupBankView
 		{
 			active = false;
 			restoreDragging();
+			duplicateWidgets.clear();
 		}
 	}
 }
