@@ -539,18 +539,6 @@ public class BestGearSetupPanel extends PluginPanel
 		resultsPanel.setLayout(new BoxLayout(resultsPanel, BoxLayout.Y_AXIS));
 		resultsPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		content.add(left(resultsPanel));
-		content.add(spacer(12));
-		JButton coffeeButton = new JButton("Support development");
-		Controls.ghost(coffeeButton);
-		coffeeButton.setHorizontalAlignment(SwingConstants.CENTER);
-		coffeeButton.setName("buyMeACoffee");
-		coffeeButton.setToolTipText("Support Best Gear Setup on Buy Me a Coffee");
-		coffeeButton.getAccessibleContext().setAccessibleName("Buy Me a Coffee");
-		coffeeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		coffeeButton.setBorder(BorderFactory.createEmptyBorder(3, 4, 3, 4));
-		coffeeButton.setContentAreaFilled(false);
-		coffeeButton.addActionListener(e -> LinkBrowser.browse("https://www.buymeacoffee.com/aknaus"));
-		content.add(left(coffeeButton));
 
 		JPanel north = new SidebarContent();
 		north.setBackground(ColorScheme.DARK_GRAY_COLOR);
