@@ -1109,7 +1109,8 @@ public class BestGearSetupPlugin extends Plugin
 		raidLiveTarget = null;
 		if (panel == null || gameData == null) { return false; }
 		RaidPlanType type = panel.getRaidType();
-		if (type == null || type == RaidPlanType.SINGLE)
+		// A boss fight follows its phases like any monster's variants, without raid progress.
+		if (type == null || type == RaidPlanType.SINGLE || type.isBossFight())
 		{
 			if (raidProgress.current().getType() != RaidPlanType.SINGLE)
 			{ raidProgress.reset(); publishRaidProgress(); }
@@ -2176,9 +2177,16 @@ public class BestGearSetupPlugin extends Plugin
 		List<String> detectedNotes, RaidPlanType type, DoubleConsumer publishProgress) throws IOException
 	{
 		if (generation != searchGeneration.get()) { return; }
+		// A boss fight is planned solo, whatever the raid party size.
+		if (type.isBossFight()) { config = SearchAssumptions.capture(config, Collections.singletonMap("raidPartySize", 1)); }
 		long epoch = raidCache.epoch();
-		SearchInputs inputs = SearchInputs.capture(data, api, active, levels, remembered, prayerUnlocks, diary,
-			false, mining, quotes, owned, quantities, config, liveRaid, detectedNotes, false).with(type);
+		// A full fight's plan is the same from any of its phases, so reopening it from another phase reuses it.
+		SearchInputs inputs = (type.isBossFight()
+			? SearchInputs.captureFight(data, api, FightSearchKey.searchedFrom(type.encounters(data, raidSettings(levels == null
+				? PlayerLevels.maxed() : levels, mining, config), RaidOptions.of(config)), active, config, detectedNotes),
+				levels, remembered, prayerUnlocks, diary, mining, quotes, owned, quantities, config, liveRaid, detectedNotes)
+			: SearchInputs.capture(data, api, active, levels, remembered, prayerUnlocks, diary,
+				false, mining, quotes, owned, quantities, config, liveRaid, detectedNotes, false)).with(type);
 		RaidPlan reused = raidCache.get(inputs, epoch);
 		if (reused != null)
 		{
@@ -2197,6 +2205,8 @@ public class BestGearSetupPlugin extends Plugin
 		RaidPlan selected = null;
 		RaidOptions.ToaPathOrder selectedOrder = null;
 		List<String> unavailable = new ArrayList<>();
+		// Why each book or order failed: the same reason everywhere (a blocked lock, say) is reported once.
+		Set<String> reasons = new LinkedHashSet<>();
 		// Each order's spellbook times, and its fastest plan for the path order note.
 		Map<RaidOptions.ToaPathOrder, List<String>> compared = new EnumMap<>(RaidOptions.ToaPathOrder.class);
 		Map<RaidOptions.ToaPathOrder, RaidPlan> fastestByOrder = new EnumMap<>(RaidOptions.ToaPathOrder.class);
@@ -2230,7 +2240,7 @@ public class BestGearSetupPlugin extends Plugin
 					if (RaidSpellbook.faster(candidate, fastestByOrder.get(order))) { fastestByOrder.put(order, candidate); }
 					if (RaidSpellbook.faster(candidate, selected)) { selected = candidate; selectedOrder = order; }
 				}
-				catch (RaidKitUnavailable e) { unavailable.add(prefix + book + ": " + e.getMessage()); }
+				catch (RaidKitUnavailable e) { unavailable.add(prefix + book + ": " + e.getMessage()); reasons.add(e.getMessage()); }
 				catch (RaidKitSlower e)
 				{
 					compared.computeIfAbsent(order, o -> new ArrayList<>()).add(book + ": no kit under " + Math.round(best) + "s");
@@ -2240,7 +2250,7 @@ public class BestGearSetupPlugin extends Plugin
 			}
 		}
 		if (generation != searchGeneration.get()) { return; }
-		if (selected == null) { throw new IllegalStateException(String.join(" ", unavailable)); }
+		if (selected == null) { throw new IllegalStateException(reasons.size() == 1 ? reasons.iterator().next() : String.join(" ", unavailable)); }
 		SwingUtilities.invokeLater(() ->
 		{
 			if (panel != null && generation == searchGeneration.get()) { panel.showEncounterProgress("Finalizing raid kit..."); }
@@ -2326,9 +2336,9 @@ public class BestGearSetupPlugin extends Plugin
 	 * no freeze switch at all. Null when cancelled.
 	 */
 	private static SearchResults switchCandidates(int index, int[] group, Set<Integer> excluded, int pass, SwitchSearch search,
-		Map<List<Object>, SearchResults> fullSearches, boolean boostable, boolean freeze) throws IOException
+		boolean boostable, boolean freeze) throws IOException
 	{
-		SearchResults own = fullSearch(index, excluded, pass, search, fullSearches);
+		SearchResults own = fullSearch(index, excluded, pass, search);
 		if (own == null) { return null; }
 		Map<AttackStyle.Type, List<SetupResult>> candidates = new LinkedHashMap<>();
 		Map<DpsResult, List<Potion>> boosts = new IdentityHashMap<>();
@@ -2336,7 +2346,7 @@ public class BestGearSetupPlugin extends Plugin
 		for (int other : group)
 		{
 			if (other == index) { continue; }
-			SearchResults worn = fullSearch(other, excluded, pass, search, fullSearches);
+			SearchResults worn = fullSearch(other, excluded, pass, search);
 			if (worn == null) { return null; }
 			if (worn.hasBlockingLock()) { continue; }
 			java.util.Comparator<SetupResult> fastest = java.util.Comparator.comparingDouble(
@@ -2366,17 +2376,10 @@ public class BestGearSetupPlugin extends Plugin
 		return own.withCandidates(candidates, boosts);
 	}
 
-	private static SearchResults fullSearch(int index, Set<Integer> excluded, int pass, SwitchSearch search,
-		Map<List<Object>, SearchResults> fullSearches) throws IOException
+	/** A member's full-setup search, which the plan's {@link RaidSearchMemo} shares with the other members' quick switches. */
+	private static SearchResults fullSearch(int index, Set<Integer> excluded, int pass, SwitchSearch search) throws IOException
 	{
-		List<Object> key = Arrays.asList(index, excluded);
-		SearchResults found = fullSearches.get(key);
-		if (found == null)
-		{
-			found = search.run(index, excluded, pass, null, false, Collections.emptyMap());
-			if (found != null) { fullSearches.put(key, found); }
-		}
-		return found;
+		return search.run(index, excluded, pass, null, false, Collections.emptyMap());
 	}
 
 	/**
@@ -2589,16 +2592,20 @@ public class BestGearSetupPlugin extends Plugin
 	 * Assumptions shared by planned and live raid encounters. Each setup opens on a full spec bar, with its
 	 * regenerated-energy alternative; the kit follows the raid's energy (RaidEncounter#energyAfter) instead of the
 	 * Spec energy setting. Specs cover one player's share of each kill, with its final blows. CoX overloads come
-	 * after Tekton and ToA smelling salts after the first two paths; ToB hands out none.
+	 * after Tekton and ToA smelling salts after the first two paths; ToB hands out none. A boss fight keeps the
+	 * searched boss's Slayer task, Wilderness and area-attack conditions.
 	 */
 	private static Map<String, Object> raidOverrides(RaidPlanType type, RaidEncounter encounter, int killShare)
 	{
 		Map<String, Object> overrides = new HashMap<>();
 		overrides.put("coxChallengeMode", type == RaidPlanType.COX_CM);
 		overrides.put("encounterPhase", encounter.getPhase());
-		overrides.put("onSlayerTask", false);
-		overrides.put("aoe", false);
-		overrides.put("wilderness", false);
+		if (!type.isBossFight())
+		{
+			overrides.put("onSlayerTask", false);
+			overrides.put("aoe", false);
+			overrides.put("wilderness", false);
+		}
 		overrides.put("specEnergy", SpecEnergy.FULL_BAR);
 		overrides.put("raidKillShare", killShare);
 		overrides.put("raidFinalBlowPercent", (int) Math.round(encounter.getFinalBlow() * 100));
@@ -2642,10 +2649,9 @@ public class BestGearSetupPlugin extends Plugin
 				&& encounter.getTarget().getName().contains("hand");
 			if (!same || freshHand)
 			{
-				for (String key : new String[]{"specElderMaul", "specDwh", "specEmberlight", "specArclight", "specTonalztics",
-					"specBgsDamage", "specSeercullDamage", "specAyakDamage"}) { overrides.put(key, 0); }
-				overrides.put("specVulnerability", false);
-				overrides.put("specTomeOfWater", false);
+				// FightSearchKey keys a full fight's plan by the encounters these settings reach.
+				for (String key : FightSearchKey.LANDED_SPEC_HITS) { overrides.put(key, 0); }
+				for (String key : FightSearchKey.LANDED_SPEC_FLAGS) { overrides.put(key, false); }
 			}
 			// The Dawnbringer is passed around at Verzik P1: the optimizer offers it to everyone there as a spec-only
 			// weapon, and the kit never carries it (RaidPlan.providedInRaid).
@@ -2697,21 +2703,38 @@ public class BestGearSetupPlugin extends Plugin
 			int[] bases = Arrays.stream(group).filter(index -> encounters.get(index).isFullSwitchSetup()).toArray();
 			Arrays.stream(group).forEach(member -> groupOf[member] = bases);
 		});
-		// Each switch group member's full-setup search, shared by the other members' quick switches.
-		Map<List<Object>, SearchResults> fullSearches = new java.util.concurrent.ConcurrentHashMap<>();
+		// Switch group searches a consolidation trial's removal leaves unchanged, reused instead of searched again.
+		RaidSearchMemo memo = new RaidSearchMemo();
+		SwitchSearch reused = (index, excluded, pass, switchFrom, unboosted, worn) ->
+		{
+			if (!worn.isEmpty()) { return searchFrom.run(index, excluded, pass, switchFrom, unboosted, worn); }
+			List<Object> key = RaidSearchMemo.key(index, switchFrom, unboosted);
+			SearchResults known = memo.find(key, excluded);
+			if (known != null)
+			{
+				progress.search().accept(100);
+				return known;
+			}
+			SearchResults found = searchFrom.run(index, excluded, pass, switchFrom, unboosted, worn);
+			memo.remember(key, excluded, found, encounters.get(index));
+			return found;
+		};
 		RaidConsolidator.Search search = new RaidConsolidator.Search()
 		{
 			@Override
 			public SearchResults run(int index, Set<Integer> excluded, int pass) throws IOException
 			{
-				int bases = SWITCH_BASES + (encounters.get(index).isFreeze() ? AttackStyle.Type.values().length : 0);
+				RaidEncounter encounter = encounters.get(index);
+				// A prepotted encounter's boosts are drunk before the fight, so a quick switch there carries none and
+				// is never worth searching without its boost.
+				boolean boostable = !encounter.isPrepotted() && boostable(config, encounter.getFixedClass());
+				int bases = SWITCH_BASES + (encounter.isFreeze() ? AttackStyle.Type.values().length : 0);
 				int calls = groupOf[index] == null ? 1 : 1 + (int) Arrays.stream(groupOf[index]).filter(other -> other != index).count()
-					* (1 + bases * (boostable(config, encounters.get(index).getFixedClass()) ? 2 : 1));
+					* (1 + bases * (boostable ? 2 : 1));
 				progress.expectSearches(calls);
-				SearchResults found = groupOf[index] == null ? searchFrom.run(index, excluded, pass, null, false, Collections.emptyMap())
-					: switchCandidates(index, groupOf[index], excluded, pass, searchFrom, fullSearches,
-						boostable(config, encounters.get(index).getFixedClass()), encounters.get(index).isFreeze());
-				return found != null && encounters.get(index).isFreeze() ? found.forFreeze(FreezeDuty.GUARANTEED) : found;
+				SearchResults found = groupOf[index] == null ? reused.run(index, excluded, pass, null, false, Collections.emptyMap())
+					: switchCandidates(index, groupOf[index], excluded, pass, reused, boostable, encounter.isFreeze());
+				return found != null && encounter.isFreeze() ? found.forFreeze(FreezeDuty.GUARANTEED) : found;
 			}
 
 			@Override
@@ -2759,7 +2782,12 @@ public class BestGearSetupPlugin extends Plugin
 			if (result.isEmpty() || result.hasBlockingLock())
 			{
 				RaidEncounter encounter = encounters.get(index);
-				String duty = encounter.getLoadoutRequirement() == RaidLoadout.ICE_BARRAGE
+				// Like a single search, name the lock and why it can't be used, e.g. an unowned item in an owned-only search.
+				String blocked = result.getLocks().stream().filter(LockStatus::isBlocking)
+					.map(lock -> " " + lock.getSlot().getDisplayName() + " lock can't be used: " + lock.getProblem() + ". Remove it under Gear.")
+					.collect(Collectors.joining());
+				String duty = !blocked.isEmpty() ? blocked
+					: encounter.getLoadoutRequirement() == RaidLoadout.ICE_BARRAGE
 					? " Ice Barrage needs 94 Magic after boosts, Ancient spells and usable magic gear; manual casting is supported. Check rune exclusions and locks."
 					// Like a single search: an empty inventory finds nothing here, so point at the mode, not the gear.
 					: config.mode() == SearchMode.INVENTORY_ONLY
@@ -2777,7 +2805,10 @@ public class BestGearSetupPlugin extends Plugin
 		int limit = Math.max(0, Math.min(28, config.raidEquipmentLimit()));
 		long budget = config.mode() == SearchMode.BUDGET ? Budget.parse(config.budget()) : Long.MAX_VALUE;
 		Set<Integer> excludedSupplies = buildSettings(config).getExcluded();
-		IntPredicate kitOwns = id -> owned.contains(id) && !excludedSupplies.contains(id);
+		Set<Integer> locked = buildSettings(config).getLocks().values().stream()
+			.filter(lock -> lock.getKind() == SlotLock.Kind.ITEM).map(SlotLock::getItemId).collect(Collectors.toSet());
+		// A locked item counts as owned, as in each encounter's search: the kit never buys it.
+		IntPredicate kitOwns = id -> (owned.contains(id) || locked.contains(id)) && !excludedSupplies.contains(id);
 		publishSearchActivity(generation, "Packing raid kit");
 		RaidPlan selected = RaidPlanner.select(type, spellbook, weighted, results, limit, budget, kitOwns,
 			item -> price(quotes, item), config.ammoCount(), id -> quantities.getOrDefault(id, 0L), cancelled, progress.selection());
@@ -2792,7 +2823,6 @@ public class BestGearSetupPlugin extends Plugin
 		if (independent == null && !cancelled.getAsBoolean())
 		{
 			publishSearchActivity(generation, "Comparing shared gear");
-			Set<Integer> locked = buildSettings(config).getLocks().values().stream().map(SlotLock::getItemId).collect(Collectors.toSet());
 			// Only kits faster than the beam's own result can replace it, so let consolidation prune against it; and
 			// only kits faster than another book's or path order's plan can be chosen, so against that too.
 			double own = selected == null ? Double.POSITIVE_INFINITY

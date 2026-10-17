@@ -19,6 +19,7 @@ import java.util.Map;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.FontManager;
 
 /** Raid inventory plus an encounter selector; every displayed setup belongs to the published kit. */
 class RaidResultView extends JPanel
@@ -39,8 +40,11 @@ class RaidResultView extends JPanel
 		InventoryView inventorySection = new InventoryView(items, encounter, "raidInventory", plugin, sprites, ammoCount);
 		detachSelector(encounter);
 		detachSelector(version);
+		// A boss fight lists every target it fights (the Judge of Yama, the Sire's respiratory systems) in one list,
+		// in fight order, under its one boss entry.
+		boolean fight = plan.getType().isBossFight();
 		Map<String, RaidEncounter> bosses = new LinkedHashMap<>();
-		plan.getEncounters().forEach(e -> bosses.putIfAbsent(e.getBossName(), e));
+		plan.getEncounters().forEach(e -> bosses.putIfAbsent(fight ? "" : e.getBossName(), e));
 		encounter.setModel(new DefaultComboBoxModel<>(bosses.values().toArray(new RaidEncounter[0])));
 
 		JPanel detail = new JPanel();
@@ -85,12 +89,12 @@ class RaidResultView extends JPanel
 			: plan.encounterFor(active.getName(), activeResult == null ? null : activeResult.getMonster().getPhase());
 		// A search from the raid's default (first) target opens on the setup the kit is worn in for.
 		if (initial == null || exact == null && initial.equals(plan.getEncounters().get(0))) { initial = plan.getStartingEncounter(); }
-		encounter.setSelectedItem(bosses.get(initial.getBossName()));
+		encounter.setSelectedItem(bosses.get(fight ? "" : initial.getBossName()));
 		Runnable versions = () ->
 		{
 			RaidEncounter boss = (RaidEncounter) encounter.getSelectedItem();
 			version.setModel(new DefaultComboBoxModel<>(plan.getEncounters().stream()
-				.filter(e -> e.getBossName().equals(boss.getBossName())).toArray(RaidEncounter[]::new)));
+				.filter(e -> fight || e.getBossName().equals(boss.getBossName())).toArray(RaidEncounter[]::new)));
 		};
 		versions.run();
 		version.setSelectedItem(initial);
@@ -105,35 +109,33 @@ class RaidResultView extends JPanel
 		show.run();
 	}
 
+	/** The kit's headline, shown above its setups; per-boost dose counts are {@link #boostLines} under Search details. */
 	static JLabel searchSummary(RaidPlan plan, boolean live)
 	{
 		// Switches, the rune pouch, loose runes and a carried book of the dead count against the limit, a maximum.
 		int equipment = RaidPlan.limitedSlots(plan.getInventory());
 		JLabel summary = new JLabel(BestGearSetupPanel.html((!live ? "Start wearing <b>" : "Pre-raid starting setup: <b>") + plan.getStartingEncounter().getLabel()
-			+ "</b> gear.<br>Equipment slots: " + equipment + " / " + plan.getEquipmentLimit() + " max"
-			+ "<br>" + (!live ? "Estimated combat time: " : "Pre-raid combat estimate: ") + duration(plan.getEstimatedSeconds())
-			+ "<br>Spellbook: " + plan.getSpellbook()
-			+ "<br>Inventory: " + plan.getInventory().size() + " / 28."
-			+ boostSummary(plan)
+			+ "</b> gear.<br>" + (!live ? "Estimated combat time: " : "Pre-raid combat estimate: ") + duration(plan.getEstimatedSeconds())
+			+ "<br>Equipment slots: " + equipment + " / " + plan.getEquipmentLimit() + " max"
+			+ "<br>Inventory: " + plan.getInventory().size() + " / 28 · Spellbook: " + plan.getSpellbook()
 			+ "<br>Shared kit to buy: " + (plan.getBuyCost() < 0 ? "unpriced items" : Budget.format(plan.getBuyCost()))));
 		summary.setName("raidSearchSummary");
+		summary.setFont(FontManager.getRunescapeSmallFont());
 		summary.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		summary.setToolTipText(combatTimeTooltip(plan));
 		return summary;
 	}
 
-
-	/** One total per boost type, even though every planned bottle has its own inventory cell. */
-	static String boostSummary(RaidPlan plan)
+	/** One line per boost type, even though every planned bottle has its own inventory cell. */
+	static java.util.List<String> boostLines(RaidPlan plan)
 	{
 		Map<Integer, RaidPlan.InventoryItem> boosts = new LinkedHashMap<>();
 		plan.getInventory().stream().filter(item -> item.getBottles() > 0)
 			.forEach(item -> boosts.putIfAbsent(item.getIds().get(0), item));
-		StringBuilder out = new StringBuilder();
-		boosts.values().forEach(item -> out.append("<br>").append(BestGearSetupPanel.escape(item.getName())).append(": ")
-			.append(item.isReusable() ? "1 reusable item" : item.getEstimatedDoses() + " estimated doses / "
-				+ item.getBottles() + " four-dose bottles"));
-		return out.toString();
+		java.util.List<String> out = new java.util.ArrayList<>();
+		boosts.values().forEach(item -> out.add(item.getName() + ": " + (item.isReusable() ? "1 reusable item"
+			: item.getEstimatedDoses() + " estimated doses / " + item.getBottles() + " four-dose bottles")));
+		return out;
 	}
 
 	/** Each boss's share of the raid's estimated combat time, in room order, and what the estimate leaves out. */
@@ -150,7 +152,8 @@ class RaidResultView extends JPanel
 			+ (plan.getPartySize() > 1 ? ", party of " + plan.getPartySize() : "") + ":");
 		bosses.forEach((boss, seconds) -> out.append("<br>").append(BestGearSetupPanel.escape(boss)).append(": ").append(duration(seconds)));
 		if (plan.getPartySize() > 1) { out.append("<br>Assumes each teammate matches your DPS."); }
-		return out.append("<br><br>Puzzles, walking and downtime between rooms are excluded.</html>").toString();
+		return out.append(plan.getType().isBossFight() ? "<br><br>Downtime between phases is excluded.</html>"
+			: "<br><br>Puzzles, walking and downtime between rooms are excluded.</html>").toString();
 	}
 
 	/** Seconds as "45s", "3m 05s" or "1h 02m"; "unknown" when a setup can't deal damage. */

@@ -145,10 +145,10 @@ public class RaidEncounter
 
 	/** Swaps a quick switch may make unless the player chooses otherwise: the weapon and one other piece. */
 	public static final int DEFAULT_SWITCH_LIMIT = 2;
-	/** The highest swap limit offered; larger switches search slowly and are rarely made mid-fight. */
-	public static final int MAX_SWITCH_LIMIT = 6;
+	/** The highest swap limit offered: every equipment slot, a whole setup ({@link Slot}; a constant for the config range). */
+	public static final int MAX_SWITCH_LIMIT = 11;
 	/** A freeze switch may swap every slot: it swaps as few as reach the freeze accuracy ({@link FreezeDuty}). */
-	static final int FREEZE_SWITCH_LIMIT = Slot.values().length;
+	static final int FREEZE_SWITCH_LIMIT = MAX_SWITCH_LIMIT;
 	/**
 	 * A freeze adds no combat time; each item its switch swaps weighs this much in the kit's objective (casting by hand
 	 * more than any switch, {@link FreezeDuty#burden}), so autocasting and fewer items win between otherwise equal

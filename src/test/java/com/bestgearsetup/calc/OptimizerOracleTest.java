@@ -589,9 +589,16 @@ public class OptimizerOracleTest
 			}
 		}
 
+		/** A locked item counts as owned, whatever the mode, held quantity or budget. */
+		private boolean locked(GearItem item)
+		{
+			SlotLock lock = item.getSlot() == null ? null : s.getLocks().get(item.getSlot());
+			return lock != null && lock.getKind() == SlotLock.Kind.ITEM && find(item.getSlot(), lock.getItemId()) == item;
+		}
+
 		private boolean owns(GearItem item)
 		{
-			if (c.owned.contains(item.getId()))
+			if (locked(item) || c.owned.contains(item.getId()))
 			{
 				return true;
 			}
@@ -622,7 +629,7 @@ public class OptimizerOracleTest
 		/** Units of the requested ammunition still to buy. */
 		private long shortfall(GearItem item)
 		{
-			if (s.getAmmoCount() <= 0 || !WeaponRules.consumedPerAttack(item))
+			if (s.getAmmoCount() <= 0 || !WeaponRules.consumedPerAttack(item) || locked(item))
 			{
 				return 0;
 			}

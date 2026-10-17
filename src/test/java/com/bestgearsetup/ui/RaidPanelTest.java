@@ -109,6 +109,114 @@ public class RaidPanelTest
 		});
 	}
 
+	@Test public void searchingAMultiPhaseBossPlansItsFullFightAndKeepsEachPhase() throws Exception
+	{
+		GameData data = new GameDataLoader(new Gson()).loadGameData();
+		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
+		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
+		ItemManager images = mock(ItemManager.class);
+		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
+		List<RaidEncounter> encounters = RaidPlanType.ZULRAH.encounters(data);
+		GearItem weapon = new GearItem(); weapon.setId(100); weapon.setName("weapon"); weapon.setSlot(Slot.WEAPON);
+		SetupResult setup = setup(weapon);
+		RaidPlan plan = new RaidPlan(RaidPlanType.ZULRAH, RaidSpellbook.STANDARD, encounters,
+			Collections.nCopies(encounters.size(), result(setup)), Collections.nCopies(encounters.size(), setup),
+			Collections.singletonList(weapon), Collections.emptyList(), 15, 0);
+		SwingUtilities.invokeAndWait(() ->
+		{
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, images, null, null);
+			panel.onDataLoaded(data);
+			panel.searchField.setText("zulrah");
+			((javax.swing.JTextField) components(panel.searchField).stream().filter(c -> c instanceof javax.swing.JTextField)
+				.findFirst().get()).postActionEvent();
+			// The full fight is the default, listed first among the versions.
+			assertEquals(RaidPlanType.ZULRAH, panel.getRaidType());
+			assertEquals("zulrah (serpentine)", panel.selected.getName());
+			assertEquals("Zulrah", panel.searchField.getText());
+			verify(plugin).findBestSetup(panel.selected);
+			assertTrue(panel.versionRow.isVisible());
+			assertEquals(4, panel.versionBox.getItemCount());
+			assertEquals(RaidPlanType.ZULRAH, panel.versionBox.getItemAt(0));
+			assertEquals(RaidPlanType.ZULRAH, panel.versionBox.getSelectedItem());
+
+			panel.showRaidResults(plan, encounters.get(0).getTarget());
+			// One boss needs no boss selector; its planned phases get their own row under the versions.
+			assertFalse(panel.encounterBox.isVisible());
+			assertEquals(panel.versionRow, panel.versionBox.getParent());
+			assertEquals(panel.fightPhaseRow, panel.raidVersionBox.getParent());
+			assertTrue(panel.fightPhaseRow.isVisible());
+			assertEquals(3, panel.raidVersionBox.getItemCount());
+			panel.raidVersionBox.setSelectedIndex(2);
+			assertEquals("zulrah (tanzanite)", panel.selected.getName());
+			assertTrue("Browsing phases keeps the full fight", panel.getRaidType() == RaidPlanType.ZULRAH);
+
+			// Each phase is still searchable on its own.
+			MonsterSummary magma = data.getMonsters().stream().filter(m -> m.getName().equals("zulrah (magma)")).findFirst().get();
+			panel.versionBox.setSelectedItem(magma);
+			assertEquals(RaidPlanType.SINGLE, panel.getRaidType());
+			assertFalse(panel.fightPhaseRow.isVisible());
+			verify(plugin).findBestSetup(magma);
+			// Back to the full fight, opening on the phase shown.
+			panel.versionBox.setSelectedItem(RaidPlanType.ZULRAH);
+			assertEquals(RaidPlanType.ZULRAH, panel.getRaidType());
+			assertEquals(magma, panel.selected);
+			// A right-clicked phase opens the full fight too.
+			panel.clearSearch();
+			panel.selectMonster(magma, true);
+			assertEquals(RaidPlanType.ZULRAH, panel.getRaidType());
+
+			// Tab reaches Version before the planned Kit target, and the boss state and attack style selectors too.
+			panel.showRaidResults(plan, encounters.get(0).getTarget());
+			assertTrue(panel.versionBox.isFocusable());
+			assertTrue(panel.phaseBox.isFocusable());
+			assertTrue(panel.raidStyleBox.isFocusable());
+			// Swing tabs in layout order, so Version comes first.
+			List<Component> flow = components(panel);
+			assertTrue(flow.contains(panel.versionBox));
+			assertTrue("Kit target follows Version", flow.indexOf(panel.versionBox) < flow.indexOf(panel.raidVersionBox));
+		});
+	}
+
+	@Test public void fightPhaseListsEveryTargetOfTheFight() throws Exception
+	{
+		GameData data = new GameDataLoader(new Gson()).loadGameData();
+		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
+		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
+		ItemManager images = mock(ItemManager.class);
+		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
+		List<RaidEncounter> encounters = RaidPlanType.YAMA.encounters(data);
+		GearItem weapon = new GearItem(); weapon.setId(100); weapon.setName("weapon"); weapon.setSlot(Slot.WEAPON);
+		SetupResult setup = setup(weapon);
+		RaidPlan plan = new RaidPlan(RaidPlanType.YAMA, RaidSpellbook.STANDARD, encounters,
+			Collections.nCopies(encounters.size(), result(setup)), Collections.nCopies(encounters.size(), setup),
+			Collections.singletonList(weapon), Collections.emptyList(), 15, 0);
+		SwingUtilities.invokeAndWait(() ->
+		{
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, images, null, null);
+			panel.onDataLoaded(data);
+			panel.selectRaid(RaidPlanType.YAMA);
+			panel.showRaidResults(plan, encounters.get(0).getTarget());
+			assertFalse(panel.encounterBox.isVisible());
+			List<RaidEncounter> listed = new ArrayList<>();
+			for (int index = 0; index < panel.raidVersionBox.getItemCount(); index++) { listed.add(panel.raidVersionBox.getItemAt(index)); }
+			assertEquals(encounters, listed);
+			RaidEncounter judge = encounters.stream().filter(e -> e.getTarget().getName().equals("judge of yama")).findFirst().get();
+			panel.raidVersionBox.setSelectedItem(judge);
+			assertEquals(judge.getTarget(), panel.selected);
+			// The Judge is named in the list, with how many are fought; Yama's own phases keep their version names.
+			javax.swing.JLabel shown = (javax.swing.JLabel) panel.raidVersionBox.getRenderer().getListCellRendererComponent(
+				new javax.swing.JList<>(), judge, 0, false, false);
+			assertEquals("Judge Of Yama: Melee (2)", shown.getText());
+			shown = (javax.swing.JLabel) panel.raidVersionBox.getRenderer().getListCellRendererComponent(
+				new javax.swing.JList<>(), encounters.get(0), 0, false, false);
+			assertEquals("Normal", shown.getText());
+		});
+	}
+
 	@Test public void selectingRaidStartsAtFirstBossAndManualSelectionReturnsToSingle() throws Exception
 	{
 		GameData data = new GameDataLoader(new Gson()).loadGameData();
@@ -239,10 +347,9 @@ public class RaidPanelTest
 			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, images, null, null);
 			panel.showRaidResults(plan, one);
 			javax.swing.JLabel summary = (javax.swing.JLabel) named(panel, "raidSearchSummary");
-			assertFalse("Raid summary starts collapsed", summary.getParent().getParent().isVisible());
-			((javax.swing.JButton) named(panel, "searchDetailsToggle")).doClick();
-			assertTrue("Search details reveals raid summary", summary.getParent().getParent().isVisible());
-			assertFalse(((javax.swing.JLabel) named(panel, "searchDetails")).getText().contains("bounded search"));
+			assertTrue("The kit summary is shown without expanding Search details", summary.isVisible());
+			// The plan has no notes, so there is nothing left for Search details to hold.
+			assertFalse(components(panel).stream().anyMatch(c -> "searchDetails".equals(c.getName())));
 			assertTrue(summary.getText().contains("Estimated combat time: 1m 20s"));
 			assertTrue(summary.getToolTipText().contains("First Boss: 20s<br>Second Boss: 1m 00s"));
 			assertTrue(summary.getToolTipText().contains("Puzzles, walking and downtime"));

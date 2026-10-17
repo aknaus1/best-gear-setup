@@ -363,6 +363,67 @@ public class RaidSearchTest
 		}
 	}
 
+	@Test public void bossFightsPlanOneSoloKitWithQuickSwitchesWithinTheLimit() throws Exception
+	{
+		GameDataLoader loader = new GameDataLoader(new Gson());
+		GameData full = loader.loadGameData();
+		Set<String> names = new HashSet<>(Arrays.asList("abyssal whip", "dragon halberd", "magic shortbow", "trident of the swamp",
+			"rune arrow", "rune platebody", "black d'hide body", "mystic robe top", "ava's accumulator"));
+		Map<String, List<GearItem>> equipment = new HashMap<>();
+		List<GearItem> weapons = new ArrayList<>();
+		Set<Integer> owned = new HashSet<>();
+		Map<Integer, Long> quantities = new HashMap<>();
+		for (Slot slot : Slot.values())
+		{
+			List<GearItem> selected = new ArrayList<>();
+			for (GearItem item : full.getItems(slot))
+			{
+				if (names.contains(item.getName())) { selected.add(item); owned.add(item.getId()); quantities.put(item.getId(), 1000L); }
+			}
+			if (slot == Slot.WEAPON) { weapons.addAll(selected); }
+			else { equipment.put(slot.getApiKey(), selected); }
+		}
+		GameData data = new GameData(full.getMonsters(), equipment, weapons, full.getSpells(), Collections.emptyMap(), Collections.emptyMap());
+		BestGearSetupConfig config = new BestGearSetupConfig()
+		{
+			@Override public SearchMode mode() { return SearchMode.OWNED_ONLY; }
+			@Override public SearchDepth searchDepth() { return SearchDepth.FAST; }
+			@Override public boolean killSpecials() { return false; }
+			@Override public boolean usePrayers() { return false; }
+			@Override public boolean requireFireProtection() { return false; }
+			@Override public int raidPartySize() { return 5; }
+			@Override public int quickSwitchLimit() { return 3; }
+		};
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.config = config;
+		plugin.panel = mock(BestGearSetupPanel.class);
+		plugin.api = loader;
+		RaidPlan[] result = {null};
+		doAnswer(call -> { result[0] = call.getArgument(0); return null; }).when(plugin.panel).showRaidResults(any(RaidPlan.class), any());
+		for (RaidPlanType type : RaidPlanType.values())
+		{
+			if (!type.isBossFight()) { continue; }
+			result[0] = null;
+			plugin.runRaidSearch(data, type.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
+				Collections.emptySet(), true, 99, Collections.emptyMap(), owned, quantities, 0, config, new LiveRaid(),
+				Collections.emptyList(), type, (java.util.function.DoubleConsumer) percent -> { });
+			SwingUtilities.invokeAndWait(() -> { });
+			RaidPlan plan = result[0];
+			assertNotNull(type.toString(), plan);
+			assertEquals(type.toString(), 1, plan.getPartySize());
+			assertEquals(type.encounters(data).size(), plan.getSetups().size());
+			// One phase wears the full setup and every other is a quick switch from it, within the swap limit.
+			int[] group = RaidEncounter.switchGroups(plan.getEncounters()).get(0);
+			int[] fullSetup = RaidPlanner.fullSetupChoice(plan.getEncounters(), plan.getResults(), plan.getSetups());
+			assertNotNull(type.toString(), fullSetup);
+			for (int member : group)
+			{
+				assertTrue(type.toString(), plan.getSetups().get(member).getLoadout()
+					.switchesFrom(plan.getSetups().get(fullSetup[0]).getLoadout()) <= 3);
+			}
+			assertTrue(plan.getSetups().stream().allMatch(s -> s.getDps().getPrimaryDps() > 0));
+		}
+	}
+
 	@Test public void inventoryOnlyRaidWithNothingCarriedPointsAtTheMode() throws Exception
 	{
 		GameDataLoader loader = new GameDataLoader(new Gson());
@@ -388,6 +449,42 @@ public class RaidSearchTest
 			assertTrue(e.getMessage(), e.getMessage().contains("No usable setup for Baboon Brawlers"));
 			assertTrue(e.getMessage(), e.getMessage().contains("Only your inventory and worn equipment are used"));
 		}
+	}
+
+	@Test public void unownedLockedItemIsWornInEveryPhase() throws Exception
+	{
+		GameDataLoader loader = new GameDataLoader(new Gson());
+		GameData data = loader.loadGameData();
+		Set<Integer> owned = new HashSet<>();
+		Map<Integer, Long> quantities = new HashMap<>();
+		Set<String> names = new HashSet<>(Arrays.asList("toxic blowpipe", "trident of the swamp", "black d'hide body", "ring of suffering"));
+		for (Slot slot : Slot.values())
+		{
+			for (GearItem item : data.getItems(slot))
+			{
+				if (names.contains(item.getName())) { owned.add(item.getId()); quantities.put(item.getId(), 1000L); }
+			}
+		}
+		// Owning the plain ring doesn't own the imbued one, but a lock counts as owned.
+		GearItem imbued = data.getItems(Slot.RING).stream().filter(item -> item.getName().equals("ring of suffering (ri)"))
+			.findFirst().get();
+		BestGearSetupConfig config = new BestGearSetupConfig()
+		{
+			@Override public SearchMode mode() { return SearchMode.OWNED_ONLY; }
+			@Override public SearchDepth searchDepth() { return SearchDepth.FAST; }
+			@Override public String locks() { return "RING:" + imbued.getId(); }
+		};
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin(); plugin.config = config;
+		plugin.panel = mock(BestGearSetupPanel.class);
+		plugin.api = loader;
+		RaidPlan[] result = {null};
+		doAnswer(call -> { result[0] = call.getArgument(0); return null; }).when(plugin.panel).showRaidResults(any(RaidPlan.class), any());
+		plugin.runRaidSearch(data, RaidPlanType.ZULRAH.encounters(data).get(0).getTarget(), PlayerLevels.maxed(), false,
+			Collections.emptySet(), true, 99, Collections.emptyMap(), owned, quantities, 0, config,
+			new LiveRaid(), Collections.emptyList(), RaidPlanType.ZULRAH, (java.util.function.DoubleConsumer) percent -> { });
+		SwingUtilities.invokeAndWait(() -> { });
+		assertNotNull(result[0]);
+		assertTrue(result[0].getSetups().stream().allMatch(setup -> setup.getLoadout().get(Slot.RING) == imbued));
 	}
 
 	@Test public void spellbooksShareOnlyNonMagicSearchesAndPlanTheSameKits() throws Exception

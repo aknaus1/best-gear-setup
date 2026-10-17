@@ -36,13 +36,15 @@ class FightOptionsPanel extends JPanel
 	 * learn they exist, so the Fight button flags them until they have been shown.
 	 */
 	private static final String[] TARGET_OPTIONS = {"autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel",
-		"toaStartingPathLevel", "toaWalkThePath", "toaMoreOverlords", "coxChallengeMode", "miningLevel", "raidEquipmentLimit",
-		"raidSpellbook", "toaPathOrder", "tobRole", "quickSwitchLimit", "forinthrySurge", "killsPerTrip"};
+		"toaStartingPathLevel", "toaWalkThePath", "toaMoreOverlords", "coxChallengeMode", "miningLevel", "toaPathOrder",
+		"tobRole", "raidEquipmentLimit", "raidSpellbook", "quickSwitchLimit", "forinthrySurge", "killsPerTrip"};
 	/** Wide enough for the largest maximum shown here (2000 damage). */
 	private static final int SPINNER_COLUMNS = 4;
 	private final SettingRows settingRows;
 	private final BestGearSetupConfig config;
 	private final SidebarSection raidSection;
+	/** What a raid or boss fight plan may pack: equipment slots, spellbook and quick-switch swaps. */
+	private final SidebarSection kitSection;
 	private final SidebarSection preparationSection;
 	private final String wildernessTip;
 	private final String spellbookTip;
@@ -81,9 +83,12 @@ class FightOptionsPanel extends JPanel
 		raidSection = accordion.create("raidScaling", "Raid");
 		raidSection.showAsEditor();
 		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "toaStartingPathLevel", "toaWalkThePath",
-			"toaMoreOverlords", "coxChallengeMode", "miningLevel",
-			"raidEquipmentLimit", "raidSpellbook", "toaPathOrder", "tobRole", "quickSwitchLimit");
+			"toaMoreOverlords", "coxChallengeMode", "miningLevel", "toaPathOrder", "tobRole");
 		add(BestGearSetupPanel.left(raidSection));
+		kitSection = accordion.create("kit", "Kit");
+		kitSection.showAsEditor();
+		addRows(kitSection, "raidEquipmentLimit", "raidSpellbook", "quickSwitchLimit");
+		add(BestGearSetupPanel.left(kitSection));
 		// Collapsed by default: most searches start from the target's full stats.
 		preparationSection = accordion.create("preparation", "Pre-fight preparation");
 		preparationSection.setToolTipText("Successful specials and defence reductions landed before the fight starts");
@@ -138,7 +143,10 @@ class FightOptionsPanel extends JPanel
 		RaidScaling.Raid raid = RaidScaling.raid(target);
 		// A complete raid keeps its settings visible even on unscaled puzzle targets such as the ToA baboons.
 		boolean planned = raidPlan != RaidPlanType.SINGLE;
-		raidSection.getParent().setVisible(raid != RaidScaling.Raid.NONE || planned);
+		// A boss fight is planned solo, outside any raid, so only its kit settings apply.
+		boolean fight = raidPlan.isBossFight();
+		raidSection.getParent().setVisible(raid != RaidScaling.Raid.NONE || planned && !fight);
+		kitSection.getParent().setVisible(planned);
 		settingRows.row("raidPartySize").setVisible(raid != RaidScaling.Raid.NONE || planned);
 		settingRows.row("toaRaidLevel").setVisible(raid == RaidScaling.Raid.TOA || raidPlan == RaidPlanType.TOA);
 		settingRows.row("toaPathLevel").setVisible(raidPlan == RaidPlanType.SINGLE && raid == RaidScaling.Raid.TOA && RaidScaling.toaPath(target));
@@ -150,8 +158,8 @@ class FightOptionsPanel extends JPanel
 			|| (raid == RaidScaling.Raid.COX && target.getName().contains("guardian")));
 		settingRows.row("toaPathOrder").setVisible(raidPlan == RaidPlanType.TOA);
 		settingRows.row("tobRole").setVisible(raidPlan == RaidPlanType.TOB);
-		// Only these raids have quick-switch groups: the ToB Vasilias forms and the ToA baboons.
-		settingRows.row("quickSwitchLimit").setVisible(raidPlan == RaidPlanType.TOB || raidPlan == RaidPlanType.TOA);
+		// Only these plans have quick-switch groups: the ToB Vasilias forms, the ToA baboons and a boss fight's phases.
+		settingRows.row("quickSwitchLimit").setVisible(raidPlan == RaidPlanType.TOB || raidPlan == RaidPlanType.TOA || fight);
 		boolean freeze = raidPlan == RaidPlanType.TOB
 			&& ((RaidOptions.TobRole) ((JComboBox<?>) control("tobRole")).getSelectedItem()).freezes();
 		if (freeze) { settingRows.showChoice("raidSpellbook", RaidSpellbook.ANCIENT); }

@@ -153,7 +153,7 @@ to Auto** if any are saved.
   max hit from the style it's weak to. They form a switch group like the Vasilias forms: one baboon wears a
   full setup and the others are quick switches from it. Accuracy doesn't matter against them, so a switch
   only swaps pieces that raise the max hit. Ba-Ba herself is planned on her own.
-- **Quick switch swaps** (under **Fight → Raid**, 1-6, default 2) is the most swaps a quick switch may make,
+- **Quick switch swaps** (under **Fight → Kit**, 1-11, default 2; 11 allows a whole setup) is the most swaps a quick switch may make,
   weapon included: the weapon and at most one fewer other pieces. Every quick switch of a group draws its
   extra pieces from the same slots, so switching between any two forms also stays within the limit. It's a
   limit, not a target: a switch is only planned when it beats every smaller switch of the same weapon it
@@ -168,7 +168,7 @@ without ammunition (crystal bows, Tonalztics of Ralos, the Hunter's spear) are u
 special-attack switches, which keep the worn cape (a Zaryte crossbow or blowpipe used as the main weapon still
 needs one). Availability, cape locks, exclusions, budget and Wilderness equipment limits still apply. The original saved setting key is retained.
 
-One **Raid spellbook** is used throughout, subject to the existing allowed spellbooks. Thralls are only
+One **Spellbook** (under **Fight → Kit**) is used throughout, subject to the existing allowed spellbooks. Thralls are only
 assumed on Arceuus. A bounded beam search chooses a shared kit across encounter candidates (between
 equally fast kits, the one built from the faster partial kit and higher-ranked room setup); when needed,
 the optimizer compares removing each unlocked switch, and having the starting setup wear an item another
@@ -252,7 +252,7 @@ planner tries each and keeps the fastest kit, preferring the earliest fight on a
 can be worn in for the baboon throwers while the brawlers keep their magic setup. That starting setup is shown
 in the bank and opened by default in the results.
 
-**Raid equipment slots** is a maximum, not a target: a kit may use fewer. It counts unique equipment
+**Equipment slots** (under **Fight → Kit**) is a maximum, not a target: a kit may use fewer. It counts unique equipment
 carried at entry after subtracting the starting worn gear, including special weapons, off-hands and spare
 ammo stacks, plus the rune pouch, rune stacks left outside it and a carried Book of the dead (a worn book is
 already equipment). Starting worn gear, loaded blowpipe darts and runes inside the pouch do not consume that
@@ -314,6 +314,30 @@ In an existing raid plan, combat updates optimize one encounter using the select
 changes to search preferences or ownership re-plan the full raid. Automatic combat targeting does not
 open the sidebar or perform any game action.
 
+### Boss full fights
+
+Searching a boss with several phases plans its **Full fight** by default, listed first under **Version**;
+each phase stays searchable on its own below it. The fight is planned like a raid kit, but solo, with no raid
+supplies, raid scaling or live raid progress, and with the search's Slayer task and Wilderness conditions.
+Every target of the fight is one quick-switch group: one setup is worn and every other phase or add is a
+quick switch from it, within **Quick switch swaps**. **Kit target** lists them all in fight order, and the
+search suggestion is tagged **Full fight**; **Version** offers each phase on its own as **Only** that phase.
+
+Each phase deals its share of the boss's HP, from Wiki thresholds unless noted:
+
+- **Zulrah:** serpentine 24/47, magma 8/47, tanzanite 15/47, by how often each form appears over the four
+  rotations (an estimate; phases differ in length).
+- **Alchemical Hydra:** a quarter per phase. **Araxxor:** 75% before his enrage, 25% after, plus one
+  mirrorback and one acidic araxyte per kill (an estimate; ruptura araxytes are lured to explode, not attacked).
+- **Kalphite Queen, Vet'ion, Calvar'ion:** each form has its own HP. Vet'ion and Calvar'ion add two skeleton
+  hellhounds in each form.
+- **Phantom Muspah:** ranged and melee forms split the HP above its shield (127 HP) 100:80; the shield,
+  drained with Smite, isn't planned.
+- **Abyssal Sire:** the four respiratory systems, then phase 2 to 210 HP, phase 3 to 140 HP and its last
+  stage. Phase 1 is shown with the kit's setup but doesn't shape the kit. Tentacles, spawns and scions aren't planned.
+- **Yama:** two thirds before phase 3 and a third after, two Judges of Yama, each half melee and half magic since it prays against your last style, a fire and a
+  shadow void flare in each of phases 1 and 2, and four half-health flares in phase 3 (an estimate).
+
 ## Items, ownership and prices
 
 - **Owned items**: the plugin remembers your bank (once you've opened it), inventory and worn equipment,
@@ -330,6 +354,9 @@ open the sidebar or perform any game action.
   reuse after restarting the client. Keys are deterministic SHA-256 fingerprints of the calculation inputs,
   including the runtime catalogue, source type, settings, prices, ownership and live encounter context.
   An installed code/resource fingerprint and cache schema must also match before a saved result is loaded.
+  A full fight's plan is cached and saved like a raid's, in the same store. Its key leaves out the phase the
+  fight was opened from, unless landed specs or detected notes apply to that phase's encounters (then it keeps
+  their labels), and Boss state, which each phase sets for itself; reopening the fight from another phase reuses it.
   The RS profile is synced per account, so the profile store keeps at most 12 raids within 640 KiB and
   64 single-target encounters within 1,152 KiB of encoded text (under 1.75 MiB in all); oldest saved entries
   are pruned to meet either limit, and a result larger than its category's budget remains memory-only. A raid
@@ -624,9 +651,10 @@ follows the raid you're in.
   are listed with a remove button, and the search reruns automatically.
 - **Lock any item**: right-click any slot in a result and pick **Lock (slot) to another item...**, or use
   **Lock any item** in the Gear view. Search for the item (for example a lightbearer for the ring slot) and
-  click it. The slot filter limits the search to one slot. Locking an excluded item restores it. If the
-  locked item can't be used (not owned in *Owned items only*, levels too low, members items off...), the
-  slot is left empty, its padlock turns red and the reason is shown above the results.
+  click it. The slot filter limits the search to one slot. Locking an excluded item restores it. A locked
+  item counts as owned in every mode, and costs nothing against the budget. If it still can't be used
+  (levels too low, members items off...), the slot is left empty, its padlock turns red and the reason is
+  shown above the results.
 - **Marked as owned**: search for any item and mark it as owned. This is for things the bank scan can't
   see (the POH costume room, items on another account...).
 
@@ -721,7 +749,7 @@ effect is explained above the results and in the max-hit tooltip.
   overly broad melee-only tag, so reduced-damage Magic is still an option.
 - **Ice Demon:** takes a third of the damage, except from fire spells and demonbane attacks.
 - **Tormented Demon:** its fire shield cuts damage by 20%, except from demonbane and abyssal melee attacks.
-  Use **Boss phase** for the unshielded state or the shielded-but-defenceless state. These are snapshots:
+  Use **Boss state** for the unshielded state or the shielded-but-defenceless state. These are snapshots:
   shield cycling and the unshielded speed and damage bonus aren't averaged over a whole fight.
 - **Corporeal Beast:** takes half damage except from Magic and qualifying stab attacks (the fang,
   polearms, and spears other than the blue moon spear). Ruby bolt replacement hits bypass Corp's halving.
@@ -1038,9 +1066,9 @@ damage per special instead. The energy cost is shown on each result. Energy rege
 and switching between a spec weapon and a main weapon aren't simulated in this mode. The abyssal bludgeon
 assumes full Prayer, and the Ancient godsword's delayed blood sacrifice isn't included.
 
-### Boss phases
+### Boss states
 
-**Boss phase** picks a temporary state:
+**Boss state** (below Version) picks a temporary state:
 
 - Hueycoatl with the pillar buff: head and tail hits ×1.3 after the tail's caps.
 - Royal Titans out of melee range: ranged attack roll ×6.

@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,12 +50,35 @@ final class SearchInputs
 		Map<Integer, Long> prices, Set<Integer> owned, Map<Integer, Long> quantities,
 		BestGearSetupConfig config, LiveRaid live, List<String> notes, boolean encounter)
 	{
+		return capture(data, source, Arrays.asList(target.getId(), target.getName(), target.getCombatLevel(), target.isBoss(),
+			target.getAttributes(), target.getIds()), levels, remembered, prayers, diary, karuulm, mining, prices, owned,
+			quantities, config, live, notes, settings(config, encounter));
+	}
+
+	/**
+	 * A full fight's plan, which is the same whichever of its phases it was searched from: {@code searchedFrom}
+	 * ({@link FightSearchKey#searchedFrom}) stands in for the target, and the settings each phase sets for itself are
+	 * left out.
+	 */
+	static SearchInputs captureFight(GameData data, Object source, List<String> searchedFrom, PlayerLevels levels,
+		boolean remembered, Set<String> prayers, Boolean diary, int mining, Map<Integer, Long> prices, Set<Integer> owned,
+		Map<Integer, Long> quantities, BestGearSetupConfig config, LiveRaid live, List<String> notes)
+	{
+		Map<String, Object> settings = new LinkedHashMap<>(settings(config, false));
+		settings.keySet().removeAll(FightSearchKey.PER_PHASE);
+		return capture(data, source, Arrays.asList("full fight", searchedFrom), levels, remembered, prayers, diary, false,
+			mining, prices, owned, quantities, config, live, notes, Collections.unmodifiableMap(settings));
+	}
+
+	private static SearchInputs capture(GameData data, Object source, List<Object> target, PlayerLevels levels,
+		boolean remembered, Set<String> prayers, Boolean diary, boolean karuulm, int mining,
+		Map<Integer, Long> prices, Set<Integer> owned, Map<Integer, Long> quantities,
+		BestGearSetupConfig config, LiveRaid live, List<String> notes, Map<String, Object> settings)
+	{
 		return new SearchInputs(Arrays.asList(CacheIdentity.data(data), source == null ? null : source.getClass().getName(),
-			Arrays.asList(target.getId(), target.getName(), target.getCombatLevel(), target.isBoss(),
-				target.getAttributes(), target.getIds()),
-			levels, remembered, prayers, diary, karuulm, mining, pricesMatter(config) ? prices : null,
+			target, levels, remembered, prayers, diary, karuulm, mining, pricesMatter(config) ? prices : null,
 			Arrays.asList(relevantOwned(data, owned).stream().filter(id -> !live.adaptive() || !SpellRunes.isCarriedSupply(id))
-				.collect(Collectors.toSet()), ammunition(data, quantities, config.ammoCount())), settings(config, encounter),
+				.collect(Collectors.toSet()), ammunition(data, quantities, config.ammoCount())), settings,
 			live.values, live.pathLevels, live.maxCombat, live.raidDetected, live.combat, live.spellSupplies, notes), data);
 	}
 
