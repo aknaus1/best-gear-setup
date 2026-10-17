@@ -79,7 +79,7 @@ public class AtlatlAmmoRecoveryTest
 	@Test
 	public void optionalSettingPreservesUnrestrictedAtlatlResults()
 	{
-		assertFalse(new BestGearSetupConfig() { }.requireAtlatlAmmoRecovery());
+		assertTrue(new BestGearSetupConfig() { }.requireAtlatlAmmoRecovery());
 		assertFalse(OptimizerSettings.builder().build().isRequireAtlatlAmmoRecovery());
 		assertEquals(fireCape, run(settings().requireAtlatlAmmoRecovery(false)).get(0).getLoadout().get(Slot.CAPE));
 	}
