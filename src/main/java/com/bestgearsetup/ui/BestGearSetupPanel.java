@@ -1382,7 +1382,11 @@ public class BestGearSetupPanel extends PluginPanel
 		name.setFont(FontManager.getRunescapeSmallFont());
 		name.setForeground(ColorScheme.BRAND_ORANGE);
 		row.add(name, BorderLayout.CENTER);
-		row.setToolTipText("Full raid with a shared equipment kit and inventory");
+		JLabel beta = new JLabel("Beta");
+		beta.setFont(FontManager.getRunescapeSmallFont());
+		beta.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		row.add(beta, BorderLayout.EAST);
+		row.setToolTipText("Raid search (beta): full raid with a shared equipment kit and inventory");
 		row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		row.addMouseListener(new MouseAdapter()
 		{
