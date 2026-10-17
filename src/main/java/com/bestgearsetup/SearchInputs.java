@@ -21,7 +21,8 @@ final class SearchInputs
 {
 	/** Settings that only affect presentation or which search is selected. */
 	static final Set<String> PRESENTATION = Set.of("activeEncounter", "showMenuOption", "highlightBankGear",
-		"bankHighlightColor", "highlightInventoryGear", "inventoryHighlightColor", "fillFood", "bossesOnly", "seenFightOptions");
+		"bankHighlightColor", "highlightInventoryGear", "inventoryHighlightColor", "fillFood", "bossesOnly", "seenFightOptions",
+		"travelTeleport", "shortestPathRoute");
 	/** Kit selection settings: computeSearch receives the resolved styles and spellbook separately, and applies the boost timing to cached and new results alike. */
 	static final Set<String> KIT_ONLY = Set.of("raidEquipmentLimit", "raidStyles", "tobRole", "raidSpellbook",
 		"divinePotions", "repotBelow", "killsPerTrip");

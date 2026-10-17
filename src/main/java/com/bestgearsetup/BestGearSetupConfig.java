@@ -75,6 +75,8 @@ public interface BestGearSetupConfig extends Config
 	String BANK_HIGHLIGHT_COLOR_KEY = "bankHighlightColor";
 	String HIGHLIGHT_INVENTORY_GEAR_KEY = "highlightInventoryGear";
 	String INVENTORY_HIGHLIGHT_COLOR_KEY = "inventoryHighlightColor";
+	String TRAVEL_TELEPORT_KEY = "travelTeleport";
+	String SHORTEST_PATH_KEY = "shortestPathRoute";
 
 	@ConfigSection(
 		name = "Search options",
@@ -180,6 +182,23 @@ public interface BestGearSetupConfig extends Config
 	default boolean fillFood()
 	{
 		return SearchAssumptions.value(this, "fillFood", true);
+	}
+
+	@ConfigItem(keyName = TRAVEL_TELEPORT_KEY, name = "Suggest a teleport",
+		description = "When you're far from the selected boss, suggest a teleport item and add it to the bank layout",
+		section = displaySection, position = 6)
+	default boolean travelTeleport()
+	{
+		return SearchAssumptions.value(this, TRAVEL_TELEPORT_KEY, true);
+	}
+
+	@ConfigItem(keyName = SHORTEST_PATH_KEY, name = "Ask Shortest Path",
+		description = "If the Shortest Path plugin is installed, ask it for the route to the selected boss, prefer the "
+			+ "teleport it uses, and offer to show the route",
+		section = displaySection, position = 7)
+	default boolean shortestPathRoute()
+	{
+		return SearchAssumptions.value(this, SHORTEST_PATH_KEY, false);
 	}
 
 	// ------------------------------------------------------------ search

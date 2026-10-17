@@ -16,6 +16,8 @@ is what the Plugin Hub shows.
   inventory and the bank layout now place boosts, runes and pouches in their inventory slots.
 - Fill a single search's free inventory slots with the best-healing food you own (sharks if none), in the panel
   and the bank layout, and outline it in the bank. Raid kits are unchanged; turn it off with Fill inventory with food.
+- Suggest a teleport when you're far from the selected boss and add it to the bank layout; optionally
+  ask the Shortest Path plugin for the route and show it.
 
 ## 1.1.1 (2026-10-17)
 

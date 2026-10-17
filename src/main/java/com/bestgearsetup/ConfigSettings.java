@@ -34,6 +34,8 @@ public final class ConfigSettings
 		add("highlightInventoryGear", BestGearSetupConfig::highlightInventoryGear);
 		add("inventoryHighlightColor", BestGearSetupConfig::inventoryHighlightColor);
 		add("fillFood", BestGearSetupConfig::fillFood);
+		add("travelTeleport", BestGearSetupConfig::travelTeleport);
+		add("shortestPathRoute", BestGearSetupConfig::shortestPathRoute);
 		add("mode", BestGearSetupConfig::mode);
 		add("budget", BestGearSetupConfig::budget);
 		add("bossesOnly", BestGearSetupConfig::bossesOnly);
