@@ -528,6 +528,15 @@ public class Optimizer
 	private List<Loadout> switchStarts(Loadout worn, GearItem weapon)
 	{
 		Loadout start = worn.copy();
+		// A live switch may use a saved base whose gear has since been banked or lost.
+		if (settings.getMode().isHeldOnly())
+		{
+			for (Slot slot : Slot.values())
+			{
+				GearItem item = start.get(slot);
+				if (item != null && !available(item)) { start.set(slot, null); }
+			}
+		}
 		start.set(Slot.WEAPON, weapon);
 		start.setLoadedAmmo(null);
 		if (weapon.isTwoHanded())

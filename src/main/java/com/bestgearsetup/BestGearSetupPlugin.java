@@ -1731,6 +1731,13 @@ public class BestGearSetupPlugin extends Plugin
 			settings = settings.toBuilder().styles(styles).build();
 		}
 		Set<Integer> excludedSupplies = new HashSet<>(settings.getExcluded());
+		if (liveRaid.adaptive())
+		{
+			excludedSupplies.addAll(SpellRunes.missingSupplies(liveRaid.spellSupplies));
+			Set<Integer> spellExclusions = new HashSet<>(settings.getExcludedSupplies());
+			spellExclusions.addAll(SpellRunes.missingSupplies(liveRaid.spellSupplies));
+			settings = settings.toBuilder().excludedSupplies(spellExclusions).build();
+		}
 		Set<Integer> excluded = new HashSet<>(settings.getExcluded());
 		excluded.addAll(extraExcluded);
 		settings = settings.toBuilder().excluded(excluded).build();

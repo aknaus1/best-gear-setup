@@ -255,6 +255,33 @@ public class AdaptiveRaidTest
 		tick(); tick(); assertTrue("Losing every fire substitute invalidates the spell", work().isEmpty());
 	}
 
+	@Test public void missingThrallSuppliesKeepOrdinaryAttacksAndRecoverWhenRestored() throws Exception
+	{
+		plugin.config = SearchAssumptions.capture(plugin.config, Map.of("thrall", true));
+		when(client.getIntStack()).thenReturn(new int[]{2});
+		Map<Integer, Long> supplies = Map.of(4587, 1L, ItemID.BOOK_OF_THE_DEAD, 1L,
+			ItemID.FIRERUNE, 100L, ItemID.BLOODRUNE, 100L, ItemID.COSMICRUNE, 100L);
+		plugin.ownedItems.inventory = supplies; plugin.ownedItems.rebuild(false);
+		tick(); SearchResults complete = work();
+		assertFalse(complete.isEmpty());
+		assertTrue(complete.getByType().values().stream().flatMap(List::stream)
+			.allMatch(s -> s.getSupportSpells().contains(com.bestgearsetup.calc.SupportSpell.THRALL)));
+		for (int missing : new int[]{ItemID.COSMICRUNE, ItemID.BOOK_OF_THE_DEAD})
+		{
+			Map<Integer, Long> reduced = new HashMap<>(supplies); reduced.remove(missing);
+			plugin.ownedItems.inventory = reduced;
+			tick(); tick(); SearchResults ordinary = work();
+			assertFalse("Missing optional supplies must not remove combat gear", ordinary.isEmpty());
+			assertTrue(ordinary.getByType().values().stream().flatMap(List::stream)
+				.allMatch(s -> s.getSupportSpells().isEmpty()));
+			plugin.ownedItems.inventory = supplies;
+			tick(); tick(); SearchResults restored = work();
+			assertFalse(restored.isEmpty());
+			assertTrue(restored.getByType().values().stream().flatMap(List::stream)
+				.allMatch(s -> s.getSupportSpells().contains(com.bestgearsetup.calc.SupportSpell.THRALL)));
+		}
+	}
+
 	@Test public void liveThrallsFollowQuestAndSpellbookEligibility() throws Exception
 	{
 		plugin.config = SearchAssumptions.capture(plugin.config, Map.of("thrall", true));

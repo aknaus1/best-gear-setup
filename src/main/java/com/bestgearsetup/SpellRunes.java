@@ -195,6 +195,17 @@ public final class SpellRunes
 	/** Raw spell supplies are represented by their casting capabilities in live keys, not their item variants. */
 	static boolean isCarriedSupply(int id) { return CARRIED_SUPPLIES.contains(id); }
 
+	/** Canonical supplies unavailable to a live calculation, including optional support spells. */
+	static Set<Integer> missingSupplies(Set<Integer> available)
+	{
+		Set<Integer> missing = new HashSet<>();
+		for (int id : CARRIED_SUPPLIES)
+		{
+			if (isSpellSupply(id) && !available.contains(id)) { missing.add(id); }
+		}
+		return missing;
+	}
+
 	/**
 	 * Canonical rune types available now. Combination and substitute runes contribute every type they replace;
 	 * redundant stacks and their quantities do not change availability. A carried pouch retains the kit's planned

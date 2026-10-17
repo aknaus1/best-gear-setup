@@ -99,6 +99,22 @@ public class RaidSwitchTest
 		assertEquals(2, book.switchesFrom(worn));
 	}
 
+	@Test public void carriedSwitchDoesNotInheritUnavailableArmour()
+	{
+		Loadout saved = new Loadout();
+		saved.set(Slot.WEAPON, named("abyssal whip"));
+		saved.set(Slot.BODY, named("bandos chestplate"));
+		GearItem staff = named("trident of the swamp");
+		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.INVENTORY_ONLY)
+			.styles(Collections.singleton(AttackStyle.Type.MAGIC)).switchFrom(saved).build();
+		CombatContext ctx = new CombatContext(TestData.monster(100, 0), PlayerLevels.maxed(), false, 99, 99, 99, 99,
+			new EnumMap<>(CombatClass.class), false);
+		List<SetupResult> results = new Optimizer(data, ctx, settings, id -> id == staff.getId(), GearItem::getPrice)
+			.optimize(CombatClass.MAGIC, () -> false);
+		assertFalse("A carried weapon still permits a feasible switch", results.isEmpty());
+		assertTrue(results.stream().allMatch(setup -> setup.getLoadout().get(Slot.BODY) == null));
+	}
+
 	@Test public void magicSwitchKeepsAllButTheWeaponAndOnePiece()
 	{
 		Loadout worn = melee();
