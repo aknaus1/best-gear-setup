@@ -102,7 +102,14 @@ class BestGearSetupBankView
 	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
 		IntPredicate owns)
 	{
-		selection = layoutFor(setup, potions, itemIds, owns);
+		setSelection(setup, potions, itemIds, owns, Collections.emptyList());
+	}
+
+	/** As above, with a boss trip's boost bottles ({@link RaidPlan#tripBoosts}) in place of one cell per boost. */
+	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
+		IntPredicate owns, List<RaidPlan.InventoryItem> tripBoosts)
+	{
+		selection = layoutFor(setup, potions, itemIds, owns, tripBoosts);
 	}
 
 	void setRaidSelection(RaidPlan plan, Function<GearItem, List<Integer>> itemIds)
@@ -256,7 +263,14 @@ class BestGearSetupBankView
 	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
 		IntPredicate owns)
 	{
-		return setup == null ? new Layout(false) : layoutFor(setup, RaidPlan.inventoryForSetup(setup, potions, owns),
+		return layoutFor(setup, potions, itemIds, owns, Collections.emptyList());
+	}
+
+	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
+		IntPredicate owns, List<RaidPlan.InventoryItem> tripBoosts)
+	{
+		return setup == null ? new Layout(false) : layoutFor(setup,
+			RaidPlan.withTripBoosts(RaidPlan.inventoryForSetup(setup, potions, owns), tripBoosts),
 			RaidPlan.gear(setup), Collections.emptyList(), Collections.singletonList(setup), itemIds, null);
 	}
 

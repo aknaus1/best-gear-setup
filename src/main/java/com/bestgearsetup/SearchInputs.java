@@ -24,7 +24,7 @@ final class SearchInputs
 		"bankHighlightColor", "highlightInventoryGear", "inventoryHighlightColor", "bossesOnly", "seenFightOptions");
 	/** Kit selection settings: computeSearch receives the resolved styles and spellbook separately, and applies the boost timing to cached and new results alike. */
 	static final Set<String> KIT_ONLY = Set.of("raidEquipmentLimit", "raidStyles", "tobRole", "raidSpellbook",
-		"divinePotions", "repotBelow");
+		"divinePotions", "repotBelow", "killsPerTrip");
 	private static final Map<GameData, Set<Integer>> RELEVANT = Collections.synchronizedMap(new WeakHashMap<>());
 
 	/** Only the fingerprint is kept, so cached keys don't hold copies of the prices and ownership they cover. */

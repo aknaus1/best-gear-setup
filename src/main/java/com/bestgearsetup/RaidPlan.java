@@ -170,7 +170,24 @@ public class RaidPlan
 	/** Supplies and special-attack switches for an individual encounter. */
 	public static List<InventoryItem> inventoryForSetup(SetupResult setup, SearchResults results, IntPredicate owns)
 	{
-		return inventory(Collections.singletonList(setup), Collections.singletonList(results), owns);
+		return withTripBoosts(inventory(Collections.singletonList(setup), Collections.singletonList(results), owns),
+			tripBoosts(setup, results));
+	}
+
+	/**
+	 * The bottles a non-raid boss trip needs for this setup's boosts ({@link BoostTiming#getTripKills} kills), one
+	 * entry per bottle; empty outside such a trip, where boosts are listed once without quantities.
+	 */
+	static List<InventoryItem> tripBoosts(SetupResult setup, SearchResults results)
+	{
+		int kills = results.getBoostTiming().getTripKills();
+		return kills > 0 ? RaidBoostEstimator.trip(results, setup, kills) : Collections.emptyList();
+	}
+
+	/** The inventory carrying a trip's {@link #tripBoosts} in place of its presence-only boosts, when there are any. */
+	static List<InventoryItem> withTripBoosts(List<InventoryItem> inventory, List<InventoryItem> tripBoosts)
+	{
+		return tripBoosts.isEmpty() ? inventory : RaidBoostEstimator.withBoosts(inventory, tripBoosts);
 	}
 
 	/** The same inventory ordering for the bank's selected encounter and boost choices. */

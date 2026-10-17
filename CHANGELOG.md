@@ -3,6 +3,11 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Add Kills per trip (Fight conditions, default 1) for bosses outside raids: the inventory and bank
+  list the boost bottles and doses those kills need, using the divine and repot settings.
+
 ## 1.1.1 (2026-10-17)
 
 - Add Beta raid planning for CM CoX, ToA and ToB: shared kits, encounter setups, spellbook

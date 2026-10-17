@@ -156,6 +156,7 @@ public class SearchAssumptionsTest
 		GETTERS.put("raidPotions", BestGearSetupConfig::raidPotions);
 		GETTERS.put("divinePotions", BestGearSetupConfig::divinePotions);
 		GETTERS.put("repotBelow", BestGearSetupConfig::repotBelow);
+		GETTERS.put("killsPerTrip", BestGearSetupConfig::killsPerTrip);
 		GETTERS.put("taskMode", BestGearSetupConfig::taskMode);
 		GETTERS.put("autoRaid", BestGearSetupConfig::autoRaid);
 		GETTERS.put("autoSpecs", BestGearSetupConfig::autoSpecs);
