@@ -220,6 +220,8 @@ public class RaidPanelTest
 	@Test public void raidSummaryShowsEstimatedCombatTimeByBoss() throws Exception
 	{
 		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
+		net.runelite.client.config.ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
+		when(plugin.getConfigDescriptor()).thenReturn(descriptor);
 		when(plugin.getOwnedItems()).thenReturn(ConfigItemsForTests.emptyOwnedItems());
 		ItemManager images = mock(ItemManager.class);
 		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
@@ -234,11 +236,13 @@ public class RaidPanelTest
 		assertEquals(80, plan.getEstimatedSeconds(), 1e-9);
 		SwingUtilities.invokeAndWait(() ->
 		{
-			RaidResultView view = new RaidResultView(plan, one, null, plugin, images, mock(SpriteCache.class), null, 0,
-				new JComboBox<>(), new JComboBox<>(), encounter -> { });
-			javax.swing.JLabel summary = (javax.swing.JLabel) components(view).stream()
-				.filter(c -> c instanceof javax.swing.JLabel && String.valueOf(((javax.swing.JLabel) c).getText()).contains("Equipment slots"))
-				.findFirst().get();
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, images, null, null);
+			panel.showRaidResults(plan, one);
+			javax.swing.JLabel summary = (javax.swing.JLabel) named(panel, "raidSearchSummary");
+			assertFalse("Raid summary starts collapsed", summary.getParent().getParent().isVisible());
+			((javax.swing.JButton) named(panel, "searchDetailsToggle")).doClick();
+			assertTrue("Search details reveals raid summary", summary.getParent().getParent().isVisible());
+			assertFalse(((javax.swing.JLabel) named(panel, "searchDetails")).getText().contains("bounded search"));
 			assertTrue(summary.getText().contains("Estimated combat time: 1m 20s"));
 			assertTrue(summary.getToolTipText().contains("First Boss: 20s<br>Second Boss: 1m 00s"));
 			assertTrue(summary.getToolTipText().contains("Puzzles, walking and downtime"));
@@ -561,16 +565,16 @@ public class RaidPanelTest
 			assertTrue("No chest text section adds height", components(view).stream()
 				.noneMatch(component -> "coxChestAdvice".equals(component.getName())));
 			javax.swing.JButton toggle = (javax.swing.JButton) named(view, "raidInventoryToggle");
-			assertTrue(toggle.getToolTipText().contains("Next floor (2) preview"));
-			assertTrue(toggle.getToolTipText().contains("Crush Weapon"));
+			assertNull(toggle.getToolTipText());
+
 			JPanel inventory = (JPanel) named(view, "raidInventory");
 			assertFalse("Inventory stays minimized", inventory.isVisible());
 			assertNull(((javax.swing.JComponent) inventory.getComponent(0)).getBorder());
 			selector.setSelectedIndex(1);
-			assertTrue(toggle.getToolTipText().contains("Finished for this raid"));
-			assertFalse(toggle.getToolTipText().contains("preview</b>"));
+			assertNull(toggle.getToolTipText());
+
 			toggle.doClick();
-			assertTrue("Expanding preserves the hover advice", toggle.getToolTipText().contains("Finished for this raid"));
+			assertNull("Inventory heading has no hover text", toggle.getToolTipText());
 			javax.swing.JComponent cell = (javax.swing.JComponent) inventory.getComponent(0);
 			assertNull("Chest guidance does not add boxes to side-panel items", cell.getBorder());
 			assertTrue(cell.getToolTipText().contains("Private chest: Finished for this raid"));

@@ -7,7 +7,6 @@ import com.bestgearsetup.RaidEncounter;
 import com.bestgearsetup.RaidPlan;
 import com.bestgearsetup.SearchResults;
 import com.bestgearsetup.data.MonsterSummary;
-import java.awt.Color;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
 import java.awt.event.ActionListener;
@@ -37,17 +36,6 @@ class RaidResultView extends JPanel
 	{
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setOpaque(false);
-		// Switches, the rune pouch, loose runes and a carried book of the dead count against the limit, a maximum.
-		int equipment = RaidPlan.limitedSlots(plan.getInventory());
-		JLabel summary = new JLabel(BestGearSetupPanel.html((activeResult == null ? "Start wearing <b>" : "Pre-raid starting setup: <b>") + plan.getStartingEncounter().getLabel()
-			+ "</b> gear.<br>Equipment slots: " + equipment + " / " + plan.getEquipmentLimit() + " max"
-			+ "<br>" + (activeResult == null ? "Estimated combat time: " : "Pre-raid combat estimate: ") + duration(plan.getEstimatedSeconds())
-			+ "<br>Spellbook: " + plan.getSpellbook()
-			+ "<br>Inventory: " + plan.getInventory().size() + " / 28. Fill empty slots with supplies."
-			+ boostSummary(plan)
-			+ "<br>Shared kit to buy: " + (plan.getBuyCost() < 0 ? "unpriced items" : Budget.format(plan.getBuyCost()))));
-		summary.setForeground(Color.WHITE);
-		summary.setToolTipText(combatTimeTooltip(plan));
 		InventoryView inventorySection = new InventoryView(items, encounter, "raidInventory", plugin, sprites, ammoCount);
 		detachSelector(encounter);
 		detachSelector(version);
@@ -111,9 +99,25 @@ class RaidResultView extends JPanel
 		encounter.addActionListener(listener);
 		encounter.putClientProperty("raidSelectionListener", listener);
 		add(BestGearSetupPanel.left(detail));
-		add(BestGearSetupPanel.left(summary));
 		plugin.setBankHighlightedRaid(plan);
 		show.run();
+	}
+
+	static JLabel searchSummary(RaidPlan plan, boolean live)
+	{
+		// Switches, the rune pouch, loose runes and a carried book of the dead count against the limit, a maximum.
+		int equipment = RaidPlan.limitedSlots(plan.getInventory());
+		JLabel summary = new JLabel(BestGearSetupPanel.html((!live ? "Start wearing <b>" : "Pre-raid starting setup: <b>") + plan.getStartingEncounter().getLabel()
+			+ "</b> gear.<br>Equipment slots: " + equipment + " / " + plan.getEquipmentLimit() + " max"
+			+ "<br>" + (!live ? "Estimated combat time: " : "Pre-raid combat estimate: ") + duration(plan.getEstimatedSeconds())
+			+ "<br>Spellbook: " + plan.getSpellbook()
+			+ "<br>Inventory: " + plan.getInventory().size() + " / 28."
+			+ boostSummary(plan)
+			+ "<br>Shared kit to buy: " + (plan.getBuyCost() < 0 ? "unpriced items" : Budget.format(plan.getBuyCost()))));
+		summary.setName("raidSearchSummary");
+		summary.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		summary.setToolTipText(combatTimeTooltip(plan));
+		return summary;
 	}
 
 	static String inventoryTooltip(RaidPlan.InventoryItem item) { return InventoryView.tooltip(item); }
@@ -144,9 +148,8 @@ class RaidResultView extends JPanel
 		StringBuilder out = new StringBuilder("<html>Estimated combat time with the planned setups"
 			+ (plan.getPartySize() > 1 ? ", party of " + plan.getPartySize() : "") + ":");
 		bosses.forEach((boss, seconds) -> out.append("<br>").append(BestGearSetupPanel.escape(boss)).append(": ").append(duration(seconds)));
-		return out.append("<br><br>Party-scaled hitpoints dealt in whole attacks (overkill included) for each kill,<br>"
-			+ "with repeated adds counted, assuming every player matches your DPS.<br>"
-			+ "Puzzles, walking and downtime between rooms aren't counted, so a full run takes longer.</html>").toString();
+		if (plan.getPartySize() > 1) { out.append("<br>Assumes each teammate matches your DPS."); }
+		return out.append("<br><br>Puzzles, walking and downtime between rooms are excluded.</html>").toString();
 	}
 
 	/** Seconds as "45s", "3m 05s" or "1h 02m"; "unknown" when a setup can't deal damage. */

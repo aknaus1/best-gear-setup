@@ -1122,10 +1122,7 @@ public class BestGearSetupPanel extends PluginPanel
 		List<String> detailLines = new ArrayList<>();
 		if (plugin.getOwnedItems().isBankKnown() || plugin.getOwnedItems().count() > 0) { detailLines.add(ownedSummary()); }
 		detailLines.addAll(plan.getNotes());
-		detailLines.add("Raid kits use a bounded search over valid setups; lower equipment limits share more armour.");
-		detailLines.add("Runes are packed into your pouch; hover it to see its contents. Extra rune types stay in free inventory slots. Food, healing and utility supplies are not planned.");
-		detailLines.add("In-raid boosts are omitted from the bank: CoX overloads are assumed after Tekton and ToA smelling salts after the first two paths. The Dawnbringer is picked up at Verzik P1 and only used for its special. Loaded darts must be loaded before entry.");
-		addSearchDetails(detailLines);
+		addSearchDetails(detailLines, RaidResultView.searchSummary(plan, activeResult != null));
 		resultsPanel.revalidate();
 		resultsPanel.repaint();
 	}
@@ -1206,7 +1203,12 @@ public class BestGearSetupPanel extends PluginPanel
 
 	private void addSearchDetails(List<String> detailLines)
 	{
-		if (!detailLines.isEmpty())
+		addSearchDetails(detailLines, null);
+	}
+
+	private void addSearchDetails(List<String> detailLines, JLabel summary)
+	{
+		if (summary != null || !detailLines.isEmpty())
 		{
 			JPanel details = new JPanel(new BorderLayout());
 			details.setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -1221,12 +1223,19 @@ public class BestGearSetupPanel extends PluginPanel
 			notes.setName("searchDetails");
 			setSmall(notes, ColorScheme.LIGHT_GRAY_COLOR);
 			notes.setVisible(false);
+			JPanel content = new JPanel();
+			content.setOpaque(false);
+			content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+			if (summary != null) { content.add(left(summary)); }
+			content.add(left(notes));
+			content.setVisible(false);
 			details.add(toggle, BorderLayout.NORTH);
-			details.add(notes, BorderLayout.CENTER);
+			details.add(content, BorderLayout.CENTER);
 			toggle.addActionListener(e ->
 			{
-				notes.setVisible(!notes.isVisible());
-				toggle.setIcon(new Controls.Chevron(notes.isVisible() ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, null));
+				content.setVisible(!content.isVisible());
+				notes.setVisible(content.isVisible());
+				toggle.setIcon(new Controls.Chevron(content.isVisible() ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, null));
 				resultsPanel.revalidate();
 			});
 			resultsPanel.add(left(details));

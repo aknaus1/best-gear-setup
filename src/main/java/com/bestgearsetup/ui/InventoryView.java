@@ -42,8 +42,6 @@ class InventoryView extends JPanel
 	private final BestGearSetupPlugin plugin;
 	private final SpriteCache sprites;
 	private final int ammoCount;
-	/** Hover-only guidance adds no height to the side panel, even while inventory is collapsed. */
-	private String chestAdvice;
 
 	InventoryView(ItemManager items, JComponent stateOwner, String name, BestGearSetupPlugin plugin, SpriteCache sprites, int ammoCount)
 	{
@@ -86,7 +84,6 @@ class InventoryView extends JPanel
 		CoxChestPlan chest)
 	{
 		setVisible(RaidPlan.hasEquipmentSwitches(carried));
-		chestAdvice = chestTooltip(chest);
 		grid.removeAll();
 		List<RaidPlan.InventoryItem> layout = RaidPlan.inventoryLayout(carried);
 		for (int i = 0; i < 28; i++)
@@ -123,34 +120,9 @@ class InventoryView extends JPanel
 		boolean open = expanded();
 		grid.setVisible(open);
 		toggle.setIcon(new Controls.Chevron(open ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, null));
-		String action = open ? "Minimize inventory" : "Expand inventory";
-		toggle.setToolTipText(chestAdvice == null ? action : BestGearSetupPanel.html(action + "<br><br>" + chestAdvice));
 		toggle.getAccessibleContext().setAccessibleDescription(open ? "Expanded" : "Collapsed");
 		revalidate();
 		repaint();
-	}
-
-	private static String chestTooltip(CoxChestPlan chest)
-	{
-		if (chest == null || chest.getFloor() == 0) { return null; }
-		StringBuilder tip = new StringBuilder("<b>Private chest · Floor ").append(chest.getFloor()).append("</b>");
-		List<CoxChestPlan.Deposit> advice = chest.getDeposits();
-		if (advice.isEmpty())
-		{
-			tip.append("<br>Keep all planned gear for the rest of this floor.");
-			if (chest.getPreviewFloor() > 0)
-			{
-				tip.append("<br><br><b>Next floor (").append(chest.getPreviewFloor()).append(") preview</b>")
-					.append("<br>Keep these items until this floor is cleared.");
-				advice = chest.getPreview();
-			}
-		}
-		for (CoxChestPlan.Deposit deposit : advice)
-		{
-			tip.append("<br><br><b>").append(BestGearSetupPanel.escape(GameData.titleCase(deposit.getItem().getName())))
-				.append("</b><br>").append(BestGearSetupPanel.escape(deposit.getReason()));
-		}
-		return tip.toString();
 	}
 
 	static String tooltip(RaidPlan.InventoryItem item)

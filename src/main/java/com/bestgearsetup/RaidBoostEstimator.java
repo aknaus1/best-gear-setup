@@ -16,10 +16,8 @@ import java.util.Set;
  */
 final class RaidBoostEstimator
 {
-	static final String ASSUMPTIONS = "Boost doses are estimates over planned combat, including known rest gaps. "
-		+ "Divine boosts hold for 5 minutes; ordinary boosts drain a level a minute and are drunk again once below the "
-		+ "repot threshold, so peak stats are not maintained between doses. "
-		+ "Walking, puzzles and unknown downtime can require extra doses. Hearts are reusable. Boost supply prices are excluded from the gear budget.";
+	static final String ASSUMPTIONS = "Boost quantities cover estimated combat; allow extra for downtime. "
+		+ "Boost supplies are excluded from the gear budget.";
 	static final String OWNERSHIP_WARNING = "Required boost dose quantities have not been validated against owned stacks. "
 		+ "Check the estimated doses and withdraw enough bottles; a partial-dose bottle may not cover its planned four-dose slot.";
 
