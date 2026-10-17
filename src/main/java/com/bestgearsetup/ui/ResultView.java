@@ -457,14 +457,7 @@ class ResultView extends JPanel
 	 */
 	JPanel prayerBox(SetupResult setup)
 	{
-		List<String> prayers = new ArrayList<>();
-		OffensivePrayer offensive = results.getPrayers().get(setup.getCombatClass());
-		if (offensive != null) { prayers.add(offensive.getName()); }
-		ProtectionPrayers.Advice advice = results.protectionFor(setup);
-		if (advice != null && advice.getPrayer() != null && !advice.isLocked()) { prayers.add(advice.getPrayer().toString()); }
-		DpsResult d = setup.getDps();
-		double ttk = d == null || d.getPrimaryDps() <= 0 ? 0 : results.getStartingHitpoints() / d.getPrimaryDps();
-		PrayerDrain.Estimate estimate = PrayerDrain.estimate(prayers, PrayerDrain.prayerBonus(setup.getLoadout()), ttk);
+		PrayerDrain.Estimate estimate = results.prayerDrainFor(setup);
 		if (estimate == null)
 		{
 			return null;
@@ -484,10 +477,11 @@ class ResultView extends JPanel
 		String names = estimate.getPrayers().stream().map(GameData::titleCase).collect(Collectors.joining(" + "));
 		String tip = BestGearSetupPanel.html(BestGearSetupPanel.escape(names) + " drain 1 point every "
 			+ fmt(estimate.getSecondsPerPoint(), 2) + "s at +" + estimate.getPrayerBonus() + " prayer bonus ("
-			+ fmt(estimate.getPointsPerMinute(), 1) + " a minute), kept on for the ~" + fmt(ttk, 1)
-			+ "s kill time above. A prayer potion dose restores " + prayerDose + " points and a super restore "
-			+ restoreDose + " at " + level + " Prayer. Assumes the prayers stay on for the whole kill; flicking, "
-			+ "the holy wrench, time between kills and the points you start with aren't counted.");
+			+ fmt(estimate.getPointsPerMinute(), 1) + " a minute) over the ~" + fmt(estimate.getSecondsPerKill(), 1)
+			+ "s each kill takes in whole attacks. A prayer potion dose restores " + prayerDose
+			+ " points and a super restore " + restoreDose + " at " + level + " Prayer. Assumes the prayers stay on "
+			+ "for the whole kill; flicking, the holy wrench and time between kills aren't counted. A trip starts "
+			+ "with full points and lists super restores when you own some, otherwise prayer potions.");
 		JLabel points = stat("Prayer: ~" + fmt(estimate.getPointsPerKill(), 1) + " pts/kill");
 		points.setName("prayerPoints");
 		points.setToolTipText(tip);
@@ -500,7 +494,37 @@ class ResultView extends JPanel
 		restores.setName("restoreDoses");
 		restores.setToolTipText(tip);
 		box.add(restores, row);
+		int kills = results.getTripKills();
+		if (kills > 0)
+		{
+			JLabel trip = stat(tripLine(estimate, kills, level));
+			// A fixed width gives the long line its wrapped height; an unsized label only reports one line
+			trip.setText(BestGearSetupPanel.html(tripLine(estimate, kills, level), STAT_WRAP_WIDTH));
+			trip.setName("prayerTrip");
+			trip.setToolTipText(tip);
+			box.add(trip, row);
+		}
 		return box;
+	}
+
+	/** The restore doses a trip of {@code kills} needs beyond the full points of {@code level} Prayer it starts with. */
+	static String tripLine(PrayerDrain.Estimate estimate, int kills, int level)
+	{
+		int prayer = estimate.dosesFor(kills, PrayerDrain.prayerPotionDose(level), level);
+		int restore = estimate.dosesFor(kills, PrayerDrain.superRestoreDose(level), level);
+		String trip = "Trip of " + kills + (kills == 1 ? " kill" : " kills") + ": ~" + fmt(estimate.getPointsPerKill() * kills, 0) + " pts, ";
+		if (prayer == 0)
+		{
+			return trip + "within your " + level + " starting points";
+		}
+		return trip + prayer + " prayer potion doses (" + bottles(prayer) + ") or " + restore + " super restore doses ("
+			+ bottles(restore) + ") after your " + level + " starting points";
+	}
+
+	private static String bottles(int doses)
+	{
+		int bottles = (doses + 3) / 4;
+		return bottles + (bottles == 1 ? " bottle" : " bottles");
 	}
 
 	/**

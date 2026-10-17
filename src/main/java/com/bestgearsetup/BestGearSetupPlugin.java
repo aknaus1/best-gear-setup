@@ -2808,11 +2808,11 @@ public class BestGearSetupPlugin extends Plugin
 		setBankHighlightedSetup(setup, Collections.emptyList());
 	}
 
-	/** As below, with a boss trip's boost bottles from the setup's search results. */
+	/** As below, with a boss trip's boost and prayer restore bottles from the setup's search results. */
 	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions, SearchResults results)
 	{
 		setBankHighlightedSetup(setup, potions, setup == null || results == null ? Collections.emptyList()
-			: RaidPlan.tripBoosts(setup, results));
+			: RaidPlan.tripBoosts(setup, results, this::ownsItem));
 	}
 
 	/** Publish the displayed setup's equipment, loaded ammunition, spell runes (with an owned rune pouch) and boosts to the bank. */

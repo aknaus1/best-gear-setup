@@ -459,14 +459,17 @@ open the sidebar or perform any game action.
 - **Prayer cost:** under each setup's DPS box, a **Prayer** box estimates the points one kill drains and the
   restore doses that cover them. It counts the offensive prayer the search assumed plus the recommended
   overhead (not a locked one, and only the first of a switching pair, since every overhead drains the same)
-  kept on for the TTK shown above. Each prayer's Wiki drain effect (Piety, Rigour, Augury, Chivalry, Deadeye
+  kept on for the kill time in whole attacks (the same time the trip's boost doses use, so the killing
+  blow's overkill counts). Each prayer's Wiki drain effect (Piety, Rigour, Augury, Chivalry, Deadeye
   and Mystic Vigour 24; the overheads, Eagle Eye, Mystic Might, Ultimate Strength and Incredible Reflexes 12;
   lower tiers 6 or 3) is summed, and one point lasts `(2 × prayer bonus + 60) / total drain` ticks with the
   shown gear's prayer bonus: Piety with Protect from Melee at +0 costs a point a second, at +30 one every
   two. A prayer potion dose restores `7 + Prayer / 4` points and a super restore `8 + Prayer / 4` at your base
-  Prayer level. Flicking, the holy wrench and prayer cape, Rapid Restore-style prayers, points you start with
-  and time between kills aren't counted, so a trip needs the per-kill doses times the kills, less the points
-  you arrive with.
+  Prayer level. With **Kills per trip** set for a boss outside raids, a *Trip of N kills* line gives the whole
+  doses those kills need after the full points you arrive with (your Prayer level), and the inventory and
+  bank list the bottles next to the trip's boosts: super restores if you own any dose, otherwise prayer
+  potions. Flicking, the holy wrench and prayer cape, Rapid Restore-style prayers and time between kills
+  aren't counted.
 - **Encounter overhead audit:** [the catalogue report](overhead-audit.md) records the checked boss variants
   and generic-data limits. Ordinary attacks are assumed to check prayers at launch; verified encounter
   rules distinguish delayed cues, impact timing, counted cycles, phases, position, supporting attackers

@@ -3,8 +3,10 @@ package com.bestgearsetup;
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.DpsResult;
 import com.bestgearsetup.calc.FreezeDuty;
+import com.bestgearsetup.calc.KillTime;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.LockStatus;
+import com.bestgearsetup.calc.PrayerDrain;
 import com.bestgearsetup.calc.ProtectionPrayers;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.Thrall;
@@ -304,6 +306,28 @@ public class SearchResults
 	public ProtectionPrayers.Advice protectionFor(SetupResult setup)
 	{
 		return monster == null ? null : ProtectionPrayers.recommend(monster, setup, prayerLevel, protectionContext);
+	}
+
+	/**
+	 * The prayer points one kill with this setup drains: its assumed offensive prayer and the recommended, unlocked
+	 * overhead kept on over the kill time in whole attacks, at the worn prayer bonus. Null when nothing drains or the
+	 * setup can't kill the target.
+	 */
+	public PrayerDrain.Estimate prayerDrainFor(SetupResult setup)
+	{
+		List<String> names = new ArrayList<>();
+		OffensivePrayer offensive = prayers == null ? null : prayers.get(setup.getCombatClass());
+		if (offensive != null) { names.add(offensive.getName()); }
+		ProtectionPrayers.Advice advice = protectionFor(setup);
+		if (advice != null && advice.getPrayer() != null && !advice.isLocked()) { names.add(advice.getPrayer().toString()); }
+		double seconds = setup.getDps() == null ? 0 : KillTime.seconds(setup.getDps(), startingHitpoints);
+		return PrayerDrain.estimate(names, PrayerDrain.prayerBonus(setup.getLoadout()), seconds);
+	}
+
+	/** Kills of a non-raid boss one trip's supplies cover; 0 outside such a trip. */
+	public int getTripKills()
+	{
+		return getBoostTiming().getTripKills();
 	}
 
 	/** Presence-only supplies outside the prepotted first room; complete raid quantities use RaidBoostEstimator. */

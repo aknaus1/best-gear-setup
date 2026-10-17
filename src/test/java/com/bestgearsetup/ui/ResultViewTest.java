@@ -192,8 +192,9 @@ public class ResultViewTest
 	@Test
 	public void prayerBoxCountsTheAssumedPrayersOverTheKillTime() throws Exception
 	{
-		// 100 HP at 2 DPS is a 50-second kill. Piety (24) at +15 bonus drains a point every 2.25 seconds:
-		// 22.2 points a kill, 0.72 prayer potion doses (31 points) and 0.69 super restores (32) at 99 Prayer.
+		// 100 HP at 2 DPS, every attack hitting exactly 10, is a 50-second kill without overkill. Piety (24) at +15
+		// bonus drains a point every 2.25 seconds: 22.2 points a kill, 0.72 prayer potion doses (31 points) and
+		// 0.69 super restores (32) at 99 Prayer.
 		Monster monster = new Monster();
 		monster.setName("Combat dummy");
 		monster.setHitpoints(100);
@@ -205,7 +206,7 @@ public class ResultViewTest
 		cape.setPrayerBonus(15);
 		Loadout praying = new Loadout();
 		praying.set(Slot.CAPE, cape);
-		DpsResult dps = new DpsResult(2, 10, 0.5, 4, 4.8, null);
+		DpsResult dps = new DpsResult(2, 10, 1, 4, 10, null);
 		SetupResult melee = new SetupResult(CombatClass.MELEE, praying, dps, 0);
 		SetupResult magic = new SetupResult(CombatClass.MAGIC, praying, dps, 0);
 		SwingUtilities.invokeAndWait(() ->
@@ -216,10 +217,26 @@ public class ResultViewTest
 			assertEquals("<html>Prayer pots: ~0.72 doses/kill</html>", label(box, "Prayer pots").getText());
 			assertEquals("<html>Super restores: ~0.69 doses/kill</html>", label(box, "Super restores").getText());
 			assertTrue(label(box, "Prayer:").getToolTipText().contains("Piety drain 1 point every 2.25s at +15 prayer bonus"));
+			assertTrue("No trip line outside a boss trip", label(box, "Trip of") == null);
 			assertTrue("No box when the setup prays nothing", view.prayerBox(magic) == null);
 			assertTrue("No box when the kill never ends", view.prayerBox(new SetupResult(CombatClass.MELEE, praying,
 				DpsResult.ZERO, 0)) == null);
 		});
+	}
+
+	@Test
+	public void tripLineCountsDosesBeyondTheStartingPoints()
+	{
+		// Piety at +0 bonus over a 300-second kill: 200 points a kill.
+		com.bestgearsetup.calc.PrayerDrain.Estimate estimate = com.bestgearsetup.calc.PrayerDrain.estimate(
+			Collections.singletonList("piety"), 0, 300);
+		assertEquals("Trip of 2 kills: ~400 pts, 10 prayer potion doses (3 bottles) or 10 super restore doses (3 bottles) "
+			+ "after your 99 starting points", ResultView.tripLine(estimate, 2, 99));
+		assertEquals("Trip of 1 kill: ~200 pts, 4 prayer potion doses (1 bottle) or 4 super restore doses (1 bottle) "
+			+ "after your 99 starting points", ResultView.tripLine(estimate, 1, 99));
+		com.bestgearsetup.calc.PrayerDrain.Estimate quick = com.bestgearsetup.calc.PrayerDrain.estimate(
+			Collections.singletonList("piety"), 0, 60);
+		assertEquals("Trip of 1 kill: ~40 pts, within your 99 starting points", ResultView.tripLine(quick, 1, 99));
 	}
 
 	private static JLabel label(JPanel box, String text)

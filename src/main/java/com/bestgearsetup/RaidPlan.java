@@ -171,17 +171,21 @@ public class RaidPlan
 	public static List<InventoryItem> inventoryForSetup(SetupResult setup, SearchResults results, IntPredicate owns)
 	{
 		return withTripBoosts(inventory(Collections.singletonList(setup), Collections.singletonList(results), owns),
-			tripBoosts(setup, results));
+			tripBoosts(setup, results, owns));
 	}
 
 	/**
-	 * The bottles a non-raid boss trip needs for this setup's boosts ({@link BoostTiming#getTripKills} kills), one
-	 * entry per bottle; empty outside such a trip, where boosts are listed once without quantities.
+	 * The bottles a non-raid boss trip needs for this setup's boosts ({@link BoostTiming#getTripKills} kills) and
+	 * its prayer restores ({@link TripRestores}), one entry per bottle; empty outside such a trip, where boosts are
+	 * listed once without quantities.
 	 */
-	static List<InventoryItem> tripBoosts(SetupResult setup, SearchResults results)
+	static List<InventoryItem> tripBoosts(SetupResult setup, SearchResults results, IntPredicate owns)
 	{
 		int kills = results.getBoostTiming().getTripKills();
-		return kills > 0 ? RaidBoostEstimator.trip(results, setup, kills) : Collections.emptyList();
+		if (kills <= 0) { return Collections.emptyList(); }
+		List<InventoryItem> bottles = new ArrayList<>(RaidBoostEstimator.trip(results, setup, kills));
+		bottles.addAll(TripRestores.trip(results, setup, kills, owns));
+		return bottles;
 	}
 
 	/** The inventory carrying a trip's {@link #tripBoosts} in place of its presence-only boosts, when there are any. */

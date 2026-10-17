@@ -9,6 +9,8 @@ is what the Plugin Hub shows.
   list the boost bottles and doses those kills need, using the divine and repot settings.
 - Show each setup's prayer cost under its DPS: points per kill from the assumed offensive prayer and
   recommended overhead at the worn prayer bonus, and the prayer potion and super restore doses per kill.
+  A boss trip adds the doses its kills need beyond your starting points, and the inventory and bank list
+  those bottles with the boosts (super restores when you own some, otherwise prayer potions).
 
 ## 1.1.1 (2026-10-17)
 

@@ -141,6 +141,14 @@ final class BoostAccess
 		}
 	}
 
+	/** A potion family by its 4-dose id, four-dose first: the carried order for a bottle that isn't a boost. */
+	static List<Integer> doseIds(int fourDose)
+	{
+		Set<Integer> ids = new LinkedHashSet<>();
+		addFamily(ids, fourDose);
+		return new ArrayList<>(ids);
+	}
+
 	/** The 4-dose id, then the other doses highest first: their ids rise as the dose falls, (3) to (1). */
 	private static void addFamily(Set<Integer> ids, int fourDose)
 	{

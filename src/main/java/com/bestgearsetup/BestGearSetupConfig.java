@@ -427,8 +427,8 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(keyName = "killsPerTrip", name = "Kills per trip", hidden = true,
-		description = "Boss kills one trip covers outside raids. Boosts are listed as the bottles those kills need, "
-			+ "using the divine and repot settings; time between kills is not counted.",
+		description = "Boss kills one trip covers outside raids. Boosts and prayer restores are listed as the bottles "
+			+ "those kills need, using the divine and repot settings and your Prayer level; time between kills is not counted.",
 		section = searchSection, position = 21)
 	@Range(min = 1, max = 100)
 	default int killsPerTrip()
