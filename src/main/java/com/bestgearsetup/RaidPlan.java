@@ -161,12 +161,6 @@ public class RaidPlan
 		return fill(choices, context, new Memo(), getStartIndex()).get(choices.size() - 1);
 	}
 
-	/** Whether the carried items include equipment to switch into, rather than only supplies. */
-	public static boolean hasEquipmentSwitches(List<InventoryItem> inventory)
-	{
-		return inventory.stream().anyMatch(InventoryItem::isEquipment);
-	}
-
 	/** Supplies and special-attack switches for an individual encounter. */
 	public static List<InventoryItem> inventoryForSetup(SetupResult setup, SearchResults results, IntPredicate owns)
 	{

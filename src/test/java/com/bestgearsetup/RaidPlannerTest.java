@@ -900,7 +900,7 @@ public class RaidPlannerTest
 		assertTrue(plan.supportsSupplies(spells, result(spells), id -> id == ItemID.DIVINE_RUNE_POUCH));
 		Map<Integer, Integer> bank = BestGearSetupBankView.raidCellsFor(plan);
 		assertEquals(Integer.valueOf(4), bank.get(ItemID.DIVINE_RUNE_POUCH));
-		assertTrue("A raid without switches keeps packed runes beside the equipment", bank.get(ItemID.FIRERUNE) < 16);
+		assertTrue("Packed runes load from the rows below the inventory, switches or not", bank.get(ItemID.FIRERUNE) >= 56);
 		assertEquals(5, RaidPlan.inventory(setups, results, id -> false).size());
 	}
 
@@ -1210,7 +1210,7 @@ public class RaidPlannerTest
 		assertEquals(1, prepots.size());
 		assertEquals(Integer.valueOf(ItemID._1DOSEDIVINECOMBAT), prepots.get(0).getIds().get(0));
 		Map<Integer, Integer> bank = BestGearSetupBankView.raidCellsFor(prepotted);
-		assertTrue(RaidPlan.hasEquipmentSwitches(prepotted.getInventory()));
+		assertTrue(prepotted.getInventory().stream().anyMatch(RaidPlan.InventoryItem::isEquipment));
 		assertEquals("Prepots sit below the worn equipment", Integer.valueOf(40), bank.get(ItemID._4DOSE2COMBAT));
 		assertEquals(RaidPlan.PotionUse.PREPOT, BestGearSetupBankView.raidTagsFor(prepotted).get(ItemID._4DOSE2COMBAT));
 		RaidPlan both = switchGroupPlan(true, true);

@@ -520,15 +520,15 @@ public class RaidPanelTest
 		{
 			BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, images, null, null);
 			panel.showResults(result(setup));
-			assertTrue("No inventory or toggle without switches", components(panel).stream()
-				.noneMatch(c -> "setupInventory".equals(c.getName()) || "setupInventoryToggle".equals(c.getName())));
+			assertTrue("Every search has the inventory, minimized by default", !named(panel, "setupInventory").isVisible());
+			assertTrue(named(panel, "setupInventoryToggle").isVisible());
 			panel.showResults(result(switching));
-			assertTrue("Minimized by default", !named(panel, "setupInventory").isVisible());
+			assertTrue("Still minimized with switches", !named(panel, "setupInventory").isVisible());
 			((javax.swing.JButton) named(panel, "setupInventoryToggle")).doClick();
 			assertTrue(named(panel, "setupInventory").isVisible());
 			// A new search keeps it expanded, and so does a raid plan.
 			panel.showResults(result(setup));
-			assertTrue(components(panel).stream().noneMatch(c -> "setupInventoryToggle".equals(c.getName())));
+			assertTrue("A search without switches keeps it expanded", named(panel, "setupInventory").isVisible());
 			panel.showResults(result(switching));
 			assertTrue(named(panel, "setupInventory").isVisible());
 			panel.showRaidResults(plan, boss);

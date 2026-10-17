@@ -3,6 +3,11 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Show the inventory layout for every search, not only setups with equipment switches: the panel's
+  inventory and the bank layout now place boosts, runes and pouches in their inventory slots.
+
 ## 1.1.1 (2026-10-17)
 
 - Add Beta raid planning for CM CoX, ToA and ToB: shared kits, encounter setups, spellbook
