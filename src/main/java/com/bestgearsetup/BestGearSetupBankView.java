@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
@@ -60,12 +61,17 @@ class BestGearSetupBankView
 	private static final int BOOST = 1;
 	private static final int SPELL = 2;
 	private static final int BANKTAB_POTIONSTORE = 15;
+	/** Without switches, the free top-row cell between the equipment silhouette and the spell supplies. */
+	static final int TRAVEL_CELL = 3;
 	private final Client client;
 	private final ClientThread clientThread;
 	private final ItemManager itemManager;
 	private final BankSearch bankSearch;
 	private final EventBus eventBus;
 	private volatile Layout selection = Layout.EMPTY;
+	/** Rebuilds the selected layout, so a travel teleport can be added or removed without the sidebar. */
+	private Supplier<Layout> selectionSource = () -> Layout.EMPTY;
+	private List<Integer> travel = Collections.emptyList();
 	private final Map<Widget, int[]> dragSettings = new IdentityHashMap<>();
 	private final List<Widget> duplicateWidgets = new ArrayList<>();
 	private final Map<Integer, Widget> duplicateSources = new HashMap<>();
@@ -102,12 +108,55 @@ class BestGearSetupBankView
 	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
 		IntPredicate owns)
 	{
-		selection = layoutFor(setup, potions, itemIds, owns);
+		select(() -> layoutFor(setup, potions, itemIds, owns));
 	}
 
 	void setRaidSelection(RaidPlan plan, Function<GearItem, List<Integer>> itemIds)
 	{
-		selection = layoutForRaid(plan, itemIds);
+		select(() -> layoutForRaid(plan, itemIds));
+	}
+
+	/** The travel teleport's ids (any one fills its cell), or an empty list for none. */
+	synchronized void setTravel(List<Integer> ids)
+	{
+		if (ids.equals(travel)) { return; }
+		travel = ids;
+		selection = withTravel(selectionSource.get(), ids);
+	}
+
+	private synchronized void select(Supplier<Layout> source)
+	{
+		selectionSource = source;
+		selection = withTravel(source.get(), travel);
+	}
+
+	/**
+	 * Adds the travel teleport to a freshly built layout: the last free inventory cell when the layout shows the
+	 * inventory, else {@link #TRAVEL_CELL}. Nothing changes when the layout is empty, already holds the item, or
+	 * has no free cell, so the combat switches never move.
+	 */
+	static Layout withTravel(Layout layout, List<Integer> ids)
+	{
+		if (layout.isEmpty() || ids.isEmpty() || ids.stream().anyMatch(layout.cells::containsKey)) { return layout; }
+		Set<Integer> used = new HashSet<>(layout.cells.values());
+		layout.duplicateCells.values().forEach(used::addAll);
+		int cell = -1;
+		if (layout.inventory)
+		{
+			for (int i = 27; i >= 0 && cell < 0; i--)
+			{
+				if (!used.contains(inventoryCell(i))) { cell = inventoryCell(i); }
+			}
+		}
+		else if (!used.contains(TRAVEL_CELL)) { cell = TRAVEL_CELL; }
+		if (cell >= 0) { layout.add(ids, cell, GEAR); }
+		return layout;
+	}
+
+	static Map<Integer, Integer> cellsFor(SetupResult setup, List<Potion> potions, List<Integer> travel)
+	{
+		return Collections.unmodifiableMap(withTravel(layoutFor(setup, potions, BestGearSetupBankView::itemIds,
+			id -> false), travel).cells);
 	}
 
 	static Layout layoutForRaid(RaidPlan plan, Function<GearItem, List<Integer>> itemIds)

@@ -229,6 +229,15 @@ public class BestGearSetupPlugin extends Plugin
 	/** A {@link PartySpecs}, held as Object so this class never loads the Special Attack Counter's classes. */
 	private Object partySpecs;
 	StoredItemsBridge storedItemsBridge;
+	ShortestPathBridge shortestPath;
+	/** Where the shown results' boss is fought; null when none is shown or it isn't in the travel table. */
+	private volatile TravelTeleports.Destination travelDestination;
+	/** Client thread: the player's position (instance template coordinates) at the last tick. */
+	private WorldPoint travelPlayer;
+	private volatile TravelTeleports.Advice travelAdvice;
+	private ShortestPathBridge.Route shownRoute;
+	/** The shown setup's bank highlights before the travel teleport is added. */
+	private volatile Set<Integer> setupHighlightIds = Collections.emptySet();
 
 	@Inject
 	private EventBus eventBus;
@@ -402,6 +411,9 @@ public class BestGearSetupPlugin extends Plugin
 		ownedItems.load();
 		storedItemsBridge = new StoredItemsBridge(configManager, eventBus, ownedItems);
 		eventBus.register(storedItemsBridge);
+		// Shortest Path may answer from its pathfinder thread; travel state lives on the client thread.
+		shortestPath = new ShortestPathBridge(eventBus, () -> clientThread.invokeLater(this::updateTravel));
+		eventBus.register(shortestPath);
 		panel.updateOwnedStatus();
 		// Enabled while logged in: no container event fires until something changes, so read them now.
 		clientThread.invokeLater(this::readLiveContainers);
@@ -426,6 +438,14 @@ public class BestGearSetupPlugin extends Plugin
 		eventBus.unregister(storedItemsBridge);
 		storedItemsBridge.reset();
 		storedItemsBridge = null;
+		eventBus.unregister(shortestPath);
+		shortestPath.reset();
+		shortestPath = null;
+		travelDestination = null;
+		travelAdvice = null;
+		shownRoute = null;
+		travelPlayer = null;
+		bankView.setTravel(Collections.emptyList());
 		overlayManager.remove(bankOverlay);
 		overlayManager.remove(inventoryOverlay);
 		eventBus.unregister(bankView);
@@ -865,7 +885,9 @@ public class BestGearSetupPlugin extends Plugin
 			|| BestGearSetupConfig.HIGHLIGHT_BANK_GEAR_KEY.equals(event.getKey())
 			|| BestGearSetupConfig.BANK_HIGHLIGHT_COLOR_KEY.equals(event.getKey())
 			|| BestGearSetupConfig.HIGHLIGHT_INVENTORY_GEAR_KEY.equals(event.getKey())
-			|| BestGearSetupConfig.INVENTORY_HIGHLIGHT_COLOR_KEY.equals(event.getKey()))
+			|| BestGearSetupConfig.INVENTORY_HIGHLIGHT_COLOR_KEY.equals(event.getKey())
+			|| BestGearSetupConfig.TRAVEL_TELEPORT_KEY.equals(event.getKey())
+			|| BestGearSetupConfig.SHORTEST_PATH_KEY.equals(event.getKey()))
 		{
 			return;
 		}
@@ -960,6 +982,7 @@ public class BestGearSetupPlugin extends Plugin
 	@Subscribe(priority = -1)
 	public void onGameTick(GameTick event)
 	{
+		trackTravel();
 		boolean trackingRaid = updateRaidProgress();
 		// RuneLite replays all deferred container events before GameTick, so transfers are complete here.
 		StoredItemsBridge bridge = storedItemsBridge;
@@ -2978,9 +3001,91 @@ public class BestGearSetupPlugin extends Plugin
 		return new ArrayList<>(ids);
 	}
 
-	/** Keep all alternatives available to the layout, but outline decorated bank stacks ahead of base copies. */
-	private void publishBankHighlights(Set<Integer> ids)
+	/** Swing thread: the boss of the results now shown, by its bundled name; null clears the suggestion. */
+	public void setTravelTarget(String monsterName)
 	{
+		travelDestination = TravelTeleports.forMonster(monsterName);
+	}
+
+	/** Swing thread: a raid kit is shown; it travels to the raid's lobby. */
+	public void setTravelRaid(RaidPlanType raid)
+	{
+		travelDestination = TravelTeleports.forRaid(raid);
+	}
+
+	/** Client thread: read the player's position, ask Shortest Path when enabled, and refresh the suggestion. */
+	private void trackTravel()
+	{
+		travelPlayer = playerLocation();
+		ShortestPathBridge bridge = shortestPath;
+		if (bridge != null && config.shortestPathRoute())
+		{
+			// Only ask while a teleport is being suggested, i.e. the player is away from the boss.
+			bridge.update(travelAdvice == null ? null : travelAdvice.getDestination(), travelPlayer);
+		}
+		updateTravel();
+	}
+
+	/** In an instance, the template's real-world tile, so a boss instance counts as being at the boss. */
+	private WorldPoint playerLocation()
+	{
+		Player player = client.getLocalPlayer();
+		if (player == null || client.getGameState() != GameState.LOGGED_IN) { return null; }
+		net.runelite.api.coords.LocalPoint local = player.getLocalLocation();
+		WorldView view = local == null ? null : client.getWorldView(local.getWorldView());
+		return view != null && view.isInstance() ? WorldPoint.fromLocalInstance(client, local) : player.getWorldLocation();
+	}
+
+	/** Client thread: re-derive the suggested teleport and publish it to the bank layout and sidebar on change. */
+	private void updateTravel()
+	{
+		TravelTeleports.Destination destination = config.travelTeleport() ? travelDestination : null;
+		ShortestPathBridge bridge = shortestPath;
+		boolean routing = bridge != null && config.shortestPathRoute();
+		List<String> steps = routing ? bridge.stepsFor(destination) : Collections.emptyList();
+		TravelTeleports.Advice advice = TravelTeleports.advise(destination, travelPlayer, this::ownsItem, steps);
+		ShortestPathBridge.Route route = routing && advice != null && bridge.getRoute() != null
+			&& bridge.getRoute().getDestination() == destination ? bridge.getRoute() : null;
+		if (java.util.Objects.equals(advice, travelAdvice) && route == shownRoute) { return; }
+		boolean teleportChanged = !java.util.Objects.equals(advice == null ? null : advice.getTeleport(),
+			travelAdvice == null ? null : travelAdvice.getTeleport());
+		travelAdvice = advice;
+		shownRoute = route;
+		if (teleportChanged)
+		{
+			bankView.setTravel(advice == null ? Collections.emptyList() : advice.getTeleport().getItemIds());
+			publishBankHighlights(setupHighlightIds);
+			bankView.refreshSelection();
+		}
+		List<String> lines = TravelTeleports.describe(advice, route == null ? Collections.emptyList() : route.getSteps(),
+			route == null ? -1 : route.getCost());
+		boolean canShowRoute = route != null;
+		int life = lifecycle.get();
+		SwingUtilities.invokeLater(() ->
+		{
+			if (panel != null && life == lifecycle.get()) { panel.showTravel(lines, canShowRoute); }
+		});
+	}
+
+	/** Swing thread: ask Shortest Path to draw the route to the suggested teleport's destination. */
+	public void showTravelRoute()
+	{
+		TravelTeleports.Advice advice = travelAdvice;
+		ShortestPathBridge bridge = shortestPath;
+		if (advice == null || bridge == null) { return; }
+		clientThread.invokeLater(() -> bridge.showPath(advice.getDestination()));
+	}
+
+	/**
+	 * Keep all alternatives available to the layout, but outline decorated bank stacks ahead of base copies. A
+	 * suggested travel teleport is outlined along with a shown setup.
+	 */
+	private synchronized void publishBankHighlights(Set<Integer> setupIds)
+	{
+		setupHighlightIds = setupIds;
+		Set<Integer> ids = new HashSet<>(setupIds);
+		TravelTeleports.Advice travel = travelAdvice;
+		if (travel != null && !setupIds.isEmpty()) { ids.addAll(travel.getTeleport().getItemIds()); }
 		Map<Integer, Set<Integer>> preferred = new HashMap<>();
 		GameData data = gameData;
 		if (data != null)

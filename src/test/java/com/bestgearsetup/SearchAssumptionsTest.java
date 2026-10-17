@@ -86,6 +86,8 @@ public class SearchAssumptionsTest
 		GETTERS.put("bankHighlightColor", BestGearSetupConfig::bankHighlightColor);
 		GETTERS.put("highlightInventoryGear", BestGearSetupConfig::highlightInventoryGear);
 		GETTERS.put("inventoryHighlightColor", BestGearSetupConfig::inventoryHighlightColor);
+		GETTERS.put("travelTeleport", BestGearSetupConfig::travelTeleport);
+		GETTERS.put("shortestPathRoute", BestGearSetupConfig::shortestPathRoute);
 		GETTERS.put("mode", BestGearSetupConfig::mode);
 		GETTERS.put("budget", BestGearSetupConfig::budget);
 		GETTERS.put("bossesOnly", BestGearSetupConfig::bossesOnly);

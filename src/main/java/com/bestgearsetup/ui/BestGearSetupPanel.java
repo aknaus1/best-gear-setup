@@ -131,6 +131,10 @@ public class BestGearSetupPanel extends PluginPanel
 	private final JPanel progressRow = left(progressBar);
 	private final JLabel ownedLabel = new JLabel();
 	final JPanel resultsPanel = new JPanel();
+	/** The suggested travel teleport, and Shortest Path's route when it answered. */
+	final JPanel travelRow = new JPanel(new BorderLayout(4, 0));
+	private final JLabel travelLabel = new JLabel();
+	private final JButton travelRouteButton = new JButton("Show route");
 	private final ConstraintsPanel constraints;
 	private final FightOptionsPanel fightOptions;
 	private final SettingsPanel settingsPanel;
@@ -535,6 +539,20 @@ public class BestGearSetupPanel extends PluginPanel
 		content.add(progressRow);
 		content.add(left(searchActivity));
 		content.add(spacer(6));
+
+		travelRow.setName("travel");
+		travelRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		travelLabel.setName("travelLabel");
+		setSmall(travelLabel, ColorScheme.LIGHT_GRAY_COLOR);
+		travelRow.add(travelLabel, BorderLayout.CENTER);
+		travelRouteButton.setName("travelRoute");
+		travelRouteButton.setToolTipText("Show the route in the Shortest Path plugin");
+		Controls.ghost(travelRouteButton);
+		travelRouteButton.addActionListener(e -> plugin.showTravelRoute());
+		travelRow.add(travelRouteButton, BorderLayout.EAST);
+		travelRow.setBorder(new EmptyBorder(0, 0, 6, 0));
+		travelRow.setVisible(false);
+		content.add(left(travelRow));
 
 		resultsPanel.setLayout(new BoxLayout(resultsPanel, BoxLayout.Y_AXIS));
 		resultsPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -1015,8 +1033,20 @@ public class BestGearSetupPanel extends PluginPanel
 	}
 
 	/** Clear recommendations when the search or account they belong to is no longer current. */
+	/** The suggested travel teleport's lines; hidden when empty. Shortest Path's route can be shown once it answered. */
+	public void showTravel(List<String> lines, boolean canShowRoute)
+	{
+		travelLabel.setText(lines.isEmpty() ? "" : html(lines.stream().map(BestGearSetupPanel::escape)
+			.collect(Collectors.joining("<br>")), canShowRoute ? HTML_WIDTH - 70 : HTML_WIDTH));
+		travelRouteButton.setVisible(canShowRoute);
+		travelRow.setVisible(!lines.isEmpty());
+		travelRow.revalidate();
+		travelRow.repaint();
+	}
+
 	public void clearResults(String message)
 	{
+		plugin.setTravelTarget(null);
 		releaseResults(message);
 		resultsPanel.removeAll();
 		resultsPanel.revalidate();
@@ -1068,6 +1098,7 @@ public class BestGearSetupPanel extends PluginPanel
 
 	private void showRaidResults(RaidPlan plan, MonsterSummary active, SearchResults activeResult, RaidEncounter exact)
 	{
+		plugin.setTravelRaid(plan.getType());
 		stopSearchActivity();
 		findButton.setEnabled(true);
 		resultsPanel.removeAll();
@@ -1117,6 +1148,7 @@ public class BestGearSetupPanel extends PluginPanel
 
 	public void showResults(SearchResults found)
 	{
+		plugin.setTravelTarget(found.isEmpty() || found.getMonster() == null ? null : found.getMonster().getName());
 		stopSearchActivity();
 		// A found setup replaces the bank layout in place (ResultView publishes it); with none there is nothing to show.
 		if (found.isEmpty()) { plugin.setBankHighlightedSetup(null); }

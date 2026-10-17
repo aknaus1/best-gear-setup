@@ -3,6 +3,11 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Suggest a teleport when you're far from the selected boss and add it to the bank layout; optionally
+  ask the Shortest Path plugin for the route and show it.
+
 ## 1.1.1 (2026-10-17)
 
 - Add Beta raid planning for CM CoX, ToA and ToB: shared kits, encounter setups, spellbook
