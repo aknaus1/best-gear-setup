@@ -53,10 +53,7 @@ public class RaidOptions
 		@Override public String toString() { return label; }
 	}
 
-	/**
-	 * One Theatre role determines both Maiden duties and the wave colour killed in the Nylocas room.
-	 * Every role still fights Maiden and each Vasilias form.
-	 */
+	/** One Theatre role determines both Maiden duties and the wave colour killed in the Nylocas room. Every role still fights Maiden and each Vasilias form. */
 	public enum TobRole
 	{
 		SOUTH_FREEZE("South freeze"), NORTH_FREEZE("North freeze"), RANGED_DPS("Range DPS"), MELEE_DPS("Melee DPS");

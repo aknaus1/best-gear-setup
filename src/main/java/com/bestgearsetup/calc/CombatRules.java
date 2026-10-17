@@ -209,10 +209,7 @@ final class CombatRules
 		return m.getId() == 11755 || m.getId() == 11758;
 	}
 
-	/**
-	 * Tiles the target spans for size-dependent hits (scythe, halberd, colossal blade). The ejected core is its own 1x1
-	 * NPC, though the Wiki data gives it the Warden's size.
-	 */
+	/** Tiles the target spans for size-dependent hits (scythe, halberd, colossal blade). The ejected core is its own 1x1 NPC, though the Wiki data gives it the Warden's size. */
 	static int size(Monster m)
 	{
 		return wardenCore(m) ? 1 : m.getSize();

@@ -251,10 +251,7 @@ public class SearchResults
 		return withCandidates(candidates, boosts);
 	}
 
-	/**
-	 * Results searched with raid switches locked into these slots by the kit planner rather than the player: their
-	 * lock statuses are dropped and the slots are shown as filled.
-	 */
+	/** Results searched with raid switches locked into these slots by the kit planner rather than the player: their lock statuses are dropped and the slots are shown as filled. */
 	SearchResults wearing(Set<Slot> slots)
 	{
 		Map<AttackStyle.Type, List<SetupResult>> marked = new LinkedHashMap<>();

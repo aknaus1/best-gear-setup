@@ -55,10 +55,7 @@ final class RaidConsolidator
 			return null;
 		}
 
-		/**
-		 * Threads that may search a pass's trials alongside the calling one, which this search must then accept calls
-		 * from; null to search them one by one on the calling thread.
-		 */
+		/** Threads that may search a pass's trials alongside the calling one, which this search must then accept calls from; null to search them one by one on the calling thread. */
 		default Executor helpers() { return null; }
 
 		/** How many {@link #helpers} threads may take part at once. */

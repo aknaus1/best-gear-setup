@@ -27,10 +27,7 @@ final class SearchInputs
 	/** Settings that only affect presentation or which search is selected. */
 	static final Set<String> PRESENTATION = Set.of("activeEncounter", "showMenuOption", "highlightBankGear",
 		"bankHighlightColor", "highlightInventoryGear", "inventoryHighlightColor", "bossesOnly", "seenFightOptions");
-	/**
-	 * Kit selection settings: computeSearch receives the resolved styles and spellbook separately, and applies the
-	 * boost timing to cached and new results alike.
-	 */
+	/** Kit selection settings: computeSearch receives the resolved styles and spellbook separately, and applies the boost timing to cached and new results alike. */
 	static final Set<String> KIT_ONLY = Set.of("raidEquipmentLimit", "raidStyles", "tobRole", "raidSpellbook",
 		"divinePotions", "repotBelow");
 	private static final Map<GameData, Set<Integer>> RELEVANT = Collections.synchronizedMap(new WeakHashMap<>());
@@ -102,10 +99,7 @@ final class SearchInputs
 		return !config.mode().isHeldOnly() || config.wilderness() && config.limitWildernessRisk();
 	}
 
-	/**
-	 * Owned ids a search can query: gear and its variants, boosts and rune pouches. Loot, coins and food don't
-	 * change a result, so they mustn't change the key.
-	 */
+	/** Owned ids a search can query: gear and its variants, boosts and rune pouches. Loot, coins and food don't change a result, so they mustn't change the key. */
 	static Set<Integer> relevantOwned(GameData data, Set<Integer> owned)
 	{
 		Set<Integer> relevant = RELEVANT.computeIfAbsent(data, SearchInputs::ownershipIds);

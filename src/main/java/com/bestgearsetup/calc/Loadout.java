@@ -46,10 +46,7 @@ public class Loadout
 		return items[Slot.WEAPON.ordinal()];
 	}
 
-	/**
-	 * Equipment swaps to put this setup on while wearing {@code worn}: slots holding a different item, except a shield
-	 * that comes off with a two-handed weapon.
-	 */
+	/** Equipment swaps to put this setup on while wearing {@code worn}: slots holding a different item, except a shield that comes off with a two-handed weapon. */
 	public int switchesFrom(Loadout worn)
 	{
 		return switchSlotsFrom(worn).size();

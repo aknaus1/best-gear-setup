@@ -475,10 +475,7 @@ public class Optimizer
 		}
 	}
 
-	/**
-	 * Keep the best switch for every set of extra slots, so a group's other forms can share the same slots. Switches
-	 * changing more than the limit allows are dropped.
-	 */
+	/** Keep the best switch for every set of extra slots, so a group's other forms can share the same slots. Switches changing more than the limit allows are dropped. */
 	private void keepSwitchTrial(Loadout l, List<Option> options, Loadout worn, int limit, Map<Set<Slot>, Found> best)
 	{
 		if (settings.getFreezeAccuracy() > 0 && !FreezeDuty.keepsWornGear(l, worn)) { return; }
@@ -521,10 +518,7 @@ public class Optimizer
 		return out;
 	}
 
-	/**
-	 * The worn setup holding {@code weapon}: once with each ammunition it fires or loads, or as worn (ammunition slot
-	 * included) when it uses none.
-	 */
+	/** The worn setup holding {@code weapon}: once with each ammunition it fires or loads, or as worn (ammunition slot included) when it uses none. */
 	private List<Loadout> switchStarts(Loadout worn, GearItem weapon)
 	{
 		Loadout start = worn.copy();
@@ -1540,10 +1534,7 @@ public class Optimizer
 		return protectedSetup(l) && withinWildernessRisk(l) ? DpsCalculator.calculate(l, ctx) : DpsResult.ZERO;
 	}
 
-	/**
-	 * Mandatory protection, primary raid duties and, when required, an ammunition recovery cape are enforced
-	 * throughout the search.
-	 */
+	/** Mandatory protection, primary raid duties and, when required, an ammunition recovery cape are enforced throughout the search. */
 	private boolean protectedSetup(Loadout l)
 	{
 		return settings.getRaidLoadout().allows(l) && protectedEquipment(l)
@@ -1552,10 +1543,7 @@ public class Optimizer
 				|| WeaponRules.isAmmoRecoveryCape(l.get(Slot.CAPE)));
 	}
 
-	/**
-	 * Special switches must meet equipment protection rules; their attack needn't fulfil the primary raid duty or
-	 * wear an ammunition recovery cape.
-	 */
+	/** Special switches must meet equipment protection rules; their attack needn't fulfil the primary raid duty or wear an ammunition recovery cape. */
 	private boolean protectedEquipment(Loadout l)
 	{
 		return SpellRunes.suppliesAllowed(l, Collections.emptySet(), settings.getExcludedSupplies())
@@ -1970,10 +1958,7 @@ public class Optimizer
 		return SpecialRotation.FULL_ENERGY / choice.getSpec().getEnergy();
 	}
 
-	/**
-	 * A kill opened by this many of a draining spec, lasting the target's {@link CombatRules#drainPersistence}, then
-	 * finished with ordinary attacks: {seconds, specs used}.
-	 */
+	/** A kill opened by this many of a draining spec, lasting the target's {@link CombatRules#drainPersistence}, then finished with ordinary attacks: {seconds, specs used}. */
 	private double[] drainedSeconds(SpecChoice choice, int specs, int hp, double rate)
 	{
 		return drainedSeconds(choice.getFight(), choice.getSpec().getDrain(), choice.getSpec().getEnergy(), specs, hp, rate,
@@ -3845,10 +3830,7 @@ public class Optimizer
 			return total;
 		}
 
-		/**
-		 * The rotation as spec plans, the opener (or the most-used damage spec) first with the rotation's rates; its
-		 * alternative on regenerated energy alone when given.
-		 */
+		/** The rotation as spec plans, the opener (or the most-used damage spec) first with the rotation's rates; its alternative on regenerated energy alone when given. */
 		SpecialPlan plan(DpsResult ordinary, DpsResult regenerated, double regeneratedSpecs, SpecialPlan regeneratedPlan)
 		{
 			List<SpecialPlan> plans = new ArrayList<>();

@@ -680,10 +680,7 @@ public class RaidPlan
 		return item.getGroup() == InventoryGroup.RUNES || SpellRunes.isSpellSupply(id) || SpellRunes.pouchCapacity(id) > 0;
 	}
 
-	/**
-	 * Boosts drunk before entering for the prepotted first room. A boost also carried into the raid is listed here and
-	 * again in the inventory.
-	 */
+	/** Boosts drunk before entering for the prepotted first room. A boost also carried into the raid is listed here and again in the inventory. */
 	public List<InventoryItem> prepotItems()
 	{
 		Map<Integer, InventoryItem> prepots = new LinkedHashMap<>();

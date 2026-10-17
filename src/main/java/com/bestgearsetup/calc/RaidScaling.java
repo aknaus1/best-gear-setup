@@ -239,10 +239,7 @@ public final class RaidScaling
 		return Math.min(10, 2 * clamp(s.getPartySize(), 1, 5));
 	}
 
-	/**
-	 * Of each spawn, the nylocas a good freeze stacks for chinning: all but three, so 7, 5 and 3 for five, four and
-	 * three players (one for two players, none solo).
-	 */
+	/** Of each spawn, the nylocas a good freeze stacks for chinning: all but three, so 7, 5 and 3 for five, four and three players (one for two players, none solo). */
 	public static int maidenClump(Settings s)
 	{
 		return Math.max(0, maidenNylocasPerSpawn(s) - 3);

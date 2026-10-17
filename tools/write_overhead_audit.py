@@ -7,6 +7,7 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 REPORT = ROOT / "build/reports/overheads/catalogue.json"
 DESTINATION = ROOT / "docs/overhead-audit.md"
+DETAILS = ROOT / "build/reports/overheads/details.md"
 
 
 def escape(value):
@@ -108,7 +109,19 @@ def main():
               "The runtime rules attach these references to advice; the catalogue retains them for review.", ""]
     lines += [f"- [{url.split('/w/')[-1].replace('_', ' ')}]({url})" for url in sources]
     lines.append("")
-    DESTINATION.write_text("\n".join(lines), encoding="utf-8")
+    DETAILS.write_text("\n".join(lines), encoding="utf-8")
+    boss_start = lines.index("## Boss variants")
+    gap_start = lines.index("## Explicit gaps")
+    references_start = lines.index("## Encounter references")
+    summary = lines[:boss_start]
+    summary += ["## Detailed results", "",
+                "Per-variant boss recommendations and explicit gaps are in the "
+                "[generated details](../build/reports/overheads/details.md) and "
+                "[catalogue](../build/reports/overheads/catalogue.json). "
+                "Both are regenerated locally rather than committed.", ""]
+    summary += lines[gap_start:lines.index("| Variant | Gap | Detail |")]
+    summary += lines[references_start:]
+    DESTINATION.write_text("\n".join(summary), encoding="utf-8")
     print(f"Wrote {DESTINATION.name}: {len(monsters)} variants, {len(bosses)} boss rows, {report['cases']} cases.")
     print(dict(counts))
 

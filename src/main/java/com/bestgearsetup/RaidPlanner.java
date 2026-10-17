@@ -624,10 +624,7 @@ final class RaidPlanner
 		 * more than there was.
 		 */
 		double energy = SpecialRotation.FULL_ENERGY;
-		/**
-		 * Fights, in the raid's order, already charged to {@link #energy}. A later starting encounter is planned first
-		 * but only charged once every fight before it has a setup.
-		 */
+		/** Fights, in the raid's order, already charged to {@link #energy}. A later starting encounter is planned first but only charged once every fight before it has a setup. */
 		int charged;
 		State() { }
 		/** {@code secondsOf} holds each encounter's setup times, by planning position. */

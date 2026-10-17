@@ -11,10 +11,7 @@ package com.bestgearsetup.calc;
  */
 public final class KillTime
 {
-	/**
-	 * Beyond this many max hits of HP, the renewal approximation is within a fraction of a percent of the exact
-	 * expectation and the exact sum isn't worth its cost.
-	 */
+	/** Beyond this many max hits of HP, the renewal approximation is within a fraction of a percent of the exact expectation and the exact sum isn't worth its cost. */
 	private static final int EXACT_MAX_HITS = 16;
 
 	private KillTime()
@@ -31,10 +28,7 @@ public final class KillTime
 		return hp / dps.getPrimaryDps() * overkillFactor(dps, hp);
 	}
 
-	/**
-	 * Expected attacks to kill over the attacks the same mean damage would need without overkill: at least 1, and
-	 * 1 when the attack's damage spread is unknown.
-	 */
+	/** Expected attacks to kill over the attacks the same mean damage would need without overkill: at least 1, and 1 when the attack's damage spread is unknown. */
 	static double overkillFactor(DpsResult dps, int hp)
 	{
 		double accuracy = Math.min(1, dps.getAccuracy());

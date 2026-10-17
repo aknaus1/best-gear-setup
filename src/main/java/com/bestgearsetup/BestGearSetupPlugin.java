@@ -2079,10 +2079,7 @@ public class BestGearSetupPlugin extends Plugin
 	private static final java.util.Comparator<SetupResult> PRIMARY_DPS = java.util.Comparator.comparingDouble(
 		setup -> setup.getDps().getPrimaryDps());
 
-	/**
-	 * The {@code preference}'s best of a search's setups that the selected kit's ammunition and supplies support,
-	 * opening on a full spec bar or not as asked, or null.
-	 */
+	/** The {@code preference}'s best of a search's setups that the selected kit's ammunition and supplies support, opening on a full spec bar or not as asked, or null. */
 	private static SetupResult bestInKit(RaidPlan plan, SearchResults found, IntPredicate owned, boolean fullBar,
 		java.util.Comparator<SetupResult> preference)
 	{
@@ -2173,10 +2170,7 @@ public class BestGearSetupPlugin extends Plugin
 		return !styles.isEmpty() && Collections.disjoint(styles, enabled) ? encounter.getRequiredStyles() : styles;
 	}
 
-	/**
-	 * Compare complete feasible kits on each allowed spellbook, and for ToA's Auto path order in each path order,
-	 * before publishing one raid plan.
-	 */
+	/** Compare complete feasible kits on each allowed spellbook, and for ToA's Auto path order in each path order, before publishing one raid plan. */
 	private void runRaidSearch(GameData data, MonsterSummary active, PlayerLevels levels, boolean remembered,
 		Set<String> prayerUnlocks, Boolean diary, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
 		Map<Integer, Long> quantities, int generation, BestGearSetupConfig config, LiveRaid liveRaid,
@@ -2313,10 +2307,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 	}
 
-	/**
-	 * One raid encounter's search, optionally as a quick switch from a worn setup, without its class's boost, or
-	 * wearing items the kit planner locked in.
-	 */
+	/** One raid encounter's search, optionally as a quick switch from a worn setup, without its class's boost, or wearing items the kit planner locked in. */
 	@FunctionalInterface
 	private interface SwitchSearch
 	{
@@ -2830,10 +2821,7 @@ public class BestGearSetupPlugin extends Plugin
 		setBankHighlightedSetup(setup, Collections.emptyList());
 	}
 
-	/**
-	 * Publish the displayed setup's equipment, loaded ammunition, spell runes (with an owned rune pouch) and
-	 * boosts to the bank.
-	 */
+	/** Publish the displayed setup's equipment, loaded ammunition, spell runes (with an owned rune pouch) and boosts to the bank. */
 	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions)
 	{
 		setInventoryHighlightedSetup(setup);

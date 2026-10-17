@@ -44,10 +44,7 @@ public class OptimizerSettings
 	/** Most slots a {@link #switchFrom} switch may change, weapon included. */
 	@Builder.Default
 	int switchLimit = 2;
-	/**
-	 * A freeze duty's target chance (0..1) to land each cast ({@link FreezeDuty}): a {@link #switchFrom} switch swaps
-	 * the fewest slots that reach it. 0 for no freeze duty.
-	 */
+	/** A freeze duty's target chance (0..1) to land each cast ({@link FreezeDuty}): a {@link #switchFrom} switch swaps the fewest slots that reach it. 0 for no freeze duty. */
 	@Builder.Default
 	double freezeAccuracy = 0;
 	@Builder.Default

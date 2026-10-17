@@ -250,10 +250,7 @@ public final class SpecialRotation
 		}
 	}
 
-	/**
-	 * A kill opened by {@code specs} draining specials and finished with ordinary attacks at the drained stats, with no
-	 * specials in between: {seconds, specs used}.
-	 */
+	/** A kill opened by {@code specs} draining specials and finished with ordinary attacks at the drained stats, with no specials in between: {seconds, specs used}. */
 	public static double[] drainOpened(Fight fight, SpecialAttack.Drain drain, int energy, int specs, int hp, boolean allMiss)
 	{
 		return new DrainKill(fight, drain, energy, 0, allMiss).path(specs, SpecialAttacks.NONE, hp);
