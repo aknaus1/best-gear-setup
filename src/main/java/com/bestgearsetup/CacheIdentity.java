@@ -6,7 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.JarURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -186,9 +186,12 @@ final class CacheIdentity
 				}
 				else if ("jar".equals(root.getProtocol()))
 				{
-					JarURLConnection connection = (JarURLConnection) root.openConnection();
-					connection.setUseCaches(false);
-					try (JarFile jar = connection.getJarFile())
+					String location = root.toExternalForm();
+					int separator = location.indexOf("!/");
+					if (separator < 0) { throw new IOException("Invalid plugin JAR location"); }
+					URI archive = URI.create(location.substring("jar:".length(), separator));
+					if (!"file".equals(archive.getScheme())) { throw new IOException("Plugin JAR is not local"); }
+					try (JarFile jar = new JarFile(Paths.get(archive).toFile()))
 					{
 						List<JarEntry> entries = jar.stream().filter(entry -> !entry.isDirectory()
 							&& entry.getName().startsWith("com/bestgearsetup/")).sorted(Comparator.comparing(JarEntry::getName)).collect(Collectors.toList());
