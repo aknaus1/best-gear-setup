@@ -12,18 +12,20 @@ import org.junit.Test;
 
 public class InventoryBoostTest
 {
-	@Test public void suppliesAloneHideTheWholeInventorySectionAndSwitchesRestoreIt() throws Exception
+	@Test public void inventoryShowsWithOrWithoutEquipmentSwitches() throws Exception
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
 			InventoryView view = new InventoryView(null, new JPanel(), "inventory", null, null, 0);
 			RaidPlan.InventoryItem runes = new RaidPlan.InventoryItem("Runes", Collections.singletonList(565), false);
 			view.showItems(Collections.singletonList(runes));
-			assertTrue(!view.isVisible());
+			assertTrue("Supplies alone still get the inventory layout", view.isVisible());
+			assertEquals("Runes", ((JComponent) findGrid(view).getComponent(0)).getToolTipText());
 			view.showItems(Arrays.asList(runes, new RaidPlan.InventoryItem("Weapon", Collections.singletonList(1), true)));
 			assertTrue(view.isVisible());
 			view.showItems(Collections.emptyList());
-			assertTrue(!view.isVisible());
+			assertTrue("An empty inventory shows its free slots", view.isVisible());
+			assertEquals("Free slot for supplies", ((JComponent) findGrid(view).getComponent(0)).getToolTipText());
 		});
 	}
 

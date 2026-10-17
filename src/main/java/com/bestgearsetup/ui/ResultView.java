@@ -312,8 +312,9 @@ class ResultView extends JPanel
 		if (inventory == null)
 		{
 			InventoryView supplies = new InventoryView(itemManager, inventoryState, "setupInventory", plugin, sprites, ammoCount);
-			supplies.showItems(RaidPlan.inventoryForSetup(selected, results,
-				id -> plugin.getOwnedItems().owns(id) && !plugin.getExcluded().contains(id)));
+			List<RaidPlan.InventoryItem> carried = RaidPlan.inventoryForSetup(selected, results,
+				id -> plugin.getOwnedItems().owns(id) && !plugin.getExcluded().contains(id));
+			supplies.showItems(plugin.fillsFood(results) ? plugin.withFood(carried) : carried);
 			inventory = supplies;
 		}
 		if (inventory.isVisible())

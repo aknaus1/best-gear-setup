@@ -64,7 +64,7 @@ import org.mockito.stubbing.Answer;
 
 public class BankViewTest
 {
-	@Test public void specialEquipmentSwitchUsesInventoryButSameWeaponSpecialUsesCompactSupplies()
+	@Test public void specialSwitchesAndSuppliesShareTheInventoryCells()
 	{
 		GearItem weapon = item(12926);
 		SetupResult base = setup(Slot.WEAPON, weapon);
@@ -76,11 +76,36 @@ public class BankViewTest
 			SetupResult selected = new SetupResult(CombatClass.MELEE, base.getLoadout(), null, 0, 0,
 				Collections.emptySet(), Collections.emptySet(), special);
 			Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(selected, Collections.singletonList(potion));
-			assertEquals(Integer.valueOf(specialWeapon == weapon ? 20 : 5), cells.get(ItemID._4DOSE2COMBAT));
+			// Without a switch the potion takes the first inventory cell; a spec weapon switch comes first.
+			assertEquals(Integer.valueOf(specialWeapon == weapon ? 4 : 5), cells.get(ItemID._4DOSE2COMBAT));
 			if (specialWeapon != weapon) { assertEquals(Integer.valueOf(4), cells.get(4153)); }
 		}
+		// Loaded ammunition joins the loading rows below the inventory, as in a raid kit.
 		base.getLoadout().setLoadedAmmo(item(11230));
-		assertEquals(Integer.valueOf(10), BestGearSetupBankView.cellsFor(base).get(11230));
+		assertEquals(Integer.valueOf(56), BestGearSetupBankView.cellsFor(base).get(11230));
+	}
+
+	@Test public void searchWithoutSwitchesMirrorsThePanelsInventoryCells()
+	{
+		Loadout loadout = new Loadout();
+		loadout.set(Slot.WEAPON, item(12926));
+		Spell spell = new Spell();
+		spell.setName("wind strike");
+		loadout.setSpell(spell);
+		SetupResult setup = new SetupResult(CombatClass.MAGIC, loadout, null, 0);
+		Potion attack = new Potion();
+		attack.setId(ItemID._4DOSE2ATTACK);
+		List<Potion> potions = Collections.singletonList(attack);
+		List<RaidPlan.InventoryItem> carried = RaidPlan.inventoryForSetup(setup, potions, id -> false);
+		assertFalse(carried.isEmpty());
+		assertTrue(carried.stream().noneMatch(RaidPlan.InventoryItem::isEquipment));
+		// Every carried supply takes the bank cell of its slot in the panel's inventory grid.
+		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(setup, potions);
+		List<RaidPlan.InventoryItem> grid = RaidPlan.inventoryLayout(carried);
+		for (int i = 0; i < grid.size(); i++)
+		{
+			assertEquals(Integer.valueOf(BestGearSetupBankView.inventoryCell(i)), cells.get(grid.get(i).getIds().get(0)));
+		}
 	}
 
 	@Test public void raidBoostCountGuidanceReservesBottleSlotsAndPreservesRealStack() throws Exception
@@ -101,9 +126,10 @@ public class BankViewTest
 		bank.view.setRaidSelection(plan, BestGearSetupBankView::itemIds);
 		assertTrue(bank.view.show());
 		assertTrue(bank.view.boostGuidance(ItemID._4DOSE2COMBAT).contains("Bring 2 bottles (~5 doses)"));
-		assertEquals(243, bank.items[4].value("OriginalX"));
-		assertEquals(243, bank.items[5].value("OriginalX")); // runes retain their separate supply group
-		assertEquals(72, bank.items[4].value("OriginalY"));
+		// Supplies alone still take inventory cells: the rune first, then the potion bottles.
+		assertEquals(291, bank.items[4].value("OriginalX"));
+		assertEquals(243, bank.items[5].value("OriginalX"));
+		assertEquals(0, bank.items[4].value("OriginalY"));
 		assertEquals(0, bank.items[5].value("OriginalY"));
 		assertEquals("Original potion", bank.items[4].widget.getName());
 		assertEquals("Withdraw-1", bank.items[4].values.get("Action0"));
@@ -251,7 +277,7 @@ public class BankViewTest
 		assertTrue(bank.view.show());
 		assertEquals(51, bank.items[0].value("OriginalX"));
 		assertEquals(51, bank.items[1].value("OriginalX"));
-		assertEquals(180, bank.items[1].value("OriginalY"));
+		assertEquals(252, bank.items[1].value("OriginalY"));
 	}
 
 	@Test
@@ -267,7 +293,7 @@ public class BankViewTest
 				plugin::bankItemIds, id -> false);
 			assertTrue(bank.view.show());
 			assertEquals(36, bank.items[kitQuantity > 0 ? 5 : 4].value("OriginalY"));
-			if (kitQuantity > 0) { assertEquals(180, bank.items[4].value("OriginalY")); }
+			if (kitQuantity > 0) { assertEquals(252, bank.items[4].value("OriginalY")); }
 			else { assertTrue(bank.items[5].widget.isSelfHidden()); }
 		}
 	}
@@ -280,7 +306,7 @@ public class BankViewTest
 		bank.view.setSelection(setup(Slot.WEAPON, item(12924, 12926)));
 		assertTrue(bank.view.show());
 		assertEquals(72, bank.items[1].value("OriginalY"));
-		assertEquals(180, bank.items[0].value("OriginalY"));
+		assertEquals(252, bank.items[0].value("OriginalY"));
 		assertFalse(bank.items[0].widget.isSelfHidden());
 	}
 
@@ -298,19 +324,21 @@ public class BankViewTest
 		attack.setId(ItemID._4DOSE2ATTACK);
 		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0), Collections.singletonList(attack));
 		assertTrue(bank.view.show());
-		// Own cells: weapon in the silhouette, runes beside the head and boosts below them.
+		// Own cells: weapon in the silhouette; the boost then the runes in the inventory's first row.
 		assertEquals(72, bank.items[0].value("OriginalY"));
-		assertEquals(0, bank.items[4].value("OriginalY"));
-		assertEquals(243, bank.items[4].value("OriginalX"));
-		assertEquals(72, bank.items[7].value("OriginalY"));
+		assertEquals(0, bank.items[7].value("OriginalY"));
 		assertEquals(243, bank.items[7].value("OriginalX"));
-		// Extras: the gear variant, then the mist rune, then super combat on separate rows.
-		assertEquals(180, bank.items[1].value("OriginalY"));
-		assertEquals(216, bank.items[5].value("OriginalY"));
-		assertEquals(51, bank.items[5].value("OriginalX"));
-		assertEquals(252, bank.items[8].value("OriginalY"));
+		assertEquals(0, bank.items[4].value("OriginalY"));
+		assertEquals(291, bank.items[4].value("OriginalX"));
+		assertEquals(0, bank.items[6].value("OriginalY"));
+		assertEquals(339, bank.items[6].value("OriginalX"));
+		// Extras below the inventory: the gear variant, then super combat, then the mist rune on separate rows.
+		assertEquals(252, bank.items[1].value("OriginalY"));
+		assertEquals(288, bank.items[8].value("OriginalY"));
 		assertEquals(51, bank.items[8].value("OriginalX"));
-		assertEquals(288, bank.container.value("ScrollHeight"));
+		assertEquals(324, bank.items[5].value("OriginalY"));
+		assertEquals(51, bank.items[5].value("OriginalX"));
+		assertEquals(360, bank.container.value("ScrollHeight"));
 	}
 
 	@Test
@@ -324,15 +352,15 @@ public class BankViewTest
 		bank.view.setSelection(setup(Slot.WEAPON, item(12926, 12924)), Collections.singletonList(attack));
 		assertTrue(bank.view.show());
 		// The highest dose of the potion itself fills its cell ahead of the stand-in super combat.
-		assertEquals(72, bank.items[4].value("OriginalY"));
+		assertEquals(0, bank.items[4].value("OriginalY"));
 		assertEquals(243, bank.items[4].value("OriginalX"));
 		// Gear extra, then the remaining super attack, then both super combats together on the next row.
-		assertEquals(180, bank.items[1].value("OriginalY"));
-		assertEquals(216, bank.items[6].value("OriginalY"));
+		assertEquals(252, bank.items[1].value("OriginalY"));
+		assertEquals(288, bank.items[6].value("OriginalY"));
 		assertEquals(51, bank.items[6].value("OriginalX"));
-		assertEquals(252, bank.items[5].value("OriginalY"));
+		assertEquals(324, bank.items[5].value("OriginalY"));
 		assertEquals(51, bank.items[5].value("OriginalX"));
-		assertEquals(252, bank.items[7].value("OriginalY"));
+		assertEquals(324, bank.items[7].value("OriginalY"));
 		assertEquals(99, bank.items[7].value("OriginalX"));
 	}
 
@@ -353,17 +381,18 @@ public class BankViewTest
 
 		bank.view.setRaidSelection(plan, BestGearSetupBankView::itemIds);
 		assertTrue(bank.view.show());
-		// The one-dose prepot fills the selected cell; its extras remain grouped high-dose-first.
-		assertEquals(72, bank.items[4].value("OriginalY"));
-		assertEquals(180, bank.items[7].value("OriginalY"));
+		// The one-dose prepot fills its cell below the silhouette; its extras remain grouped high-dose-first.
+		assertEquals(180, bank.items[4].value("OriginalY"));
+		assertEquals(51, bank.items[4].value("OriginalX"));
+		assertEquals(252, bank.items[7].value("OriginalY"));
 		assertEquals(51, bank.items[7].value("OriginalX"));
-		assertEquals(180, bank.items[6].value("OriginalY"));
+		assertEquals(252, bank.items[6].value("OriginalY"));
 		assertEquals(99, bank.items[6].value("OriginalX"));
-		assertEquals(180, bank.items[5].value("OriginalY"));
+		assertEquals(252, bank.items[5].value("OriginalY"));
 		assertEquals(147, bank.items[5].value("OriginalX"));
 		Widget extraPrepot = bank.spares[0].widget;
 		assertEquals(ItemID._1DOSE2ATTACK, extraPrepot.getItemId());
-		assertEquals(180, extraPrepot.getOriginalY());
+		assertEquals(252, extraPrepot.getOriginalY());
 		assertEquals(195, extraPrepot.getOriginalX());
 		assertFalse(extraPrepot.isSelfHidden());
 	}
@@ -376,8 +405,8 @@ public class BankViewTest
 		assertTrue(bank.view.show());
 		assertTrue(bank.heading.widget.isSelfHidden());
 		assertEquals(72, bank.items[0].value("OriginalY"));
-		assertEquals(180, bank.items[1].value("OriginalY"));
-		assertEquals(216, bank.container.value("ScrollHeight"));
+		assertEquals(252, bank.items[1].value("OriginalY"));
+		assertEquals(288, bank.container.value("ScrollHeight"));
 		assertFalse(bank.items[0].widget.isSelfHidden());
 		assertFalse(bank.items[1].widget.isSelfHidden());
 		assertTrue(bank.items[2].widget.isSelfHidden());
@@ -460,7 +489,7 @@ public class BankViewTest
 		bank.view.setSelection(setup(Slot.WEAPON, item(12926)));
 		assertTrue(bank.view.show());
 		assertEquals(72, bank.items[0].value("OriginalY"));
-		assertEquals(180, bank.container.value("ScrollHeight"));
+		assertEquals(252, bank.container.value("ScrollHeight"));
 		assertTrue(bank.items[3].widget.isSelfHidden());
 		// Withdrawing the weapon leaves only its placeholder, which takes the empty weapon cell.
 		bank.items[0].values.put("ItemId", -1);
@@ -469,7 +498,7 @@ public class BankViewTest
 		assertFalse(bank.items[3].widget.isSelfHidden());
 		assertEquals(72, bank.items[3].value("OriginalY"));
 		assertEquals(51, bank.items[3].value("OriginalX"));
-		assertEquals(180, bank.container.value("ScrollHeight"));
+		assertEquals(252, bank.container.value("ScrollHeight"));
 	}
 
 	@Test
@@ -480,12 +509,12 @@ public class BankViewTest
 		assertTrue(bank.view.show());
 		assertEquals(51, bank.items[0].value("OriginalX"));
 		assertEquals(72, bank.items[0].value("OriginalY"));
-		assertEquals(180, bank.items[1].value("OriginalY"));
+		assertEquals(252, bank.items[1].value("OriginalY"));
 		assertEquals(0, bank.items[0].value("Index"));
 		assertEquals(12926, bank.items[0].value("ItemId"));
 		assertEquals(Integer.MAX_VALUE, bank.items[0].value("DragDeadZone"));
 		assertEquals(Integer.MAX_VALUE, bank.items[0].value("DragDeadTime"));
-		assertEquals(216, bank.container.value("ScrollHeight"));
+		assertEquals(288, bank.container.value("ScrollHeight"));
 		bank.view.clear();
 		for (WidgetState item : bank.items)
 		{

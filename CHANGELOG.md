@@ -12,6 +12,10 @@ is what the Plugin Hub shows.
   A boss trip adds the doses its kills need beyond your starting points, and the inventory and bank list
   those bottles with the boosts: super restores or Sanfew serums when you own some, otherwise prayer
   potions, with the other restores accepted as bank alternatives.
+- Show the inventory layout for every search, not only setups with equipment switches: the panel's
+  inventory and the bank layout now place boosts, runes and pouches in their inventory slots.
+- Fill a single search's free inventory slots with the best-healing food you own (sharks if none), in the panel
+  and the bank layout, and outline it in the bank. Raid kits are unchanged; turn it off with Fill inventory with food.
 
 ## 1.1.1 (2026-10-17)
 

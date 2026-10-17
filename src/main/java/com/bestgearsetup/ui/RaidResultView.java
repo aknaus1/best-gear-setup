@@ -61,6 +61,7 @@ class RaidResultView extends JPanel
 			{
 				detail.add(new JLabel(BestGearSetupPanel.html("No usable setup with your carried items and current restrictions.")));
 				inventorySection.showItems(java.util.Collections.emptyList(), plan::potionUse, null);
+				inventorySection.setVisible(false);
 				selected.accept(current);
 				detail.revalidate(); detail.repaint();
 				return;
@@ -68,6 +69,7 @@ class RaidResultView extends JPanel
 			java.util.List<RaidPlan.InventoryItem> carried = plan.inventoryFor(result.getByType().values().iterator().next().get(0));
 			CoxChestPlan chest = CoxChestPlan.forEncounter(plan, current, result.getByType().values().iterator().next().get(0));
 			inventorySection.showItems(carried, plan::potionUse, chest);
+			inventorySection.setVisible(true);
 			selected.accept(plan.getEncounters().get(index));
 			JLabel stats = new JLabel(BestGearSetupPanel.html("Defence: " + result.getBaseDefence() + " → "
 				+ result.getMonster().getDefenceLevel() + (result.getRaidScaling() == null ? "" : "<br>" + BestGearSetupPanel.escape(result.getRaidScaling()))));

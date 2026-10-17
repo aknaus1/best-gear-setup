@@ -33,6 +33,7 @@ public final class ConfigSettings
 		add("bankHighlightColor", BestGearSetupConfig::bankHighlightColor);
 		add("highlightInventoryGear", BestGearSetupConfig::highlightInventoryGear);
 		add("inventoryHighlightColor", BestGearSetupConfig::inventoryHighlightColor);
+		add("fillFood", BestGearSetupConfig::fillFood);
 		add("mode", BestGearSetupConfig::mode);
 		add("budget", BestGearSetupConfig::budget);
 		add("bossesOnly", BestGearSetupConfig::bossesOnly);

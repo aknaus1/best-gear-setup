@@ -161,12 +161,6 @@ public class RaidPlan
 		return fill(choices, context, new Memo(), getStartIndex()).get(choices.size() - 1);
 	}
 
-	/** Whether the carried items include equipment to switch into, rather than only supplies. */
-	public static boolean hasEquipmentSwitches(List<InventoryItem> inventory)
-	{
-		return inventory.stream().anyMatch(InventoryItem::isEquipment);
-	}
-
 	/** Supplies and special-attack switches for an individual encounter. */
 	public static List<InventoryItem> inventoryForSetup(SetupResult setup, SearchResults results, IntPredicate owns)
 	{
@@ -417,7 +411,9 @@ public class RaidPlan
 	/** Combat classification; shared gear follows its most frequent deliberate combat use. */
 	public enum InventoryGroup
 	{
-		MELEE_GEAR, RANGED_GEAR, MAGIC_GEAR, SPECIAL, OTHER, BOOSTS, RUNES
+		MELEE_GEAR, RANGED_GEAR, MAGIC_GEAR, SPECIAL, OTHER, BOOSTS, RUNES,
+		/** Food in an individual search's free slots ({@link InventoryFood}); laid out last, after the boosts. */
+		FOOD
 	}
 
 	/** Fixed switch order within each combat group, independent of encounter and candidate traversal. */
@@ -450,7 +446,7 @@ public class RaidPlan
 	 * a trident worn with ranged armour still needs its carried magic armour kept together.
 	 * Prefer a consistent paired-row layout for the whole inventory;
 	 * use paired columns when rows cannot preserve the core switches within the inventory's capacity.
-	 * Supplies fill spare cells without moving a combat item off its switch path.
+	 * Supplies fill spare cells without moving a combat item off its switch path, and food fills whatever is left.
 	 */
 	public static List<InventoryItem> inventoryLayout(List<InventoryItem> items)
 	{
@@ -502,12 +498,13 @@ public class RaidPlan
 		looseGear.sort(Comparator.comparingInt((InventoryItem item) -> item.getSlot() == Slot.WEAPON ? 0 : 1)
 			.thenComparing(Comparator.comparingInt(InventoryItem::getUses).reversed())
 			.thenComparing(RaidPlan::combatGroup).thenComparing(GEAR_ORDER));
-		List<InventoryItem> supplies = items.stream().filter(item -> !isCombatGear(item))
+		List<InventoryItem> food = items.stream().filter(item -> item.getGroup() == InventoryGroup.FOOD).collect(Collectors.toList());
+		List<InventoryItem> supplies = items.stream().filter(item -> !isCombatGear(item) && item.getGroup() != InventoryGroup.FOOD)
 			.sorted(Comparator.comparingInt(RaidPlan::supplyOrder)
 				.thenComparing(item -> isSpellSupply(item) ? "" : item.getName(), String.CASE_INSENSITIVE_ORDER)
 				.thenComparingInt(item -> isSpellSupply(item) ? 0 : item.getIds().get(0)))
 			.collect(Collectors.toList());
-		if (groups.isEmpty()) { looseGear.addAll(supplies); return looseGear; }
+		if (groups.isEmpty()) { looseGear.addAll(supplies); looseGear.addAll(food); return looseGear; }
 
 		SwitchLayout best = switchLayout(groups, primaryGroups);
 		List<InventoryItem> cells = new ArrayList<>(Collections.nCopies(28, null));
@@ -552,6 +549,8 @@ public class RaidPlan
 			for (int i = start; i < free.size() && used < boosts.size(); i++) { cells.set(free.get(i), boosts.get(used++)); }
 			cells.addAll(boosts.subList(used, boosts.size()));
 		}
+		// Food goes in last, so filling the inventory never moves the gear, supplies or boosts.
+		fillInventorySpace(cells, food);
 		while (!cells.isEmpty() && cells.get(cells.size() - 1) == null) { cells.remove(cells.size() - 1); }
 		return cells;
 	}

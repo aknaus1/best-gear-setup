@@ -173,6 +173,15 @@ public interface BestGearSetupConfig extends Config
 		return SearchAssumptions.value(this, "inventoryHighlightColor", new Color(0x00, 0xFF, 0x80));
 	}
 
+	@ConfigItem(keyName = "fillFood", name = "Fill inventory with food",
+		description = "Fill the free inventory slots of a single search's setup with the best-healing food you own (sharks if none) "
+			+ "in the panel and bank layout, and outline it in the bank. Raid kits keep their own supplies.",
+		section = displaySection, position = 5)
+	default boolean fillFood()
+	{
+		return SearchAssumptions.value(this, "fillFood", true);
+	}
+
 	// ------------------------------------------------------------ search
 
 	@ConfigItem(

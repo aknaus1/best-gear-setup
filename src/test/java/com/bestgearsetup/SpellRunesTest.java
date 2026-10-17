@@ -144,7 +144,7 @@ public class SpellRunesTest
 	}
 
 	@Test
-	public void bankLayoutPlacesBoostsBeforeRunesWithEveryDose()
+	public void bankLayoutPlacesBoostsInTheInventoryWithEveryDose()
 	{
 		Potion combat = new Potion();
 		combat.setId(ItemID._4DOSE2COMBAT);
@@ -152,10 +152,10 @@ public class SpellRunesTest
 		heart.setId(ItemID.SATURATED_HEART);
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
 			loadout(null, "abyssal whip", null), null, 0), Arrays.asList(combat, heart));
-		assertEquals(Integer.valueOf(20), cells.get(ItemID._4DOSE2COMBAT));
-		assertEquals(Integer.valueOf(20), cells.get(ItemID._2DOSE2COMBAT));
-		assertEquals(Integer.valueOf(20), cells.get(ItemID._3DOSEDIVINECOMBAT));
-		assertEquals(Integer.valueOf(21), cells.get(ItemID.SATURATED_HEART));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID._4DOSE2COMBAT));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID._2DOSE2COMBAT));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID._3DOSEDIVINECOMBAT));
+		assertEquals(Integer.valueOf(5), cells.get(ItemID.SATURATED_HEART));
 		Potion attack = new Potion();
 		attack.setId(ItemID._4DOSE2ATTACK);
 		Potion strength = new Potion();
@@ -163,9 +163,9 @@ public class SpellRunesTest
 		Map<Integer, Integer> split = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
 			loadout(null, "abyssal whip", null), null, 0), Arrays.asList(attack, strength));
 		// A super combat covers both and sits with the first; each keeps its own cell.
-		assertEquals(Integer.valueOf(20), split.get(ItemID._4DOSE2ATTACK));
-		assertEquals(Integer.valueOf(20), split.get(ItemID._3DOSE2COMBAT));
-		assertEquals(Integer.valueOf(21), split.get(ItemID._4DOSE2STRENGTH));
+		assertEquals(Integer.valueOf(4), split.get(ItemID._4DOSE2ATTACK));
+		assertEquals(Integer.valueOf(4), split.get(ItemID._3DOSE2COMBAT));
+		assertEquals(Integer.valueOf(5), split.get(ItemID._4DOSE2STRENGTH));
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
 		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout(null, "abyssal whip", null), null, 0),
 			Collections.singletonList(combat));
@@ -186,8 +186,8 @@ public class SpellRunesTest
 		assertEquals(Integer.valueOf(4), cells.get(ItemID.DIVINE_RUNE_POUCH));
 		assertFalse(cells.containsKey(ItemID.BH_RUNE_POUCH_TROUVER));
 		assertFalse(cells.containsKey(ItemID.BH_RUNE_POUCH));
-		// Without equipment switches, packed runes stay beside the pouch.
-		assertEquals(Integer.valueOf(5), cells.get(ItemID.DEATHRUNE));
+		// Packed runes load from the rows below the inventory, as in a raid kit.
+		assertEquals(Integer.valueOf(56), cells.get(ItemID.DEATHRUNE));
 		// No runes needed, no pouch.
 		assertFalse(BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MAGIC,
 			loadout(null, "trident of the swamp", null), null, 0), Collections.emptyList(), id -> true)

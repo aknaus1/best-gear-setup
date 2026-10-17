@@ -25,7 +25,7 @@ import net.runelite.client.util.AsyncBufferedImage;
 
 /**
  * Inventory below worn equipment, laid out like the game's inventory tab: 28 slots of 36x32 on the side-panel stone
- * background, 4 across and 7 down, with pouch tooltips. It starts minimized; the state is kept on a component that
+ * background, 4 across and 7 down, with pouch tooltips. Every result shows it, with or without equipment switches. It starts minimized; the state is kept on a component that
  * outlives the results (the side panel's boss selector), so it carries over to new searches and raid encounters.
  */
 class InventoryView extends JPanel
@@ -83,7 +83,6 @@ class InventoryView extends JPanel
 	void showItems(List<RaidPlan.InventoryItem> carried, Function<RaidPlan.InventoryItem, RaidPlan.PotionUse> potionUse,
 		CoxChestPlan chest)
 	{
-		setVisible(RaidPlan.hasEquipmentSwitches(carried));
 		grid.removeAll();
 		List<RaidPlan.InventoryItem> layout = RaidPlan.inventoryLayout(carried);
 		for (int i = 0; i < 28; i++)
