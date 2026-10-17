@@ -7,15 +7,54 @@ import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.EncounterPhase;
+import com.bestgearsetup.data.MonsterGroup;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Arrays;
 
-/** Explicit raid targets; exact catalogue names prevent picking an entry/hard/DMM variant. */
+/**
+ * Explicit raid targets, and the whole fight of bosses with several phases, planned like a raid as one kit; exact
+ * catalogue names prevent picking an entry/hard/DMM variant.
+ */
 public enum RaidPlanType
 {
-	SINGLE("Single encounter"), COX_CM("Challenge Mode: Chambers of Xeric"), TOA("Tombs of Amascut"), TOB("Theatre of Blood");
+	SINGLE("Single encounter"), COX_CM("Challenge Mode: Chambers of Xeric"), TOA("Tombs of Amascut"), TOB("Theatre of Blood"),
+	ZULRAH("Zulrah full fight", "zulrah"), ALCHEMICAL_HYDRA("Alchemical Hydra full fight", "alchemical hydra"),
+	ARAXXOR("Araxxor full fight", "araxxor"), KALPHITE_QUEEN("Kalphite Queen full fight", "kalphite queen"),
+	VETION("Vet'ion full fight", "vet'ion"), CALVARION("Calvar'ion full fight", "calvar'ion"),
+	PHANTOM_MUSPAH("Phantom Muspah full fight", "phantom muspah"), ABYSSAL_SIRE("Abyssal Sire full fight", "abyssal sire"),
+	YAMA("Yama full fight", "yama");
+	/**
+	 * Zulrah's forms by how often each appears over the four rotations (Wiki strategies): 24 serpentine, 8 magma and
+	 * 15 tanzanite phases. Its one HP pool is split by those counts, an estimate since phases differ in length.
+	 */
+	static final double ZULRAH_SERPENTINE = 24 / 47.0;
+	static final double ZULRAH_MAGMA = 8 / 47.0;
+	static final double ZULRAH_TANZANITE = 15 / 47.0;
+	/**
+	 * The Phantom Muspah raises its shield below 127 of its 850 HP; until then it switches form after about 100
+	 * damage in ranged form and 80 in melee form (Wiki). The shield is drained with Smite, which isn't planned.
+	 */
+	static final double MUSPAH_POST_SHIELD = 127 / 850.0;
+	static final double MUSPAH_RANGED = (1 - MUSPAH_POST_SHIELD) * 100 / 180.0;
+	static final double MUSPAH_MELEE = (1 - MUSPAH_POST_SHIELD) * 80 / 180.0;
+	/** The Abyssal Sire's third phase starts below 210 of its 425 HP and its second stage below 140 (Wiki). */
+	static final double SIRE_PHASE_2 = (425 - 210) / 425.0;
+	static final double SIRE_STAGE_1 = (210 - 140) / 425.0;
+	static final double SIRE_STAGE_2 = 140 / 425.0;
+	/**
+	 * Araxytes killed per Araxxor kill of each kind, an estimate: one of his nine eggs hatches every six attacks, a
+	 * third each mirrorback, acidic (which attack with ranged) and ruptura. Ruptura araxytes are lured under
+	 * Araxxor to explode rather than attacked (Wiki).
+	 */
+	static final int ARAXXOR_ARAXYTES = 1;
+	/**
+	 * Yama's void flares, which heal him unless killed: one fire and one shadow flare in each of phases 1 and 2, and
+	 * shadow flares two at a time in phase 3 at half their health (Wiki). Two phase 3 waves are an estimate.
+	 */
+	static final int YAMA_FLARES_PER_PHASE = 1;
+	static final int YAMA_FINAL_FLARES = 4;
 	private static final AttackStyle.Type[] MELEE_TYPES = {AttackStyle.Type.STAB, AttackStyle.Type.SLASH, AttackStyle.Type.CRUSH};
 	private static final AttackStyle.Type[] RANGED_TYPES = {AttackStyle.Type.RANGED, AttackStyle.Type.ATLATL};
 	/**
@@ -57,8 +96,40 @@ public enum RaidPlanType
 	/** Most crystals assumed, for a Vasa setup too weak to kill him in any reasonable number of walks. */
 	private static final int MAX_VASA_CRYSTALS = 50;
 	private final String label;
-	RaidPlanType(String label) { this.label = label; }
+	/** The monster group whose whole fight this plans, by its lower-case base name; null for raids and single searches. */
+	private final String boss;
+	RaidPlanType(String label) { this(label, null); }
+	RaidPlanType(String label, String boss) { this.label = label; this.boss = boss; }
 	@Override public String toString() { return label; }
+
+	/** The whole fight of one boss with several phases, rather than a raid: solo, with no raid supplies or progress. */
+	public boolean isBossFight() { return boss != null; }
+
+	/** The boss fight planning the monster group named {@code baseName} ({@link MonsterGroup#getName}), or null. */
+	public static RaidPlanType fightOf(String baseName)
+	{
+		for (RaidPlanType type : values())
+		{
+			if (type.boss != null && type.boss.equals(baseName)) { return type; }
+		}
+		return null;
+	}
+
+	/** As {@link #fightOf(String)}, when {@code data} holds every target of the fight. */
+	public static RaidPlanType fightOf(GameData data, String baseName)
+	{
+		RaidPlanType type = fightOf(baseName);
+		if (type == null) { return null; }
+		try
+		{
+			type.encounters(data);
+			return type;
+		}
+		catch (IllegalStateException e)
+		{
+			return null;
+		}
+	}
 
 	/** Full raids use the same search input as individual monsters, including common abbreviations. */
 	public static List<RaidPlanType> search(String query)
@@ -296,13 +367,90 @@ public enum RaidPlanType
 				supplied = out.size();
 				break;
 			}
+			// Boss fights: each phase deals its share of one HP pool unless said otherwise. A phase ending at an HP
+			// threshold or a transformation has no final blow; the pool ends in the last phase.
+			case ZULRAH:
+				// The rotation may end in any form, in proportion to its share.
+				bossPhase(out, data, "Zulrah: serpentine", "zulrah (serpentine)", ZULRAH_SERPENTINE, ZULRAH_SERPENTINE);
+				bossPhase(out, data, "Zulrah: magma", "zulrah (magma)", ZULRAH_MAGMA, ZULRAH_MAGMA);
+				bossPhase(out, data, "Zulrah: tanzanite", "zulrah (tanzanite)", ZULRAH_TANZANITE, ZULRAH_TANZANITE);
+				break;
+			case ALCHEMICAL_HYDRA:
+				// A phase change at each of 75%, 50% and 25% of its health (Wiki).
+				bossPhase(out, data, "Alchemical Hydra: serpentine", "alchemical hydra (serpentine)", 0.25, 0);
+				bossPhase(out, data, "Alchemical Hydra: electric", "alchemical hydra (electric)", 0.25, 0);
+				bossPhase(out, data, "Alchemical Hydra: fire", "alchemical hydra (fire)", 0.25, 0);
+				bossPhase(out, data, "Alchemical Hydra: extinguished", "alchemical hydra (extinguished)", 0.25, 1);
+				break;
+			case ARAXXOR:
+				// Araxxor enrages at 25% of his health (Wiki).
+				bossPhase(out, data, "Araxxor: in combat", "araxxor (in combat)", 0.75, 0);
+				bossAdds(out, data, "Mirrorback araxyte", "mirrorback araxyte", ARAXXOR_ARAXYTES);
+				bossAdds(out, data, "Acidic araxyte", "acidic araxyte", ARAXXOR_ARAXYTES);
+				bossPhase(out, data, "Araxxor: enraged", "araxxor (enraged)", 0.25, 1);
+				break;
+			case KALPHITE_QUEEN:
+				// Each form has its own 255 HP (Wiki).
+				bossPhase(out, data, "Kalphite Queen: crawling", "kalphite queen (crawling)", 1, 0);
+				bossPhase(out, data, "Kalphite Queen: airborne", "kalphite queen (airborne)", 1, 1);
+				break;
+			case VETION:
+			case CALVARION:
+			{
+				// Two hellhounds in each form make him immune until they die; he is reborn enraged with full HP (Wiki).
+				String boss = this == VETION ? "vet'ion" : "calvar'ion";
+				String title = GameData.titleCase(boss);
+				bossPhase(out, data, title + ": normal", boss + " (normal)", 1, 0);
+				bossAdds(out, data, "Skeleton hellhound", "skeleton hellhound (" + boss + ")", 2);
+				bossPhase(out, data, title + ": enraged", boss + " (enraged)", 1, 1);
+				bossAdds(out, data, "Greater skeleton hellhound", "greater skeleton hellhound (" + boss + ")", 2);
+				break;
+			}
+			case PHANTOM_MUSPAH:
+				bossPhase(out, data, "Phantom Muspah: ranged", "phantom muspah (ranged)", MUSPAH_RANGED, 0);
+				bossPhase(out, data, "Phantom Muspah: melee", "phantom muspah (melee)", MUSPAH_MELEE, 0);
+				bossPhase(out, data, "Phantom Muspah: post-shield", "phantom muspah (post-shield)", MUSPAH_POST_SHIELD, 1);
+				break;
+			case ABYSSAL_SIRE:
+				// Phase 1 is spent killing the Sire's four respiratory systems while it is disoriented, so the Sire
+				// itself is only shown there; the kit starts with the respiratory systems.
+				bossAdds(out, data, "Respiratory system", "respiratory system", 4);
+				displayOnly(out, data, "Abyssal Sire: phase 1", "abyssal sire (phase 1)");
+				bossPhase(out, data, "Abyssal Sire: phase 2", "abyssal sire (phase 2)", SIRE_PHASE_2, 0);
+				bossPhase(out, data, "Abyssal Sire: phase 3 (stage 1)", "abyssal sire (phase 3 (stage 1))", SIRE_STAGE_1, 0);
+				bossPhase(out, data, "Abyssal Sire: phase 3 (stage 2)", "abyssal sire (phase 3 (stage 2))", SIRE_STAGE_2, 1);
+				break;
+			case YAMA:
+				// At about 66% and 33% of his health a Judge of Yama must be killed first. The Judge always prays
+				// ranged and reactively prays your last style, so players alternate melee and magic: each deals half
+				// of its HP, and the kill may end in either (Wiki).
+				bossPhase(out, data, "Yama: normal", "yama (normal)", 2 / 3.0, 0);
+				bossAdds(out, data, "Void flare: fire", "void flare (fire)", 2 * YAMA_FLARES_PER_PHASE);
+				bossAdds(out, data, "Void flare: shadow", "void flare (shadow)", 2 * YAMA_FLARES_PER_PHASE);
+				add(out, data, "Judge of Yama: melee", "judge of yama", 2, MELEE_TYPES);
+				out.set(out.size() - 1, out.get(out.size() - 1).withShare(0.5).withFinalBlow(0.5));
+				add(out, data, "Judge of Yama: magic", "judge of yama", 2, AttackStyle.Type.MAGIC);
+				out.set(out.size() - 1, out.get(out.size() - 1).withShare(0.5).withFinalBlow(0.5));
+				bossPhase(out, data, "Yama: phase 3", "yama (phase 3)", 1 / 3.0, 1);
+				bossAdds(out, data, "Void flare: phase 3", "void flare (shadow)", YAMA_FINAL_FLARES);
+				out.set(out.size() - 1, out.get(out.size() - 1).withShare(0.5));
+				break;
 			default: break;
+		}
+		if (isBossFight())
+		{
+			// The phases follow each other without a bank: one setup is worn and every other phase is a quick switch
+			// from it. Boosts are drunk before the fight, and nothing is handed out during it.
+			out.replaceAll(e -> e.isDisplayOnly() ? e : e.withSwitchGroup(label).withPrepotted().withStartable());
+			supplied = out.size();
 		}
 		for (int index = 0; index < out.size(); index++)
 		{
 			RaidEncounter encounter = out.get(index).withRaidSupplies(index >= supplied).withSwitchLimit(options.getSwitchLimit());
 			if (MAIDEN_FREEZE.equals(encounter.getSwitchGroup())) { encounter = encounter.withFreezeSwitches(); }
-			encounter = withKills(withEnergy(encounter.withStyleKey(styleKey(encounter.getLabel())), scaling.getPartySize()));
+			encounter = withEnergy(encounter.withStyleKey(styleKey(encounter.getLabel())), isBossFight() ? 1 : scaling.getPartySize());
+			// A boss fight's phases set their own kills.
+			if (!isBossFight()) { encounter = withKills(encounter); }
 			// A phase the shared choice can't damage keeps Auto.
 			out.set(index, encounter.withStyleChoice(options.style(this, encounter.getStyleKey())));
 		}
@@ -483,6 +631,20 @@ public enum RaidPlanType
 	{
 		add(out, data, label, name);
 		out.set(out.size() - 1, out.get(out.size() - 1).withPreferredStyle(RaidStyle.DISTANCE));
+	}
+
+	/** A boss fight phase dealing {@code share} of the boss's HP, whose kills end in a final blow this share of the time. */
+	private static void bossPhase(List<RaidEncounter> out, GameData data, String label, String name, double share, double finalBlow)
+	{
+		add(out, data, label, name);
+		out.set(out.size() - 1, out.get(out.size() - 1).withShare(share).withFinalBlow(finalBlow));
+	}
+
+	/** Adds killed back to back during a boss fight. */
+	private static void bossAdds(List<RaidEncounter> out, GameData data, String label, String name, int count)
+	{
+		add(out, data, label, name, count);
+		out.set(out.size() - 1, out.get(out.size() - 1).withKillsEach());
 	}
 
 	private static void displayOnly(List<RaidEncounter> out, GameData data, String label, String name)

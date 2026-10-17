@@ -41,7 +41,7 @@ public final class EncounterPhases
 		}
 		if (!applies(monster, phase))
 		{
-			return "Boss phase \"" + phase + "\" does not apply to this target and is ignored.";
+			return "Boss state \"" + phase + "\" does not apply to this target and is ignored.";
 		}
 		switch (phase)
 		{

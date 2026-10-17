@@ -3369,14 +3369,17 @@ public class Optimizer
 			&& (settings.isBountyHunterItems() || !item.isBountyHunterEquipment());
 	}
 
-	/** Ownership requires the exact item or a reviewed equivalent charge state. */
+	/**
+	 * Ownership requires the exact item or a reviewed equivalent charge state. A locked item counts as owned: the
+	 * player chose to wear it, so ownership, held quantity and budget never rule it out.
+	 */
 	private boolean isOwned(GearItem item)
 	{
 		// get-then-put: computeIfAbsent would allocate a capturing lambda on every call in the cost loops.
 		Boolean known = ownedItems.get(item);
 		if (known == null)
 		{
-			known = owned.test(item.getId());
+			known = locked(item) || owned.test(item.getId());
 			for (int variant : ownershipVariants(item))
 			{
 				known = known || owned.test(variant);
@@ -3384,6 +3387,13 @@ public class Optimizer
 			ownedItems.put(item, known);
 		}
 		return known;
+	}
+
+	/** Whether the item is the one locked into its slot. */
+	private boolean locked(GearItem item)
+	{
+		SlotLock lock = item.getSlot() == null ? null : settings.getLocks().get(item.getSlot());
+		return lock != null && lock.getKind() == SlotLock.Kind.ITEM && data.getItem(item.getSlot(), lock.getItemId()) == item;
 	}
 
 	private List<Integer> ownershipVariants(GearItem item)
@@ -3424,7 +3434,7 @@ public class Optimizer
 
 	// ------------------------------------------------------------ lock diagnostics
 
-	/** Why this item cannot be worn in this search, in plain words, or null if it can. */
+	/** Why this item cannot be worn in this search, in plain words, or null if it can. A locked item counts as owned (isOwned). */
 	public String unusableReason(GearItem item)
 	{
 		if (settings.getExcluded().contains(item.getId()))
@@ -3624,7 +3634,7 @@ public class Optimizer
 	private long ammoShortfall(GearItem item)
 	{
 		long count = settings.getAmmoCount();
-		if (count <= 0 || !WeaponRules.consumedPerAttack(item))
+		if (count <= 0 || !WeaponRules.consumedPerAttack(item) || locked(item))
 		{
 			return 0;
 		}

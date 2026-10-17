@@ -316,11 +316,23 @@ public class FightOptionsPanelTest
 			{
 				assertTrue(key, SwingUtilities.isDescendingFrom(control(panel, key), specials));
 			}
-			Component raid = control(panel, "raidScalingContent");
-			for (String key : Arrays.asList("raidEquipmentLimit", "raidSpellbook"))
+			// Kit settings apply to raids and boss fights alike, so they sit outside the Raid section.
+			Component kit = control(panel, "kitContent");
+			for (String key : Arrays.asList("raidEquipmentLimit", "raidSpellbook", "quickSwitchLimit"))
 			{
-				assertTrue(key, SwingUtilities.isDescendingFrom(control(panel, key), raid));
+				assertTrue(key, SwingUtilities.isDescendingFrom(control(panel, key), kit));
+				assertFalse(key, SwingUtilities.isDescendingFrom(control(panel, key), control(panel, "raidScalingContent")));
 			}
+			assertFalse("Kit settings only apply to plans", control(panel, "kitSection").getParent().isVisible());
+			panel.setTarget(target("zulrah (serpentine)"));
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.ZULRAH);
+			assertTrue(control(panel, "kitSection").getParent().isVisible());
+			assertTrue(control(panel, "quickSwitchLimitRow").isVisible());
+			assertFalse("A boss fight has no raid scaling", control(panel, "raidScalingSection").getParent().isVisible());
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.TOB);
+			assertTrue(control(panel, "kitSection").getParent().isVisible());
+			assertTrue(control(panel, "raidScalingSection").getParent().isVisible());
+			panel.setRaidPlan(com.bestgearsetup.RaidPlanType.SINGLE);
 			assertTrue(control(panel, "specEnergyRow").isVisible());
 			((JCheckBox) control(panel, "killSpecials")).doClick();
 			assertEquals(false, writes.get("killSpecials"));

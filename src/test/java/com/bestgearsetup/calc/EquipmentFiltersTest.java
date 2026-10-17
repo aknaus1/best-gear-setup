@@ -132,7 +132,7 @@ public class EquipmentFiltersTest
 	}
 
 	@Test
-	public void weaponLockCannotBypassWearOwnershipOrUntradeableRules()
+	public void weaponLockCannotBypassWearRulesButCountsAsOwned()
 	{
 		sword.setAttackReq(70);
 		sword.setPrice(1000);
@@ -144,22 +144,20 @@ public class EquipmentFiltersTest
 		CombatContext maxed = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		assertTrue(new Optimizer(data, lowContext, settings, id -> true, GearItem::getPrice)
 			.optimize(CombatClass.MELEE, () -> false).isEmpty());
-		assertTrue(new Optimizer(data, maxed, settings, id -> false, GearItem::getPrice)
-			.optimize(CombatClass.MELEE, () -> false).isEmpty());
-		assertEquals(sword, new Optimizer(data, maxed, settings, id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MELEE, () -> false).get(0).getLoadout().getWeapon());
-		assertTrue(new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.BUDGET).budget(999).build(),
-			id -> false, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false).isEmpty());
+		// Unowned, over budget or untradeable, the locked weapon is worn and costs nothing.
 		sword.setTradeable(false);
-		assertTrue(new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.BUDGET).budget(Long.MAX_VALUE).build(),
-			id -> false, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false).isEmpty());
-		// Best in slot has no limit: an unowned untradeable is still used.
-		assertEquals(sword, new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.UNLIMITED).build(),
-			id -> false, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false).get(0).getLoadout().getWeapon());
+		for (OptimizerSettings mode : Arrays.asList(settings, settings.toBuilder().mode(SearchMode.INVENTORY_ONLY).build(),
+			settings.toBuilder().mode(SearchMode.BUDGET).budget(999).build()))
+		{
+			SetupResult worn = new Optimizer(data, maxed, mode, id -> false, GearItem::getPrice)
+				.optimize(CombatClass.MELEE, () -> false).get(0);
+			assertEquals(sword, worn.getLoadout().getWeapon());
+			assertEquals(0, worn.getBuyCost());
+		}
 	}
 
 	@Test
-	public void ammunitionLockCannotBypassWearOwnershipOrUntradeableRules()
+	public void ammunitionLockCannotBypassWearRulesButCountsAsOwned()
 	{
 		GearItem bow = weapon(600, "bow", "bow", 5, "rapid,ranged,rapid");
 		bow.setRangedBonus(60);
@@ -169,24 +167,22 @@ public class EquipmentFiltersTest
 		arrow.setRangedReq(90);
 		arrow.setPrice(1000);
 		GameData data = TestData.gameData(Arrays.asList(bow, arrow), Collections.emptyList());
-		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
+		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY).ammoCount(1000)
 			.locks(Collections.singletonMap(Slot.AMMO, SlotLock.item(arrow.getId()))).build();
 		PlayerLevels low = new PlayerLevels(99, 99, 99, 1, 99, 99, 99, 99);
 		CombatContext lowContext = new CombatContext(monster(100, 20), low, false, true, piety());
 		CombatContext maxed = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		assertTrue(new Optimizer(data, lowContext, settings, id -> true, GearItem::getPrice)
 			.optimize(CombatClass.RANGED, () -> false).isEmpty());
-		assertTrue(new Optimizer(data, maxed, settings, id -> id == bow.getId(), GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false).isEmpty());
-		assertEquals(arrow, new Optimizer(data, maxed, settings, id -> true, GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false).get(0).getLoadout().get(Slot.AMMO));
-		assertTrue(new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.BUDGET).budget(999).build(),
-			id -> id == bow.getId(), GearItem::getPrice).optimize(CombatClass.RANGED, () -> false).isEmpty());
+		// Unowned, too few held, over budget or untradeable, the locked ammunition is used and costs nothing.
 		arrow.setTradeable(false);
-		assertTrue(new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.BUDGET).budget(Long.MAX_VALUE).build(),
-			id -> id == bow.getId(), GearItem::getPrice).optimize(CombatClass.RANGED, () -> false).isEmpty());
-		assertEquals(arrow, new Optimizer(data, maxed, settings.toBuilder().mode(SearchMode.UNLIMITED).build(),
-			id -> id == bow.getId(), GearItem::getPrice).optimize(CombatClass.RANGED, () -> false).get(0)
-			.getLoadout().get(Slot.AMMO));
+		for (OptimizerSettings mode : Arrays.asList(settings, settings.toBuilder().mode(SearchMode.INVENTORY_ONLY).build(),
+			settings.toBuilder().mode(SearchMode.BUDGET).budget(999).build()))
+		{
+			SetupResult worn = new Optimizer(data, maxed, mode, id -> id == bow.getId(), GearItem::getPrice)
+				.optimize(CombatClass.RANGED, () -> false).get(0);
+			assertEquals(arrow, worn.getLoadout().get(Slot.AMMO));
+			assertEquals(0, worn.getBuyCost());
+		}
 	}
 }

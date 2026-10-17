@@ -19,7 +19,7 @@ public enum RaidSpellbook
 		if (type == RaidPlanType.TOB && config.tobRole().freezes())
 		{
 			if (!config.ancientMagicks() || !config.styleMagic())
-			{ throw new IllegalStateException("South and North freeze require Ancient Magicks and the Magic attack style to be enabled."); }
+			{ throw new IllegalStateException("South and North freeze need Ice Barrage: allow Ancient Magicks under Settings → Spellbooks and Magic under Settings → Attack styles."); }
 			return Collections.singletonList(ANCIENT);
 		}
 		RaidSpellbook choice = config.raidSpellbook();
@@ -31,7 +31,7 @@ public enum RaidSpellbook
 				&& (book != ANCIENT || config.ancientMagicks()) && (book != ARCEUUS || config.arceuusSpellbook()))
 			{ books.add(book); }
 		}
-		if (books.isEmpty()) { throw new IllegalStateException("The selected raid spellbook is disabled under Spellbooks. Enable it or use Auto."); }
+		if (books.isEmpty()) { throw new IllegalStateException("The spellbook chosen under Fight → Kit is not allowed under Settings → Spellbooks. Allow it there, or set Spellbook to Auto."); }
 		return books;
 	}
 

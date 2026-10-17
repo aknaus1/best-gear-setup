@@ -137,7 +137,7 @@ public class MonsterSearchTest
 			IconTextField search = panel.searchField;
 			JPanel suggestions = panel.suggestions;
 			JPanel versionRow = panel.versionRow;
-			JComboBox<MonsterSummary> versions = panel.versionBox;
+			JComboBox<Object> versions = panel.versionBox;
 			JToggleButton bosses = panel.bossesButton;
 			JToggleButton all = panel.allButton;
 			assertTrue("All monsters is the default", all.isSelected());
@@ -195,7 +195,7 @@ public class MonsterSearchTest
 			IconTextField search = panel.searchField;
 			search.setText("previous target");
 			panel.selectMonster(phase2, false);
-			JComboBox<MonsterSummary> versions = panel.versionBox;
+			JComboBox<Object> versions = panel.versionBox;
 			assertTrue(((JPanel) panel.versionRow).isVisible());
 			assertEquals(phase2, versions.getSelectedItem());
 			assertEquals("Abyssal Sire", search.getText());
@@ -241,7 +241,7 @@ public class MonsterSearchTest
 			assertEquals(EncounterPhase.YAMA_MELEE_TANK, phases.getSelectedItem());
 
 			// Yama's enraged phase ignores the tank's style, so there is nothing to pick.
-			JComboBox<MonsterSummary> versions = panel.versionBox;
+			JComboBox<Object> versions = panel.versionBox;
 			versions.setSelectedItem(enraged);
 			assertFalse(phaseRow.isVisible());
 

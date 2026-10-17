@@ -27,14 +27,14 @@ public interface BestGearSetupConfig extends Config
 		section = searchSection, position = 9, hidden = true)
 	default boolean activeEncounter() { return SearchAssumptions.value(this, "activeEncounter", false); }
 
-	@ConfigItem(keyName = "raidEquipmentLimit", name = "Raid equipment slots",
-		description = "Most inventory slots the raid kit may use for equipment switches (including special weapons and spare ammunition), the rune pouch, runes outside it and a carried Book of the dead. A limit, not a target: kits may use fewer. Starting worn gear is excluded. Boosts and food don't count but must also fit in 28 slots.",
+	@ConfigItem(keyName = "raidEquipmentLimit", name = "Equipment slots",
+		description = "Most inventory slots a raid or boss fight kit may use for equipment switches (including special weapons and spare ammunition), the rune pouch, runes outside it and a carried Book of the dead. A limit, not a target: kits may use fewer. Starting worn gear is excluded. Boosts and food don't count but must also fit in 28 slots.",
 		section = searchSection, position = 10, hidden = true)
 	@Range(min = 0, max = 28)
 	default int raidEquipmentLimit() { return SearchAssumptions.value(this, "raidEquipmentLimit", 20); }
 
-	@ConfigItem(keyName = "raidSpellbook", name = "Raid spellbook",
-		description = "Auto compares complete kits by estimated raid combat time, including thralls and spell damage. ToB freeze roles always use Ancient. A manual choice uses one book throughout the raid. Allowed spellbooks and thrall settings still apply; Vengeance is not modeled.",
+	@ConfigItem(keyName = "raidSpellbook", name = "Spellbook",
+		description = "Auto compares complete raid or boss fight kits by estimated combat time, including thralls and spell damage. ToB freeze roles always use Ancient. A manual choice uses one book throughout the plan. Allowed spellbooks and thrall settings still apply; Vengeance is not modeled.",
 		section = searchSection, position = 11, hidden = true)
 	default RaidSpellbook raidSpellbook() { return SearchAssumptions.value(this, "raidSpellbook", RaidSpellbook.AUTO); }
 
@@ -49,7 +49,7 @@ public interface BestGearSetupConfig extends Config
 	default RaidOptions.TobRole tobRole() { return SearchAssumptions.value(this, "tobRole", RaidOptions.TobRole.MELEE_DPS); }
 
 	@ConfigItem(keyName = "quickSwitchLimit", name = "Quick switch swaps",
-		description = "Most equipment swaps a raid quick switch may make, weapon included (ToB Nylocas Vasilias forms, ToA baboons). A limit, not a target: a piece is only swapped when it raises DPS (max hit against baboons). Switching between any two forms stays within it.",
+		description = "Most equipment swaps a quick switch may make, weapon included (ToB Nylocas Vasilias forms, ToA baboons, the phases of a boss's full fight), up to every equipment slot. A limit, not a target: a piece is only swapped when it raises DPS (max hit against baboons). Switching between any two forms stays within it.",
 		section = searchSection, position = 34, hidden = true)
 	@Range(min = 1, max = RaidEncounter.MAX_SWITCH_LIMIT)
 	default int quickSwitchLimit() { return SearchAssumptions.value(this, "quickSwitchLimit", RaidEncounter.DEFAULT_SWITCH_LIMIT); }
@@ -496,7 +496,7 @@ public interface BestGearSetupConfig extends Config
 		return SearchAssumptions.value(this, "coxChallengeMode", false);
 	}
 
-	@ConfigItem(keyName = PHASE_KEY, name = "Boss phase", hidden = true,
+	@ConfigItem(keyName = PHASE_KEY, name = "Boss state", hidden = true,
 		description = "Select a temporary boss state. Only the named boss is affected.",
 		section = searchSection, position = 31)
 	default EncounterPhase encounterPhase()

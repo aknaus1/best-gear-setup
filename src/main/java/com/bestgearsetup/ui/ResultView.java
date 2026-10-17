@@ -420,17 +420,22 @@ class ResultView extends JPanel
 		box.add(kills, row);
 		toggle.addActionListener(e ->
 		{
-			inventoryState.putClientProperty(STATS_EXPANDED,
-				!Boolean.TRUE.equals(inventoryState.getClientProperty(STATS_EXPANDED)));
+			inventoryState.putClientProperty(STATS_EXPANDED, !statsExpanded());
 			applyStatsExpanded(box, toggle);
 		});
 		applyStatsExpanded(box, toggle);
 		return box;
 	}
 
+	/** Open until the player collapses it; the state owner keeps that choice for later results. */
+	private boolean statsExpanded()
+	{
+		return !Boolean.FALSE.equals(inventoryState.getClientProperty(STATS_EXPANDED));
+	}
+
 	private void applyStatsExpanded(JPanel box, JButton toggle)
 	{
-		boolean open = Boolean.TRUE.equals(inventoryState.getClientProperty(STATS_EXPANDED));
+		boolean open = statsExpanded();
 		for (Component component : box.getComponents())
 		{
 			if (component != toggle) { component.setVisible(open); }

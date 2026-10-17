@@ -12,7 +12,6 @@ import com.bestgearsetup.RaidPlan;
 import com.bestgearsetup.RaidEncounter;
 import com.bestgearsetup.RaidOptions;
 import com.bestgearsetup.RaidPlanType;
-import com.bestgearsetup.RaidSpellbook;
 import com.bestgearsetup.RaidStyle;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GameData;
@@ -77,6 +76,8 @@ public class BestGearSetupPanel extends PluginPanel
 	private static final String WIKI_URL = "https://oldschool.runescape.wiki/";
 	private static final Color ERROR_COLOR = new Color(0xFF6B6B);
 	private static final Color WARNING_COLOR = new Color(0xFFD24D);
+	private static final String RAID_VERSION_TIP = "Phase of the selected boss in this raid kit";
+	private static final String KIT_TARGET_TIP = "Target of the planned fight whose setup is shown: one setup is worn and the others are quick switches from it";
 
 	private final BestGearSetupPlugin plugin;
 	private final BestGearSetupConfig config;
@@ -89,9 +90,12 @@ public class BestGearSetupPanel extends PluginPanel
 	final JToggleButton bossesButton = new JToggleButton("Bosses");
 	final JToggleButton allButton = new JToggleButton("All monsters");
 	final JPanel suggestions = new JPanel();
-	final JComboBox<MonsterSummary> versionBox = new JComboBox<>();
+	/** The searched group's variants, after its full fight ({@link RaidPlanType#isBossFight}) when it has one. */
+	final JComboBox<Object> versionBox = new JComboBox<>();
 	final JComboBox<RaidEncounter> raidVersionBox = new JComboBox<>();
 	final JPanel versionRow = new JPanel(new BorderLayout(0, 2));
+	/** A planned boss fight's targets (Kit target), below the Version row that still offers each phase on its own. */
+	final JPanel fightPhaseRow = new JPanel(new BorderLayout(0, 2));
 	final JComboBox<EncounterPhase> phaseBox = new JComboBox<>();
 	/** Attack style of the displayed raid encounter; a change is saved and re-plans the raid. */
 	final JComboBox<RaidStyle> raidStyleBox = new JComboBox<>();
@@ -109,7 +113,7 @@ public class BestGearSetupPanel extends PluginPanel
 	final JTextField budgetField = new JTextField();
 	final JPanel budgetRow = new JPanel(new BorderLayout(4, 0));
 	private final CardLayout views = new CardLayout();
-	private final JButton gearButton = new JButton("Gear rules");
+	private final JButton gearButton = new JButton("Gear");
 	final JButton fightButton = new JButton("Fight");
 	/** Target-specific Fight options already shown to the player, so the Fight button stops flagging them. */
 	private final Set<String> seenFightOptions = new LinkedHashSet<>();
@@ -141,6 +145,8 @@ public class BestGearSetupPanel extends PluginPanel
 	MonsterSummary selected;
 	/** The searched group of {@link #selected}; its variants fill the version list. */
 	private MonsterGroup selectedGroup;
+	/** The full fight of {@link #selectedGroup}, listed first among its versions; null when it has none. */
+	private RaidPlanType selectedFight;
 	private boolean syncing;
 
 	public BestGearSetupPanel(BestGearSetupPlugin plugin, BestGearSetupConfig config, ItemManager itemManager,
@@ -166,31 +172,25 @@ public class BestGearSetupPanel extends PluginPanel
 		content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 		content.setBackground(ColorScheme.DARK_GRAY_COLOR);
 
-		Controls.badge(filterBadge);
-		filterBadge.setToolTipText("Bosses-only filter is active. Click to search all monsters.");
-		filterBadge.addActionListener(e -> allButton.doClick());
-
-		JPanel filter = new JPanel(new GridLayout(1, 2, 2, 0));
-		filter.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		// The badge beside the search box shows the persistent Bosses-only preference and toggles it; the
+		// two toggle buttons only hold that state (and the "no matches" recovery action) and are not shown.
+		filterBadge.setName("filterBadge");
+		filterBadge.setFocusable(false);
+		filterBadge.addActionListener(e -> (bossesButton.isSelected() ? allButton : bossesButton).doClick());
 		ButtonGroup filterGroup = new ButtonGroup();
-		bossesButton.setToolTipText("Search bosses only");
-		allButton.setToolTipText("Search bosses and other monsters");
 		for (JToggleButton button : new JToggleButton[]{bossesButton, allButton})
 		{
-			button.setFont(FontManager.getRunescapeSmallFont());
-			button.setFocusable(false);
 			button.addActionListener(e ->
 			{
 				if (!syncing)
 				{
 					plugin.setConfig(BestGearSetupConfig.BOSSES_ONLY_KEY, bossesButton.isSelected());
 				}
+				showFilter();
 				updateSuggestions();
 			});
 			filterGroup.add(button);
-			filter.add(button);
 		}
-		// The search filter is a persistent plugin preference; the recovery action still uses allButton.
 
 		searchField.setIcon(IconTextField.Icon.SEARCH);
 		searchField.setPreferredSize(new Dimension(PANEL_WIDTH - 16, 30));
@@ -226,7 +226,7 @@ public class BestGearSetupPanel extends PluginPanel
 				List<MonsterGroup> matches = data.searchMonsterGroups(searchField.getText(), 1, bossesButton.isSelected());
 				if (!matches.isEmpty())
 				{
-					select(matches.get(0), matches.get(0).getPrimary(), true);
+					selectGroup(matches.get(0));
 				}
 			}
 		});
@@ -311,9 +311,8 @@ public class BestGearSetupPanel extends PluginPanel
 		versionRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		JLabel versionLabel = Controls.caption("Version");
 		versionLabel.setLabelFor(versionBox);
-		versionBox.setFocusable(false);
 		Controls.field(versionBox);
-		versionBox.setToolTipText("Boss phase or monster variant to search against");
+		versionBox.setToolTipText("The full fight (every phase planned as one kit), or one phase or variant searched on its own");
 		versionBox.setRenderer(new DefaultListCellRenderer()
 		{
 			@Override
@@ -321,45 +320,70 @@ public class BestGearSetupPanel extends PluginPanel
 				boolean isSelected, boolean cellHasFocus)
 			{
 				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-				if (value instanceof MonsterSummary && selectedGroup != null)
+				if (value instanceof RaidPlanType)
+				{
+					setText("Full fight (all phases)");
+				}
+				else if (value instanceof MonsterSummary && selectedGroup != null)
 				{
 					MonsterSummary variant = (MonsterSummary) value;
-					setText(selectedGroup.versionLabel(variant) + " (lvl " + variant.getCombatLevel() + ")");
+					// Beside a full fight, each phase is offered as a search of that phase alone.
+					String only = selectedFight == null ? "" : "Only ";
+					setText(only + selectedGroup.versionLabel(variant) + " (lvl " + variant.getCombatLevel() + ")");
 				}
 				return this;
 			}
 		});
 		versionBox.addActionListener(e ->
 		{
-			MonsterSummary variant = (MonsterSummary) versionBox.getSelectedItem();
-			if (!syncing && variant != null && !variant.equals(selected))
+			Object choice = versionBox.getSelectedItem();
+			if (syncing || choice == null)
 			{
-				select(selectedGroup, variant, true);
+				return;
+			}
+			if (choice instanceof RaidPlanType)
+			{
+				// The full fight opens on the phase shown, when it is one of the fight's.
+				if (choice != raidType)
+				{
+					selectRaid((RaidPlanType) choice, selected);
+				}
+			}
+			else if (raidType != RaidPlanType.SINGLE || !choice.equals(selected))
+			{
+				select(selectedGroup, (MonsterSummary) choice, true);
 			}
 		});
 		versionRow.add(versionLabel, BorderLayout.NORTH);
 		versionRow.add(versionBox, BorderLayout.CENTER);
 		Controls.field(raidVersionBox);
 		raidVersionBox.setName("raidVersion");
-		raidVersionBox.setToolTipText("Phase of the selected boss in this raid kit");
+		raidVersionBox.setToolTipText(RAID_VERSION_TIP);
 		raidVersionBox.setRenderer(new DefaultListCellRenderer()
 		{
 			@Override public java.awt.Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index,
 				boolean isSelected, boolean cellHasFocus)
 			{
 				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-				if (value instanceof RaidEncounter) { setText(((RaidEncounter) value).getVersionLabel()); }
+				if (value instanceof RaidEncounter) { setText(fightPhaseLabel((RaidEncounter) value)); }
 				return this;
 			}
 		});
 		versionRow.setVisible(false);
 		content.add(left(versionRow));
 
+		fightPhaseRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		fightPhaseRow.setBorder(new EmptyBorder(3, 0, 0, 0));
+		JLabel fightPhaseLabel = Controls.caption("Kit target");
+		fightPhaseLabel.setLabelFor(raidVersionBox);
+		fightPhaseRow.add(fightPhaseLabel, BorderLayout.NORTH);
+		fightPhaseRow.setVisible(false);
+		content.add(left(fightPhaseRow));
+
 		phaseRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		phaseRow.setBorder(new EmptyBorder(3, 0, 0, 0));
-		JLabel phaseLabel = Controls.caption("Boss phase");
+		JLabel phaseLabel = Controls.caption("Boss state");
 		phaseLabel.setLabelFor(phaseBox);
-		phaseBox.setFocusable(false);
 		Controls.field(phaseBox);
 		phaseBox.setToolTipText("Select a temporary boss state. Only the named boss is affected.");
 		phaseBox.addActionListener(e ->
@@ -378,7 +402,6 @@ public class BestGearSetupPanel extends PluginPanel
 		raidStyleRow.setBorder(new EmptyBorder(3, 0, 0, 0));
 		JLabel raidStyleLabel = Controls.caption("Attack style");
 		raidStyleLabel.setLabelFor(raidStyleBox);
-		raidStyleBox.setFocusable(false);
 		Controls.field(raidStyleBox);
 		raidStyleBox.setName("raidStyle");
 		raidStyleBox.setToolTipText("Attack style planned for this encounter and the other phases of the same fight. Auto "
@@ -548,8 +571,8 @@ public class BestGearSetupPanel extends PluginPanel
 		scroll.getVerticalScrollBar().setUnitIncrement(16);
 		scroll.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		add(scroll, "results");
-		addEditor("Fight assumptions", fightOptions, "fight");
-		addEditor("Gear rules", constraints, "gear");
+		addEditor("Fight", fightOptions, "fight");
+		addEditor("Gear", constraints, "gear");
 		addEditor("Settings", settingsPanel, "settings");
 
 		syncFromConfig();
@@ -629,7 +652,7 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 		fightButton.setToolTipText(flag
 			? html("New options for this fight: <b>" + escape(String.join(", ", unseen)) + "</b>")
-			: "Fight conditions, special attacks and raid scaling");
+			: "Fight conditions, special attacks, raid scaling and kit limits");
 		fightFlagged = flag;
 	}
 
@@ -646,7 +669,7 @@ public class BestGearSetupPanel extends PluginPanel
 	{
 		assumptionsLabel.setText(summary);
 		assumptionsLabel.setToolTipText(detail);
-		assumptionsLabel.setVisible(raidType == RaidPlanType.SINGLE);
+		assumptionsLabel.setVisible(raidType == RaidPlanType.SINGLE || raidType.isBossFight());
 	}
 
 	// ------------------------------------------------------------ state updates (Swing thread)
@@ -743,24 +766,54 @@ public class BestGearSetupPanel extends PluginPanel
 		repaint();
 	}
 
+	/** Select a monster; searching a boss with a full fight plans the whole fight, opening on this phase. */
 	public void selectMonster(MonsterSummary monster, boolean run)
 	{
-		select(data == null ? null : data.groupOf(monster, bossesButton.isSelected()), monster, run);
+		MonsterGroup group = data == null ? null : data.groupOf(monster, bossesButton.isSelected());
+		RaidPlanType fight = run && !selectingRaid ? fightOf(group) : null;
+		if (fight != null) { selectRaid(fight, monster); return; }
+		select(group, monster, run);
+	}
+
+	/** A picked search result: the boss's full fight when it has one, otherwise its default version. */
+	private void selectGroup(MonsterGroup group)
+	{
+		RaidPlanType fight = fightOf(group);
+		if (fight != null) { selectRaid(fight); }
+		else { select(group, group.getPrimary(), true); }
+	}
+
+	private RaidPlanType fightOf(MonsterGroup group)
+	{
+		return group == null || data == null ? null : RaidPlanType.fightOf(data, group.getName());
 	}
 
 	public RaidPlanType getRaidType() { return raidType; }
 
-	/** Select a full raid from the ordinary search results. */
+	/** Select a full raid from the ordinary search results, or a boss's full fight. */
 	public void selectRaid(RaidPlanType raid)
 	{
+		selectRaid(raid, null);
+	}
+
+	/** As above, searched from {@code target} when it is one of the plan's targets. */
+	private void selectRaid(RaidPlanType raid, MonsterSummary target)
+	{
 		if (data == null || raid == RaidPlanType.SINGLE) { return; }
+		List<RaidEncounter> encounters = raidEncounters(raid);
+		boolean planned = target != null && encounters.stream().anyMatch(e -> e.getTarget().equals(target));
+		// A boss fight is searched from its first planned phase of the boss itself, not an add (the Sire's
+		// respiratory systems), so the search shows the boss and its versions.
+		MonsterSummary searched = planned ? target : encounters.stream()
+			.filter(e -> !raid.isBossFight() || !e.isDisplayOnly() && raid == RaidPlanType.fightOf(MonsterGroup.baseName(e.getTarget().getName())))
+			.findFirst().orElse(encounters.get(0)).getTarget();
 		// Unlike Clear, the shown results and bank layout stay up until the raid plan replaces them.
 		plugin.cancelGearSearch();
 		raidProgressLabel.setVisible(false);
 		pendingRaidEncounter = null;
 		raidType = raid;
 		selectingRaid = true;
-		try { selectMonster(raidEncounters(raid).get(0).getTarget(), true); }
+		try { selectMonster(searched, true); }
 		finally { selectingRaid = false; }
 	}
 
@@ -775,7 +828,15 @@ public class BestGearSetupPanel extends PluginPanel
 		selected = encounter.getTarget();
 		monsterLabel.setText("<html><div style='width:120px'><b>" + escape(selected.getDisplayName())
 			+ "</b> (lvl " + selected.getCombatLevel() + ")</div></html>");
-		versionRow.setVisible(raidVersionBox.getItemCount() > 1);
+		if (raidType.isBossFight())
+		{
+			versionRow.setVisible(versionBox.getItemCount() > 1);
+			fightPhaseRow.setVisible(raidVersionBox.getItemCount() > 1);
+		}
+		else
+		{
+			versionRow.setVisible(raidVersionBox.getItemCount() > 1);
+		}
 		phaseRow.setVisible(false);
 		showRaidStyles(encounter);
 		fightOptions.setTarget(selected);
@@ -788,7 +849,7 @@ public class BestGearSetupPanel extends PluginPanel
 	 */
 	public void showActiveMonster(MonsterSummary monster, EncounterPhase phase)
 	{
-		if (shownPlan != null && encounterBox.isVisible()) { selectRaidMonster(monster, phase); }
+		if (shownPlan != null) { selectRaidMonster(monster, phase); }
 	}
 
 	/** Right-click lookup within the selected raid browses its existing kit without starting another search. */
@@ -798,7 +859,7 @@ public class BestGearSetupPanel extends PluginPanel
 		RaidPlan plan = shownPlan != null && shownPlan.getType() == raidType ? shownPlan : null;
 		List<RaidEncounter> encounters = plan == null ? raidEncounters(raidType) : plan.getEncounters();
 		RaidEncounter shown = (RaidEncounter) raidVersionBox.getSelectedItem();
-		if (plan != null && encounterBox.isVisible() && shown != null && shown.getTarget().getId() == monster.getId()
+		if (plan != null && shown != null && shown.getTarget().getId() == monster.getId()
 			&& (phase == null || shown.getPhase() == phase)) { return true; }
 		RaidEncounter match = null;
 		for (RaidEncounter encounter : encounters)
@@ -808,7 +869,7 @@ public class BestGearSetupPanel extends PluginPanel
 			{ match = encounter; }
 		}
 		if (match == null) { return false; }
-		if (plan != null && encounterBox.isVisible())
+		if (plan != null)
 		{
 			if (!match.equals(shown)) { showEncounter(match); }
 		}
@@ -831,7 +892,7 @@ public class BestGearSetupPanel extends PluginPanel
 		if (label == null) { return; }
 		RaidEncounter match = shownPlan == null ? null : shownPlan.getEncounters().stream()
 			.filter(fight -> fight.getLabel().equals(label)).findFirst().orElse(null);
-		if (match != null && encounterBox.isVisible()) { showEncounter(match); }
+		if (match != null) { showEncounter(match); }
 		else { pendingRaidEncounter = label; }
 	}
 
@@ -863,13 +924,20 @@ public class BestGearSetupPanel extends PluginPanel
 			raidType = RaidPlanType.SINGLE;
 			encounterBox.setVisible(false);
 			monsterLabel.setVisible(true);
-			versionRow.remove(raidVersionBox);
-			versionRow.add(versionBox, BorderLayout.CENTER);
 			showRaidStyles(null);
 			pendingRaidEncounter = null;
 		}
+		if (raidType == RaidPlanType.SINGLE || raidType.isBossFight())
+		{
+			// A boss fight keeps picking versions, its full fight among them, until its phases are planned.
+			versionRow.remove(raidVersionBox);
+			fightPhaseRow.remove(raidVersionBox);
+			fightPhaseRow.setVisible(false);
+			versionRow.add(versionBox, BorderLayout.CENTER);
+		}
 		fightOptions.setRaidPlan(raidType);
-		searchField.setText(raidType == RaidPlanType.SINGLE ? group == null ? monster.getDisplayName() : group.getDisplayName() : raidType.toString());
+		searchField.setText(raidType == RaidPlanType.SINGLE || raidType.isBossFight()
+			? group == null ? monster.getDisplayName() : group.getDisplayName() : raidType.toString());
 		showVersions(group, monster);
 		selected = monster;
 		wikiButton.setEnabled(true);
@@ -888,6 +956,20 @@ public class BestGearSetupPanel extends PluginPanel
 		{
 			plugin.findBestSetup(monster);
 		}
+	}
+
+	/**
+	 * A raid encounter's version under its boss. A boss fight lists every target it fights in one list, so its
+	 * other targets (the Judge of Yama, Vet'ion's hellhounds) show their name, and their count when fought more than once.
+	 */
+	private String fightPhaseLabel(RaidEncounter encounter)
+	{
+		if (!raidType.isBossFight() || raidType == RaidPlanType.fightOf(MonsterGroup.baseName(encounter.getTarget().getName())))
+		{
+			return encounter.getVersionLabel();
+		}
+		double times = encounter.getRepetitions();
+		return encounter.getLabel() + (times > 1 && times == Math.rint(times) ? " (" + (long) times + ")" : "");
 	}
 
 	/** After planning, reopen the encounter selected by a style edit or an in-raid right-click lookup. */
@@ -928,11 +1010,14 @@ public class BestGearSetupPanel extends PluginPanel
 			if (group != selectedGroup)
 			{
 				selectedGroup = group;
-				versionBox.setModel(group == null ? new DefaultComboBoxModel<>()
-					: new DefaultComboBoxModel<>(group.getVariants().toArray(new MonsterSummary[0])));
+				DefaultComboBoxModel<Object> versions = new DefaultComboBoxModel<>();
+				selectedFight = fightOf(group);
+				if (selectedFight != null) { versions.addElement(selectedFight); }
+				if (group != null) { group.getVariants().forEach(versions::addElement); }
+				versionBox.setModel(versions);
 			}
-			versionBox.setSelectedItem(monster);
-			versionRow.setVisible(group != null && group.getVariants().size() > 1);
+			versionBox.setSelectedItem(raidType.isBossFight() ? raidType : monster);
+			versionRow.setVisible(versionBox.getItemCount() > 1);
 		}
 		finally
 		{
@@ -1031,6 +1116,7 @@ public class BestGearSetupPanel extends PluginPanel
 		RaidResultView.detachSelector(raidVersionBox);
 		encounterBox.setModel(new DefaultComboBoxModel<>());
 		encounterBox.setVisible(false);
+		fightPhaseRow.setVisible(false);
 		shownPlan = null;
 		showRaidStyles(null);
 		monsterLabel.setVisible(true);
@@ -1073,9 +1159,22 @@ public class BestGearSetupPanel extends PluginPanel
 		resultsPanel.removeAll();
 		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		SearchResults first = plan.getResults().get(0);
-		assumptionsLabel.setVisible(false);
-		versionRow.remove(versionBox);
-		versionRow.add(raidVersionBox, BorderLayout.CENTER);
+		boolean fight = plan.getType().isBossFight();
+		// A boss fight's Slayer task still applies, and its versions stay searchable above the planned phases.
+		assumptionsLabel.setVisible(fight);
+		raidVersionBox.setToolTipText(fight ? KIT_TARGET_TIP : RAID_VERSION_TIP);
+		if (fight)
+		{
+			versionRow.remove(raidVersionBox);
+			versionRow.add(versionBox, BorderLayout.CENTER);
+			fightPhaseRow.add(raidVersionBox, BorderLayout.CENTER);
+		}
+		else
+		{
+			fightPhaseRow.remove(raidVersionBox);
+			versionRow.remove(versionBox);
+			versionRow.add(raidVersionBox, BorderLayout.CENTER);
+		}
 		statusLabel.setText(html(escape(plan.getType().toString()) + ": " + plan.getEncounters().size() + " encounter setups"
 			+ (first.isAssumedLevels() ? "<br>Assuming 99 combat stats." : first.isRememberedLevels() ? "<br>Using remembered account levels." : "")));
 		shownPlan = plan;
@@ -1089,17 +1188,18 @@ public class BestGearSetupPanel extends PluginPanel
 			setSmall(layout, ColorScheme.LIGHT_GRAY_COLOR);
 			resultsPanel.add(left(layout));
 		}
+		// The kit's headline (starting setup, combat time, slots) stays in view; its notes go under Search details.
+		resultsPanel.add(left(RaidResultView.searchSummary(plan, activeResult != null)));
+		resultsPanel.add(spacer(4));
 		resultsPanel.add(left(new RaidResultView(plan, active, activeResult, plugin, itemManager, sprites, skillIcons,
 			config.ammoCount(), encounterBox, raidVersionBox, this::showDisplayedEncounter, exact)));
 		reopenPendingEncounter(plan);
-		monsterLabel.setVisible(false);
-		encounterBox.setVisible(true);
+		// A boss fight lists all of its targets under Kit target, so it needs no boss selector.
+		monsterLabel.setVisible(fight);
+		encounterBox.setVisible(!fight);
 		List<String> warnings = new ArrayList<>(plan.getWarnings());
 		plan.getResults().stream().flatMap(r -> r.getWarnings().stream()).forEach(warnings::add);
 		if (activeResult != null) { warnings.addAll(activeResult.getWarnings()); }
-		if (plan.getType() == RaidPlanType.TOB && config.tobRole().freezes()
-			&& plan.getSpellbook() != RaidSpellbook.ANCIENT)
-		{ warnings.add("Freezing the Maiden nylocas needs Ice Barrage: set Raid spellbook to Ancient."); }
 		if (!warnings.isEmpty())
 		{
 			JLabel warningLabel = new JLabel(html(warnings.stream().distinct().map(BestGearSetupPanel::escape).collect(Collectors.joining("<br>"))));
@@ -1109,8 +1209,9 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 		List<String> detailLines = new ArrayList<>();
 		if (plugin.getOwnedItems().isBankKnown() || plugin.getOwnedItems().count() > 0) { detailLines.add(ownedSummary()); }
+		detailLines.addAll(RaidResultView.boostLines(plan));
 		detailLines.addAll(plan.getNotes());
-		addSearchDetails(detailLines, RaidResultView.searchSummary(plan, activeResult != null));
+		addSearchDetails(detailLines);
 		resultsPanel.revalidate();
 		resultsPanel.repaint();
 	}
@@ -1276,7 +1377,7 @@ public class BestGearSetupPanel extends PluginPanel
 		{
 			modeBox.setSelectedItem(config.mode());
 			(config.bossesOnly() ? bossesButton : allButton).setSelected(true);
-			filterBadge.setVisible(config.bossesOnly());
+			showFilter();
 			showPhases(selected);
 			budgetField.setText(config.budget());
 			fightOptions.refresh();
@@ -1286,12 +1387,25 @@ public class BestGearSetupPanel extends PluginPanel
 			int rules = plugin.getLocks().size() + plugin.getExcluded().size();
 			gearButton.setText("Gear" + (rules == 0 ? "" : " (" + rules + ")"));
 			gearButton.setToolTipText("Gear rules: " + rules + " locks or exclusions; also manage extra owned items");
-			searchField.setToolTipText(config.bossesOnly() ? "Searching bosses only. Change the filter in Settings." : "Search all monsters");
+			searchField.setToolTipText(config.bossesOnly() ? "Searching bosses only; click Bosses to search all monsters."
+				: "Searching all monsters; click All to search bosses only.");
 		}
 		finally
 		{
 			syncing = false;
 		}
+	}
+
+	/** The badge beside the search box: orange "Bosses" while the filter is on, a plain "All" otherwise. */
+	private void showFilter()
+	{
+		boolean bosses = bossesButton.isSelected();
+		if (bosses) { Controls.badge(filterBadge); }
+		else { Controls.secondary(filterBadge); }
+		filterBadge.setMargin(new java.awt.Insets(0, 4, 0, 4));
+		filterBadge.setText(bosses ? "Bosses" : "All");
+		filterBadge.setToolTipText(bosses ? "Searching bosses only. Click to search all monsters."
+			: "Searching all monsters. Click to search bosses only.");
 	}
 
 	private void updateBudgetEnabled()
@@ -1406,14 +1520,30 @@ public class BestGearSetupPanel extends PluginPanel
 		int max = group.getMaxCombatLevel();
 		JLabel level = new JLabel(min == max ? String.valueOf(min) : min + "-" + max);
 		int versions = group.getVariants().size();
-		if (versions > 1)
+		boolean fight = fightOf(group) != null;
+		if (fight)
+		{
+			row.setToolTipText("Plans the full fight: every phase in one kit. Pick a single phase under Version after selecting.");
+		}
+		else if (versions > 1)
 		{
 			row.setToolTipText(versions + " versions; pick one below the search after selecting");
 		}
 		level.setFont(FontManager.getRunescapeSmallFont());
 		level.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		row.add(name, BorderLayout.CENTER);
-		row.add(level, BorderLayout.EAST);
+		JPanel east = new JPanel(new BorderLayout(6, 0));
+		east.setOpaque(false);
+		if (fight)
+		{
+			JLabel tag = new JLabel("Full fight");
+			tag.setName("fullFightTag");
+			tag.setFont(FontManager.getRunescapeSmallFont());
+			tag.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+			east.add(tag, BorderLayout.WEST);
+		}
+		east.add(level, BorderLayout.EAST);
+		row.add(east, BorderLayout.EAST);
 		row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		row.addMouseListener(new MouseAdapter()
 		{
@@ -1432,7 +1562,7 @@ public class BestGearSetupPanel extends PluginPanel
 			@Override
 			public void mouseClicked(MouseEvent e)
 			{
-				select(group, group.getPrimary(), true);
+				selectGroup(group);
 			}
 		});
 		return row;

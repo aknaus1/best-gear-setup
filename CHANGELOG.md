@@ -3,6 +3,23 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Plan the full fight of multi-phase bosses (Zulrah, Alchemical Hydra, Araxxor, Kalphite Queen, Vet'ion,
+  Calvar'ion, Phantom Muspah, Abyssal Sire, Yama) as one solo kit by default: one worn setup with quick
+  switches for the other phases and the targets fought beside the boss (Judges and void flares, respiratory
+  systems, hellhounds, mirrorback and acidic araxytes), within the quick switch swap limit. Each phase stays searchable on its own.
+- Move Equipment slots, Spellbook and Quick switch swaps to a Kit section under Fight; quick switches may now
+  swap up to all 11 equipment slots.
+- Locked items count as owned in every search mode and cost nothing against the budget, so a lock is no
+  longer blocked for not being owned.
+- A raid or full fight blocked by a lock now names the lock and why it can't be used, once instead of per spellbook.
+- Tag search suggestions whose search plans a full fight, rename the phase selectors (Version offers "Only" a
+  phase beside the full fight; Kit target and Boss state replace Fight phase and Boss phase), show the kit
+  summary above the setups, open DPS details by default, and let the badge beside the search box switch the
+  Bosses filter both ways. Editors are titled after their buttons, and a freeze role without Ancient Magicks
+  names the settings to change.
+
 ## 1.1.1 (2026-10-17)
 
 - Add Beta raid planning for CM CoX, ToA and ToB: shared kits, encounter setups, spellbook

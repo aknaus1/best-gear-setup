@@ -87,7 +87,7 @@ public class RaidPlannerTest
 			assertTrue(!encounters.get(0).isDisplayOnly());
 			encounters.stream().filter(RaidEncounter::isDisplayOnly).forEach(e -> displayOnly.add(e.getLabel()));
 		}
-		assertEquals(Arrays.asList("Scavengers", "Vespula"), displayOnly);
+		assertEquals(Arrays.asList("Scavengers", "Vespula", "Abyssal Sire: Phase 1"), displayOnly);
 		RaidEncounter vespula = RaidPlanType.COX_CM.encounters(data).stream().filter(e -> e.getLabel().equals("Vespula")).findFirst().get();
 		assertTrue(vespula.withStyleChoice(RaidStyle.RANGED).withRaidSupplies(false).isDisplayOnly());
 		// The portal is what players attack, so it still shapes the kit.
