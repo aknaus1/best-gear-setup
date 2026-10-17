@@ -185,7 +185,7 @@ public class RaidSearchTest
 		GameDataLoader loader = new GameDataLoader(new Gson());
 		GameData full = loader.loadGameData();
 		Set<String> names = new HashSet<>(Arrays.asList("dragon pickaxe", "abyssal whip", "dragon hunter lance",
-			"magic shortbow", "trident of the swamp", "smoke battlestaff", "rune arrow", "rune platebody", "black d'hide body", "mystic robe top", "dawnbringer"));
+			"magic shortbow", "trident of the swamp", "smoke battlestaff", "rune arrow", "rune platebody", "black d'hide body", "mystic robe top", "dawnbringer", "ava's accumulator"));
 		Map<String, List<GearItem>> equipment = new HashMap<>();
 		List<GearItem> weapons = new ArrayList<>();
 		Set<Integer> owned = new HashSet<>();
@@ -375,7 +375,7 @@ public class RaidSearchTest
 		GameDataLoader loader = new GameDataLoader(new Gson());
 		GameData data = loader.loadGameData();
 		Set<String> names = new HashSet<>(Arrays.asList("abyssal whip", "magic shortbow", "rune arrow", "ancient staff",
-			"trident of the swamp", "dragon defender", "rune platebody"));
+			"trident of the swamp", "dragon defender", "rune platebody", "ava's accumulator"));
 		Set<Integer> owned = new HashSet<>();
 		Map<Integer, Long> quantities = new HashMap<>();
 		for (Slot slot : Slot.values())

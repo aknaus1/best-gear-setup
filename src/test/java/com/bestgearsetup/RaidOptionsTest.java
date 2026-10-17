@@ -96,7 +96,7 @@ public class RaidOptionsTest
 	@Test
 	public void autoPathOrderComparesBothOrdersAndListsBaBaFirst()
 	{
-		assertEquals(RaidOptions.ToaPathOrder.AUTO, RaidOptions.DEFAULT.getToaPathOrder());
+		assertEquals(RaidOptions.ToaPathOrder.BA_BA_FIRST, RaidOptions.DEFAULT.getToaPathOrder());
 		assertEquals(Arrays.asList(RaidOptions.ToaPathOrder.BA_BA_FIRST, RaidOptions.ToaPathOrder.ZEBAK_FIRST),
 			RaidOptions.ToaPathOrder.AUTO.candidates());
 		assertEquals(Collections.singletonList(RaidOptions.ToaPathOrder.ZEBAK_FIRST), RaidOptions.ToaPathOrder.ZEBAK_FIRST.candidates());

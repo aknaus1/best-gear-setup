@@ -104,7 +104,7 @@ public class SearchCacheIntegrationTest
 	{
 		OwnershipRules.init(net.runelite.http.api.RuneLiteAPI.GSON);
 		GameData full = loader.loadGameData();
-		Set<String> names = Set.of("abyssal whip", "magic shortbow", "trident of the swamp", "rune arrow");
+		Set<String> names = Set.of("abyssal whip", "magic shortbow", "trident of the swamp", "rune arrow", "ava's accumulator");
 		Map<String, List<GearItem>> equipment = new HashMap<>();
 		List<GearItem> weapons = new ArrayList<>();
 		for (Slot slot : Slot.values())
