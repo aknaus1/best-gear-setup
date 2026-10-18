@@ -681,7 +681,7 @@ public final class DpsCalculator
 		{
 			defBonus = (m.getDefLightOrStandard() + m.getDefRanged() + m.getDefHeavyOrStandard()) / 3;
 		}
-		else if (sub.equals("crossbow") && !wName.startsWith("karil's crossbow"))
+		else if (sub.equals("crossbow"))
 		{
 			defBonus = m.getDefHeavyOrStandard();
 		}

@@ -296,6 +296,6 @@ final class CombatRules
 		return l.getStyle().getType() == AttackStyle.Type.CRUSH
 			|| l.getStyle().getType() == AttackStyle.Type.MAGIC && l.getSpell() != null
 			|| l.getStyle().getType() == AttackStyle.Type.RANGED && (category.equals("chinchompa")
-			|| category.equals("crossbow") && !EncounterDamage.lower(l.getWeapon()).startsWith("karil's crossbow"));
+			|| category.equals("crossbow"));
 	}
 }

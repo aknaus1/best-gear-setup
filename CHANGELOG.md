@@ -19,6 +19,8 @@ is what the Plugin Hub shows.
   data, and the Dagon'hai, Xarth, Ocellus and the undead binders their max hits. Ezekiel's animated swords and the
   inert guardians are added as raid NPCs.
 - Refresh the other Wiki monster data, which adds the Leech and Snelmlover500.
+- Treat Karil's crossbow as heavy ranged like every other crossbow, as the Wiki DPS calculator does: it rolls
+  against heavy ranged defence and gets the unshielded Tormented Demon bonus.
 
 ## 1.1.3 (2026-11-10)
 
