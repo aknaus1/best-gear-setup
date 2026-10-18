@@ -21,6 +21,7 @@ import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.calc.SpecialAttacks;
 import com.bestgearsetup.calc.SpellFilter;
 import com.bestgearsetup.calc.SpellRule;
+import com.bestgearsetup.calc.Thrall;
 import com.bestgearsetup.calc.WeaponRules;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.CombatClass;
@@ -1280,7 +1281,7 @@ public class BestGearSetupPlugin extends Plugin
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
 				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
 				rememberedLevels, warnings,
-				monster.isImmuneThrall() ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
+				Thrall.eligibleType(monster) == null ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
 				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic());
 			SwingUtilities.invokeLater(() ->
 			{
@@ -1706,9 +1707,20 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			notes.add(reachNote);
 		}
-		if (base.isImmuneThrall() && ctx.getThrall() != null)
+		Thrall.Type thrallType = Thrall.eligibleType(base);
+		if (Thrall.immune(base) && ctx.getThrall() != null)
 		{
-			notes.add("Thralls: this target is immune, so none are added.");
+			notes.add(base.isImmuneThrall() ? "Thralls: this target is immune, so none are added."
+				: "Thralls: none added, because they can't be resurrected in this fight.");
+		}
+		else if (thrallType == null && ctx.getThrall() != null)
+		{
+			notes.add("Thralls: none added, because no thrall's combat style can damage this target.");
+		}
+		else if (thrallType != null && thrallType != Thrall.Type.GHOSTLY && ctx.getThrall() != null)
+		{
+			notes.add("Thralls: a " + thrallType.getLabel() + " thrall is assumed, because this target is immune to "
+				+ (thrallType == Thrall.Type.SKELETAL ? "magic." : "magic and ranged."));
 		}
 		else if (ctx.getThrall() == null && ctx.isThrall())
 		{

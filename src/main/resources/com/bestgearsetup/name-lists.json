@@ -73,6 +73,7 @@
   ],
 
   "karuulm monsters": ["hydra (*)", "colossal hydra (*)", "alchemical hydra (*)", "drake (*)", "guardian drake (*)", "sulphur lizard (*)"],
+  "thrall-restricted fights": ["galvek (*)", "robert the strong (*)", "vanstrom klause (*)", "fragment of seren (*)", "lowerniel drakan (*)", "* (nightmare zone)*"],
   "wyrms": ["wyrm (*)", "shadow wyrm (*)"],
   "slayer equipment": [
     {"slot": "HEAD", "items": "a facemask or slayer helmet",

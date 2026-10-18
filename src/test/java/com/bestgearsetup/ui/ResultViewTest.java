@@ -175,6 +175,7 @@ public class ResultViewTest
 				assertTrue("No thrall line unless the setup includes one", label(box, "Incl. thrall") == null);
 				JPanel withThrall = view.statsBox(new DpsResult(2, 10, 0.5, 4, 4.8, null), Thrall.SUPERIOR);
 				assertEquals("<html>Incl. thrall: +0.417</html>", label(withThrall, "Incl. thrall").getText());
+				assertTrue(label(withThrall, "Incl. thrall").getToolTipText().startsWith("Superior ghostly thrall"));
 			});
 		}
 	}

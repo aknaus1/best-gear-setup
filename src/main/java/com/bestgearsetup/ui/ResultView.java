@@ -75,13 +75,14 @@ class ResultView extends JPanel
 	private static final Color YELLOW = new Color(0xFF, 0xD2, 0x4D);
 
 	private static final Map<String, Integer> PRAYER_SPRITES = new HashMap<>();
-	private static final Map<Thrall, Integer> THRALL_SPRITES = new EnumMap<>(Thrall.class);
+	/** One named spell sprite per thrall type; the tooltip names the tier. */
+	private static final Map<Thrall.Type, Integer> THRALL_SPRITES = new EnumMap<>(Thrall.Type.class);
 
 	static
 	{
-		THRALL_SPRITES.put(Thrall.LESSER, SpriteID.MagicNecroOn.RESURRECT_LESSER_GHOST);
-		THRALL_SPRITES.put(Thrall.SUPERIOR, SpriteID.MagicNecroOn.RESURRECT_SUPERIOR_SKELETON);
-		THRALL_SPRITES.put(Thrall.GREATER, SpriteID.MagicNecroOn.RESURRECT_GREATER_ZOMBIE);
+		THRALL_SPRITES.put(Thrall.Type.GHOSTLY, SpriteID.MagicNecroOn.RESURRECT_LESSER_GHOST);
+		THRALL_SPRITES.put(Thrall.Type.SKELETAL, SpriteID.MagicNecroOn.RESURRECT_SUPERIOR_SKELETON);
+		THRALL_SPRITES.put(Thrall.Type.ZOMBIFIED, SpriteID.MagicNecroOn.RESURRECT_GREATER_ZOMBIE);
 		PRAYER_SPRITES.put("piety", SpriteID.Prayeron.PIETY);
 		PRAYER_SPRITES.put("chivalry", SpriteID.Prayeron.CHIVALRY);
 		PRAYER_SPRITES.put("ultimate strength", SpriteID.Prayeron.ULTIMATE_STRENGTH);
@@ -333,7 +334,8 @@ class ResultView extends JPanel
 		{
 			JLabel thrallLabel = stat("Incl. thrall: +" + fmt(thrall.getDps(), 3));
 			thrallLabel.setName("thrallDps");
-			thrallLabel.setToolTipText(thrall + " (max hit " + thrall.getMaxHit() + ", always hits, every 2.4s)");
+			thrallLabel.setToolTipText(thrall.displayName(thrallType()) + " (max hit " + thrall.getMaxHit()
+				+ ", always hits, every 2.4s)");
 			box.add(thrallLabel, row);
 		}
 		String maxText = (area ? "Primary max: " : "Max hit: ") + max;
@@ -596,8 +598,9 @@ class ResultView extends JPanel
 		Thrall thrall = thrallFor(selected);
 		if (thrall != null)
 		{
-			SpriteIcon thrallIcon = new SpriteIcon(THRALL_SPRITES.get(thrall),
-				thrall + " (+" + fmt(thrall.getDps(), 3) + " DPS included)");
+			Thrall.Type type = thrallType();
+			SpriteIcon thrallIcon = new SpriteIcon(THRALL_SPRITES.get(type),
+				thrall.displayName(type) + " (+" + fmt(thrall.getDps(), 3) + " DPS included)");
 			thrallIcon.setName("thrallIcon");
 			boosts.add(thrallIcon);
 		}
@@ -631,7 +634,6 @@ class ResultView extends JPanel
 		return potions;
 	}
 
-	/** Mark of Darkness only affects demonbane spells cast at demons. */
 	/** The thrall this setup's DPS includes, or null. */
 	private Thrall thrallFor(SetupResult setup)
 	{
@@ -639,6 +641,14 @@ class ResultView extends JPanel
 			? results.getThrall() : null;
 	}
 
+	/** The thrall type that can damage this target, magic first; ghostly when none is known. */
+	private Thrall.Type thrallType()
+	{
+		Thrall.Type type = Thrall.eligibleType(results.getMonster());
+		return type == null ? Thrall.Type.GHOSTLY : type;
+	}
+
+	/** Mark of Darkness only affects demonbane spells cast at demons. */
 	private boolean usesMarkOfDarkness(Loadout l)
 	{
 		return results.isMarkOfDarkness() && l.getSpell() != null

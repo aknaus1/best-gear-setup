@@ -33,11 +33,14 @@ public enum SupportSpell
 		return spells;
 	}
 
-	/** Thralls need the Magic level and can't be cast while autocasting a non-Arceuus spell. */
+	/**
+	 * Thralls need the Magic level, a thrall type that can damage the target and can't be cast while autocasting a
+	 * non-Arceuus spell.
+	 */
 	static boolean thrall(Loadout loadout, CombatContext ctx)
 	{
 		boolean usable = loadout.getSpell() == null || "arceuus".equalsIgnoreCase(loadout.getSpell().getSpellbook());
-		return ctx.getThrall() != null && usable && !ctx.getMonster().isImmuneThrall();
+		return ctx.getThrall() != null && usable && Thrall.eligibleType(ctx.getMonster()) != null;
 	}
 
 	static boolean demonbane(Loadout loadout, CombatContext ctx)

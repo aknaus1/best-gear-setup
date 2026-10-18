@@ -25,6 +25,9 @@ is what the Plugin Hub shows.
   the Wiki. Crossbows, chinchompas, thrown weapons and melee roll normally.
 - Count a special attack weapon, and an off-hand or ammunition held only for its spec, in the Wilderness
   expensive-item limit alongside the worn gear.
+- Show the thrall that can damage the target: ghostly unless the target is immune to magic, then skeletal, then
+  zombified, with no thrall where no style can hurt it or thralls can't be resurrected (Galvek, Robert the Strong,
+  Fragment of Seren, Nightmare Zone).
 
 ## 1.1.3 (2026-11-10)
 
