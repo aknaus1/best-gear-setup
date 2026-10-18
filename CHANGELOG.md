@@ -28,6 +28,9 @@ is what the Plugin Hub shows.
 - Show the thrall that can damage the target: ghostly unless the target is immune to magic, then skeletal, then
   zombified, with no thrall where no style can hurt it or thralls can't be resurrected (Galvek, Robert the Strong,
   Fragment of Seren, Nightmare Zone).
+- Leave a slot empty when its item makes no difference to the setup's rates or its special attack (a strength
+  bonus short of the next max hit, a seeded set's leftover, a piece with only defence), instead of wearing or
+  buying it. Fill empty slots still fills such slots with prayer or defence pieces.
 
 ## 1.1.3 (2026-11-10)
 

@@ -73,6 +73,11 @@ public class Optimizer
 	private static final double BOUND_MARGIN = 1e-6;
 	/** Weight that makes the calc-mode metric dominate DPS, which only breaks ties. */
 	private static final double PRIMARY_WEIGHT = 1e6;
+	/**
+	 * Relative change in a damage rate or the calc mode's figure below which a piece of equipment makes no meaningful
+	 * difference to a setup, so it isn't worth wearing or buying ({@link #prune}).
+	 */
+	private static final double MEANINGFUL_BENEFIT = 1e-6;
 
 	/** Gear whose effects the calculator reads by name, so it stays a candidate whatever its bonuses. */
 	private static final NameLists.NameList SPECIAL_GEAR = NameLists.list("special gear");
@@ -302,12 +307,13 @@ public class Optimizer
 				{
 					// Lightbearer replaced the ring.
 					l = specced.getWorn();
-					cost = cost(l);
 					Set<Slot> kept = EnumSet.noneOf(Slot.class);
 					kept.addAll(filled);
 					kept.remove(Slot.RING);
 					filled = kept;
 				}
+				prune(l, filled, specPlans(plan));
+				cost = cost(l);
 				Set<SupportSpell> support = SupportSpell.assumed(l, ctx);
 				results.add(new SetupResult(cls, l, specced == null ? dps : specced.getResult(),
 					cost + (plan == null ? 0 : plan.getExtraCost()),
@@ -1632,6 +1638,106 @@ public class Optimizer
 		return filled;
 	}
 
+	// ------------------------------------------------------------ pruning
+
+	/**
+	 * Take off every piece that makes no meaningful difference to the setup: its ordinary attack's rates and calc-mode
+	 * figure, and the hit of every spec weapon the kill switches to, are the same (within {@link #MEANINGFUL_BENEFIT})
+	 * with the slot empty. Such a piece was worn for a bonus that never paid off, e.g. strength short of the next max
+	 * hit or a seeded set's leftover, and would otherwise be carried or bought for nothing. Set pieces, salve and slayer
+	 * effects, protection the target demands and anything moving accuracy, max hit or speed all change a rate, so they
+	 * stay. The weapon, the ammunition it fires, locked slots, slots filled for prayer or defence, pieces with the fill
+	 * mode's bonus (the mode asked for them) and lightbearer behind a spec plan (it pays in energy, not rates) also stay.
+	 * Removing an item never adds a switch here: raid quick switches ({@link #optimizeSwitch}) inherit the worn setup and
+	 * aren't pruned.
+	 */
+	private void prune(Loadout l, Set<Slot> filled, List<SpecialPlan> specs)
+	{
+		boolean firesAmmo = WeaponRules.firesAmmoSlot(l.getWeapon());
+		ToDoubleFunction<GearItem> fillBonus = settings.getFillMode() == FillMode.NONE ? null : fillMetric(settings.getFillMode());
+		CombatContext specCtx = specs.isEmpty() ? null
+			: ctx.withModifiers(ctx.getModifiers().toBuilder().specialAttack(true).build());
+		DpsResult worn = calculate(l);
+		for (Slot slot : SLOTS)
+		{
+			GearItem item = l.get(slot);
+			if (item == null || slot == Slot.WEAPON || (slot == Slot.AMMO && firesAmmo) || isLocked(slot) || filled.contains(slot)
+				|| (fillBonus != null && fillBonus.applyAsDouble(item) > 0)
+				|| (slot == Slot.RING && !specs.isEmpty() && lightbearer(l)))
+			{
+				continue;
+			}
+			l.set(slot, null);
+			boolean needed = differs(worn, calculate(l));
+			for (int i = 0; i < specs.size() && !needed; i++)
+			{
+				needed = specDiffers(l, slot, item, specs.get(i), specCtx);
+			}
+			if (needed)
+			{
+				l.set(slot, item);
+			}
+		}
+	}
+
+	/** The plan's spec weapons; empty without specs. */
+	private static List<SpecialPlan> specPlans(SpecialPlan plan)
+	{
+		return plan == null ? Collections.emptyList() : Collections.singletonList(plan);
+	}
+
+	/**
+	 * Whether the spec's hit changes when {@code item} comes off {@code slot} of the worn setup ({@code worn} already
+	 * has it off). An item the spec replaces with its own off-hand or ammunition, or a shield a two-handed spec weapon
+	 * takes off, isn't held during the spec.
+	 */
+	private boolean specDiffers(Loadout worn, Slot slot, GearItem item, SpecialPlan plan, CombatContext specCtx)
+	{
+		Loadout without = heldFor(worn, plan);
+		if (without.get(slot) != null || slot == Slot.SHIELD && plan.getWeapon().isTwoHanded())
+			return false;
+		Loadout with = without.copy();
+		with.set(slot, item);
+		return differs(DpsCalculator.calculate(with, specCtx), DpsCalculator.calculate(without, specCtx));
+	}
+
+	/** The worn setup holding a spec plan's weapon, stance, spell, darts, off-hand and ammunition. */
+	private static Loadout heldFor(Loadout worn, SpecialPlan plan)
+	{
+		Loadout held = worn.copy();
+		held.set(Slot.WEAPON, plan.getWeapon());
+		held.setStyle(plan.getStyle());
+		held.setSpell(plan.getSpell());
+		held.setLoadedAmmo(plan.getLoadedAmmo());
+		if (plan.getWeapon().isTwoHanded())
+		{
+			held.set(Slot.SHIELD, null);
+		}
+		if (plan.getOffhand() != null)
+		{
+			held.set(Slot.SHIELD, plan.getOffhand());
+		}
+		if (plan.getAmmo() != null)
+		{
+			held.set(Slot.AMMO, plan.getAmmo());
+		}
+		return held;
+	}
+
+	/** Whether two results differ meaningfully in a damage rate or in the calc mode's figure. */
+	private boolean differs(DpsResult a, DpsResult b)
+	{
+		return differs(a.getDps(), b.getDps()) || differs(a.getPrimaryDps(), b.getPrimaryDps())
+			|| differs(primary(a), primary(b));
+	}
+
+	private static boolean differs(double a, double b)
+	{
+		return Math.abs(a - b) > MEANINGFUL_BENEFIT * Math.max(Math.abs(a), Math.abs(b));
+	}
+
+	// ------------------------------------------------------------ fill metrics
+
 	private ToDoubleFunction<GearItem> fillMetric(FillMode mode)
 	{
 		if (mode == FillMode.PRAYER)
@@ -2090,7 +2196,10 @@ public class Optimizer
 		return noWorseBonuses(candidate, current) && !noWorseBonuses(current, candidate);
 	}
 
-	/** Equip useful offensive stats on a plateau so another empty slot can reach the next max hit. */
+	/**
+	 * Equip useful offensive stats on a plateau so another empty slot can reach the next max hit; {@link #prune} takes
+	 * off those that never did.
+	 */
 	private static boolean usefulBonuses(GearItem candidate, Loadout loadout)
 	{
 		if (candidate == null)

@@ -239,7 +239,9 @@ These preferences are in RuneLite's configuration for the plugin (**Settings** i
 - **Experience filters**: rule out styles that give Attack, Strength or Defence XP (for pures). Turn off the
   other two to train one melee skill only; controlled gives all three, so it needs all three on.
 - **Fill empty slots**: fill slots that don't add damage with prayer or defence items (by defence type, or
-  weighted by the target's own attacks), optionally giving up a little DPS to do so.
+  weighted by the target's own attacks), optionally giving up a little DPS to do so. With it off, a slot is left
+  empty when its item changes neither the setup's rates nor its special attacks' hits (a strength bonus short of
+  the next max hit, say); the weapon, its ammunition, locked slots and lightbearer behind a spec plan always stay.
 - **Display & interaction**: the **Right-click option** that adds **Best setup** to the menu of attackable
   NPCs (on by default), and the bank and inventory highlights with their colours.
 

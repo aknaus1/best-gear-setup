@@ -1,6 +1,7 @@
 package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.OwnershipRules;
 import com.bestgearsetup.data.CombatClass;
@@ -140,11 +141,17 @@ public class ChaosDwarfOptimizerTest
 		assertEquals(0, result.getBuyCost());
 		assertEquals(4, optimizer.expensiveItemCount(l));
 
-		// The trap itself: every single change from accurate + Glory loses DPS.
-		double both = DpsCalculator.calculate(l, crushContext()).getDps();
-		Loadout glory = l.copy();
+		// Climbing boots' +2 strength reach no new max hit beside the Strength amulet, so the search takes them off.
+		assertNull(l.get(Slot.FEET));
+
+		// The trap itself: every single change from accurate + Glory loses DPS. The boots are worn again here, as
+		// they were while the search compared the stances (with the Glory their strength does count).
+		Loadout searched = l.copy();
+		searched.set(Slot.FEET, data.getItem(Slot.FEET, 3105));
+		double both = DpsCalculator.calculate(searched, crushContext()).getDps();
+		Loadout glory = searched.copy();
 		glory.set(Slot.NECK, data.getItem(Slot.NECK, 1704));
-		Loadout accurate = l.copy();
+		Loadout accurate = searched.copy();
 		Loadout trapped = glory.copy();
 		for (String raw : l.getWeapon().getStyles())
 		{

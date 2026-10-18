@@ -115,7 +115,12 @@ a weapon only when its effect could apply with that weapon, class and target (Dh
 greataxe, a slayer helmet on task, a salve amulet against undead; unrecognised effects count as applying);
 elsewhere it is judged on its bonuses like any other item. No DPS formula changes. Each equipment change is
 judged with its best allowed stance or spell, since some only win together. The initial weapon
-shortlist also keeps the relevant set weapons, Twinflame and the Bulwark. It's still a bounded local
+shortlist also keeps the relevant set weapons, Twinflame and the Bulwark. Once a setup is found, each
+worn piece is taken off again if its ordinary rates, calc-mode figure and the hits of the kill's spec
+weapons are unchanged (relative 1e-6) without it, so strength short of the next max-hit floor or a seeded
+set's leftover isn't worn or bought; the weapon, fired ammunition, locks, fill-mode pieces and
+lightbearer behind a spec plan are exempt. This follows from the game's floored max-hit and attack-roll
+formulas (Wiki: Maximum melee hit, Successful hit), not the reference calculator. It's still a bounded local
 search, so it can't prove that a combination is the best possible one under every budget: compared
 with an exhaustive search over 6,000 generated small banks, Best depth ends below the optimum in
 about 0.1% of them (by at most 1.9% DPS), each needing three or four equipment changes at once.
