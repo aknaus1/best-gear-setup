@@ -103,6 +103,16 @@ public class KillSpecialsTest
 	}
 
 	@Test
+	public void wildernessLimitCountsTheCarriedSpecWeapon()
+	{
+		// The worn sword and helm are cheap; the claws carried for the spec are the one expensive item.
+		OptimizerSettings.OptimizerSettingsBuilder wilderness = unlimited().killSpecials(true).wildernessRiskLimited(true)
+			.expensiveItemThreshold(1_000_000);
+		assertNull(withWeapon(run(wilderness.maxExpensiveItems(0), CombatModifiers.NONE), sword).getSpecial());
+		assertEquals(claws, withWeapon(run(wilderness.maxExpensiveItems(1), CombatModifiers.NONE), sword).getSpecial().getWeapon());
+	}
+
+	@Test
 	public void specWeaponIsBoughtWithinTheBudget()
 	{
 		SetupResult affordable = withWeapon(run(OptimizerSettings.builder().mode(SearchMode.BUDGET)

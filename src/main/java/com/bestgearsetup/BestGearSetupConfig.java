@@ -272,14 +272,14 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(keyName = "limitWildernessRisk", name = "Limit expensive items", hidden = true,
-		description = "In Wilderness searches, cap all equipped expensive items, including owned gear. No protected items are subtracted.")
+		description = "In Wilderness searches, cap all expensive items worn or carried for a special attack, including owned gear. No protected items are subtracted.")
 	default boolean limitWildernessRisk()
 	{
 		return SearchAssumptions.value(this, "limitWildernessRisk", false);
 	}
 
 	@ConfigItem(keyName = "maxExpensiveItems", name = "Expensive items allowed", hidden = true,
-		description = "Maximum equipped expensive items in a Wilderness setup. Zero allows only items below the threshold.")
+		description = "Maximum expensive items in a Wilderness setup, counting a special attack weapon and the gear held with it. Zero allows only items below the threshold.")
 	@Range(min = 0, max = 11)
 	default int maxExpensiveItems()
 	{

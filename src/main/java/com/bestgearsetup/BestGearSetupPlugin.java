@@ -1645,7 +1645,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		if (settings.isWildernessRiskLimited())
 		{
-			notes.add("Wilderness limit: at most " + settings.getMaxExpensiveItems() + " equipped items worth "
+			notes.add("Wilderness limit: at most " + settings.getMaxExpensiveItems() + " equipped or spec items worth "
 				+ Budget.format(settings.getExpensiveItemThreshold()) + " GP or more each.");
 			if (Budget.parse(config.expensiveItemThreshold()) < 0)
 			{

@@ -1372,9 +1372,9 @@ public class Optimizer
 				}
 				// The ammunition, then the off-hand, that make this spec hit hardest (they hardly interact, and
 				// trying every pair would multiply the candidates).
-				Held ammoChoice = strongest(base, Slot.AMMO, specAmmo(worn, weapon), weaponCost, wornCost, specCtx);
+				Held ammoChoice = strongest(worn, base, Slot.AMMO, specAmmo(worn, weapon), weaponCost, wornCost, specCtx);
 				Held choice = ammoChoice == null ? null
-					: strongest(ammoChoice.getLoadout(), Slot.SHIELD, offhands(worn, weapon), ammoChoice.getCost(), wornCost,
+					: strongest(worn, ammoChoice.getLoadout(), Slot.SHIELD, offhands(worn, weapon), ammoChoice.getCost(), wornCost,
 					specCtx);
 				if (choice == null)
 				{
@@ -1462,9 +1462,10 @@ public class Optimizer
 
 	/**
 	 * The spec loadout with the item from {@code items} (null keeps the slot) that makes the spec hit hardest,
-	 * cheapest on ties, or null when none is protected and affordable.
+	 * cheapest on ties, or null when none is protected, affordable and within the Wilderness risk limit together
+	 * with the {@code worn} setup it is carried alongside.
 	 */
-	private Held strongest(Loadout base, Slot slot, List<GearItem> items, long baseCost, long wornCost,
+	private Held strongest(Loadout worn, Loadout base, Slot slot, List<GearItem> items, long baseCost, long wornCost,
 		CombatContext specCtx)
 	{
 		Held best = null;
@@ -1476,7 +1477,7 @@ public class Optimizer
 				l.set(slot, item);
 			}
 			long c = baseCost + (item == null ? 0 : itemCost(item));
-			if (!protectedEquipment(l) || !withinBudget(wornCost + c))
+			if (!protectedEquipment(l) || !withinBudget(wornCost + c) || !withinWildernessRisk(worn, l))
 			{
 				continue;
 			}
@@ -3087,6 +3088,28 @@ public class Optimizer
 	{
 		return !settings.isWildernessRiskLimited()
 			|| expensiveItemCount(loadout) <= Math.max(0, settings.getMaxExpensiveItems());
+	}
+
+	/**
+	 * A spec loadout is carried into the Wilderness with the worn setup, so their expensive items count together:
+	 * the spec weapon, and an off-hand or ammunition held only for the spec, are risked like the worn gear.
+	 */
+	private boolean withinWildernessRisk(Loadout worn, Loadout held)
+	{
+		if (!settings.isWildernessRiskLimited())
+		{
+			return true;
+		}
+		Set<Integer> risked = new HashSet<>();
+		for (Slot slot : SLOTS)
+		{
+			for (GearItem item : new GearItem[]{worn.get(slot), held.get(slot)})
+			{
+				if (expensive(item))
+					risked.add(item.getId());
+			}
+		}
+		return risked.size() <= Math.max(0, settings.getMaxExpensiveItems());
 	}
 
 	static boolean classAllowed(Monster m, CombatClass c)
