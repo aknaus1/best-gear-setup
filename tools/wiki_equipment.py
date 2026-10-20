@@ -297,6 +297,27 @@ def number(value):
         return 0.0
 
 
+# Items whose Wiki pages were still being written at release (The Fractured Archive, 2026-10-20): their bonuses come
+# from the game cache's item params when the dump has them, since the cache is what the game itself uses. Zorya's
+# tome's infobox gave the uncharged version the charged one's +2 prayer.
+CACHE_BONUS_PAGES = {"Ascension crossbows", "Ascension bolts", "Diamond ascension bolts", "Diamond ascension bolts (e)",
+                     "Onyx ascension bolts", "Onyx ascension bolts (e)", "Obligator", "Zorya's tome", "Rondache"}
+# Item param ids of the equipment bonuses (299 is magic damage in tenths of a percent).
+CACHE_BONUS_PARAMS = {"stab_bonus": 0, "slash_bonus": 1, "crush_bonus": 2, "magic_bonus": 3, "ranged_bonus": 4,
+                      "stab_def": 5, "slash_def": 6, "crush_def": 7, "magic_def": 8, "ranged_def": 9, "melee_str": 10,
+                      "prayer_bonus": 11, "ranged_str": 12, "magic_str": 299}
+
+
+def cache_bonuses(item, page, cache_reqs):
+    """Replace a new item's Wiki bonuses with its cache params (see CACHE_BONUS_PAGES)."""
+    stats = cache_reqs.get(str(item["id"]), {}).get("stats")
+    if page not in CACHE_BONUS_PAGES or not stats:
+        return
+    for key, param in CACHE_BONUS_PARAMS.items():
+        value = stats.get(str(param), 0)
+        item[key] = value / 10 if key == "magic_str" else value
+
+
 def bonuses(row):
     out = {}
     for key, field in BONUS_FIELDS.items():
@@ -595,6 +616,7 @@ def build(refresh):
         item = {"id": ids_of(row)[0], "name": name, "variants": variants,
                 "members": row.get("is_members_only") is not None, "tradeable": row.get("tradeable") is not None,
                 "price": 0, **bonuses(row)}
+        cache_bonuses(item, row["page_name"], cache_reqs)
         sources, other = requirements(item, slot, cache_reqs, pages, row["page_name"])
         provenance[item["id"]] = {"sources": sources, "otherSkills": other, "page": row["page_name_sub"]}
         if slot == "weapon":
