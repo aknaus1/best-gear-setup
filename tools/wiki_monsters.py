@@ -47,9 +47,11 @@ TOB = {"the maiden of sugadinti", "pestilent bloat", "nylocas ischyros", "nyloca
        "nylocas vasilias", "nylocas prinkipas", "nylocas matomenos", "nylocas athanatos", "sotetseg", "xarpus",
        "verzik vitur", "blood spawn"}
 # The Fractured Archive (released 2026-10-20): its bosses from the raid page, since the Wiki's new monster pages
-# are not in Category:Bosses yet. The Smorks and the Dagon'hai Monks are adds fought beside a boss.
+# are not in Category:Bosses yet. The Smorks, the Dagon'hai Monks and Ocellus's phase 3 void rifts and augmenters
+# are adds fought beside a boss.
 FRACTURED_ARCHIVE_BOSSES = {"archive guardian", "ezekiel", "bork", "moia", "dreadnoth the jellied", "xarth", "ocellus"}
-FRACTURED_ARCHIVE = FRACTURED_ARCHIVE_BOSSES | {"the smorks", "dagon'hai elder", "dagon'hai monk"}
+FRACTURED_ARCHIVE = FRACTURED_ARCHIVE_BOSSES | {"the smorks", "dagon'hai elder", "dagon'hai monk", "void rift",
+                                                "void augmenter"}
 GAUNTLET = re.compile(r"(crystalline|corrupted) (hunllef|bat|bear|dark beast|dragon|rat|scorpion|spider|unicorn|wolf)$")
 # (page name pattern, version pattern or None, tag), from the Wiki encounter pages.
 CLASS_TAGS = [

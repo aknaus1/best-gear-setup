@@ -6,8 +6,9 @@ is what the Plugin Hub shows.
 ## 1.1.1 (2026-10-20)
 
 - Add The Fractured Archive's NPCs from the Wiki on release day: the Archive Guardian, Ezekiel, Bork and the
-  Smorks, Moia, Dreadnoth the Jellied and Xarth, with their poison, venom and freeze resistances. Ocellus and the
-  Dagon'hai are left out until the Wiki has their combat stats, as is any monster page without them.
+  Smorks, Moia, Dreadnoth the Jellied, Xarth, and Ocellus's first and third phases with his void rifts and
+  augmenters, with their poison, venom and freeze resistances. Ocellus's second phase and the Dagon'hai are left
+  out until the Wiki has their stats, as is any monster page without them.
 - Refresh the other Wiki monster data (Blink's forms are now named *combo eating* and *special attacks*).
 - Add the raid's equipment from the Wiki and the game cache: the Ascension crossbows with their bolts (plain,
   diamond and onyx, enchanted or not), the Obligator, Zorya's tome and the Rondache. Zorya's tome is a 3-tick
