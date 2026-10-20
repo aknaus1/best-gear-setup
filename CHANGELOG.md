@@ -9,6 +9,10 @@ is what the Plugin Hub shows.
   Smorks, Moia, Dreadnoth the Jellied and Xarth, with their poison, venom and freeze resistances. Ocellus and the
   Dagon'hai are left out until the Wiki has their combat stats, as is any monster page without them.
 - Refresh the other Wiki monster data (Blink's forms are now named *combo eating* and *special attacks*).
+- Add the raid's equipment from the Wiki and the game cache: the Ascension crossbows with their bolts (plain,
+  diamond and onyx, enchanted or not), the Obligator, Zorya's tome and the Rondache. Zorya's tome is a 3-tick
+  powered staff with its base max hit of 18; the Obligator is planned on its 3-tick Smash stance, since Thrust's
+  multi-target hits and the Rondache's flat armour aren't modelled.
 
 ## 1.1.0 (2026-10-10)
 

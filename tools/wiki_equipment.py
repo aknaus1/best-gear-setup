@@ -35,7 +35,9 @@ TOOL = "wiki_equipment.py"
 # Minimum plausible download sizes; smaller responses are treated as failures and the cache is kept.
 MINIMUM = {"wiki-equipment-raw.json": 3000, "wiki-spells-bucket.json": 50, "wiki-item-categories.json": 1000,
            "wiki-item-pages.json": 1000}
-VARIATIONS = [ROOT.parents[1] / "runelite-client-src" / "runelite-client" / "src" / "main" / "resources" / "item_variations.json"]
+# The workspace's RuneLite clone, two levels above the plugin folder (further up from a nested worktree).
+VARIATIONS = [parent / "runelite-client-src" / "runelite-client" / "src" / "main" / "resources" / "item_variations.json"
+              for parent in ROOT.parents]
 sys.path.insert(0, str(ROOT / "tools"))
 import equipment_requirements  # noqa: E402
 import wiki_api  # noqa: E402
@@ -86,9 +88,15 @@ STYLES = {
     "staff": ["bash,crush,accurate", "pound,crush,aggressive", "focus,crush,defensive", "spell,magic,magic"],
     "thrown": ["accurate,ranged,accurate", "rapid,ranged,rapid", "longrange,ranged,longrange"],
     "unarmed": ["punch,crush,accurate", "kick,crush,aggressive", "block,crush,defensive", "spell,magic,magic"],
+    # Obligator (Wiki): Thrust hits several targets at 5 ticks, Smash one target at 3 ticks. Only the single-target
+    # Smash stance is listed, with its own speed, since a weapon has one speed here.
+    "obligator": ["smash,crush,aggressive"],
     "whip": ["flick,slash,accurate", "lash,slash,controlled", "deflect,slash,defensive"],
 }
 CATEGORY_ALIASES = {"chinchompas": "chinchompa"}
+# New weapon types whose Wiki infobox still says "Unarmed": (page name pattern, category, attack speed or None to keep
+# the infobox speed). Zorya's tome is a 3-tick powered staff and the Obligator's Smash stance is 3 ticks (each page).
+CATEGORY_OVERRIDES = [(r"zorya's tome", "powered staff", None), (r"obligator", "obligator", 3)]
 
 # Zero-stat equipment kept for encounter or effect rules; everything else without bonuses is cosmetic.
 KEEP_WITHOUT_BONUSES = {"ring of recoil", "efaritay's aid", "bracelet of ethereum", "bracelet of slaughter",
@@ -135,6 +143,8 @@ BLOWPIPE_TIER = [("camphor blowpipe", 20), ("ironwood blowpipe", 30), ("rosewood
                  (r"toxic blowpipe|blazing blowpipe", 60)]
 BRUTAL_TIER = {"bronze": 1, "iron": 1, "steel": 5, "black": 10, "mithril": 20, "adamant": 30, "rune": 40}
 FIXED_AMMO = [(r"eclipse atlatl", r"atlatl dart"), (r"silvthrill ballista", r"silvthrill javelin"),
+              # Wiki "Ascension crossbows": fired only with ascension bolts and their gem-tipped variants.
+              (r"ascension crossbows", r"(?:diamond |onyx )?ascension bolts(?: \(e\))?"),
               (r"crossbow|phoenix crossbow", r"bronze bolts"), (r"karil's crossbow", r"bolt rack"),
               (r"dorgeshuun crossbow", r"bone bolts"), (r"hunters' crossbow", r"(?:long )?kebbit bolts"),
               (r"hunters' sunlight crossbow", r"(?:sunlight|moonlight) antler bolts"),
@@ -474,6 +484,15 @@ def collapse(rows, variation_of):
     return out
 
 
+def override_category(row):
+    """Apply CATEGORY_OVERRIDES to a raw weapon row in place."""
+    for pattern, category, speed in CATEGORY_OVERRIDES:
+        if re.fullmatch(pattern, row["page_name"].lower()):
+            row["infobox_bonuses.combat_style"] = category
+            if speed is not None:
+                row["infobox_bonuses.weapon_attack_speed"] = speed
+
+
 def ammo_names(weapon):
     n = weapon["name"]
     for pattern, ammo in FIXED_AMMO:
@@ -533,6 +552,7 @@ def build(refresh):
             continue
         stats = bonuses(row)
         if SLOTS[slot] == "weapon":
+            override_category(row)
             category = (row.get("infobox_bonuses.combat_style") or "").lower()
             category = CATEGORY_ALIASES.get(category, category)
             if category not in STYLES or number(row.get("infobox_bonuses.weapon_attack_speed")) <= 0:
