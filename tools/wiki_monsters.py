@@ -46,6 +46,10 @@ TOA = {"akkha", "akkha's shadow", "ba-ba", "kephri", "zebak", "elidinis' warden"
 TOB = {"the maiden of sugadinti", "pestilent bloat", "nylocas ischyros", "nylocas toxobolos", "nylocas hagios",
        "nylocas vasilias", "nylocas prinkipas", "nylocas matomenos", "nylocas athanatos", "sotetseg", "xarpus",
        "verzik vitur", "blood spawn"}
+# The Fractured Archive (released 2026-10-20): its bosses from the raid page, since the Wiki's new monster pages
+# are not in Category:Bosses yet. The Smorks and the Dagon'hai Monks are adds fought beside a boss.
+FRACTURED_ARCHIVE_BOSSES = {"archive guardian", "ezekiel", "bork", "moia", "dreadnoth the jellied", "xarth", "ocellus"}
+FRACTURED_ARCHIVE = FRACTURED_ARCHIVE_BOSSES | {"the smorks", "dagon'hai elder", "dagon'hai monk"}
 GAUNTLET = re.compile(r"(crystalline|corrupted) (hunllef|bat|bear|dark beast|dragon|rat|scorpion|spider|unicorn|wolf)$")
 # (page name pattern, version pattern or None, tag), from the Wiki encounter pages.
 CLASS_TAGS = [
@@ -140,12 +144,14 @@ def tags(page, version, attributes, bosses):
     lower = page.lower()
     version_lower = (version or "").lower()
     out = [ATTRIBUTE_NAMES.get(a, a) for a in attributes]
-    if page in bosses:
+    if page in bosses or lower in FRACTURED_ARCHIVE_BOSSES:
         out.append("boss")
     if lower in TOA:
         out.append("tombs of amascut")
     if lower in TOB:
         out.append("theatre of blood")
+    if lower in FRACTURED_ARCHIVE:
+        out.append("the fractured archive")
     match = GAUNTLET.match(lower)
     if match:
         out.append(match.group(1))
@@ -178,7 +184,7 @@ def build(row, ids, name, bosses, extra_tags=()):
         "size": max(1, number(row.get("size"), 1)),
         "task": bool(as_list(row.get("slayer_category"))),
         "immune_thrall": str(row.get("thrall_immune")).lower() == "immune",
-        "boss": page in bosses,
+        "boss": page in bosses or page.lower() in FRACTURED_ARCHIVE_BOSSES,
         "attributes": [{"name": t} for t in sorted(set(attributes))],
         "attackStyles": attack_styles(row),
         # Bucket BOOLEAN fields are present (empty string) when true and absent when false.
@@ -186,10 +192,21 @@ def build(row, ids, name, bosses, extra_tags=()):
     }
 
 
+STAT_FIELDS = ["attack_level", "strength_level", "defence_level", "ranged_level", "magic_level", "stab_defence_bonus",
+               "slash_defence_bonus", "crush_defence_bonus", "magic_defence_bonus", "range_defence_bonus",
+               "standard_range_defence_bonus", "light_range_defence_bonus", "heavy_range_defence_bonus", "flat_armour"]
+
+
+def stub(row):
+    """A page with hitpoints but no combat levels and no defence bonuses (a new monster's unfinished infobox):
+    zero Defence would make every setup look equally accurate, so the variant waits for its stats."""
+    return all(row.get(f) in (None, "", []) for f in STAT_FIELDS)
+
+
 def records(row, bosses):
     ids = [int(i) for i in as_list(row.get("id")) if str(i).isdigit()]
     version = row.get("version_anchor")
-    if not ids or number(row.get("hitpoints"), None) is None or version and "challenge mode" in version.lower():
+    if not ids or number(row.get("hitpoints"), None) is None or version and "challenge mode" in version.lower() or stub(row):
         # Challenge Mode variants come from the CoX scaling option applied to the normal stats.
         return []
     page = row["page_name"].lower()

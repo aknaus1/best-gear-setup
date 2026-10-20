@@ -3,6 +3,13 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## 1.1.2 (2026-10-20)
+
+- Add The Fractured Archive's NPCs from the Wiki on release day: the Archive Guardian, Ezekiel, Bork and the
+  Smorks, Moia, Dreadnoth the Jellied and Xarth, with their poison, venom and freeze resistances. Ocellus and the
+  Dagon'hai are left out until the Wiki has their combat stats, as is any monster page without them.
+- Refresh the other Wiki monster data (Blink's forms are now named *combo eating* and *special attacks*).
+
 ## 1.1.0 (2026-10-10)
 
 - New *Inventory + equipped only* mode: searches use only what you carry and wear, ignoring the bank.
