@@ -203,7 +203,7 @@ public final class AttackReach
 				if (name.equals("dawnbringer") || name.startsWith("trident of") || name.startsWith("sanguinesti staff")
 					|| name.startsWith("holy sanguinesti staff") || name.startsWith("warped sceptre")
 					|| name.startsWith("bone staff") || name.startsWith("thammaron's sceptre")
-					|| name.startsWith("accursed sceptre"))
+					|| name.startsWith("accursed sceptre") || name.startsWith("zorya's tome"))
 				{
 					return 7;
 				}
@@ -241,7 +241,7 @@ public final class AttackReach
 				{
 					return 5;
 				}
-				if (name.startsWith("dorgeshuun crossbow"))
+				if (name.startsWith("dorgeshuun crossbow") || name.startsWith("ascension crossbows"))
 				{
 					return 6;
 				}
