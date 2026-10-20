@@ -141,8 +141,7 @@ final class EquipmentEffects
 		}
 		if (CombatRules.tormentedBonus(ctx.getMonster(), l))
 		{
-			int speed = l.getSpell() != null ? l.getSpell().getAttackSpeed() : l.getWeapon().getAttackSpeed()
-				- (l.getStyle().getStance().equals("rapid") ? 1 : 0);
+			int speed = l.getSpell() != null ? l.getSpell().getAttackSpeed() : WeaponRules.attackSpeed(l.getWeapon(), l.getStyle());
 			if (l.getSpell() != null && weapon.startsWith("harmonised nightmare staff")
 				&& "standard".equalsIgnoreCase(l.getSpell().getSpellbook()))
 			{

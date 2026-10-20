@@ -392,7 +392,7 @@ public final class DpsCalculator
 			accuracy = CombatRules.toa(m) ? 1 - (1 - accuracy) * (1 - accuracy) : HitChance.twoAttackRolls(attRoll, defRoll);
 		}
 		accuracy = CombatRules.accuracy(m, l, accuracy);
-		int speed = weapon.getAttackSpeed();
+		int speed = WeaponRules.attackSpeed(weapon, style);
 		EncounterDamage.Rule rule = EncounterDamage.rule(m, l);
 		long minimum = EncounterDamage.named(m, "respiratory system") ? maxHit / 2 : 0;
 		if (spec != null)
@@ -706,7 +706,7 @@ public final class DpsCalculator
 		long defRoll = CombatRules.defenceRoll(m, m.getDefenceLevel(), defBonus);
 		double accuracy = HitChance.single(attRoll, defRoll);
 		accuracy = CombatRules.accuracy(m, l, accuracy);
-		int speed = weapon.getAttackSpeed() - (stance.equals("rapid") ? 1 : 0);
+		int speed = WeaponRules.attackSpeed(weapon, style);
 		long[] bounds = CombatRules.bounds(m, attRoll, defRoll, maxHit);
 		long minimum = bounds[0];
 		maxHit = bounds[1];

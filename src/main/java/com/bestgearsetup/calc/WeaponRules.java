@@ -75,6 +75,16 @@ public final class WeaponRules
 			&& !name.contains("blowpipe") && !name.startsWith("tonalztics of ralos") && !name.equals("hunter's spear");
 	}
 
+	/**
+	 * Ticks between attacks with a weapon's own attack (not a spell): rapid is a tick faster, and the Obligator's
+	 * single-target Smash is 3 ticks against its 5-tick Thrust (Wiki "Obligator").
+	 */
+	public static int attackSpeed(GearItem weapon, AttackStyle style)
+	{
+		return weapon.getAttackSpeed() - (style.getStance().equals("rapid") ? 1 : 0)
+			- (style.getName().equals("smash") && EncounterDamage.lower(weapon).startsWith("obligator") ? 2 : 0);
+	}
+
 	public static boolean isPoweredStaff(GearItem weapon)
 	{
 		return weapon != null && weapon.getSubcategory().equals("powered staff");

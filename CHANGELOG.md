@@ -12,8 +12,8 @@ is what the Plugin Hub shows.
 - Refresh the other Wiki monster data (Blink's forms are now named *combo eating* and *special attacks*).
 - Add the raid's equipment from the Wiki and the game cache: the Ascension crossbows with their bolts (plain,
   diamond and onyx, enchanted or not), the Obligator, Zorya's tome and the Rondache. Zorya's tome is a 3-tick
-  powered staff with its base max hit of 18; the Obligator is planned on its 3-tick Smash stance, since Thrust's
-  multi-target hits and the Rondache's flat armour aren't modelled.
+  powered staff with its base max hit of 18. The Obligator has both crush stances, Thrust at 5 ticks and Smash at
+  3; Thrust's damage re-rolls and multi-target hits and the Rondache's flat armour aren't modelled yet.
 
 ## 1.1.0 (2026-10-10)
 
