@@ -3,7 +3,7 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
-## 1.1.2 (2026-10-20)
+## 1.1.1 (2026-10-20)
 
 - Add The Fractured Archive's NPCs from the Wiki on release day: the Archive Guardian, Ezekiel, Bork and the
   Smorks, Moia, Dreadnoth the Jellied and Xarth, with their poison, venom and freeze resistances. Ocellus and the
