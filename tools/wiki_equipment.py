@@ -88,16 +88,15 @@ STYLES = {
     "staff": ["bash,crush,accurate", "pound,crush,aggressive", "focus,crush,defensive", "spell,magic,magic"],
     "thrown": ["accurate,ranged,accurate", "rapid,ranged,rapid", "longrange,ranged,longrange"],
     "unarmed": ["punch,crush,accurate", "kick,crush,aggressive", "block,crush,defensive", "spell,magic,magic"],
-    # Obligator (Wiki page and launch post): two crush stances, Thrust at the weapon's 5 ticks with damage re-rolls and
-    # multi-target hits, and Smash at 3 ticks on one target (WeaponRules.attackSpeed). Their stances are not published;
-    # both are listed as aggressive.
-    "obligator": ["thrust,crush,aggressive", "smash,crush,aggressive"],
+    # Obligator (Wiki CombatStyles "Extending chain mace"): Thrust accurate and aggressive at the weapon's 5 ticks, with
+    # damage re-rolls and a size bonus, and Smash aggressive at 3 ticks (page text and launch post; WeaponRules).
+    "extending chain mace": ["thrust,crush,accurate", "thrust,crush,aggressive", "smash,crush,aggressive"],
     "whip": ["flick,slash,accurate", "lash,slash,controlled", "deflect,slash,defensive"],
 }
 CATEGORY_ALIASES = {"chinchompas": "chinchompa"}
 # New weapon types whose Wiki infobox still says "Unarmed": (page name pattern, category, attack speed or None to keep
-# the infobox speed). Zorya's tome is a 3-tick powered staff; the Obligator keeps its 5-tick speed (each page).
-CATEGORY_OVERRIDES = [(r"zorya's tome", "powered staff", None), (r"obligator", "obligator", None)]
+# the infobox speed). Zorya's tome is a 3-tick magic powered staff (its page and launch post).
+CATEGORY_OVERRIDES = [(r"zorya's tome", "powered staff", None)]
 
 # Zero-stat equipment kept for encounter or effect rules; everything else without bonuses is cosmetic.
 KEEP_WITHOUT_BONUSES = {"ring of recoil", "efaritay's aid", "bracelet of ethereum", "bracelet of slaughter",

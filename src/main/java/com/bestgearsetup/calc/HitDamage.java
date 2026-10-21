@@ -23,6 +23,23 @@ final class HitDamage
 		return averageTransformed(rule, min, max, h -> Math.max(1, transform.applyAsLong(h)));
 	}
 
+	/**
+	 * Average of the highest of several damage rolls, each uniform over 0 to max: the chance the best roll is at most
+	 * h is ((h + 1) / (max + 1))^rolls. An accurate zero deals 1, as for a single roll.
+	 */
+	static double bestOf(EncounterDamage.Rule rule, long max, int rolls, LongUnaryOperator transform)
+	{
+		double sum = 0;
+		double below = 0;
+		for (long hit = 0; hit <= max; hit++)
+		{
+			double atMost = Math.pow((hit + 1) / (max + 1.0), rolls);
+			sum += (atMost - below) * rule.mean(Math.max(1, transform.applyAsLong(hit)));
+			below = atMost;
+		}
+		return sum;
+	}
+
 	static double averageTransformed(EncounterDamage.Rule rule, long min, long max, LongUnaryOperator transform)
 	{
 		double sum = 0;

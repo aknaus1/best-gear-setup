@@ -7,6 +7,7 @@ import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.OffensivePrayer;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.StatusImmunities;
+import java.util.function.LongUnaryOperator;
 
 /**
  * Expected-DPS calculator following the OSRS Wiki combat formulas. Covers the common gear
@@ -421,6 +422,17 @@ public final class DpsCalculator
 				sb.append(i == 0 ? "" : " + ").append(hitMax);
 			}
 			detail = hits > 1 ? sb.toString() : null;
+		}
+		else if (WeaponRules.obligatorRolls(weapon, style, m) > 1)
+		{
+			int rolls = WeaponRules.obligatorRolls(weapon, style, m);
+			int bonus = WeaponRules.obligatorSizeBonus(m);
+			boolean effect = EquipmentEffects.rolledEffect(l, ctx);
+			LongUnaryOperator hit = h -> effect ? EquipmentEffects.damage(l, ctx, h * (100 + bonus) / 100)
+				: h * (100 + bonus) / 100;
+			avgDamage = accuracy * HitDamage.bestOf(rule, maxHit, rolls, hit) + (1 - accuracy) * rule.missDamage();
+			displayMax = EquipmentEffects.maximum(rule, l, ctx, maxHit * (100 + bonus) / 100);
+			detail = "Best of " + rolls + " damage rolls" + (bonus > 0 ? ", +" + bonus + "% on a big target" : "");
 		}
 		else
 		{

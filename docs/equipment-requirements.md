@@ -9,7 +9,7 @@ plugin, so it makes no network requests. Sources and licences are listed in
 | Resource | Generator | Contents |
 | --- | --- | --- |
 | `wiki-monsters.json.gz` | `tools/wiki_monsters.py` | 3,130 monster variants from `infobox_monster` and `Category:Bosses` |
-| `wiki-gamedata.json.gz` | `tools/wiki_equipment.py` | 642 weapons and 1,314 other slot entries (darts appear both as weapons and as blowpipe ammunition), 48 combat spells, offensive prayers and potions |
+| `wiki-gamedata.json.gz` | `tools/wiki_equipment.py` | 641 weapons and 1,314 other slot entries (darts appear both as weapons and as blowpipe ammunition), 48 combat spells, offensive prayers and potions |
 | `status-immunities.json` | `tools/wiki_status_immunities.py` | Poison, venom, freeze and burn resistance by NPC id |
 | `equipment-requirements.json` | `tools/equipment_requirements.py` | 123 reviewed wear rules, each linked to its source |
 

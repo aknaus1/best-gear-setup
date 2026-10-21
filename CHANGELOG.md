@@ -5,15 +5,18 @@ is what the Plugin Hub shows.
 
 ## 1.1.1 (2026-10-20)
 
-- Add The Fractured Archive's NPCs from the Wiki on release day: the Archive Guardian, Ezekiel, Bork and the
-  Smorks, Moia, Dreadnoth the Jellied, Xarth, and Ocellus's first and third phases with his void rifts and
-  augmenters, with their poison, venom and freeze resistances. Ocellus's second phase and the Dagon'hai are left
-  out until the Wiki has their stats, as is any monster page without them.
+- Add The Fractured Archive's NPCs from the Wiki: the Archive Guardian (flying and grounded), Ezekiel, Bork and
+  the Smorks, Moia, Dreadnoth the Jellied and his jellies, Xarth and his corpses, the Dagon'hai Elder and Monks,
+  the undead binders, and Ocellus's first and third phases with his void rifts, augmenters and siphons, with
+  their poison, venom and freeze resistances. Ocellus's second phase is left out until the Wiki has its stats, as
+  is any monster page without them.
 - Refresh the other Wiki monster data (Blink's forms are now named *combo eating* and *special attacks*).
 - Add the raid's equipment from the Wiki and the game cache: the Ascension crossbows with their bolts (plain,
   diamond and onyx, enchanted or not), the Obligator, Zorya's tome and the Rondache. Zorya's tome is a 3-tick
-  powered staff with its base max hit of 18. The Obligator has both crush stances, Thrust at 5 ticks and Smash at
-  3; Thrust's damage re-rolls and multi-target hits and the Rondache's flat armour aren't modelled yet.
+  powered staff with its base max hit of 18. The Obligator's Thrust (accurate or aggressive, 5 ticks) keeps the
+  best of two damage rolls, three if crush is the target's second-weakest melee defence and four if its weakest,
+  and deals 20% more to a 2x2 target and 40% more to 3x3 or larger; its Smash is a plain 3-tick crush attack.
+  Thrust's hits on several small targets in a line and the Rondache's flat armour aren't modelled.
 
 ## 1.1.0 (2026-10-10)
 

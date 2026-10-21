@@ -2,6 +2,7 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 
 /**
@@ -83,6 +84,25 @@ public final class WeaponRules
 	{
 		return weapon.getAttackSpeed() - (style.getStance().equals("rapid") ? 1 : 0)
 			- (style.getName().equals("smash") && EncounterDamage.lower(weapon).startsWith("obligator") ? 2 : 0);
+	}
+
+	/**
+	 * Damage rolls of an Obligator Thrust, keeping the highest: two, plus one for each of the target's stab and slash
+	 * defence bonuses above its crush defence (Jagex rewards poll blog, 2026-07-30). Other attacks roll once.
+	 */
+	static int obligatorRolls(GearItem weapon, AttackStyle style, Monster m)
+	{
+		if (!style.getName().equals("thrust") || !EncounterDamage.lower(weapon).startsWith("obligator"))
+		{
+			return 1;
+		}
+		return 2 + (m.getDefStab() > m.getDefCrush() ? 1 : 0) + (m.getDefSlash() > m.getDefCrush() ? 1 : 0);
+	}
+
+	/** An Obligator Thrust's chain passes through bigger targets: +20% damage on a 2x2 and +40% on 3x3 or larger. */
+	static int obligatorSizeBonus(Monster m)
+	{
+		return m.getSize() >= 3 ? 40 : m.getSize() == 2 ? 20 : 0;
 	}
 
 	public static boolean isPoweredStaff(GearItem weapon)
