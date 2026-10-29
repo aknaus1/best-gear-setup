@@ -1630,7 +1630,7 @@ public class BestGearSetupPlugin extends Plugin
 	/** Returns the current blocked and forced spell rules. */
 	public SpellFilter getSpellFilter()
 	{
-		return SpellFilter.parse(config.blockedSpells(), config.forcedSpells());
+		return config == null ? SpellFilter.NONE : SpellFilter.parse(config.blockedSpells(), config.forcedSpells());
 	}
 
 	/** Updates one spell rule, moving it between the blocked and forced lists. */
