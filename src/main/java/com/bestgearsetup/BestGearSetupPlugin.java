@@ -1186,7 +1186,7 @@ public class BestGearSetupPlugin extends Plugin
 				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
 				rememberedLevels, assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config),
 				monster.isImmuneThrall() ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
-				scaled.getDefenceLevel());
+				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic());
 			SwingUtilities.invokeLater(() ->
 			{
 				if (panel != null && generation == searchGeneration.get())
@@ -1631,6 +1631,12 @@ public class BestGearSetupPlugin extends Plugin
 	public SpellFilter getSpellFilter()
 	{
 		return config == null ? SpellFilter.NONE : SpellFilter.parse(config.blockedSpells(), config.forcedSpells());
+	}
+
+	/** Whether the selected spell setup uses sunfire runes. */
+	public boolean isSunfireRunes()
+	{
+		return config != null && config.sunfireRunes();
 	}
 
 	/** Updates one spell rule, moving it between the blocked and forced lists. */

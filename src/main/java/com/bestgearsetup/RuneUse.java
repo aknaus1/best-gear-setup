@@ -131,4 +131,10 @@ public final class RuneUse
 	{
 		return attack.isEmpty() && support.isEmpty();
 	}
+
+	/** Short name for a base rune id in the results view. */
+	public static String runeName(int runeId)
+	{
+		return SpellRunes.runeName(runeId);
+	}
 }
