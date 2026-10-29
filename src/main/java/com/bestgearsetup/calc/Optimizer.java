@@ -291,10 +291,11 @@ public class Optimizer
 					kept.remove(Slot.RING);
 					filled = kept;
 				}
+				Set<SupportSpell> support = SupportSpell.assumed(l, ctx);
 				results.add(new SetupResult(cls, l, specced == null ? dps : specced.getResult(),
 					cost + (plan == null ? 0 : plan.getExtraCost()),
 					unpricedItems(l) + (plan == null ? 0 : plan.getUnpricedItems()), filled,
-					SupportSpell.assumed(l, ctx), plan));
+					support, plan, support.contains(SupportSpell.THRALL) ? ctx.getThrall() : null));
 			}
 			steps.step();
 		}

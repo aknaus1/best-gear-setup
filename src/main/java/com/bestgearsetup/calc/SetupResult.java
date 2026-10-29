@@ -22,6 +22,8 @@ public class SetupResult
 	Set<SupportSpell> supportSpells;
 	/** Special attack used during the kill and already counted in {@link #dps}; null when none helps. */
 	SpecialPlan special;
+	/** Thrall tier whose runes this setup requires; null when no thrall is assumed. */
+	Thrall thrall;
 
 	/** Stab / slash / crush / ranged / magic / atlatl: the result tab this setup belongs to. */
 	public AttackStyle.Type getAttackType()
@@ -49,6 +51,12 @@ public class SetupResult
 	public SetupResult(CombatClass combatClass, Loadout loadout, DpsResult dps, long buyCost, int unpricedItems,
 		Set<Slot> filledSlots, Set<SupportSpell> supportSpells, SpecialPlan special)
 	{
+		this(combatClass, loadout, dps, buyCost, unpricedItems, filledSlots, supportSpells, special, null);
+	}
+
+	public SetupResult(CombatClass combatClass, Loadout loadout, DpsResult dps, long buyCost, int unpricedItems,
+		Set<Slot> filledSlots, Set<SupportSpell> supportSpells, SpecialPlan special, Thrall thrall)
+	{
 		this.combatClass = combatClass;
 		this.loadout = loadout;
 		this.dps = dps;
@@ -57,5 +65,6 @@ public class SetupResult
 		this.filledSlots = filledSlots;
 		this.supportSpells = supportSpells;
 		this.special = special;
+		this.thrall = thrall;
 	}
 }
