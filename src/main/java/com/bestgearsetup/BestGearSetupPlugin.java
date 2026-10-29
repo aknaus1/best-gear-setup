@@ -1177,7 +1177,8 @@ public class BestGearSetupPlugin extends Plugin
 			if (settings.getStyles().contains(AttackStyle.Type.MAGIC))
 			{
 				String spellNote = spellFilterNote(settings.getSpellFilter(),
-					Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings));
+					Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings),
+					byType.containsKey(AttackStyle.Type.MAGIC));
 				if (spellNote != null)
 				{
 					warnings.add(spellNote);
@@ -1706,17 +1707,28 @@ public class BestGearSetupPlugin extends Plugin
 	/** Explains when spell rules leave no spell available for autocasting. */
 	static String spellFilterNote(SpellFilter filter, List<Spell> autocastable)
 	{
-		if (filter.isEmpty() || !autocastable.isEmpty())
+		return spellFilterNote(filter, autocastable, true);
+	}
+
+	/** Explains when spell rules leave no Magic setup in the results. */
+	static String spellFilterNote(SpellFilter filter, List<Spell> autocastable, boolean magicResults)
+	{
+		if (filter.isEmpty())
 		{
 			return null;
 		}
-		if (!filter.getForced().isEmpty())
+		if (autocastable.isEmpty() && !filter.getForced().isEmpty())
 		{
 			return "Spells: none of the forced spells ("
 				+ filter.getForced().stream().map(GameData::titleCase).collect(Collectors.joining(", "))
 				+ ") can be autocast here; check your Magic level, spellbooks and the target.";
 		}
-		return "Spells: every spell you could autocast here is blocked.";
+		if (autocastable.isEmpty())
+		{
+			return "Spells: every spell you could autocast here is blocked.";
+		}
+		return magicResults ? null
+			: "Spells: no Magic setup is left; your spell rules may block every spell your weapons can autocast here.";
 	}
 
 	public Map<Slot, SlotLock> getLocks()
