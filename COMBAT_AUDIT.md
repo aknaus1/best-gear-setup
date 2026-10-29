@@ -193,54 +193,57 @@ table and its rune order.
 
 | Spell and source | Runes per cast |
 | --- | --- |
+| **Standard spellbook** | |
 | [wind strike](https://oldschool.runescape.wiki/w/Wind_Strike) | air 1, mind 1 |
-| [smoke rush](https://oldschool.runescape.wiki/w/Smoke_Rush) | air 1, fire 1, chaos 2, death 2 |
 | [water strike](https://oldschool.runescape.wiki/w/Water_Strike) | air 1, water 1, mind 1 |
-| [shadow rush](https://oldschool.runescape.wiki/w/Shadow_Rush) | air 1, chaos 2, death 2, soul 1 |
 | [earth strike](https://oldschool.runescape.wiki/w/Earth_Strike) | air 1, earth 2, mind 1 |
-| [blood rush](https://oldschool.runescape.wiki/w/Blood_Rush) | chaos 2, death 2, blood 1 |
 | [fire strike](https://oldschool.runescape.wiki/w/Fire_Strike) | air 2, fire 3, mind 1 |
-| [ice rush](https://oldschool.runescape.wiki/w/Ice_Rush) | water 2, chaos 2, death 2 |
 | [wind bolt](https://oldschool.runescape.wiki/w/Wind_Bolt) | air 2, chaos 1 |
-| [smoke burst](https://oldschool.runescape.wiki/w/Smoke_Burst) | air 2, fire 2, chaos 4, death 2 |
 | [water bolt](https://oldschool.runescape.wiki/w/Water_Bolt) | air 2, water 2, chaos 1 |
-| [shadow burst](https://oldschool.runescape.wiki/w/Shadow_Burst) | air 1, chaos 4, death 2, soul 2 |
 | [earth bolt](https://oldschool.runescape.wiki/w/Earth_Bolt) | air 2, earth 3, chaos 1 |
-| [blood burst](https://oldschool.runescape.wiki/w/Blood_Burst) | chaos 4, death 2, blood 2 |
 | [fire bolt](https://oldschool.runescape.wiki/w/Fire_Bolt) | air 3, fire 4, chaos 1 |
-| [ice burst](https://oldschool.runescape.wiki/w/Ice_Burst) | water 4, chaos 4, death 2 |
 | [wind blast](https://oldschool.runescape.wiki/w/Wind_Blast) | air 3, death 1 |
-| [smoke blitz](https://oldschool.runescape.wiki/w/Smoke_Blitz) | air 2, fire 2, death 2, blood 2 |
 | [water blast](https://oldschool.runescape.wiki/w/Water_Blast) | air 3, water 3, death 1 |
-| [shadow blitz](https://oldschool.runescape.wiki/w/Shadow_Blitz) | air 2, death 2, blood 2, soul 2 |
 | [earth blast](https://oldschool.runescape.wiki/w/Earth_Blast) | air 3, earth 4, death 1 |
-| [blood blitz](https://oldschool.runescape.wiki/w/Blood_Blitz) | death 2, blood 4 |
 | [fire blast](https://oldschool.runescape.wiki/w/Fire_Blast) | air 4, fire 5, death 1 |
-| [ice blitz](https://oldschool.runescape.wiki/w/Ice_Blitz) | water 3, death 2, blood 2 |
 | [wind wave](https://oldschool.runescape.wiki/w/Wind_Wave) | air 5, blood 1 |
-| [smoke barrage](https://oldschool.runescape.wiki/w/Smoke_Barrage) | air 4, fire 4, death 4, blood 2 |
 | [water wave](https://oldschool.runescape.wiki/w/Water_Wave) | air 5, water 7, blood 1 |
-| [shadow barrage](https://oldschool.runescape.wiki/w/Shadow_Barrage) | air 4, death 4, blood 2, soul 3 |
 | [earth wave](https://oldschool.runescape.wiki/w/Earth_Wave) | air 5, earth 7, blood 1 |
-| [blood barrage](https://oldschool.runescape.wiki/w/Blood_Barrage) | death 4, blood 4, soul 1 |
 | [fire wave](https://oldschool.runescape.wiki/w/Fire_Wave) | air 5, fire 7, blood 1 |
-| [ice barrage](https://oldschool.runescape.wiki/w/Ice_Barrage) | water 6, death 4, blood 2 |
 | [wind surge](https://oldschool.runescape.wiki/w/Wind_Surge) | air 7, wrath 1 |
-| [ghostly grasp](https://oldschool.runescape.wiki/w/Ghostly_Grasp) | air 4, chaos 1 |
 | [water surge](https://oldschool.runescape.wiki/w/Water_Surge) | air 7, water 10, wrath 1 |
-| [skeletal grasp](https://oldschool.runescape.wiki/w/Skeletal_Grasp) | earth 8, death 1 |
 | [earth surge](https://oldschool.runescape.wiki/w/Earth_Surge) | air 7, earth 10, wrath 1 |
-| [undead grasp](https://oldschool.runescape.wiki/w/Undead_Grasp) | fire 12, blood 1 |
 | [fire surge](https://oldschool.runescape.wiki/w/Fire_Surge) | air 7, fire 10, wrath 1 |
-| [inferior demonbane](https://oldschool.runescape.wiki/w/Inferior_Demonbane) | fire 3, chaos 1 |
 | [crumble undead](https://oldschool.runescape.wiki/w/Crumble_Undead) | air 2, earth 2, chaos 1 |
-| [superior demonbane](https://oldschool.runescape.wiki/w/Superior_Demonbane) | fire 5, soul 1 |
 | [iban blast](https://oldschool.runescape.wiki/w/Iban_Blast) | fire 5, death 1 |
-| [dark demonbane](https://oldschool.runescape.wiki/w/Dark_Demonbane) | fire 7, soul 2 |
 | [magic dart](https://oldschool.runescape.wiki/w/Magic_Dart) | mind 4, death 1 |
 | [saradomin strike](https://oldschool.runescape.wiki/w/Saradomin_Strike) | air 4, fire 2, blood 2 |
 | [claws of guthix](https://oldschool.runescape.wiki/w/Claws_Of_Guthix) | air 4, fire 1, blood 2 |
 | [flames of zamorak](https://oldschool.runescape.wiki/w/Flames_Of_Zamorak) | air 1, fire 4, blood 2 |
+| **Ancient spellbook** | |
+| [smoke rush](https://oldschool.runescape.wiki/w/Smoke_Rush) | air 1, fire 1, chaos 2, death 2 |
+| [shadow rush](https://oldschool.runescape.wiki/w/Shadow_Rush) | air 1, chaos 2, death 2, soul 1 |
+| [blood rush](https://oldschool.runescape.wiki/w/Blood_Rush) | chaos 2, death 2, blood 1 |
+| [ice rush](https://oldschool.runescape.wiki/w/Ice_Rush) | water 2, chaos 2, death 2 |
+| [smoke burst](https://oldschool.runescape.wiki/w/Smoke_Burst) | air 2, fire 2, chaos 4, death 2 |
+| [shadow burst](https://oldschool.runescape.wiki/w/Shadow_Burst) | air 1, chaos 4, death 2, soul 2 |
+| [blood burst](https://oldschool.runescape.wiki/w/Blood_Burst) | chaos 4, death 2, blood 2 |
+| [ice burst](https://oldschool.runescape.wiki/w/Ice_Burst) | water 4, chaos 4, death 2 |
+| [smoke blitz](https://oldschool.runescape.wiki/w/Smoke_Blitz) | air 2, fire 2, death 2, blood 2 |
+| [shadow blitz](https://oldschool.runescape.wiki/w/Shadow_Blitz) | air 2, death 2, blood 2, soul 2 |
+| [blood blitz](https://oldschool.runescape.wiki/w/Blood_Blitz) | death 2, blood 4 |
+| [ice blitz](https://oldschool.runescape.wiki/w/Ice_Blitz) | water 3, death 2, blood 2 |
+| [smoke barrage](https://oldschool.runescape.wiki/w/Smoke_Barrage) | air 4, fire 4, death 4, blood 2 |
+| [shadow barrage](https://oldschool.runescape.wiki/w/Shadow_Barrage) | air 4, death 4, blood 2, soul 3 |
+| [blood barrage](https://oldschool.runescape.wiki/w/Blood_Barrage) | death 4, blood 4, soul 1 |
+| [ice barrage](https://oldschool.runescape.wiki/w/Ice_Barrage) | water 6, death 4, blood 2 |
+| **Arceuus spellbook** | |
+| [ghostly grasp](https://oldschool.runescape.wiki/w/Ghostly_Grasp) | air 4, chaos 1 |
+| [skeletal grasp](https://oldschool.runescape.wiki/w/Skeletal_Grasp) | earth 8, death 1 |
+| [undead grasp](https://oldschool.runescape.wiki/w/Undead_Grasp) | fire 12, blood 1 |
+| [inferior demonbane](https://oldschool.runescape.wiki/w/Inferior_Demonbane) | fire 3, chaos 1 |
+| [superior demonbane](https://oldschool.runescape.wiki/w/Superior_Demonbane) | fire 5, soul 1 |
+| [dark demonbane](https://oldschool.runescape.wiki/w/Dark_Demonbane) | fire 7, soul 2 |
 
 Support casts use these Wiki pages, accessed 2026-10-29:
 

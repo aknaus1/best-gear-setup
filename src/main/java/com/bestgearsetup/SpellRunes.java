@@ -51,54 +51,60 @@ final class SpellRunes
 
 	static
 	{
+		// Standard spellbook
 		spell("wind strike", AIR, 1, MIND, 1);
-		spell("smoke rush", AIR, 1, FIRE, 1, CHAOS, 2, DEATH, 2);
 		spell("water strike", AIR, 1, WATER, 1, MIND, 1);
-		spell("shadow rush", AIR, 1, CHAOS, 2, DEATH, 2, SOUL, 1);
 		spell("earth strike", AIR, 1, EARTH, 2, MIND, 1);
-		spell("blood rush", CHAOS, 2, DEATH, 2, BLOOD, 1);
 		spell("fire strike", AIR, 2, FIRE, 3, MIND, 1);
-		spell("ice rush", WATER, 2, CHAOS, 2, DEATH, 2);
 		spell("wind bolt", AIR, 2, CHAOS, 1);
-		spell("smoke burst", AIR, 2, FIRE, 2, CHAOS, 4, DEATH, 2);
 		spell("water bolt", AIR, 2, WATER, 2, CHAOS, 1);
-		spell("shadow burst", AIR, 1, CHAOS, 4, DEATH, 2, SOUL, 2);
 		spell("earth bolt", AIR, 2, EARTH, 3, CHAOS, 1);
-		spell("blood burst", CHAOS, 4, DEATH, 2, BLOOD, 2);
 		spell("fire bolt", AIR, 3, FIRE, 4, CHAOS, 1);
-		spell("ice burst", WATER, 4, CHAOS, 4, DEATH, 2);
 		spell("wind blast", AIR, 3, DEATH, 1);
-		spell("smoke blitz", AIR, 2, FIRE, 2, DEATH, 2, BLOOD, 2);
 		spell("water blast", AIR, 3, WATER, 3, DEATH, 1);
-		spell("shadow blitz", AIR, 2, DEATH, 2, BLOOD, 2, SOUL, 2);
 		spell("earth blast", AIR, 3, EARTH, 4, DEATH, 1);
-		spell("blood blitz", DEATH, 2, BLOOD, 4);
 		spell("fire blast", AIR, 4, FIRE, 5, DEATH, 1);
-		spell("ice blitz", WATER, 3, DEATH, 2, BLOOD, 2);
 		spell("wind wave", AIR, 5, BLOOD, 1);
-		spell("smoke barrage", AIR, 4, FIRE, 4, DEATH, 4, BLOOD, 2);
 		spell("water wave", AIR, 5, WATER, 7, BLOOD, 1);
-		spell("shadow barrage", AIR, 4, DEATH, 4, BLOOD, 2, SOUL, 3);
 		spell("earth wave", AIR, 5, EARTH, 7, BLOOD, 1);
-		spell("blood barrage", DEATH, 4, BLOOD, 4, SOUL, 1);
 		spell("fire wave", AIR, 5, FIRE, 7, BLOOD, 1);
-		spell("ice barrage", WATER, 6, DEATH, 4, BLOOD, 2);
 		spell("wind surge", AIR, 7, WRATH, 1);
-		spell("ghostly grasp", AIR, 4, CHAOS, 1);
 		spell("water surge", AIR, 7, WATER, 10, WRATH, 1);
-		spell("skeletal grasp", EARTH, 8, DEATH, 1);
 		spell("earth surge", AIR, 7, EARTH, 10, WRATH, 1);
-		spell("undead grasp", FIRE, 12, BLOOD, 1);
 		spell("fire surge", AIR, 7, FIRE, 10, WRATH, 1);
-		spell("inferior demonbane", FIRE, 3, CHAOS, 1);
 		spell("crumble undead", AIR, 2, EARTH, 2, CHAOS, 1);
-		spell("superior demonbane", FIRE, 5, SOUL, 1);
 		spell("iban blast", FIRE, 5, DEATH, 1);
-		spell("dark demonbane", FIRE, 7, SOUL, 2);
 		spell("magic dart", MIND, 4, DEATH, 1);
 		spell("saradomin strike", AIR, 4, FIRE, 2, BLOOD, 2);
 		spell("claws of guthix", AIR, 4, FIRE, 1, BLOOD, 2);
 		spell("flames of zamorak", AIR, 1, FIRE, 4, BLOOD, 2);
+
+		// Ancient spellbook
+		spell("smoke rush", AIR, 1, FIRE, 1, CHAOS, 2, DEATH, 2);
+		spell("shadow rush", AIR, 1, CHAOS, 2, DEATH, 2, SOUL, 1);
+		spell("blood rush", CHAOS, 2, DEATH, 2, BLOOD, 1);
+		spell("ice rush", WATER, 2, CHAOS, 2, DEATH, 2);
+		spell("smoke burst", AIR, 2, FIRE, 2, CHAOS, 4, DEATH, 2);
+		spell("shadow burst", AIR, 1, CHAOS, 4, DEATH, 2, SOUL, 2);
+		spell("blood burst", CHAOS, 4, DEATH, 2, BLOOD, 2);
+		spell("ice burst", WATER, 4, CHAOS, 4, DEATH, 2);
+		spell("smoke blitz", AIR, 2, FIRE, 2, DEATH, 2, BLOOD, 2);
+		spell("shadow blitz", AIR, 2, DEATH, 2, BLOOD, 2, SOUL, 2);
+		spell("blood blitz", DEATH, 2, BLOOD, 4);
+		spell("ice blitz", WATER, 3, DEATH, 2, BLOOD, 2);
+		spell("smoke barrage", AIR, 4, FIRE, 4, DEATH, 4, BLOOD, 2);
+		spell("shadow barrage", AIR, 4, DEATH, 4, BLOOD, 2, SOUL, 3);
+		spell("blood barrage", DEATH, 4, BLOOD, 4, SOUL, 1);
+		spell("ice barrage", WATER, 6, DEATH, 4, BLOOD, 2);
+
+		// Arceuus spellbook
+		spell("ghostly grasp", AIR, 4, CHAOS, 1);
+		spell("skeletal grasp", EARTH, 8, DEATH, 1);
+		spell("undead grasp", FIRE, 12, BLOOD, 1);
+		spell("inferior demonbane", FIRE, 3, CHAOS, 1);
+		spell("superior demonbane", FIRE, 5, SOUL, 1);
+		spell("dark demonbane", FIRE, 7, SOUL, 2);
+
 		support(SupportSpell.MARK_OF_DARKNESS, COSMIC, 1, SOUL, 1);
 		support(SupportSpell.CHARGE, AIR, 3, FIRE, 3, BLOOD, 3);
 		thrall(Thrall.LESSER, AIR, 10, MIND, 5, COSMIC, 1);

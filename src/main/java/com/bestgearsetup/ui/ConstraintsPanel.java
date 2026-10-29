@@ -282,9 +282,16 @@ class ConstraintsPanel extends JPanel
 	private JPanel spellRow(String name, Spell spell)
 	{
 		String title = GameData.titleCase(name);
-		String detail = spell == null ? "not in game data" : GameData.titleCase(spell.getSpellbook());
+		String detail = spell == null ? "not in game data" : spellbookLabel(spell);
 		return ruleRow(iconLabel(), title, detail, "Allow " + title,
 			() -> plugin.setSpellRule(name, SpellRule.ALLOW));
+	}
+
+	/** Show a usable label when a spell has no spellbook in game data. */
+	private static String spellbookLabel(Spell spell)
+	{
+		String spellbook = spell.getSpellbook();
+		return spellbook == null ? "unknown spellbook" : GameData.titleCase(spellbook);
 	}
 
 	/** An empty list says so; a list of several rules ends with a button that clears them all. */
@@ -394,7 +401,7 @@ class ConstraintsPanel extends JPanel
 			.forEach(spell ->
 			{
 				String name = GameData.titleCase(spell.getName());
-				JButton button = new JButton(name + " (" + GameData.titleCase(spell.getSpellbook()) + ")");
+				JButton button = new JButton(name + " (" + spellbookLabel(spell) + ")");
 				Controls.listRow(button);
 				button.setToolTipText((rule == SpellRule.BLOCK ? "Block " : "Force ") + name);
 				button.addActionListener(e ->
