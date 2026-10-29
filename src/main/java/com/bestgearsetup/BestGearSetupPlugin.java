@@ -1156,15 +1156,6 @@ public class BestGearSetupPlugin extends Plugin
 				return;
 			}
 			List<String> notes = describeSearch(data, levels, baseMonster, scaled, monster, specials, ctx, settings, raid, config);
-			if (settings.getStyles().contains(AttackStyle.Type.MAGIC))
-			{
-				String spellNote = spellFilterNote(settings.getSpellFilter(),
-					Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings));
-				if (spellNote != null)
-				{
-					notes.add(spellNote);
-				}
-			}
 			notes.addAll(detectedNotes);
 			if (config.usePrayers() && prayerUnlocks == null)
 			{
@@ -1182,9 +1173,19 @@ public class BestGearSetupPlugin extends Plugin
 			List<LockStatus> locks = LockStatus.check(data,
 				new Optimizer(data, ctx, settings, owned::contains, id -> quantities.getOrDefault(id, 0L),
 					item -> price(quotes, item)), settings.getLocks());
+			List<String> warnings = assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config);
+			if (settings.getStyles().contains(AttackStyle.Type.MAGIC))
+			{
+				String spellNote = spellFilterNote(settings.getSpellFilter(),
+					Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings));
+				if (spellNote != null)
+				{
+					warnings.add(spellNote);
+				}
+			}
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
 				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
-				rememberedLevels, assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config),
+				rememberedLevels, warnings,
 				monster.isImmuneThrall() ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
 				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic());
 			SwingUtilities.invokeLater(() ->
