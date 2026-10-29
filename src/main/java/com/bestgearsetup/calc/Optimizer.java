@@ -2347,12 +2347,26 @@ public class Optimizer
 	private List<Spell> spellsFor(GearItem weapon)
 	{
 		List<Spell> out = new ArrayList<>();
+		for (Spell spell : autocastSpells(data, ctx.getMagic(), monster, settings))
+		{
+			if (spell.castableWith(weapon.getCombatId()))
+			{
+				out.add(spell);
+			}
+		}
+		return out;
+	}
+
+	/** Spells that pass every non-weapon gate and the spell filter, in data order. */
+	public static List<Spell> autocastSpells(GameData data, int magic, Monster monster, OptimizerSettings settings)
+	{
+		List<Spell> out = new ArrayList<>();
 		for (Spell spell : data.getSpells())
 		{
 			String name = spell.getName().toLowerCase(Locale.ROOT);
 			String book = spell.getSpellbook() == null ? "" : spell.getSpellbook().toLowerCase(Locale.ROOT);
-			if (spell.getMaxHit() <= 0 || spell.getLevel() > ctx.getMagic()
-				|| !settings.getSpellbooks().contains(book) || !spell.castableWith(weapon.getCombatId()))
+			if (spell.getMaxHit() <= 0 || spell.getLevel() > magic
+				|| !settings.getSpellbooks().contains(book))
 			{
 				continue;
 			}
@@ -2361,6 +2375,10 @@ public class Optimizer
 				continue;
 			}
 			if (name.equals("crumble undead") && !monster.hasAttribute("undead"))
+			{
+				continue;
+			}
+			if (!settings.getSpellFilter().allows(spell))
 			{
 				continue;
 			}

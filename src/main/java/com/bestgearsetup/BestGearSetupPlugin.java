@@ -19,6 +19,7 @@ import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SlayerEquipment;
 import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.calc.SpecialAttacks;
+import com.bestgearsetup.calc.SpellFilter;
 import com.bestgearsetup.calc.WeaponRules;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.CombatClass;
@@ -1415,6 +1416,7 @@ public class BestGearSetupPlugin extends Plugin
 			.maxExpensiveItems(Math.max(0, Math.min(11, config.maxExpensiveItems())))
 			.expensiveItemThreshold(Math.max(0, Budget.parse(config.expensiveItemThreshold())))
 			.spellbooks(spellbooks)
+			.spellFilter(SpellFilter.parse(config.blockedSpells(), config.forcedSpells()))
 			.styles(styles)
 			.weaponHands(config.weaponHands())
 			.calcMode(config.calcMode())
