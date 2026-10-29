@@ -122,6 +122,8 @@ public class Optimizer
 	private List<GearItem> specShields = Collections.emptyList();
 	private final PlayerLevels levels;
 	private final Monster monster;
+	/** Spells that pass the search-wide gates, before each weapon's autocast restrictions. */
+	private final List<Spell> autocastableSpells;
 	private final int maxPasses;
 	private final int maxWeapons;
 	// Whether the target demands protective equipment is fixed for the search; only the setup varies.
@@ -151,6 +153,8 @@ public class Optimizer
 		this.priceFn = priceFn;
 		this.levels = ctx.getLevels();
 		this.monster = ctx.getMonster();
+		this.autocastableSpells = settings.getSpellbooks() == null ? Collections.emptyList()
+			: autocastSpells(data, this.ctx.getMagic(), monster, settings);
 		this.fireProtectionRequired = DragonfireProtection.required(monster, settings);
 		this.slayerEquipmentRequired = SlayerEquipment.applies(monster, settings);
 		switch (settings.getDepth())
@@ -2348,7 +2352,7 @@ public class Optimizer
 	private List<Spell> spellsFor(GearItem weapon)
 	{
 		List<Spell> out = new ArrayList<>();
-		for (Spell spell : autocastSpells(data, ctx.getMagic(), monster, settings))
+		for (Spell spell : autocastableSpells)
 		{
 			if (spell.castableWith(weapon.getCombatId()))
 			{
