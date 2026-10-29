@@ -25,8 +25,8 @@ public class PrayerDataTest
 	public void sourceOnlyPrayerIsExcludedWithoutChangingPietyBoosts()
 	{
 		Map<String, List<Prayer>> prayers = new HashMap<>();
-		prayers.put("attack", Arrays.asList(prayer("piety", 20), prayer("zeal", 25)));
-		prayers.put("strength", Arrays.asList(prayer("piety", 23), prayer("zeal", 28)));
+		prayers.put("attack", Arrays.asList(prayer("piety", 20), prayer("wiki-only prayer", 25)));
+		prayers.put("strength", Arrays.asList(prayer("piety", 23), prayer("wiki-only prayer", 28)));
 		GameData data = new GameData(Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyList(), prayers, null);
 		List<OffensivePrayer> melee = data.getPrayers(CombatClass.MELEE);
