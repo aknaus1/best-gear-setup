@@ -3,6 +3,14 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Add Blocked and Forced spell cards to Gear. They restrict autocast choices while leaving powered staves and
+  salamanders available, and explain when no permitted spell can be cast.
+- Show expected attack and support runes per kill below estimated kills per hour. Counts include rune saving,
+  staff and tome supply, special attack time, and the correct rune costs for each thrall tier. Powered staff
+  charges, tome pages and the Master Combat Achievements thrall duration bonus are not counted.
+
 ## 1.1.1 (2026-10-20)
 
 - Add The Fractured Archive's NPCs from the Wiki: the Archive Guardian (flying and grounded), Ezekiel, Bork and
