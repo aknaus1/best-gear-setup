@@ -31,6 +31,8 @@ public interface BestGearSetupConfig extends Config
 	String POTION_KEY_PREFIX = "potion";
 	String LOCKS_KEY = "locks";
 	String EXCLUDED_KEY = "excluded";
+	String BLOCKED_SPELLS_KEY = "blockedSpells";
+	String FORCED_SPELLS_KEY = "forcedSpells";
 	String MEMBERS_ITEMS_KEY = "membersItems";
 	String DMM_ITEMS_KEY = "dmmItems";
 	String BETA_ITEMS_KEY = "betaItems";
@@ -792,6 +794,18 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigItem(keyName = EXCLUDED_KEY, name = "", description = "", hidden = true)
 	default String excluded()
+	{
+		return "";
+	}
+
+	@ConfigItem(keyName = BLOCKED_SPELLS_KEY, name = "", description = "", hidden = true)
+	default String blockedSpells()
+	{
+		return "";
+	}
+
+	@ConfigItem(keyName = FORCED_SPELLS_KEY, name = "", description = "", hidden = true)
+	default String forcedSpells()
 	{
 		return "";
 	}
