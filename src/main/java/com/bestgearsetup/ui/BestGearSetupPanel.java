@@ -6,6 +6,7 @@ import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.calc.EncounterPhases;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.SearchMode;
+import com.bestgearsetup.calc.SpellFilter;
 import com.bestgearsetup.SearchResults;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GameData;
@@ -725,7 +726,9 @@ public class BestGearSetupPanel extends PluginPanel
 			}
 			else
 			{
-				status.append(" Check locks, excluded items and style / experience filters.");
+				status.append(SpellFilter.parse(config.blockedSpells(), config.forcedSpells()).isEmpty()
+					? " Check locks, excluded items and style / experience filters."
+					: " Check locks, excluded items, spell rules and style / experience filters.");
 			}
 		}
 		else
