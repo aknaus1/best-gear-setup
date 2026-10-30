@@ -15,6 +15,8 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -189,12 +191,16 @@ class ConstraintsPanel extends JPanel
 		rebuildExcluded(data);
 		rebuildSpells(plugin.getSpellFilter());
 		rebuildOwned(data);
+		updateLockSuggestions();
+		updateExcludeSuggestions();
+		updateOwnedSuggestions();
 	}
 
 	/** Rebuild the owned list after the manual list changed. */
 	void refreshOwned()
 	{
 		rebuildOwned(plugin.getGameData());
+		updateOwnedSuggestions();
 	}
 
 	private void rebuildLocks(GameData data)
@@ -210,20 +216,32 @@ class ConstraintsPanel extends JPanel
 			switch (lock.getKind())
 			{
 				case EMPTY:
-					locksList.add(ruleRow(slotIcon(slot), "Keep empty", slotName, "Unlock " + slotName, unlock));
-					break;
 				case FILL:
-					locksList.add(ruleRow(slotIcon(slot), "Always fill", slotName, "Unlock " + slotName, unlock));
+					locksList.add(ruleRow(slotIcon(slot), lockLabel(data, slot, lock), slotName, "Unlock " + slotName, unlock));
 					break;
 				default:
-					GearItem item = data == null ? null : data.getItem(slot, lock.getItemId());
-					String name = item == null ? "Item " + lock.getItemId() : GameData.titleCase(item.getName());
-					locksList.add(ruleRow(itemIcon(lock.getItemId()), name, slotName, "Unlock " + slotName, unlock));
+					locksList.add(ruleRow(itemIcon(lock.getItemId()), lockLabel(data, slot, lock), slotName,
+						"Unlock " + slotName, unlock));
 					break;
 			}
 		}
 		finishList(locksList, locks.size(), "No locks.", "Clear locks", plugin::clearLocks);
 		locksSection.setSummary(locks.size());
+	}
+
+	/** What the lock list calls a lock: "Keep empty", "Always fill", or the locked item's name. */
+	private static String lockLabel(GameData data, Slot slot, SlotLock lock)
+	{
+		switch (lock.getKind())
+		{
+			case EMPTY:
+				return "Keep empty";
+			case FILL:
+				return "Always fill";
+			default:
+				GearItem item = data == null ? null : data.getItem(slot, lock.getItemId());
+				return item == null ? "Item " + lock.getItemId() : GameData.titleCase(item.getName());
+		}
 	}
 
 	private void rebuildExcluded(GameData data)
@@ -342,19 +360,34 @@ class ConstraintsPanel extends JPanel
 		if (data != null)
 		{
 			Slot only = selectedLockSlot();
-			for (GearItem item : data.searchItems(lockSearch.getText(), MAX_SUGGESTIONS, only))
+			Map<Slot, SlotLock> locks = plugin.getLocks();
+			List<GearItem> matches = data.searchItems(lockSearch.getText(), MAX_SUGGESTIONS + locks.size(), only).stream()
+				.filter(item -> !isLockedTo(locks.get(item.getSlot()), item))
+				.limit(MAX_SUGGESTIONS)
+				.collect(Collectors.toList());
+			for (GearItem item : matches)
 			{
 				String name = GameData.titleCase(item.getName());
 				String slotName = item.getSlot().getDisplayName();
-				lockSuggestions.add(itemButton(item, only == null ? name + " (" + slotName + ")" : name,
-					"Lock " + slotName.toLowerCase(Locale.ROOT) + " slot to " + name, () ->
-					{
-						plugin.lockItem(item);
-						lockSearch.setText("");
-					}));
+				String slotText = slotName.toLowerCase(Locale.ROOT);
+				SlotLock current = locks.get(item.getSlot());
+				String tooltip = current == null
+					? "Lock " + slotText + " slot to " + name
+					: "Replace " + slotText + " lock (" + lockLabel(data, item.getSlot(), current) + ") with " + name;
+				lockSuggestions.add(itemButton(item, only == null ? name + " (" + slotName + ")" : name, tooltip, () ->
+				{
+					plugin.lockItem(item);
+					updateLockSuggestions();
+					lockSearch.requestFocusInWindow();
+				}));
 			}
 		}
 		showSuggestions(lockSuggestions);
+	}
+
+	private static boolean isLockedTo(SlotLock lock, GearItem item)
+	{
+		return lock != null && lock.getKind() == SlotLock.Kind.ITEM && lock.getItemId() == item.getId();
 	}
 
 	private void updateExcludeSuggestions()
@@ -374,7 +407,8 @@ class ConstraintsPanel extends JPanel
 				excludeSuggestions.add(itemButton(item, name + " (" + item.getSlot().getDisplayName() + ")", "Exclude " + name, () ->
 				{
 					plugin.setExcluded(item.getId(), true);
-					excludeSearch.setText("");
+					updateExcludeSuggestions();
+					excludeSearch.requestFocusInWindow();
 				}));
 			}
 		}
@@ -387,12 +421,18 @@ class ConstraintsPanel extends JPanel
 		GameData data = plugin.getGameData();
 		if (data != null)
 		{
-			for (GearItem item : data.searchItems(ownedSearch.getText(), MAX_SUGGESTIONS))
+			Set<Integer> manual = plugin.getOwnedItems().getManual();
+			List<GearItem> matches = data.searchItems(ownedSearch.getText(), MAX_SUGGESTIONS + manual.size()).stream()
+				.filter(item -> !manual.contains(item.getId()))
+				.limit(MAX_SUGGESTIONS)
+				.collect(Collectors.toList());
+			for (GearItem item : matches)
 			{
 				ownedSuggestions.add(itemButton(item, GameData.titleCase(item.getName()), "Mark as owned", () ->
 				{
 					plugin.setManualOwned(item.getId(), true);
-					ownedSearch.setText("");
+					updateOwnedSuggestions();
+					ownedSearch.requestFocusInWindow();
 				}));
 			}
 		}
@@ -428,7 +468,15 @@ class ConstraintsPanel extends JPanel
 						(rule == SpellRule.BLOCK ? "Exclude " : "Allow ") + name, () ->
 						{
 							plugin.setSpellRule(spell.getLowerName(), rule);
-							search.setText("");
+							if (rule == SpellRule.BLOCK)
+							{
+								updateBlockedSpellSuggestions();
+							}
+							else
+							{
+								updateForcedSpellSuggestions();
+							}
+							search.requestFocusInWindow();
 						}));
 				});
 		}
@@ -603,6 +651,17 @@ class ConstraintsPanel extends JPanel
 		Controls.search(field, placeholder);
 		field.setToolTipText(tooltip);
 		onTextChange(field, onChange);
+		field.addKeyListener(new KeyAdapter()
+		{
+			@Override
+			public void keyPressed(KeyEvent e)
+			{
+				if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
+				{
+					field.setText("");
+				}
+			}
+		});
 		body.add(transparent(field));
 		suggestions.setName(suggestionsName);
 		suggestions.setLayout(new BoxLayout(suggestions, BoxLayout.Y_AXIS));
