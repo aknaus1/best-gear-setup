@@ -1,9 +1,5 @@
-package com.bestgearsetup;
+package com.bestgearsetup.calc;
 
-import com.bestgearsetup.calc.Loadout;
-import com.bestgearsetup.calc.SetupResult;
-import com.bestgearsetup.calc.SupportSpell;
-import com.bestgearsetup.calc.Thrall;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Slot;
 import java.util.ArrayList;
@@ -27,7 +23,7 @@ import net.runelite.api.gameval.SpriteID;
  * The rune types a setup's combat and support spells consume, less any the equipped staff or tome
  * supplies, plus the Book of the dead a thrall needs.
  */
-final class SpellRunes
+public final class SpellRunes
 {
 	private static final int AIR = ItemID.AIRRUNE;
 	private static final int WATER = ItemID.WATERRUNE;
@@ -43,7 +39,7 @@ final class SpellRunes
 	private static final Map<String, Map<Integer, Integer>> SPELLS = new LinkedHashMap<>();
 	private static final Map<String, Integer> SPRITES = new HashMap<>();
 	/** Rune pouches, best first; the bank can't see the runes inside them. */
-	static final List<Integer> POUCHES = Collections.unmodifiableList(Arrays.asList(ItemID.DIVINE_RUNE_POUCH,
+	public static final List<Integer> POUCHES = Collections.unmodifiableList(Arrays.asList(ItemID.DIVINE_RUNE_POUCH,
 		ItemID.DIVINE_RUNE_POUCH_TROUVER, ItemID.BH_RUNE_POUCH, ItemID.BH_RUNE_POUCH_TROUVER));
 	private static final Map<SupportSpell, Map<Integer, Integer>> SUPPORT = new EnumMap<>(SupportSpell.class);
 	private static final Map<Thrall, Map<Integer, Integer>> THRALL_COSTS = new EnumMap<>(Thrall.class);
@@ -167,20 +163,20 @@ final class SpellRunes
 	}
 
 	/** The spellbook icon for a combat spell, or -1 when unknown. */
-	static int sprite(String spellName)
+	public static int sprite(String spellName)
 	{
 		return spellName == null ? -1 : SPRITES.getOrDefault(spellName.toLowerCase(Locale.ROOT), -1);
 	}
 
 	/** Rune quantities for one cast of a combat spell, in spellbook order. */
-	static Map<Integer, Integer> perCast(String spellName)
+	public static Map<Integer, Integer> perCast(String spellName)
 	{
 		return spellName == null ? Collections.emptyMap()
 			: SPELLS.getOrDefault(spellName.toLowerCase(Locale.ROOT), Collections.emptyMap());
 	}
 
 	/** Rune quantities for one support spell cast; a missing thrall tier means greater. */
-	static Map<Integer, Integer> supportPerCast(SupportSpell spell, Thrall tier)
+	public static Map<Integer, Integer> supportPerCast(SupportSpell spell, Thrall tier)
 	{
 		if (spell == SupportSpell.THRALL)
 		{
@@ -190,7 +186,7 @@ final class SpellRunes
 	}
 
 	/** Duration in seconds of one support spell cast, without Master Combat Achievements rewards. */
-	static double supportDurationSeconds(SupportSpell spell, Loadout loadout, int baseMagic, int boostedMagic)
+	public static double supportDurationSeconds(SupportSpell spell, Loadout loadout, int baseMagic, int boostedMagic)
 	{
 		switch (spell)
 		{
@@ -207,7 +203,7 @@ final class SpellRunes
 	}
 
 	/** Expected fraction of attack casts whose runes are saved by the weapon. */
-	static double runeSaveChance(Loadout loadout)
+	public static double runeSaveChance(Loadout loadout)
 	{
 		String weapon = name(loadout == null ? null : loadout.get(Slot.WEAPON));
 		if ("kodai wand".equals(weapon))
@@ -227,7 +223,7 @@ final class SpellRunes
 	}
 
 	/** A short base-rune name used in estimates; unknown ids remain generic. */
-	static String runeName(int runeId)
+	public static String runeName(int runeId)
 	{
 		switch (runeId)
 		{
@@ -259,18 +255,18 @@ final class SpellRunes
 	}
 
 	/** Item ids to bring for the setup's spells: the attack spell's runes first, then its support spells'. */
-	static List<Integer> required(SetupResult setup)
+	public static List<Integer> required(SetupResult setup)
 	{
 		return setup == null ? Collections.emptyList()
 			: required(setup.getLoadout(), setup.getSupportSpells(), setup.getThrall());
 	}
 
-	static List<Integer> required(Loadout loadout, Set<SupportSpell> support)
+	public static List<Integer> required(Loadout loadout, Set<SupportSpell> support)
 	{
 		return required(loadout, support, null);
 	}
 
-	static List<Integer> required(Loadout loadout, Set<SupportSpell> support, Thrall tier)
+	public static List<Integer> required(Loadout loadout, Set<SupportSpell> support, Thrall tier)
 	{
 		if (loadout == null)
 		{
@@ -294,13 +290,13 @@ final class SpellRunes
 	}
 
 	/** Combination, sunfire and aether runes that can be cast in place of {@code rune}. */
-	static List<Integer> substitutes(int rune)
+	public static List<Integer> substitutes(int rune)
 	{
 		return SUBSTITUTES.getOrDefault(rune, Collections.emptyList());
 	}
 
 	/** Elemental runes the equipped staff or tome provides without limit. */
-	static Set<Integer> supplied(Loadout loadout)
+	public static Set<Integer> supplied(Loadout loadout)
 	{
 		Set<Integer> runes = new HashSet<>();
 		String weapon = name(loadout.get(Slot.WEAPON));

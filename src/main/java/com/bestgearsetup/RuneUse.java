@@ -4,6 +4,7 @@ import com.bestgearsetup.calc.DpsResult;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SpecialPlan;
+import com.bestgearsetup.calc.SpellRunes;
 import com.bestgearsetup.calc.SupportSpell;
 import java.util.ArrayList;
 import java.util.Collections;

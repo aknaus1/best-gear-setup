@@ -3,6 +3,7 @@ package com.bestgearsetup;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SpecialPlan;
+import com.bestgearsetup.calc.SpellRunes;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;

@@ -21,6 +21,7 @@ import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.calc.SpecialAttacks;
 import com.bestgearsetup.calc.SpellFilter;
 import com.bestgearsetup.calc.SpellRule;
+import com.bestgearsetup.calc.SpellRunes;
 import com.bestgearsetup.calc.WeaponRules;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.CombatClass;
