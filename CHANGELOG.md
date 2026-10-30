@@ -3,6 +3,11 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Keep Gear's searches open after adding a rule, so one search can add several items or spells. Suggestions drop
+  what you just added, a lock suggestion says when it replaces the slot's current lock, and Escape clears a search.
+
 ## 1.1.1 (2026-10-30)
 
 - Add The Fractured Archive's NPCs from the Wiki: the Archive Guardian (flying and grounded), Ezekiel, Bork and
