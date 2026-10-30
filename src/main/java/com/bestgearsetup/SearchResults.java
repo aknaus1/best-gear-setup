@@ -46,6 +46,10 @@ public class SearchResults
 	String raidScaling;
 	/** The target's Defence level before pre-fight drains. */
 	int baseDefence;
+	/** Base Magic level used to time Mark of Darkness. */
+	int baseMagic;
+	/** Boosted Magic level used to time thralls. */
+	int boostedMagic;
 
 	public SearchResults(Monster monster, int startingHitpoints, Map<AttackStyle.Type, List<SetupResult>> byType,
 		List<String> notes, Map<CombatClass, OffensivePrayer> prayers, Map<CombatClass, List<Potion>> potions,
@@ -61,6 +65,15 @@ public class SearchResults
 	{
 		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks, markOfDarkness,
 			rememberedLevels, warnings, null, null, monster == null ? 0 : monster.getDefenceLevel());
+	}
+
+	public SearchResults(Monster monster, int startingHitpoints, Map<AttackStyle.Type, List<SetupResult>> byType,
+		List<String> notes, Map<CombatClass, OffensivePrayer> prayers, Map<CombatClass, List<Potion>> potions,
+		boolean assumedLevels, List<LockStatus> locks, boolean markOfDarkness, boolean rememberedLevels, List<String> warnings,
+		Thrall thrall, String raidScaling, int baseDefence)
+	{
+		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks, markOfDarkness,
+			rememberedLevels, warnings, thrall, raidScaling, baseDefence, 99, 99);
 	}
 
 	/** Whether a lock could not be honoured. */

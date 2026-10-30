@@ -196,10 +196,10 @@ public class BankViewTest
 		attack.setId(ItemID._4DOSE2ATTACK);
 		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0), Collections.singletonList(attack));
 		assertTrue(bank.view.show());
-		// Own cells: weapon, air and mind runes right of the head, super attack below them.
+		// Own cells: weapon, air and mind runes right of the head (after the pouch cell), super attack below them.
 		assertEquals(72, bank.items[0].value("OriginalY"));
 		assertEquals(0, bank.items[4].value("OriginalY"));
-		assertEquals(243, bank.items[4].value("OriginalX"));
+		assertEquals(291, bank.items[4].value("OriginalX"));
 		assertEquals(72, bank.items[7].value("OriginalY"));
 		assertEquals(243, bank.items[7].value("OriginalX"));
 		// Extras: the gear variant, then the mist rune and the super combat each on a row of their own.
@@ -209,6 +209,32 @@ public class BankViewTest
 		assertEquals(252, bank.items[8].value("OriginalY"));
 		assertEquals(51, bank.items[8].value("OriginalX"));
 		assertEquals(288, bank.container.value("ScrollHeight"));
+	}
+
+	@Test
+	public void runePouchAndRunePlaceholderKeepTheirCellsAheadOfCombinationRunes() throws Exception
+	{
+		// The air runes are in a rune pouch: the bank only has their placeholder, and a mist rune.
+		Fixture bank = new Fixture(ItemID.AIRRUNE, ItemID.MISTRUNE, ItemID.MINDRUNE, ItemID.BH_RUNE_POUCH);
+		bank.items[4].values.put("ItemQuantity", 0);
+		Loadout loadout = new Loadout();
+		loadout.set(Slot.WEAPON, item(12926));
+		Spell spell = new Spell();
+		spell.setName("wind strike");
+		loadout.setSpell(spell);
+		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0), Collections.emptyList());
+		assertTrue(bank.view.show());
+		// The placeholder counts as owning air runes, so it keeps the air cell and the mist rune is an extra.
+		assertFalse(bank.items[4].widget.isSelfHidden());
+		assertEquals(0, bank.items[4].value("OriginalY"));
+		assertEquals(291, bank.items[4].value("OriginalX"));
+		assertEquals(180, bank.items[5].value("OriginalY"));
+		// The rune pouch takes the first spell cell, ahead of the runes.
+		assertFalse(bank.items[7].widget.isSelfHidden());
+		assertEquals(0, bank.items[7].value("OriginalY"));
+		assertEquals(243, bank.items[7].value("OriginalX"));
+		// Gear placeholders still give way to real items.
+		assertTrue(bank.items[3].widget.isSelfHidden());
 	}
 
 	@Test

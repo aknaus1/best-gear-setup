@@ -3,6 +3,7 @@ package com.bestgearsetup.ui;
 import com.bestgearsetup.Budget;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.ItemCosts;
+import com.bestgearsetup.RuneUse;
 import com.bestgearsetup.SearchResults;
 import com.bestgearsetup.calc.AttackReach;
 import com.bestgearsetup.calc.AttackStyle;
@@ -264,7 +265,11 @@ class ResultView extends JPanel
 		body.add(BestGearSetupPanel.left(gridRow));
 		body.add(spacer(6));
 
-		body.add(BestGearSetupPanel.left(statsBox(d, thrallFor(selected))));
+		RuneUse runes = RuneUse.of(selected, results.getMonster().getHitpoints(),
+			results.getBaseMagic(), results.getBoostedMagic());
+		boolean poweredStaff = selected.getCombatClass() == CombatClass.MAGIC && l.getSpell() == null;
+		body.add(BestGearSetupPanel.left(statsBox(d, thrallFor(selected), runes,
+			plugin != null && plugin.isSunfireRunes(), poweredStaff)));
 		if (selected.getSpecial() != null)
 		{
 			body.add(spacer(4));
@@ -303,6 +308,12 @@ class ResultView extends JPanel
 	}
 
 	JPanel statsBox(DpsResult d, Thrall thrall)
+	{
+		return statsBox(d, thrall, null, false, false);
+	}
+
+	/** Statistics, followed by expected attack and support rune use per kill. */
+	JPanel statsBox(DpsResult d, Thrall thrall, RuneUse runes, boolean sunfire, boolean poweredStaff)
 	{
 		// One column, each row only as tall as its own text, so a wrapped max-hit note doesn't stretch every row
 		JPanel box = new JPanel(new GridBagLayout());
@@ -349,7 +360,44 @@ class ResultView extends JPanel
 		kills.setToolTipText("Damage-based estimate: total DPS / enemy HP. Assumes continuous combat; excludes overkill, "
 			+ "respawns, travel, banking, eating and boss phases.");
 		box.add(kills, row);
+		String runeTip = "Rune use is an expected value per kill; support spells are averaged over their duration "
+			+ "without the Master Combat Achievements reward. Staff and tome supply is removed; "
+			+ "combination runes are shown as base runes.";
+		if (runes != null && !runes.getAttack().isEmpty())
+		{
+			JLabel attack = stat("Runes/kill: " + runeEntries(runes.getAttack(), sunfire));
+			attack.setName("runesPerKill");
+			attack.setToolTipText(runeTip);
+			box.add(attack, row);
+		}
+		else if (poweredStaff)
+		{
+			JLabel charges = stat("Runes/kill: uses charges, not counted");
+			charges.setName("runesPerKill");
+			charges.setToolTipText(runeTip);
+			box.add(charges, row);
+		}
+		if (runes != null && !runes.getSupport().isEmpty())
+		{
+			JLabel support = stat("Support/kill: " + runeEntries(runes.getSupport(), sunfire));
+			support.setName("supportRunesPerKill");
+			support.setToolTipText(runeTip);
+			box.add(support, row);
+		}
 		return box;
+	}
+
+	private static String runeEntries(Map<Integer, Double> counts, boolean sunfire)
+	{
+		List<String> entries = new ArrayList<>();
+		for (Map.Entry<Integer, Double> entry : counts.entrySet())
+		{
+			String amount = entry.getValue() < 0.05 ? "<0.1" : fmt(entry.getValue(), 1);
+			String name = sunfire && entry.getKey() == ItemID.FIRERUNE ? "fire/sunfire"
+				: RuneUse.runeName(entry.getKey());
+			entries.add(amount + " " + name);
+		}
+		return String.join(", ", entries);
 	}
 
 	/** The special attack mixed into the kill: its weapon, energy, uses per kill and one spec's stats. */
@@ -517,6 +565,16 @@ class ResultView extends JPanel
 			styleLabel.setToolTipText(range == 0 ? "Attack range unknown" : "Attack range: " + range + " tiles");
 		}
 		styleBox.add(styleLabel, BorderLayout.CENTER);
+		int spellSprite = l.getSpell() == null ? -1 : BestGearSetupPlugin.spellSprite(l.getSpell().getName());
+		if (sprites != null && spellSprite >= 0)
+		{
+			// The spell's spellbook icon on the left, balanced by an empty slot so the text stays centred
+			styleBox.add(new SpriteIcon(spellSprite, null), BorderLayout.WEST);
+			JPanel balance = new JPanel();
+			balance.setOpaque(false);
+			balance.setPreferredSize(new Dimension(30, 32));
+			styleBox.add(balance, BorderLayout.EAST);
+		}
 		row.add(styleBox, BorderLayout.NORTH);
 
 		JPanel boosts = new JPanel(new GridLayout(0, 5, 2, 0));

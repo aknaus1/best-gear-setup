@@ -122,6 +122,8 @@ public class Optimizer
 	private List<GearItem> specShields = Collections.emptyList();
 	private final PlayerLevels levels;
 	private final Monster monster;
+	/** Spells that pass the search-wide gates, before each weapon's autocast restrictions. */
+	private final List<Spell> autocastableSpells;
 	private final int maxPasses;
 	private final int maxWeapons;
 	// Whether the target demands protective equipment is fixed for the search; only the setup varies.
@@ -151,6 +153,8 @@ public class Optimizer
 		this.priceFn = priceFn;
 		this.levels = ctx.getLevels();
 		this.monster = ctx.getMonster();
+		this.autocastableSpells = settings.getSpellbooks() == null ? Collections.emptyList()
+			: autocastSpells(data, this.ctx.getMagic(), monster, settings);
 		this.fireProtectionRequired = DragonfireProtection.required(monster, settings);
 		this.slayerEquipmentRequired = SlayerEquipment.applies(monster, settings);
 		switch (settings.getDepth())
@@ -291,10 +295,11 @@ public class Optimizer
 					kept.remove(Slot.RING);
 					filled = kept;
 				}
+				Set<SupportSpell> support = SupportSpell.assumed(l, ctx);
 				results.add(new SetupResult(cls, l, specced == null ? dps : specced.getResult(),
 					cost + (plan == null ? 0 : plan.getExtraCost()),
 					unpricedItems(l) + (plan == null ? 0 : plan.getUnpricedItems()), filled,
-					SupportSpell.assumed(l, ctx), plan));
+					support, plan, support.contains(SupportSpell.THRALL) ? ctx.getThrall() : null));
 			}
 			steps.step();
 		}
@@ -2347,12 +2352,26 @@ public class Optimizer
 	private List<Spell> spellsFor(GearItem weapon)
 	{
 		List<Spell> out = new ArrayList<>();
+		for (Spell spell : autocastableSpells)
+		{
+			if (spell.castableWith(weapon.getCombatId()))
+			{
+				out.add(spell);
+			}
+		}
+		return out;
+	}
+
+	/** Spells that pass every non-weapon gate and the spell filter, in data order. */
+	public static List<Spell> autocastSpells(GameData data, int magic, Monster monster, OptimizerSettings settings)
+	{
+		List<Spell> out = new ArrayList<>();
 		for (Spell spell : data.getSpells())
 		{
 			String name = spell.getName().toLowerCase(Locale.ROOT);
 			String book = spell.getSpellbook() == null ? "" : spell.getSpellbook().toLowerCase(Locale.ROOT);
-			if (spell.getMaxHit() <= 0 || spell.getLevel() > ctx.getMagic()
-				|| !settings.getSpellbooks().contains(book) || !spell.castableWith(weapon.getCombatId()))
+			if (spell.getMaxHit() <= 0 || spell.getLevel() > magic
+				|| !settings.getSpellbooks().contains(book))
 			{
 				continue;
 			}
@@ -2361,6 +2380,10 @@ public class Optimizer
 				continue;
 			}
 			if (name.equals("crumble undead") && !monster.hasAttribute("undead"))
+			{
+				continue;
+			}
+			if (!settings.getSpellFilter().allows(spell))
 			{
 				continue;
 			}

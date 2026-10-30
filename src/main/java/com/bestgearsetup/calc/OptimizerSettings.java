@@ -25,6 +25,9 @@ public class OptimizerSettings
 	long expensiveItemThreshold = 1_000_000;
 	/** Lower-case spellbook names the player may autocast from: standard, ancient, arceuus. */
 	Set<String> spellbooks;
+	/** Blocked and forced spells to apply when selecting autocast spells. */
+	@Builder.Default
+	SpellFilter spellFilter = SpellFilter.NONE;
 	/** How many setups to return per combat class. */
 	@Builder.Default
 	int resultsPerClass = 3;
