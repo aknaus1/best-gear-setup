@@ -3,6 +3,10 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Searching a monster now picks its normal version instead of a Leagues (echo), Deadman, Nightmare Zone or PvP Arena one, so "black dragon" uses the level 227 dragon and its water weakness.
+
 ## 1.1.1 (2026-10-20)
 
 - Add The Fractured Archive's NPCs from the Wiki: the Archive Guardian (flying and grounded), Ezekiel, Bork and

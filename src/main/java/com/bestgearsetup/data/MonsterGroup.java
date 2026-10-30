@@ -19,18 +19,48 @@ public final class MonsterGroup
 	/** Variants in natural version order ("delve 2" before "delve 10"). */
 	@Getter
 	private final List<MonsterSummary> variants;
-	/** The variant selected when the group is picked: the first listed default version, a boss when possible. */
+	/** The variant selected when the group is picked: a normal boss, then a normal variant when possible. */
 	@Getter
 	private final MonsterSummary primary;
 
 	MonsterGroup(String name, List<MonsterSummary> bundleOrder)
 	{
 		this.name = name;
-		// The bundle lists Wiki default versions first, so the first boss (or first entry) is a default version.
-		this.primary = bundleOrder.stream().filter(MonsterSummary::isBoss).findFirst().orElse(bundleOrder.get(0));
+		MonsterSummary firstNormalBoss = null;
+		MonsterSummary firstNormal = null;
+		MonsterSummary firstBoss = null;
+		for (MonsterSummary variant : bundleOrder)
+		{
+			boolean normal = !specialVersion(variant.getName());
+			if (normal && firstNormal == null)
+			{
+				firstNormal = variant;
+			}
+			if (variant.isBoss())
+			{
+				if (firstBoss == null)
+				{
+					firstBoss = variant;
+				}
+				if (normal && firstNormalBoss == null)
+				{
+					firstNormalBoss = variant;
+				}
+			}
+		}
+		this.primary = firstNormalBoss != null ? firstNormalBoss
+			: firstNormal != null ? firstNormal : firstBoss != null ? firstBoss : bundleOrder.get(0);
 		List<MonsterSummary> sorted = new ArrayList<>(bundleOrder);
 		sorted.sort(Comparator.comparing(this::sortKey, MonsterGroup::compareNatural));
 		this.variants = Collections.unmodifiableList(sorted);
+	}
+
+	/** Versions from temporary game modes or arenas are not the default encounter. */
+	static boolean specialVersion(String name)
+	{
+		String lower = name.toLowerCase(Locale.ROOT);
+		return lower.contains("(echo)") || lower.contains("(deadman)")
+			|| lower.contains("(nightmare zone)") || lower.contains("(pvm arena)");
 	}
 
 	/** A group of one, for a target that is not in the bundled list. */

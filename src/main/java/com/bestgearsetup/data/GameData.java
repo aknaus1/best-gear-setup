@@ -415,8 +415,8 @@ public class GameData
 	}
 
 	/**
-	 * Find the monster variant for an in-game NPC: exact NPC id first, then the same name and
-	 * combat level, then the same name (variants carry suffixes, e.g. "vorkath (post-quest)").
+	 * Find the monster variant for an in-game NPC: exact NPC id first, then name and level fallbacks.
+	 * Normal variants take precedence over special versions at every fallback tier.
 	 */
 	public MonsterSummary matchNpc(int npcId, String npcName, int combatLevel)
 	{
@@ -430,40 +430,45 @@ public class GameData
 			return null;
 		}
 		String name = npcName.toLowerCase(Locale.ROOT).trim();
-		MonsterSummary sameName = null;
-		MonsterSummary prefixLevel = null;
-		MonsterSummary prefix = null;
+		MonsterSummary[] normal = new MonsterSummary[4];
+		MonsterSummary[] special = new MonsterSummary[4];
 		for (MonsterSummary m : monsters)
 		{
 			String n = m.getName();
+			int tier;
 			if (n.equals(name))
 			{
-				if (m.getCombatLevel() == combatLevel)
-				{
-					return m;
-				}
-				if (sameName == null)
-				{
-					sameName = m;
-				}
+				tier = m.getCombatLevel() == combatLevel ? 0 : 2;
 			}
 			else if (n.startsWith(name + " ("))
 			{
-				if (m.getCombatLevel() == combatLevel && prefixLevel == null)
-				{
-					prefixLevel = m;
-				}
-				if (prefix == null)
-				{
-					prefix = m;
-				}
+				tier = m.getCombatLevel() == combatLevel ? 1 : 3;
+			}
+			else
+			{
+				continue;
+			}
+			MonsterSummary[] candidates = MonsterGroup.specialVersion(n) ? special : normal;
+			if (candidates[tier] == null)
+			{
+				candidates[tier] = m;
 			}
 		}
-		if (prefixLevel != null)
+		for (MonsterSummary candidate : normal)
 		{
-			return prefixLevel;
+			if (candidate != null)
+			{
+				return candidate;
+			}
 		}
-		return sameName != null ? sameName : prefix;
+		for (MonsterSummary candidate : special)
+		{
+			if (candidate != null)
+			{
+				return candidate;
+			}
+		}
+		return null;
 	}
 
 	/**
