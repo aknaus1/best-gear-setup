@@ -14,6 +14,8 @@ import com.bestgearsetup.calc.OptimizerSettings;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.calc.RaidScaling;
+import com.bestgearsetup.calc.RuneFilter;
+import com.bestgearsetup.calc.RuneRules;
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SlayerEquipment;
@@ -22,6 +24,8 @@ import com.bestgearsetup.calc.SpecialAttacks;
 import com.bestgearsetup.calc.SpellFilter;
 import com.bestgearsetup.calc.SpellRule;
 import com.bestgearsetup.calc.SpellRunes;
+import com.bestgearsetup.calc.SupportSpell;
+import com.bestgearsetup.calc.Thrall;
 import com.bestgearsetup.calc.WeaponRules;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.CombatClass;
@@ -46,6 +50,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -1111,7 +1116,8 @@ public class BestGearSetupPlugin extends Plugin
 					.kandarinDiary(config.kandarinDiary()).soulreaperStacks(config.soulreaperStacks())
 					.miningLevel(config.miningLevel() == 0 ? mining : config.miningLevel()).build())
 				// HP-dependent target stats are re-derived in the same order for whole-fight averages.
-				.withHealthStates(hp -> specials.apply(MonsterStates.atHealth(scaled, hp)));
+				.withHealthStates(hp -> specials.apply(MonsterStates.atHealth(scaled, hp)))
+				.withRuneFilter(RuneFilter.parse(config.blockedRunes(), config.onlyRunes()));
 			// One tab per attack type: melee is optimised separately for stab, slash and crush.
 			List<AttackStyle.Type> types = new ArrayList<>();
 			for (AttackStyle.Type type : AttackStyle.Type.values())
@@ -1183,6 +1189,14 @@ public class BestGearSetupPlugin extends Plugin
 				if (spellNote != null)
 				{
 					warnings.add(spellNote);
+				}
+				else
+				{
+					String runeNote = runeFilterNote(ctx.getRuneFilter(), byType.containsKey(AttackStyle.Type.MAGIC));
+					if (runeNote != null)
+					{
+						warnings.add(runeNote);
+					}
 				}
 			}
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
@@ -1583,8 +1597,16 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		if (base.hasAttribute("demon") && config.arceuusSpellbook())
 		{
-			notes.add(config.markOfDarkness() ? "Demonbane spells assume Mark of Darkness is active."
-				: "Mark of Darkness is off, so demonbane spells get only their base demon accuracy bonus.");
+			List<String> markRuneNotes = runeSupportNotes(ctx.getRuneFilter(), null, false, config.markOfDarkness());
+			if (!markRuneNotes.isEmpty())
+			{
+				notes.addAll(markRuneNotes);
+			}
+			else
+			{
+				notes.add(config.markOfDarkness() ? "Demonbane spells assume Mark of Darkness is active."
+					: "Mark of Darkness is off, so demonbane spells get only their base demon accuracy bonus.");
+			}
 		}
 		if (ctx.getAoeTargets() > 1)
 		{
@@ -1614,6 +1636,9 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			notes.add("Thralls: none added, because they need 38 Magic.");
 		}
+		// Charge and Thralls here; the Mark of Darkness note was placed above.
+		notes.addAll(runeSupportNotes(ctx.getRuneFilter(), base.isImmuneThrall() ? null : ctx.getThrall(),
+			config.charge(), false));
 		if (drained.getMagicLevel() != base.getMagicLevel() || drained.getDefMagic() != base.getDefMagic())
 		{
 			notes.add(String.format("After specials: Magic %d -> %d, magic defence %d -> %d.",
@@ -1676,6 +1701,160 @@ public class BestGearSetupPlugin extends Plugin
 	public void clearForcedSpells()
 	{
 		setConfig(BestGearSetupConfig.FORCED_SPELLS_KEY, "");
+	}
+
+	/** Returns the current blocked and only-these rune rules. */
+	public RuneFilter getRuneFilter()
+	{
+		return config == null ? RuneFilter.NONE : RuneFilter.parse(config.blockedRunes(), config.onlyRunes());
+	}
+
+	/** Updates one rune rule: BLOCK blocks it, FORCE adds it to the only-list, ALLOW removes it from both. */
+	public void setRuneRule(String name, SpellRule rule)
+	{
+		RuneFilter changed = getRuneFilter().withRule(name, rule);
+		String blocked = RuneFilter.format(changed.getBlocked());
+		String only = RuneFilter.format(changed.getOnly());
+		String storedBlocked = RuneFilter.format(RuneFilter.parse(config.blockedRunes(), "").getBlocked());
+		String storedOnly = RuneFilter.format(RuneFilter.parse("", config.onlyRunes()).getOnly());
+		if (!blocked.equals(storedBlocked))
+		{
+			setConfig(BestGearSetupConfig.BLOCKED_RUNES_KEY, blocked);
+		}
+		if (!only.equals(storedOnly))
+		{
+			setConfig(BestGearSetupConfig.ONLY_RUNES_KEY, only);
+		}
+	}
+
+	/** Clears all blocked rune rules. */
+	public void clearBlockedRunes()
+	{
+		setConfig(BestGearSetupConfig.BLOCKED_RUNES_KEY, "");
+	}
+
+	/** Clears the only-these-runes list. */
+	public void clearOnlyRunes()
+	{
+		setConfig(BestGearSetupConfig.ONLY_RUNES_KEY, "");
+	}
+
+	/** Title-cased rune names, in rune order with unknown names after in stored order. */
+	private static String runeNames(Collection<String> names)
+	{
+		List<String> known = SpellRunes.baseRunes().stream().map(SpellRunes::runeName).collect(Collectors.toList());
+		List<String> ordered = new ArrayList<>();
+		for (String name : known)
+		{
+			if (names.contains(name))
+			{
+				ordered.add(name);
+			}
+		}
+		for (String name : names)
+		{
+			if (!known.contains(name))
+			{
+				ordered.add(name);
+			}
+		}
+		return ordered.stream().map(GameData::titleCase).collect(Collectors.joining(", "));
+	}
+
+	/** Explains when rune rules leave no Magic setup in the results; null when there is nothing to say. */
+	static String runeFilterNote(RuneFilter filter, boolean magicResults)
+	{
+		if (filter.isEmpty() || magicResults)
+		{
+			return null;
+		}
+		List<String> parts = new ArrayList<>();
+		if (!filter.getBlocked().isEmpty())
+		{
+			parts.add("blocked: " + runeNames(filter.getBlocked()));
+		}
+		if (!filter.getOnly().isEmpty())
+		{
+			parts.add("only: " + runeNames(filter.getOnly()));
+		}
+		return "Runes: no Magic setup is left; your rune rules may block every spell you could autocast here ("
+			+ String.join("; ", parts) + ").";
+	}
+
+	/** Runes a staff or tome could supply, so the support notes assume them available. */
+	private static final Set<Integer> ELEMENTAL_RUNES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+		ItemID.AIRRUNE, ItemID.WATERRUNE, ItemID.EARTHRUNE, ItemID.FIRERUNE)));
+
+	/**
+	 * Explains how rune rules limit Thralls, Charge and Mark of Darkness. Only the four elemental runes count as
+	 * supplied, since a staff or tome could provide them, so the notes never overstate.
+	 */
+	static List<String> runeSupportNotes(RuneFilter filter, Thrall requested, boolean charge, boolean markOfDarkness)
+	{
+		List<String> notes = new ArrayList<>();
+		if (filter.isEmpty())
+		{
+			return notes;
+		}
+		if (requested != null)
+		{
+			Thrall[] tiers = Thrall.values();
+			// Every rune that stops a tier above the one that can be cast, in rune order.
+			Set<Integer> stopping = new HashSet<>();
+			Thrall best = null;
+			for (int i = requested.ordinal(); i >= 0 && best == null; i--)
+			{
+				List<Integer> blockers = RuneRules.disallowed(SpellRunes.supportPerCast(SupportSpell.THRALL, tiers[i]),
+					ELEMENTAL_RUNES, filter);
+				if (blockers.isEmpty())
+				{
+					best = tiers[i];
+				}
+				else
+				{
+					stopping.addAll(blockers);
+				}
+			}
+			List<Integer> blocked = SpellRunes.baseRunes().stream().filter(stopping::contains)
+				.collect(Collectors.toList());
+			if (best == null)
+			{
+				notes.add("Thralls: none added, because your rune rules block " + runeList(blocked) + ".");
+			}
+			else if (best != requested)
+			{
+				notes.add("Thralls: " + best.getDisplayName() + "s at most, because your rune rules block "
+					+ runeList(blocked) + ".");
+			}
+		}
+		if (charge)
+		{
+			List<Integer> blocked = RuneRules.disallowed(SpellRunes.supportPerCast(SupportSpell.CHARGE, null),
+				ELEMENTAL_RUNES, filter);
+			if (!blocked.isEmpty())
+			{
+				notes.add("Charge: not assumed, because your rune rules block " + runeList(blocked) + ".");
+			}
+		}
+		if (markOfDarkness)
+		{
+			List<Integer> blocked = RuneRules.disallowed(SpellRunes.supportPerCast(SupportSpell.MARK_OF_DARKNESS, null),
+				ELEMENTAL_RUNES, filter);
+			if (!blocked.isEmpty())
+			{
+				notes.add("Mark of Darkness: not assumed, because your rune rules block " + runeList(blocked) + ".");
+			}
+		}
+		return notes;
+	}
+
+	/** "blood runes", "blood and death runes" or "air, mind and cosmic runes". */
+	private static String runeList(List<Integer> ids)
+	{
+		List<String> names = ids.stream().map(SpellRunes::runeName).collect(Collectors.toList());
+		String joined = names.size() == 1 ? names.get(0)
+			: String.join(", ", names.subList(0, names.size() - 1)) + " and " + names.get(names.size() - 1);
+		return joined + " runes";
 	}
 
 	/** Returns combat spells ordered by spellbook, level, and name. */

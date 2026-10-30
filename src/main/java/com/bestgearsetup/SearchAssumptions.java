@@ -106,6 +106,8 @@ final class SearchAssumptions implements BestGearSetupConfig
 	private final String excluded;
 	private final String blockedSpells;
 	private final String forcedSpells;
+	private final String blockedRunes;
+	private final String onlyRunes;
 
 	private SearchAssumptions(BestGearSetupConfig source, Overrides o)
 	{
@@ -193,6 +195,8 @@ final class SearchAssumptions implements BestGearSetupConfig
 		excluded = o.get("excluded", source.excluded());
 		blockedSpells = o.get("blockedSpells", source.blockedSpells());
 		forcedSpells = o.get("forcedSpells", source.forcedSpells());
+		blockedRunes = o.get("blockedRunes", source.blockedRunes());
+		onlyRunes = o.get("onlyRunes", source.onlyRunes());
 	}
 
 	static BestGearSetupConfig capture(BestGearSetupConfig source, Map<String, Object> overrides)
@@ -287,6 +291,8 @@ final class SearchAssumptions implements BestGearSetupConfig
 	@Override public String excluded() { return excluded; }
 	@Override public String blockedSpells() { return blockedSpells; }
 	@Override public String forcedSpells() { return forcedSpells; }
+	@Override public String blockedRunes() { return blockedRunes; }
+	@Override public String onlyRunes() { return onlyRunes; }
 
 	@Override
 	public String toString()

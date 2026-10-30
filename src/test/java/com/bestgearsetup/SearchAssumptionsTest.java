@@ -122,6 +122,8 @@ public class SearchAssumptionsTest
 		GETTERS.put("excluded", BestGearSetupConfig::excluded);
 		GETTERS.put("blockedSpells", BestGearSetupConfig::blockedSpells);
 		GETTERS.put("forcedSpells", BestGearSetupConfig::forcedSpells);
+		GETTERS.put("blockedRunes", BestGearSetupConfig::blockedRunes);
+		GETTERS.put("onlyRunes", BestGearSetupConfig::onlyRunes);
 	}
 
 	/** Config keys that differ from their method name, which is what overrides are keyed by. */

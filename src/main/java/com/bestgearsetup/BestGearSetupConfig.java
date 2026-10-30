@@ -33,6 +33,8 @@ public interface BestGearSetupConfig extends Config
 	String EXCLUDED_KEY = "excluded";
 	String BLOCKED_SPELLS_KEY = "blockedSpells";
 	String FORCED_SPELLS_KEY = "forcedSpells";
+	String BLOCKED_RUNES_KEY = "blockedRunes";
+	String ONLY_RUNES_KEY = "onlyRunes";
 	String MEMBERS_ITEMS_KEY = "membersItems";
 	String DMM_ITEMS_KEY = "dmmItems";
 	String BETA_ITEMS_KEY = "betaItems";
@@ -806,6 +808,18 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigItem(keyName = FORCED_SPELLS_KEY, name = "", description = "", hidden = true)
 	default String forcedSpells()
+	{
+		return "";
+	}
+
+	@ConfigItem(keyName = BLOCKED_RUNES_KEY, name = "", description = "", hidden = true)
+	default String blockedRunes()
+	{
+		return "";
+	}
+
+	@ConfigItem(keyName = ONLY_RUNES_KEY, name = "", description = "", hidden = true)
+	default String onlyRunes()
 	{
 		return "";
 	}
