@@ -588,7 +588,7 @@ class ResultView extends JPanel
 				? textChip(GameData.titleCase(prayer.getName()))
 				: new SpriteIcon(spriteId, GameData.titleCase(prayer.getName())));
 		}
-		if (usesMarkOfDarkness(l))
+		if (usesMarkOfDarkness(selected))
 		{
 			boosts.add(new SpriteIcon(SpriteID.MagicNecroOn.MARK_OF_DARKNESS,
 				"Mark of Darkness (boosts demonbane spells against demons)"));
@@ -631,19 +631,17 @@ class ResultView extends JPanel
 		return potions;
 	}
 
-	/** Mark of Darkness only affects demonbane spells cast at demons. */
 	/** The thrall this setup's DPS includes, or null. */
 	private Thrall thrallFor(SetupResult setup)
 	{
 		return setup.getSupportSpells() != null && setup.getSupportSpells().contains(SupportSpell.THRALL)
-			? results.getThrall() : null;
+			? setup.getThrall() : null;
 	}
 
-	private boolean usesMarkOfDarkness(Loadout l)
+	/** Mark of Darkness only affects demonbane spells cast at demons; follows what the setup's DPS assumed. */
+	private boolean usesMarkOfDarkness(SetupResult setup)
 	{
-		return results.isMarkOfDarkness() && l.getSpell() != null
-			&& l.getSpell().getName().toLowerCase(Locale.ROOT).contains("demonbane")
-			&& results.getMonster().hasAttribute("demon");
+		return setup.getSupportSpells() != null && setup.getSupportSpells().contains(SupportSpell.MARK_OF_DARKNESS);
 	}
 
 	private JPanel alternativeRow(SetupResult r, boolean current)

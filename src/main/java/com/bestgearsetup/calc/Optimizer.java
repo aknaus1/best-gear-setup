@@ -299,7 +299,7 @@ public class Optimizer
 				results.add(new SetupResult(cls, l, specced == null ? dps : specced.getResult(),
 					cost + (plan == null ? 0 : plan.getExtraCost()),
 					unpricedItems(l) + (plan == null ? 0 : plan.getUnpricedItems()), filled,
-					support, plan, support.contains(SupportSpell.THRALL) ? ctx.getThrall() : null));
+					support, plan, support.contains(SupportSpell.THRALL) ? SupportSpell.thrallFor(l, ctx) : null));
 			}
 			steps.step();
 		}
@@ -1230,7 +1230,8 @@ public class Optimizer
 	/** Mandatory protection and the optional atlatl cape requirement are enforced throughout the search. */
 	private boolean protectedSetup(Loadout l)
 	{
-		return (!fireProtectionRequired || DragonfireProtection.protects(monster, l, settings, levels))
+		return RuneRules.allows(l, ctx.getRuneFilter())
+			&& (!fireProtectionRequired || DragonfireProtection.protects(monster, l, settings, levels))
 			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l))
 			&& (!settings.isRequireAtlatlAmmoRecovery() || !WeaponRules.isAtlatl(l.getWeapon())
 				|| WeaponRules.isAmmoRecoveryCape(l.get(Slot.CAPE)));

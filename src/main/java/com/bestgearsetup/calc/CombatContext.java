@@ -29,6 +29,8 @@ public class CombatContext
 	private final CombatModifiers modifiers;
 	/** Target stats at a given HP (after pre-fight drains), or null when they do not depend on HP. */
 	private final IntFunction<Monster> healthStates;
+	/** Runes the player will not use; never null. */
+	private final RuneFilter runeFilter;
 
 	public CombatContext(Monster monster, PlayerLevels levels, boolean onTask, int attack, int strength, int ranged,
 		int magic, Map<CombatClass, OffensivePrayer> prayers, boolean thrall)
@@ -55,6 +57,14 @@ public class CombatContext
 		int magic, Map<CombatClass, OffensivePrayer> prayers, boolean thrall, int aoeTargets, int targetDistance,
 		CombatModifiers modifiers, IntFunction<Monster> healthStates)
 	{
+		this(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall, aoeTargets, targetDistance,
+			modifiers, healthStates, RuneFilter.NONE);
+	}
+
+	private CombatContext(Monster monster, PlayerLevels levels, boolean onTask, int attack, int strength, int ranged,
+		int magic, Map<CombatClass, OffensivePrayer> prayers, boolean thrall, int aoeTargets, int targetDistance,
+		CombatModifiers modifiers, IntFunction<Monster> healthStates, RuneFilter runeFilter)
+	{
 		this.monster = monster;
 		this.levels = levels;
 		this.onTask = onTask;
@@ -68,6 +78,7 @@ public class CombatContext
 		this.targetDistance = targetDistance;
 		this.modifiers = modifiers;
 		this.healthStates = healthStates;
+		this.runeFilter = runeFilter == null ? RuneFilter.NONE : runeFilter;
 	}
 
 	/** Whether thralls were requested; Lombok skips this getter because {@link #getThrall()} shares its name. */
@@ -90,21 +101,28 @@ public class CombatContext
 	public CombatContext withFightOptions(int targets, int distance)
 	{
 		return new CombatContext(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall,
-			targets, distance, modifiers, healthStates);
+			targets, distance, modifiers, healthStates, runeFilter);
 	}
 
 	/** Change optional buffs without losing distance, group size or boosted levels. */
 	public CombatContext withModifiers(CombatModifiers buffs)
 	{
 		return new CombatContext(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall,
-			aoeTargets, targetDistance, buffs == null ? CombatModifiers.NONE : buffs, healthStates);
+			aoeTargets, targetDistance, buffs == null ? CombatModifiers.NONE : buffs, healthStates, runeFilter);
+	}
+
+	/** Restrict which runes spells may use; null means no restriction. */
+	public CombatContext withRuneFilter(RuneFilter filter)
+	{
+		return new CombatContext(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall,
+			aoeTargets, targetDistance, modifiers, healthStates, filter == null ? RuneFilter.NONE : filter);
 	}
 
 	/** Supply target stats that change with its HP, such as Vardorvis's Defence. */
 	public CombatContext withHealthStates(IntFunction<Monster> states)
 	{
 		return new CombatContext(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall,
-			aoeTargets, targetDistance, modifiers, states);
+			aoeTargets, targetDistance, modifiers, states, runeFilter);
 	}
 
 	/** The same fight after further drains land on the target, at every HP state too. */
@@ -116,7 +134,7 @@ public class CombatContext
 		}
 		IntFunction<Monster> states = healthStates == null ? null : hp -> drains.apply(healthStates.apply(hp));
 		return new CombatContext(drains.apply(monster), levels, onTask, attack, strength, ranged, magic, prayers,
-			thrall, aoeTargets, targetDistance, modifiers, states);
+			thrall, aoeTargets, targetDistance, modifiers, states, runeFilter);
 	}
 
 	/** The same fight with the target at the given HP. */
@@ -124,7 +142,8 @@ public class CombatContext
 	{
 		Monster target = healthStates == null ? monster : healthStates.apply(hp);
 		return new CombatContext(target, levels, onTask, attack, strength, ranged, magic, prayers, thrall,
-			aoeTargets, targetDistance, modifiers.toBuilder().monsterHitpoints(hp).build(), healthStates);
+			aoeTargets, targetDistance, modifiers.toBuilder().monsterHitpoints(hp).build(), healthStates,
+			runeFilter);
 	}
 
 	/**

@@ -165,9 +165,10 @@ public final class DpsCalculator
 		{
 			r = r.withExpectedSpeed(Math.max(1, r.getExpectedSpeedTicks() - 1));
 		}
-		if (SupportSpell.thrall(loadout, ctx) && r.getDps() > 0)
+		Thrall thrall = r.getDps() > 0 ? SupportSpell.thrallFor(loadout, ctx) : null;
+		if (thrall != null)
 		{
-			r = r.withExtraDps(ctx.getThrall().getDps());
+			r = r.withExtraDps(thrall.getDps());
 		}
 		return r;
 	}
@@ -928,7 +929,7 @@ public final class DpsCalculator
 		boolean demonbane = SupportSpell.demonbane(l, ctx);
 		if (demonbane)
 		{
-			int bonus = ctx.getModifiers().isMarkOfDarkness() ? 40 : 20;
+			int bonus = SupportSpell.markOfDarkness(l, ctx) ? 40 : 20;
 			if (wName.startsWith("purging staff"))
 			{
 				bonus *= 2;

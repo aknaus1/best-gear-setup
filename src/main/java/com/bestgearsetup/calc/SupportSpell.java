@@ -36,8 +36,40 @@ public enum SupportSpell
 	/** Thralls need the Magic level and can't be cast while autocasting a non-Arceuus spell. */
 	static boolean thrall(Loadout loadout, CombatContext ctx)
 	{
+		return thrallFor(loadout, ctx) != null;
+	}
+
+	/** The strongest thrall up to the player's tier whose runes are permitted, or null when none can be cast. */
+	static Thrall thrallFor(Loadout loadout, CombatContext ctx)
+	{
+		Thrall best = ctx.getThrall();
 		boolean usable = loadout.getSpell() == null || "arceuus".equalsIgnoreCase(loadout.getSpell().getSpellbook());
-		return ctx.getThrall() != null && usable && !ctx.getMonster().isImmuneThrall();
+		if (best == null || !usable || ctx.getMonster().isImmuneThrall())
+		{
+			return null;
+		}
+		RuneFilter filter = ctx.getRuneFilter();
+		if (filter.isEmpty())
+		{
+			return best;
+		}
+		Set<Integer> supplied = SpellRunes.supplied(loadout);
+		Thrall[] tiers = Thrall.values();
+		for (int i = best.ordinal(); i >= 0; i--)
+		{
+			if (RuneRules.disallowed(SpellRunes.supportPerCast(THRALL, tiers[i]), supplied, filter).isEmpty())
+			{
+				return tiers[i];
+			}
+		}
+		return null;
+	}
+
+	private static boolean runesPermitted(SupportSpell spell, Loadout loadout, CombatContext ctx)
+	{
+		RuneFilter filter = ctx.getRuneFilter();
+		return filter.isEmpty() || RuneRules.disallowed(SpellRunes.supportPerCast(spell, null),
+			SpellRunes.supplied(loadout), filter).isEmpty();
 	}
 
 	static boolean demonbane(Loadout loadout, CombatContext ctx)
@@ -47,7 +79,8 @@ public enum SupportSpell
 
 	static boolean markOfDarkness(Loadout loadout, CombatContext ctx)
 	{
-		return ctx.getModifiers().isMarkOfDarkness() && demonbane(loadout, ctx);
+		return ctx.getModifiers().isMarkOfDarkness() && demonbane(loadout, ctx)
+			&& runesPermitted(MARK_OF_DARKNESS, loadout, ctx);
 	}
 
 	static boolean charge(Loadout loadout, CombatContext ctx)
@@ -61,6 +94,7 @@ public enum SupportSpell
 			: spell.equals("flames of zamorak") ? "zamorak" : "";
 		String cape = EncounterDamage.lower(loadout.get(Slot.CAPE));
 		return !god.isEmpty() && (cape.equals(god + " cape") || cape.equals("imbued " + god + " cape")
-			|| cape.equals(god + " max cape") || cape.equals("imbued " + god + " max cape"));
+			|| cape.equals(god + " max cape") || cape.equals("imbued " + god + " max cape"))
+			&& runesPermitted(CHARGE, loadout, ctx);
 	}
 }
