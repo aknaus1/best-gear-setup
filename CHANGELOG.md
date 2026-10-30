@@ -13,6 +13,7 @@ is what the Plugin Hub shows.
   charges, tome pages and the Master Combat Achievements thrall duration bonus are not counted.
 - The bank layout shows your rune pouch or divine rune pouch beside the spell runes, and a rune's bank
   placeholder now keeps its cell ahead of combination runes, since runes in a pouch aren't visible to the bank.
+- Searching a monster now picks its normal version instead of a Leagues (echo), Deadman, Nightmare Zone or PvP Arena one, so "black dragon" uses the level 227 dragon and its water weakness.
 
 ## 1.1.1 (2026-10-20)
 
