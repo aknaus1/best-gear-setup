@@ -16,6 +16,9 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -255,10 +258,16 @@ class ConstraintsPanel extends JPanel
 	/** Rebuild the blocked and forced cards from the current spell rules. */
 	private void rebuildSpells(SpellFilter filter)
 	{
-		Map<String, Spell> known = plugin.getCombatSpells().stream()
-			.collect(Collectors.toMap(Spell::getLowerName, spell -> spell, (first, ignored) -> first));
+		Map<String, Spell> known = new HashMap<>();
+		Map<String, Integer> order = new HashMap<>();
+		int position = 0;
+		for (Spell spell : plugin.getCombatSpells())
+		{
+			known.putIfAbsent(spell.getLowerName(), spell);
+			order.putIfAbsent(spell.getLowerName(), position++);
+		}
 		blockedSpellsList.removeAll();
-		for (String name : filter.getBlocked())
+		for (String name : orderedSpellNames(filter.getBlocked(), order))
 		{
 			blockedSpellsList.add(spellRow(name, known.get(name)));
 		}
@@ -267,7 +276,7 @@ class ConstraintsPanel extends JPanel
 		blockedSpellsSection.setSummary(filter.getBlocked().size());
 
 		forcedSpellsList.removeAll();
-		for (String name : filter.getForced())
+		for (String name : orderedSpellNames(filter.getForced(), order))
 		{
 			forcedSpellsList.add(spellRow(name, known.get(name)));
 		}
@@ -278,20 +287,29 @@ class ConstraintsPanel extends JPanel
 		updateForcedSpellSuggestions();
 	}
 
-	/** A spell rule shows its spellbook, or flags a stale name. */
+	/** Sort known names by the combat spell list, leaving stale names in stored order. */
+	private static List<String> orderedSpellNames(Set<String> names, Map<String, Integer> order)
+	{
+		List<String> sorted = new ArrayList<>(names);
+		sorted.sort(Comparator.comparingInt(name -> order.getOrDefault(name, Integer.MAX_VALUE)));
+		return sorted;
+	}
+
+	/** A spell rule shows its level and spellbook, or flags a stale name. */
 	private JPanel spellRow(String name, Spell spell)
 	{
 		String title = GameData.titleCase(name);
-		String detail = spell == null ? "not in game data" : spellbookLabel(spell);
+		String detail = spell == null ? "not in game data" : spellDetail(spell);
 		return ruleRow(iconLabel(), title, detail, "Allow " + title,
 			() -> plugin.setSpellRule(name, SpellRule.ALLOW));
 	}
 
-	/** Show a usable label when a spell has no spellbook in game data. */
-	private static String spellbookLabel(Spell spell)
+	/** Show a spell's unlock level and spellbook, with fallbacks for incomplete game data. */
+	private static String spellDetail(Spell spell)
 	{
 		String spellbook = spell.getSpellbook();
-		return spellbook == null ? "unknown spellbook" : GameData.titleCase(spellbook);
+		String label = spellbook == null ? "unknown spellbook" : GameData.titleCase(spellbook);
+		return spell.getLevel() > 0 ? "lvl " + spell.getLevel() + ", " + label : label;
 	}
 
 	/** An empty list says so; a list of several rules ends with a button that clears them all. */
@@ -401,7 +419,7 @@ class ConstraintsPanel extends JPanel
 			.forEach(spell ->
 			{
 				String name = GameData.titleCase(spell.getName());
-				JButton button = new JButton(name + " (" + spellbookLabel(spell) + ")");
+				JButton button = new JButton(name + " (" + spellDetail(spell) + ")");
 				Controls.listRow(button);
 				button.setToolTipText((rule == SpellRule.BLOCK ? "Block " : "Force ") + name);
 				button.addActionListener(e ->
