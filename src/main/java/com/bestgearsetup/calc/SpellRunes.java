@@ -36,6 +36,8 @@ public final class SpellRunes
 	private static final int SOUL = ItemID.SOULRUNE;
 	private static final int WRATH = ItemID.WRATHRUNE;
 	private static final int COSMIC = ItemID.COSMICRUNE;
+	private static final List<Integer> BASE_RUNES = Collections.unmodifiableList(
+		Arrays.asList(AIR, WATER, EARTH, FIRE, MIND, CHAOS, DEATH, BLOOD, SOUL, WRATH, COSMIC));
 	private static final Map<String, Map<Integer, Integer>> SPELLS = new LinkedHashMap<>();
 	private static final Map<String, Integer> SPRITES = new HashMap<>();
 	/** Rune pouches, best first; the bank can't see the runes inside them. */
@@ -166,6 +168,12 @@ public final class SpellRunes
 	public static int sprite(String spellName)
 	{
 		return spellName == null ? -1 : SPRITES.getOrDefault(spellName.toLowerCase(Locale.ROOT), -1);
+	}
+
+	/** The 11 base rune ids in display order: air, water, earth, fire, mind, chaos, death, blood, soul, wrath, cosmic. */
+	public static List<Integer> baseRunes()
+	{
+		return BASE_RUNES;
 	}
 
 	/** Rune quantities for one cast of a combat spell, in spellbook order. */

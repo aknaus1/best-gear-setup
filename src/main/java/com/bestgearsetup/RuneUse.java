@@ -14,14 +14,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.runelite.api.gameval.ItemID;
 
 /** Expected base runes consumed per kill by attack and support spells. */
 public final class RuneUse
 {
-	private static final List<Integer> RUNE_ORDER = List.of(ItemID.AIRRUNE, ItemID.WATERRUNE,
-		ItemID.EARTHRUNE, ItemID.FIRERUNE, ItemID.MINDRUNE, ItemID.CHAOSRUNE, ItemID.DEATHRUNE,
-		ItemID.BLOODRUNE, ItemID.SOULRUNE, ItemID.WRATHRUNE, ItemID.COSMICRUNE);
 	private static final RuneUse EMPTY = new RuneUse(Collections.emptyMap(), Collections.emptyMap(), 0, 0);
 
 	private final Map<Integer, Double> attack;
@@ -99,7 +95,7 @@ public final class RuneUse
 		List<Map.Entry<Integer, Double>> entries = new ArrayList<>(counts.entrySet());
 		entries.removeIf(entry -> entry.getValue() <= 0 || !Double.isFinite(entry.getValue()));
 		entries.sort(Comparator.<Map.Entry<Integer, Double>>comparingDouble(Map.Entry::getValue).reversed()
-			.thenComparingInt(entry -> RUNE_ORDER.indexOf(entry.getKey())));
+			.thenComparingInt(entry -> SpellRunes.baseRunes().indexOf(entry.getKey())));
 		Map<Integer, Double> ordered = new LinkedHashMap<>();
 		for (Map.Entry<Integer, Double> entry : entries)
 		{
