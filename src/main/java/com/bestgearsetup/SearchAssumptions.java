@@ -104,6 +104,8 @@ final class SearchAssumptions implements BestGearSetupConfig
 	private final String potionMagic;
 	private final String locks;
 	private final String excluded;
+	private final String blockedSpells;
+	private final String forcedSpells;
 
 	private SearchAssumptions(BestGearSetupConfig source, Overrides o)
 	{
@@ -189,6 +191,8 @@ final class SearchAssumptions implements BestGearSetupConfig
 		potionMagic = o.get("potionMagic", source.potionMagic());
 		locks = o.get("locks", source.locks());
 		excluded = o.get("excluded", source.excluded());
+		blockedSpells = o.get("blockedSpells", source.blockedSpells());
+		forcedSpells = o.get("forcedSpells", source.forcedSpells());
 	}
 
 	static BestGearSetupConfig capture(BestGearSetupConfig source, Map<String, Object> overrides)
@@ -281,6 +285,8 @@ final class SearchAssumptions implements BestGearSetupConfig
 	@Override public String potionMagic() { return potionMagic; }
 	@Override public String locks() { return locks; }
 	@Override public String excluded() { return excluded; }
+	@Override public String blockedSpells() { return blockedSpells; }
+	@Override public String forcedSpells() { return forcedSpells; }
 
 	@Override
 	public String toString()

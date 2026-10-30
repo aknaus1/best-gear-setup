@@ -168,6 +168,11 @@ public class OptimizerOracleTest
 					}
 				}
 				List<SetupResult> results = optimizer.optimize(c.cls, () -> false);
+				for (SetupResult result : results)
+				{
+					assertTrue(label + "returned blocked spell: " + describe(result.getLoadout()),
+						c.settings.getSpellFilter().allows(result.getLoadout().getSpell()));
+				}
 				if (results.isEmpty())
 				{
 					if (best.loadout != null)
@@ -265,6 +270,7 @@ public class OptimizerOracleTest
 				? " cap " + settings.getMaxExpensiveItems() : "") + " calc " + settings.getCalcMode()
 				+ (settings.getLocks().isEmpty() ? "" : " locks " + settings.getLocks().keySet())
 				+ (settings.getExcluded().isEmpty() ? "" : " excl " + settings.getExcluded())
+				+ (settings.getSpellFilter().isEmpty() ? "" : " spells " + settings.getSpellFilter())
 				+ (settings.getAmmoCount() > 0 ? " ammo " + settings.getAmmoCount() : "")
 				+ " xp " + (settings.isAttackXp() ? "A" : "") + (settings.isStrengthXp() ? "S" : "")
 				+ (settings.isDefenceXp() ? "D" : "") + " pool " + pool.size();
@@ -421,6 +427,36 @@ public class OptimizerOracleTest
 		if (r.nextInt(4) == 0)
 		{
 			s.excluded(Collections.singleton(c.pool.get(r.nextInt(c.pool.size())).getId()));
+		}
+		if (c.tab == AttackStyle.Type.MAGIC)
+		{
+			Random spellRandom = new Random(seed * 97L + 7);
+			List<String> combatSpells = new ArrayList<>();
+			for (Spell spell : catalogue.getSpells())
+			{
+				if (spell.getMaxHit() > 0)
+				{
+					combatSpells.add(spell.getName());
+				}
+			}
+			if (!combatSpells.isEmpty())
+			{
+				if (spellRandom.nextInt(3) == 0)
+				{
+					s.spellFilter(SpellFilter.of(Collections.singleton(combatSpells.get(
+						spellRandom.nextInt(combatSpells.size()))), Collections.emptySet()));
+				}
+				else if (spellRandom.nextInt(4) == 0)
+				{
+					List<String> forced = new ArrayList<>();
+					forced.add(combatSpells.get(spellRandom.nextInt(combatSpells.size())));
+					if (spellRandom.nextBoolean())
+					{
+						forced.add(combatSpells.get(spellRandom.nextInt(combatSpells.size())));
+					}
+					s.spellFilter(SpellFilter.of(Collections.emptySet(), forced));
+				}
+			}
 		}
 		c.settings = s.build();
 		return c;
@@ -767,6 +803,7 @@ public class OptimizerOracleTest
 						String book = spell.getSpellbook() == null ? "" : spell.getSpellbook().toLowerCase(Locale.ROOT);
 						if (spell.getMaxHit() > 0 && spell.getLevel() <= c.ctx.getMagic() && s.getSpellbooks().contains(book)
 							&& spell.castableWith(weapon.getCombatId())
+							&& s.getSpellFilter().allows(spell)
 							&& (!name.contains("demonbane") || c.ctx.getMonster().hasAttribute("demon"))
 							&& (!name.equals("crumble undead") || c.ctx.getMonster().hasAttribute("undead")))
 						{

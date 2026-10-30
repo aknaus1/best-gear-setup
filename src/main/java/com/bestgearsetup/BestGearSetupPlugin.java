@@ -19,6 +19,8 @@ import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SlayerEquipment;
 import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.calc.SpecialAttacks;
+import com.bestgearsetup.calc.SpellFilter;
+import com.bestgearsetup.calc.SpellRule;
 import com.bestgearsetup.calc.WeaponRules;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.CombatClass;
@@ -31,6 +33,7 @@ import com.bestgearsetup.data.MonsterSummary;
 import com.bestgearsetup.data.OffensivePrayer;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;
+import com.bestgearsetup.data.Spell;
 import com.bestgearsetup.data.StatusImmunities;
 import com.bestgearsetup.ui.BestGearSetupPanel;
 import com.google.gson.Gson;
@@ -44,6 +47,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -1169,11 +1173,22 @@ public class BestGearSetupPlugin extends Plugin
 			List<LockStatus> locks = LockStatus.check(data,
 				new Optimizer(data, ctx, settings, owned::contains, id -> quantities.getOrDefault(id, 0L),
 					item -> price(quotes, item)), settings.getLocks());
+			List<String> warnings = assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config);
+			if (settings.getStyles().contains(AttackStyle.Type.MAGIC))
+			{
+				String spellNote = spellFilterNote(settings.getSpellFilter(),
+					Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings),
+					byType.containsKey(AttackStyle.Type.MAGIC));
+				if (spellNote != null)
+				{
+					warnings.add(spellNote);
+				}
+			}
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
 				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
-				rememberedLevels, assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config),
+				rememberedLevels, warnings,
 				monster.isImmuneThrall() ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
-				scaled.getDefenceLevel());
+				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic());
 			SwingUtilities.invokeLater(() ->
 			{
 				if (panel != null && generation == searchGeneration.get())
@@ -1220,7 +1235,12 @@ public class BestGearSetupPlugin extends Plugin
 				addBankHighlightItem(ids, setup.getSpecial().getAmmo());
 				addBankHighlightItem(ids, setup.getSpecial().getLoadedAmmo());
 			}
-			for (int rune : SpellRunes.required(setup))
+			List<Integer> runes = SpellRunes.required(setup);
+			if (!runes.isEmpty())
+			{
+				ids.addAll(SpellRunes.POUCHES);
+			}
+			for (int rune : runes)
 			{
 				ids.add(rune);
 				ids.addAll(SpellRunes.substitutes(rune));
@@ -1415,6 +1435,7 @@ public class BestGearSetupPlugin extends Plugin
 			.maxExpensiveItems(Math.max(0, Math.min(11, config.maxExpensiveItems())))
 			.expensiveItemThreshold(Math.max(0, Budget.parse(config.expensiveItemThreshold())))
 			.spellbooks(spellbooks)
+			.spellFilter(SpellFilter.parse(config.blockedSpells(), config.forcedSpells()))
 			.styles(styles)
 			.weaponHands(config.weaponHands())
 			.calcMode(config.calcMode())
@@ -1611,6 +1632,114 @@ public class BestGearSetupPlugin extends Plugin
 	public GameData getGameData()
 	{
 		return gameData;
+	}
+
+	/** Returns the current blocked and forced spell rules. */
+	public SpellFilter getSpellFilter()
+	{
+		return config == null ? SpellFilter.NONE : SpellFilter.parse(config.blockedSpells(), config.forcedSpells());
+	}
+
+	/** Whether the selected spell setup uses sunfire runes. */
+	public boolean isSunfireRunes()
+	{
+		return config != null && config.sunfireRunes();
+	}
+
+	/** Updates one spell rule, moving it between the blocked and forced lists. */
+	public void setSpellRule(String name, SpellRule rule)
+	{
+		SpellFilter current = getSpellFilter();
+		SpellFilter changed = current.withRule(name, rule);
+		String blocked = SpellFilter.format(changed.getBlocked());
+		String forced = SpellFilter.format(changed.getForced());
+		String storedBlocked = SpellFilter.format(SpellFilter.parse(config.blockedSpells(), "").getBlocked());
+		String storedForced = SpellFilter.format(SpellFilter.parse("", config.forcedSpells()).getForced());
+		if (!blocked.equals(storedBlocked))
+		{
+			setConfig(BestGearSetupConfig.BLOCKED_SPELLS_KEY, blocked);
+		}
+		if (!forced.equals(storedForced))
+		{
+			setConfig(BestGearSetupConfig.FORCED_SPELLS_KEY, forced);
+		}
+	}
+
+	/** Clears all blocked spell rules. */
+	public void clearBlockedSpells()
+	{
+		setConfig(BestGearSetupConfig.BLOCKED_SPELLS_KEY, "");
+	}
+
+	/** Clears all forced spell rules. */
+	public void clearForcedSpells()
+	{
+		setConfig(BestGearSetupConfig.FORCED_SPELLS_KEY, "");
+	}
+
+	/** Returns combat spells ordered by spellbook, level, and name. */
+	public List<Spell> getCombatSpells()
+	{
+		GameData data = gameData;
+		if (data == null)
+		{
+			return Collections.emptyList();
+		}
+		return data.getSpells().stream().filter(spell -> spell.getMaxHit() > 0)
+			.sorted(Comparator.comparingInt((Spell spell) -> spellbookOrder(spell.getSpellbook()))
+				.thenComparingInt(Spell::getLevel).thenComparing(spell -> spell.getName().toLowerCase(Locale.ROOT)))
+			.collect(Collectors.toList());
+	}
+
+	/** The spellbook icon sprite for a combat spell, or -1 when unknown. */
+	public static int spellSprite(String spellName)
+	{
+		return SpellRunes.sprite(spellName);
+	}
+
+	/** Orders the supported spellbooks before other spellbooks. */
+	private static int spellbookOrder(String spellbook)
+	{
+		if ("standard".equalsIgnoreCase(spellbook))
+		{
+			return 0;
+		}
+		if ("ancient".equalsIgnoreCase(spellbook))
+		{
+			return 1;
+		}
+		if ("arceuus".equalsIgnoreCase(spellbook))
+		{
+			return 2;
+		}
+		return 3;
+	}
+
+	/** Explains when spell rules leave no spell available for autocasting. */
+	static String spellFilterNote(SpellFilter filter, List<Spell> autocastable)
+	{
+		return spellFilterNote(filter, autocastable, true);
+	}
+
+	/** Explains when spell rules leave no Magic setup in the results. */
+	static String spellFilterNote(SpellFilter filter, List<Spell> autocastable, boolean magicResults)
+	{
+		if (filter.isEmpty())
+		{
+			return null;
+		}
+		if (autocastable.isEmpty() && !filter.getForced().isEmpty())
+		{
+			return "Spells: none of the allowed spells ("
+				+ filter.getForced().stream().map(GameData::titleCase).collect(Collectors.joining(", "))
+				+ ") can be autocast here; check your Magic level, spellbooks and the target.";
+		}
+		if (autocastable.isEmpty())
+		{
+			return "Spells: every spell you could autocast here is excluded.";
+		}
+		return magicResults ? null
+			: "Spells: no Magic setup is left; your spell rules may exclude every spell your weapons can autocast here.";
 	}
 
 	public Map<Slot, SlotLock> getLocks()

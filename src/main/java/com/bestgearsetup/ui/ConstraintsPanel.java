@@ -2,9 +2,12 @@ package com.bestgearsetup.ui;
 
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.calc.SlotLock;
+import com.bestgearsetup.calc.SpellFilter;
+import com.bestgearsetup.calc.SpellRule;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Slot;
+import com.bestgearsetup.data.Spell;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -13,11 +16,15 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -54,15 +61,23 @@ class ConstraintsPanel extends JPanel
 	private final SpriteCache sprites;
 	private final SidebarSection locksSection;
 	private final SidebarSection excludedSection;
+	private final SidebarSection blockedSpellsSection;
+	private final SidebarSection forcedSpellsSection;
 	private final SidebarSection ownedSection;
 	private final JPanel locksList = ruleList();
 	private final JPanel excludedList = ruleList();
+	private final JPanel blockedSpellsList = ruleList();
+	private final JPanel forcedSpellsList = ruleList();
 	private final JPanel ownedList = ruleList();
 	private final JComboBox<String> lockSlot = new JComboBox<>();
 	private final IconTextField lockSearch = new IconTextField();
 	private final JPanel lockSuggestions = new JPanel();
 	private final IconTextField excludeSearch = new IconTextField();
 	private final JPanel excludeSuggestions = new JPanel();
+	private final IconTextField blockedSpellsSearch = new IconTextField();
+	private final JPanel blockedSpellsSuggestions = new JPanel();
+	private final IconTextField forcedSpellsSearch = new IconTextField();
+	private final JPanel forcedSpellsSuggestions = new JPanel();
 	private final IconTextField ownedSearch = new IconTextField();
 	private final JPanel ownedSuggestions = new JPanel();
 
@@ -79,7 +94,7 @@ class ConstraintsPanel extends JPanel
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 
-		locksSection = card(accordion, "locks", "Locks");
+		locksSection = card(accordion, "locks", "Locked items");
 		JPanel body = locksSection.getContent();
 		body.add(hint("Always use an item, or keep a slot empty or filled. Right-click an item in a result for more."));
 		body.add(transparent(locksList));
@@ -108,6 +123,25 @@ class ConstraintsPanel extends JPanel
 		excludeSearch.setName("excludeSearch");
 		addSearch(body, excludeSearch, excludeSuggestions, "excludeSuggestions", "Search items to exclude...",
 			"Search an item the search should never use", this::updateExcludeSuggestions);
+
+		forcedSpellsSection = card(accordion, "forcedSpells", "Allowed spells");
+		forcedSpellsSection.setToolTip("Only these spells are autocast. Powered staves and salamanders are still used.");
+		body = forcedSpellsSection.getContent();
+		body.add(hint("Only these spells are autocast. Powered staves and salamanders are still used."));
+		body.add(transparent(forcedSpellsList));
+		body.add(caption("Allow a spell"));
+		forcedSpellsSearch.setName("forcedSpellsSearch");
+		addSearch(body, forcedSpellsSearch, forcedSpellsSuggestions, "forcedSpellsSuggestions",
+			"Search spells to allow...", "Search a spell to always autocast", this::updateForcedSpellSuggestions);
+
+		blockedSpellsSection = card(accordion, "blockedSpells", "Excluded spells");
+		body = blockedSpellsSection.getContent();
+		body.add(hint("Never autocast these spells."));
+		body.add(transparent(blockedSpellsList));
+		body.add(caption("Exclude a spell"));
+		blockedSpellsSearch.setName("blockedSpellsSearch");
+		addSearch(body, blockedSpellsSearch, blockedSpellsSuggestions, "blockedSpellsSuggestions",
+			"Search spells to exclude...", "Search a spell the search should never autocast", this::updateBlockedSpellSuggestions);
 
 		ownedSection = card(accordion, "extraOwnedItems", "Extra owned items");
 		body = ownedSection.getContent();
@@ -153,6 +187,7 @@ class ConstraintsPanel extends JPanel
 		GameData data = plugin.getGameData();
 		rebuildLocks(data);
 		rebuildExcluded(data);
+		rebuildSpells(plugin.getSpellFilter());
 		rebuildOwned(data);
 	}
 
@@ -219,6 +254,63 @@ class ConstraintsPanel extends JPanel
 		}
 		finishList(ownedList, manual.size(), "None marked.", null, null);
 		ownedSection.setSummary(manual.size());
+	}
+
+	/** Rebuild the blocked and forced cards from the current spell rules. */
+	private void rebuildSpells(SpellFilter filter)
+	{
+		Map<String, Spell> known = new HashMap<>();
+		Map<String, Integer> order = new HashMap<>();
+		int position = 0;
+		for (Spell spell : plugin.getCombatSpells())
+		{
+			known.putIfAbsent(spell.getLowerName(), spell);
+			order.putIfAbsent(spell.getLowerName(), position++);
+		}
+		blockedSpellsList.removeAll();
+		for (String name : orderedSpellNames(filter.getBlocked(), order))
+		{
+			blockedSpellsList.add(spellRow(name, known.get(name)));
+		}
+		finishList(blockedSpellsList, filter.getBlocked().size(), "No excluded spells",
+			"Clear excluded spells", plugin::clearBlockedSpells);
+		blockedSpellsSection.setSummary(filter.getBlocked().size());
+
+		forcedSpellsList.removeAll();
+		for (String name : orderedSpellNames(filter.getForced(), order))
+		{
+			forcedSpellsList.add(spellRow(name, known.get(name)));
+		}
+		finishList(forcedSpellsList, filter.getForced().size(), "No allowed spells",
+			"Clear allowed spells", plugin::clearForcedSpells);
+		forcedSpellsSection.setSummary(filter.getForced().size());
+		updateBlockedSpellSuggestions();
+		updateForcedSpellSuggestions();
+	}
+
+	/** Sort known names by the combat spell list, leaving stale names in stored order. */
+	private static List<String> orderedSpellNames(Set<String> names, Map<String, Integer> order)
+	{
+		List<String> sorted = new ArrayList<>(names);
+		sorted.sort(Comparator.comparingInt(name -> order.getOrDefault(name, Integer.MAX_VALUE)));
+		return sorted;
+	}
+
+	/** A spell rule shows its level and spellbook, or flags a stale name. */
+	private JPanel spellRow(String name, Spell spell)
+	{
+		String title = GameData.titleCase(name);
+		String detail = spell == null ? "not in game data" : spellDetail(spell);
+		return ruleRow(spellIcon(name), title, detail, "Remove " + title,
+			() -> plugin.setSpellRule(name, SpellRule.ALLOW));
+	}
+
+	/** Show a spell's unlock level and spellbook, with fallbacks for incomplete game data. */
+	private static String spellDetail(Spell spell)
+	{
+		String spellbook = spell.getSpellbook();
+		String label = spellbook == null ? "unknown spellbook" : GameData.titleCase(spellbook);
+		return spell.getLevel() > 0 ? "lvl " + spell.getLevel() + ", " + label : label;
 	}
 
 	/** An empty list says so; a list of several rules ends with a button that clears them all. */
@@ -305,6 +397,74 @@ class ConstraintsPanel extends JPanel
 			}
 		}
 		showSuggestions(ownedSuggestions);
+	}
+
+	/** Suggest spells that are not already in the selected rule list. */
+	private void updateBlockedSpellSuggestions()
+	{
+		updateSpellSuggestions(blockedSpellsSearch, blockedSpellsSuggestions, plugin.getSpellFilter().getBlocked(), SpellRule.BLOCK);
+	}
+
+	private void updateForcedSpellSuggestions()
+	{
+		updateSpellSuggestions(forcedSpellsSearch, forcedSpellsSuggestions, plugin.getSpellFilter().getForced(), SpellRule.FORCE);
+	}
+
+	/** Like the item searches: nothing until the user types, then name-prefix matches before the rest. */
+	private void updateSpellSuggestions(IconTextField search, JPanel suggestions, Set<String> existing, SpellRule rule)
+	{
+		suggestions.removeAll();
+		String query = search.getText().trim().toLowerCase(Locale.ROOT);
+		if (!query.isEmpty())
+		{
+			plugin.getCombatSpells().stream()
+				.filter(spell -> !existing.contains(spell.getLowerName()) && spell.getLowerName().contains(query))
+				.sorted(Comparator.comparing((Spell spell) -> !spell.getLowerName().startsWith(query)))
+				.limit(MAX_SUGGESTIONS)
+				.forEach(spell ->
+				{
+					String name = GameData.titleCase(spell.getName());
+					suggestions.add(spellButton(spell, name + " (" + spellDetail(spell) + ")",
+						(rule == SpellRule.BLOCK ? "Exclude " : "Allow ") + name, () ->
+						{
+							plugin.setSpellRule(spell.getLowerName(), rule);
+							search.setText("");
+						}));
+				});
+		}
+		showSuggestions(suggestions);
+	}
+
+	/** A search suggestion with the spell's spellbook icon, styled like the item suggestions. */
+	private JPanel spellButton(Spell spell, String text, String tooltip, Runnable onClick)
+	{
+		JButton row = new JButton(text);
+		Controls.listRow(row);
+		row.setFont(Controls.plain(FontManager.getRunescapeSmallFont()));
+		row.setForeground(Color.WHITE);
+		row.setBorder(new EmptyBorder(1, 4, 1, 6));
+		row.setIconTextGap(6);
+		int sprite = BestGearSetupPlugin.spellSprite(spell.getName());
+		if (sprites != null && sprite >= 0)
+		{
+			showSprite(row, sprite);
+		}
+		row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		row.setToolTipText(tooltip);
+		row.addActionListener(e -> onClick.run());
+		return BestGearSetupPanel.left(row);
+	}
+
+	/** The spell's spellbook icon; blank for a stale name. */
+	private JLabel spellIcon(String name)
+	{
+		JLabel label = iconLabel();
+		int sprite = BestGearSetupPlugin.spellSprite(name);
+		if (sprites != null && sprite >= 0)
+		{
+			showSprite(label, sprite);
+		}
+		return label;
 	}
 
 	private static void showSuggestions(JPanel suggestions)
@@ -394,6 +554,15 @@ class ConstraintsPanel extends JPanel
 	}
 
 	/** Show the sprite now if it is loaded, or once it has loaded. */
+	private void showSprite(AbstractButton label, int sprite)
+	{
+		BufferedImage image = sprites.get(sprite, () -> showSprite(label, sprite));
+		if (image != null)
+		{
+			label.setIcon(new ImageIcon(image));
+		}
+	}
+
 	private void showSprite(JLabel label, int sprite)
 	{
 		BufferedImage image = sprites.get(sprite, () -> showSprite(label, sprite));
