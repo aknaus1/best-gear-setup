@@ -3,6 +3,12 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Add Blocked runes and Only these runes cards to Gear. Searches skip autocast spells that need a disallowed
+  base rune unless the weapon or off-hand supplies it, step Thralls down to the strongest tier whose runes are
+  allowed, and don't assume Charge or Mark of Darkness without theirs. Notes explain each limit.
+
 ## 1.1.1 (2026-10-30)
 
 - Add The Fractured Archive's NPCs from the Wiki: the Archive Guardian (flying and grounded), Ezekiel, Bork and

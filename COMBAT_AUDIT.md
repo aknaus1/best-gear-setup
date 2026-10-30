@@ -184,6 +184,32 @@ that charges are not counted. Combination runes display as their base rune; when
 fire may be labelled fire/sunfire. Tome pages, staff charges, prayer points and GP are outside
 this estimate.
 
+### Rune rules
+
+Blocked runes and Only these runes are chosen from the 11 base runes: air, water, earth, fire, mind,
+chaos, death, blood, soul, wrath and cosmic. A rune is disallowed if it is blocked, or if the only list
+is nonempty and does not contain it. Blocked wins if a rune is in both lists. Combination runes are not
+stand-ins: a blocked base rune is not replaced by a combination rune that contains it.
+
+A spell's per-cast base runes are matched after staff and tome supply is removed: elemental staves and
+battlestaves, mystic and combination staves, Kodai wand (water), Twinflame staff (water and fire), and a
+charged tome of fire, water or earth. A rune the weapon or off-hand supplies is never disallowed.
+
+The check is on the whole setup (weapon, shield and spell), because the supply depends on the weapon and
+off-hand. It is enforced with the other mandatory-protection checks in the optimizer's setup
+feasibility test, so the search may choose another spell, staff or tome instead. A setup that fails
+scores zero. Powered staves, salamanders, melee and ranged have no autocast runes and are unaffected.
+
+Thralls use the strongest tier at or below the one the Magic level allows whose runes are all allowed
+after supply: Greater costs fire, blood and cosmic; Superior earth, death and cosmic; Lesser air, mind and
+cosmic (costs as in "Rune quantities"). With no tier left, no thrall is added. Each result uses its own
+tier for DPS, runes per kill and the bank layout. Charge (air, fire, blood) and Mark of Darkness (cosmic,
+soul) are assumed only if every one of their runes is allowed after supply. Demonbane spells' Mark of
+Darkness accuracy and damage bonuses apply only when Mark of Darkness is assumed under these rules.
+
+The explanatory notes treat air, water, earth and fire as supplied, since some staff or tome could
+provide them, so a note never overstates a limit. If rune rules leave no Magic setup, a warning says so.
+
 ### Rune quantities
 
 Each quantity below is the OSRS Wiki spell page's ordinary per-cast rune cost, accessed
