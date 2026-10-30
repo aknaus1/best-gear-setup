@@ -80,7 +80,9 @@ public class LiveSpecsTest
 		ClientThread thread = mock(ClientThread.class);
 		doAnswer(i -> { i.<Runnable>getArgument(0).run(); return null; }).when(thread).invoke(any(Runnable.class));
 		PartyService party = mock(PartyService.class);
-		when(party.getLocalMember()).thenReturn(new PartyMember(1));
+		PartyMember local = mock(PartyMember.class);
+		when(local.getMemberId()).thenReturn(1L);
+		when(party.getLocalMember()).thenReturn(local);
 		BestGearSetupConfig config = mock(BestGearSetupConfig.class);
 		when(config.autoSpecs()).thenReturn(true);
 		List<String> changes = new ArrayList<>();
