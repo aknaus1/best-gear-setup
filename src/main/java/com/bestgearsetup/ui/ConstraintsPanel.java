@@ -56,8 +56,9 @@ class ConstraintsPanel extends JPanel
 	private static final int CARD_HTML_WIDTH = 140;
 	/** An inventory item icon's size. */
 	private static final Dimension ICON_SIZE = new Dimension(36, 32);
-	/** Rune buttons per row in a picker. */
-	private static final int RUNE_COLUMNS = 6;
+	/** Rune buttons per row in a rune card's grid. */
+	private static final int RUNE_COLUMNS = 4;
+	private static final String LISTED = "listed";
 
 	private final BestGearSetupPlugin plugin;
 	/** Null in tests, which show the rules without icons. */
@@ -150,11 +151,9 @@ class ConstraintsPanel extends JPanel
 			"Search spells to exclude...", "Search a spell the search should never autocast", this::updateBlockedSpellSuggestions);
 
 		blockedRunes = runeCard(accordion, "blockedRunes", "Blocked runes", SpellRule.BLOCK,
-			"Never use these runes unless your staff or tome supplies them. Thralls, Charge and Mark of Darkness follow this too.",
-			"Block a rune");
+			"Never use these runes unless your staff or tome supplies them. Thralls, Charge and Mark of Darkness follow this too.");
 		onlyRunes = runeCard(accordion, "onlyRunes", "Only these runes", SpellRule.FORCE,
-			"Spells may use only these runes; a staff or tome still supplies its elements. Thralls, Charge and Mark of Darkness follow this too.",
-			"Add a rune to the list");
+			"Spells may use only these runes; a staff or tome still supplies its elements. Thralls, Charge and Mark of Darkness follow this too.");
 		onlyRunes.section.setToolTip(onlyRunes.hint);
 
 		ownedSection = card(accordion, "extraOwnedItems", "Extra owned items");
@@ -303,16 +302,15 @@ class ConstraintsPanel extends JPanel
 		updateForcedSpellSuggestions();
 	}
 
-	/** One rune rule card: its list of rules and a picker of the runes that can still be added. */
+	/** One rune rule card: a grid of every base rune, toggled in or out of the card's list, and a summary. */
 	private static final class RuneCard
 	{
 		final SidebarSection section;
 		final String key;
 		final String hint;
 		final SpellRule rule;
-		final JPanel list = ruleList();
-		final JPanel picker = new JPanel(new GridLayout(0, RUNE_COLUMNS, 2, 2));
-		JPanel pickerCaption;
+		final JPanel grid = new JPanel(new GridLayout(0, RUNE_COLUMNS, 4, 4));
+		final JPanel summary = ruleList();
 
 		RuneCard(SidebarSection section, String key, String hint, SpellRule rule)
 		{
@@ -324,88 +322,108 @@ class ConstraintsPanel extends JPanel
 	}
 
 	private RuneCard runeCard(SidebarSection.Accordion accordion, String key, String title, SpellRule rule,
-		String hint, String caption)
+		String hint)
 	{
 		SidebarSection section = card(accordion, key, title);
 		RuneCard card = new RuneCard(section, key, hint, rule);
 		JPanel body = section.getContent();
 		body.add(hint(hint));
-		body.add(transparent(card.list));
-		card.pickerCaption = caption(caption);
-		body.add(card.pickerCaption);
-		card.picker.setName(key + "Picker");
-		card.picker.setOpaque(false);
-		body.add(transparent(card.picker));
+		card.grid.setName(key + "Grid");
+		card.grid.setOpaque(false);
+		for (int id : SpellRunes.baseRunes())
+		{
+			card.grid.add(runeToggle(card, id));
+		}
+		body.add(transparent(card.grid));
+		body.add(transparent(card.summary));
 		return card;
+	}
+
+	private RuneToggle runeToggle(RuneCard card, int id)
+	{
+		String name = SpellRunes.runeName(id);
+		String title = GameData.titleCase(name);
+		RuneToggle toggle = new RuneToggle(itemManager == null ? null : itemManager.getImage(id), title);
+		toggle.setName(card.key + "Rune:" + name);
+		toggle.addActionListener(e ->
+		{
+			boolean listed = toggle.getClientProperty(LISTED) == Boolean.TRUE;
+			plugin.setRuneRule(name, listed ? SpellRule.ALLOW : card.rule);
+			// The plugin refreshes the card; keep the button in step with the filter until it does.
+			toggle.setSelected(listed);
+		});
+		return toggle;
 	}
 
 	/** Rebuild the blocked and only runes cards from the current rune rules. */
 	private void rebuildRunes(RuneFilter filter)
 	{
-		fillRuneCard(blockedRunes, filter.getBlocked(), "No blocked runes", "Clear blocked runes",
-			plugin::clearBlockedRunes, "Block ");
-		fillRuneCard(onlyRunes, filter.getOnly(), "No limit: any rune may be used", "Clear only these runes",
-			plugin::clearOnlyRunes, "Only use ");
+		fillRuneCard(blockedRunes, filter.getBlocked(), "No blocked runes", "Blocked: ", "Clear blocked runes",
+			plugin::clearBlockedRunes);
+		fillRuneCard(onlyRunes, filter.getOnly(), "No limit: any rune may be used", "Only: ", "Clear only these runes",
+			plugin::clearOnlyRunes);
 	}
 
-	private void fillRuneCard(RuneCard card, Set<String> names, String empty, String clearText, Runnable clear,
-		String pickVerb)
+	private void fillRuneCard(RuneCard card, Set<String> names, String empty, String prefix, String clearText,
+		Runnable clear)
 	{
-		List<Integer> base = SpellRunes.baseRunes();
-		Map<String, Integer> byName = new HashMap<>();
-		Map<String, Integer> order = new HashMap<>();
-		for (int i = 0; i < base.size(); i++)
+		boolean blocking = card.rule == SpellRule.BLOCK;
+		List<String> known = new ArrayList<>();
+		for (Component c : card.grid.getComponents())
 		{
-			String name = SpellRunes.runeName(base.get(i));
-			byName.put(name, base.get(i));
-			order.put(name, i);
-		}
-		List<String> sorted = new ArrayList<>(names);
-		sorted.sort(Comparator.comparingInt(name -> order.getOrDefault(name, Integer.MAX_VALUE)));
-
-		card.list.removeAll();
-		for (String name : sorted)
-		{
+			RuneToggle toggle = (RuneToggle) c;
+			String name = toggle.getName().substring(card.key.length() + "Rune:".length());
 			String title = GameData.titleCase(name) + " rune";
-			Integer id = byName.get(name);
-			card.list.add(ruleRow(id == null ? iconLabel() : itemIcon(id), title, id == null ? "not a base rune" : null,
-				"Allow " + title, () -> plugin.setRuneRule(name, SpellRule.ALLOW)));
+			boolean listed = names.contains(name);
+			if (listed)
+			{
+				known.add(GameData.titleCase(name));
+			}
+			toggle.putClientProperty(LISTED, listed);
+			toggle.setSelected(listed);
+			toggle.setLook(blocking ? REMOVE_COLOR : OWNED_COLOR, blocking ? listed : !names.isEmpty() && !listed);
+			String tip = blocking
+				? (listed ? title + ": blocked. Click to allow." : title + ". Click to block.")
+				: (listed ? title + ": in the list. Click to remove." : title + ". Click to add to Only these runes.");
+			toggle.setToolTipText(tip);
+			toggle.getAccessibleContext().setAccessibleName(tip);
 		}
-		finishList(card.list, names.size(), empty, clearText, clear);
+		List<String> shown = new ArrayList<>(known);
+		boolean unknown = false;
+		for (String name : names)
+		{
+			if (!SpellRunes.baseRunes().stream().anyMatch(id -> SpellRunes.runeName(id).equals(name)))
+			{
+				shown.add(GameData.titleCase(name) + " (not a base rune)");
+				unknown = true;
+			}
+		}
+		card.summary.removeAll();
+		if (shown.isEmpty())
+		{
+			JLabel none = new JLabel(empty);
+			BestGearSetupPanel.setSmall(none, Controls.DISABLED_TEXT);
+			none.setBorder(new EmptyBorder(4, 0, 0, 0));
+			card.summary.add(transparent(none));
+		}
+		else
+		{
+			JLabel label = new JLabel(BestGearSetupPanel.html(BestGearSetupPanel.escape(prefix + String.join(", ", shown)), CARD_HTML_WIDTH));
+			BestGearSetupPanel.setSmall(label, ColorScheme.LIGHT_GRAY_COLOR);
+			label.setBorder(new EmptyBorder(4, 0, 2, 0));
+			card.summary.add(transparent(label));
+			if (names.size() > 1 || unknown)
+			{
+				JButton button = new JButton(clearText);
+				Controls.ghost(button);
+				button.setHorizontalAlignment(SwingConstants.RIGHT);
+				button.addActionListener(e -> clear.run());
+				card.summary.add(transparent(button));
+			}
+		}
 		card.section.setSummary(names.size());
-
-		card.picker.removeAll();
-		for (int id : base)
-		{
-			String name = SpellRunes.runeName(id);
-			if (names.contains(name))
-			{
-				continue;
-			}
-			String title = GameData.titleCase(name) + " rune";
-			String tip = pickVerb + title + (card.rule == SpellRule.FORCE ? " (with any others listed)" : "");
-			JButton button = new JButton();
-			Controls.secondary(button);
-			button.setName(card.key + "Pick:" + name);
-			button.setMargin(new Insets(2, 2, 2, 2));
-			if (itemManager != null)
-			{
-				itemManager.getImage(id).addTo(button);
-			}
-			else
-			{
-				button.setText(GameData.titleCase(name));
-			}
-			button.setToolTipText(tip);
-			button.getAccessibleContext().setAccessibleName(tip);
-			button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-			button.addActionListener(e -> plugin.setRuneRule(name, card.rule));
-			card.picker.add(button);
-		}
-		card.picker.setVisible(card.picker.getComponentCount() > 0);
-		card.pickerCaption.setVisible(card.picker.isVisible());
-		card.picker.revalidate();
-		card.picker.repaint();
+		card.summary.revalidate();
+		card.summary.repaint();
 	}
 
 	/** Sort known names by the combat spell list, leaving stale names in stored order. */
