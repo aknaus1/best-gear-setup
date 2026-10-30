@@ -565,6 +565,16 @@ class ResultView extends JPanel
 			styleLabel.setToolTipText(range == 0 ? "Attack range unknown" : "Attack range: " + range + " tiles");
 		}
 		styleBox.add(styleLabel, BorderLayout.CENTER);
+		int spellSprite = l.getSpell() == null ? -1 : BestGearSetupPlugin.spellSprite(l.getSpell().getName());
+		if (sprites != null && spellSprite >= 0)
+		{
+			// The spell's spellbook icon on the left, balanced by an empty slot so the text stays centred
+			styleBox.add(new SpriteIcon(spellSprite, null), BorderLayout.WEST);
+			JPanel balance = new JPanel();
+			balance.setOpaque(false);
+			balance.setPreferredSize(new Dimension(30, 32));
+			styleBox.add(balance, BorderLayout.EAST);
+		}
 		row.add(styleBox, BorderLayout.NORTH);
 
 		JPanel boosts = new JPanel(new GridLayout(0, 5, 2, 0));
