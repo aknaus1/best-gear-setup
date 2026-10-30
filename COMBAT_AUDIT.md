@@ -165,7 +165,7 @@ that the direct-damage formulas follow doesn't model poison or venom.
 
 ## Spell rules and rune estimates
 
-Blocked and forced spell names are matched after the usual level, spellbook, target and weapon gates.
+Excluded (blocked) and allowed (forced) spell names are matched after the usual level, spellbook, target and weapon gates.
 Blocked names win if a name is present in both lists. A nonempty forced list permits only its named
 autocast spells; powered staves and salamanders remain eligible because they do not autocast a spell.
 Unknown names remain stored so an outdated forced name does not silently permit another spell.

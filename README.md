@@ -22,7 +22,7 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
   *Best in slot*.
 - **A result per attack style** with DPS, max hit, accuracy, time to kill, kills per hour and the cost of
   anything you'd need to buy, plus the next-best alternatives.
-- **Blocked and Forced spells** in Gear let you exclude autocast spells or limit searches to the spells you choose.
+- **Allowed and Excluded spells** in Gear let you limit searches to the spells you choose or exclude autocast spells.
   Powered staves and salamanders can still compete.
 - **Runes per kill** estimate attack and support rune use, including runes supplied by your staff or tome,
   rune-saving weapons, special attacks and your thrall tier.

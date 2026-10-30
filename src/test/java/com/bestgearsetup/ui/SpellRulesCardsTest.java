@@ -110,11 +110,11 @@ public class SpellRulesCardsTest
 			assertNotNull(label(blocked, "Fire Bolt"));
 			assertNull(label(blocked, "Wind Strike"));
 			assertNotNull(label(forced, "Wind Strike"));
-			assertEquals("Blocked spells (2)", label((Container) named(panel, "blockedSpellsSection"), "Blocked spells (2)").getText());
-			assertEquals("Forced spells (1)", label((Container) named(panel, "forcedSpellsSection"), "Forced spells (1)").getText());
-			button(blocked, "Clear blocked spells").doClick();
+			assertEquals("Excluded spells (2)", label((Container) named(panel, "blockedSpellsSection"), "Excluded spells (2)").getText());
+			assertEquals("Allowed spells (1)", label((Container) named(panel, "forcedSpellsSection"), "Allowed spells (1)").getText());
+			button(blocked, "Clear excluded spells").doClick();
 			assertEquals(Collections.singletonList("clearBlocked"), actions);
-			assertNull(button(forced, "Clear forced spells"));
+			assertNull(button(forced, "Clear allowed spells"));
 		});
 	}
 
@@ -150,10 +150,10 @@ public class SpellRulesCardsTest
 		{
 			ConstraintsPanel panel = new ConstraintsPanel(plugin);
 			panel.refresh();
-			assertNotNull(label((Container) named(panel, "blockedSpellsContent"), "No blocked spells"));
-			assertNotNull(label((Container) named(panel, "forcedSpellsContent"), "No forced spells"));
-			assertNotNull(label((Container) named(panel, "blockedSpellsSection"), "Blocked spells"));
-			assertNotNull(label((Container) named(panel, "forcedSpellsSection"), "Forced spells"));
+			assertNotNull(label((Container) named(panel, "blockedSpellsContent"), "No excluded spells"));
+			assertNotNull(label((Container) named(panel, "forcedSpellsContent"), "No allowed spells"));
+			assertNotNull(label((Container) named(panel, "blockedSpellsSection"), "Excluded spells"));
+			assertNotNull(label((Container) named(panel, "forcedSpellsSection"), "Allowed spells"));
 		});
 	}
 

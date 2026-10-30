@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.runelite.api.gameval.ItemID;
+import net.runelite.api.gameval.SpriteID;
 
 /**
  * The rune types a setup's combat and support spells consume, less any the equipped staff or tome
@@ -40,6 +41,7 @@ final class SpellRunes
 	private static final int WRATH = ItemID.WRATHRUNE;
 	private static final int COSMIC = ItemID.COSMICRUNE;
 	private static final Map<String, Map<Integer, Integer>> SPELLS = new LinkedHashMap<>();
+	private static final Map<String, Integer> SPRITES = new HashMap<>();
 	private static final Map<SupportSpell, Map<Integer, Integer>> SUPPORT = new EnumMap<>(SupportSpell.class);
 	private static final Map<Thrall, Map<Integer, Integer>> THRALL_COSTS = new EnumMap<>(Thrall.class);
 	private static final Map<Integer, List<Integer>> SUBSTITUTES = new HashMap<>();
@@ -52,58 +54,58 @@ final class SpellRunes
 	static
 	{
 		// Standard spellbook
-		spell("wind strike", AIR, 1, MIND, 1);
-		spell("water strike", AIR, 1, WATER, 1, MIND, 1);
-		spell("earth strike", AIR, 1, EARTH, 2, MIND, 1);
-		spell("fire strike", AIR, 2, FIRE, 3, MIND, 1);
-		spell("wind bolt", AIR, 2, CHAOS, 1);
-		spell("water bolt", AIR, 2, WATER, 2, CHAOS, 1);
-		spell("earth bolt", AIR, 2, EARTH, 3, CHAOS, 1);
-		spell("fire bolt", AIR, 3, FIRE, 4, CHAOS, 1);
-		spell("wind blast", AIR, 3, DEATH, 1);
-		spell("water blast", AIR, 3, WATER, 3, DEATH, 1);
-		spell("earth blast", AIR, 3, EARTH, 4, DEATH, 1);
-		spell("fire blast", AIR, 4, FIRE, 5, DEATH, 1);
-		spell("wind wave", AIR, 5, BLOOD, 1);
-		spell("water wave", AIR, 5, WATER, 7, BLOOD, 1);
-		spell("earth wave", AIR, 5, EARTH, 7, BLOOD, 1);
-		spell("fire wave", AIR, 5, FIRE, 7, BLOOD, 1);
-		spell("wind surge", AIR, 7, WRATH, 1);
-		spell("water surge", AIR, 7, WATER, 10, WRATH, 1);
-		spell("earth surge", AIR, 7, EARTH, 10, WRATH, 1);
-		spell("fire surge", AIR, 7, FIRE, 10, WRATH, 1);
-		spell("crumble undead", AIR, 2, EARTH, 2, CHAOS, 1);
-		spell("iban blast", FIRE, 5, DEATH, 1);
-		spell("magic dart", MIND, 4, DEATH, 1);
-		spell("saradomin strike", AIR, 4, FIRE, 2, BLOOD, 2);
-		spell("claws of guthix", AIR, 4, FIRE, 1, BLOOD, 2);
-		spell("flames of zamorak", AIR, 1, FIRE, 4, BLOOD, 2);
+		spell("wind strike", SpriteID.Magicon.WIND_STRIKE, AIR, 1, MIND, 1);
+		spell("water strike", SpriteID.Magicon.WATER_STRIKE, AIR, 1, WATER, 1, MIND, 1);
+		spell("earth strike", SpriteID.Magicon.EARTH_STRIKE, AIR, 1, EARTH, 2, MIND, 1);
+		spell("fire strike", SpriteID.Magicon.FIRE_STRIKE, AIR, 2, FIRE, 3, MIND, 1);
+		spell("wind bolt", SpriteID.Magicon.WIND_BOLT, AIR, 2, CHAOS, 1);
+		spell("water bolt", SpriteID.Magicon.WATER_BOLT, AIR, 2, WATER, 2, CHAOS, 1);
+		spell("earth bolt", SpriteID.Magicon.EARTH_BOLT, AIR, 2, EARTH, 3, CHAOS, 1);
+		spell("fire bolt", SpriteID.Magicon.FIRE_BOLT, AIR, 3, FIRE, 4, CHAOS, 1);
+		spell("wind blast", SpriteID.Magicon.WIND_BLAST, AIR, 3, DEATH, 1);
+		spell("water blast", SpriteID.Magicon.WATER_BLAST, AIR, 3, WATER, 3, DEATH, 1);
+		spell("earth blast", SpriteID.Magicon.EARTH_BLAST, AIR, 3, EARTH, 4, DEATH, 1);
+		spell("fire blast", SpriteID.Magicon.FIRE_BLAST, AIR, 4, FIRE, 5, DEATH, 1);
+		spell("wind wave", SpriteID.Magicon.WIND_WAVE, AIR, 5, BLOOD, 1);
+		spell("water wave", SpriteID.Magicon.WATER_WAVE, AIR, 5, WATER, 7, BLOOD, 1);
+		spell("earth wave", SpriteID.Magicon.EARTH_WAVE, AIR, 5, EARTH, 7, BLOOD, 1);
+		spell("fire wave", SpriteID.Magicon.FIRE_WAVE, AIR, 5, FIRE, 7, BLOOD, 1);
+		spell("wind surge", SpriteID.Magicon2.WIND_SURGE, AIR, 7, WRATH, 1);
+		spell("water surge", SpriteID.Magicon2.WATER_SURGE, AIR, 7, WATER, 10, WRATH, 1);
+		spell("earth surge", SpriteID.Magicon2.EARTH_SURGE, AIR, 7, EARTH, 10, WRATH, 1);
+		spell("fire surge", SpriteID.Magicon2.FIRE_SURGE, AIR, 7, FIRE, 10, WRATH, 1);
+		spell("crumble undead", SpriteID.Magicon.CRUMBLE_UNDEAD, AIR, 2, EARTH, 2, CHAOS, 1);
+		spell("iban blast", SpriteID.Magicon.IBAN_BLAST, FIRE, 5, DEATH, 1);
+		spell("magic dart", SpriteID.Magicon2.MAGIC_DART, MIND, 4, DEATH, 1);
+		spell("saradomin strike", SpriteID.Magicon.SARADOMIN_STRIKE, AIR, 4, FIRE, 2, BLOOD, 2);
+		spell("claws of guthix", SpriteID.Magicon.CLAWS_OF_GUTHIX, AIR, 4, FIRE, 1, BLOOD, 2);
+		spell("flames of zamorak", SpriteID.Magicon.FLAMES_OF_ZAMORAK, AIR, 1, FIRE, 4, BLOOD, 2);
 
 		// Ancient spellbook
-		spell("smoke rush", AIR, 1, FIRE, 1, CHAOS, 2, DEATH, 2);
-		spell("shadow rush", AIR, 1, CHAOS, 2, DEATH, 2, SOUL, 1);
-		spell("blood rush", CHAOS, 2, DEATH, 2, BLOOD, 1);
-		spell("ice rush", WATER, 2, CHAOS, 2, DEATH, 2);
-		spell("smoke burst", AIR, 2, FIRE, 2, CHAOS, 4, DEATH, 2);
-		spell("shadow burst", AIR, 1, CHAOS, 4, DEATH, 2, SOUL, 2);
-		spell("blood burst", CHAOS, 4, DEATH, 2, BLOOD, 2);
-		spell("ice burst", WATER, 4, CHAOS, 4, DEATH, 2);
-		spell("smoke blitz", AIR, 2, FIRE, 2, DEATH, 2, BLOOD, 2);
-		spell("shadow blitz", AIR, 2, DEATH, 2, BLOOD, 2, SOUL, 2);
-		spell("blood blitz", DEATH, 2, BLOOD, 4);
-		spell("ice blitz", WATER, 3, DEATH, 2, BLOOD, 2);
-		spell("smoke barrage", AIR, 4, FIRE, 4, DEATH, 4, BLOOD, 2);
-		spell("shadow barrage", AIR, 4, DEATH, 4, BLOOD, 2, SOUL, 3);
-		spell("blood barrage", DEATH, 4, BLOOD, 4, SOUL, 1);
-		spell("ice barrage", WATER, 6, DEATH, 4, BLOOD, 2);
+		spell("smoke rush", SpriteID.Magicon2.SMOKE_RUSH, AIR, 1, FIRE, 1, CHAOS, 2, DEATH, 2);
+		spell("shadow rush", SpriteID.Magicon2.SHADOW_RUSH, AIR, 1, CHAOS, 2, DEATH, 2, SOUL, 1);
+		spell("blood rush", SpriteID.Magicon2.BLOOD_RUSH, CHAOS, 2, DEATH, 2, BLOOD, 1);
+		spell("ice rush", SpriteID.Magicon2.ICE_RUSH, WATER, 2, CHAOS, 2, DEATH, 2);
+		spell("smoke burst", SpriteID.Magicon2.SMOKE_BURST, AIR, 2, FIRE, 2, CHAOS, 4, DEATH, 2);
+		spell("shadow burst", SpriteID.Magicon2.SHADOW_BURST, AIR, 1, CHAOS, 4, DEATH, 2, SOUL, 2);
+		spell("blood burst", SpriteID.Magicon2.BLOOD_BURST, CHAOS, 4, DEATH, 2, BLOOD, 2);
+		spell("ice burst", SpriteID.Magicon2.ICE_BURST, WATER, 4, CHAOS, 4, DEATH, 2);
+		spell("smoke blitz", SpriteID.Magicon2.SMOKE_BLITZ, AIR, 2, FIRE, 2, DEATH, 2, BLOOD, 2);
+		spell("shadow blitz", SpriteID.Magicon2.SHADOW_BLITZ, AIR, 2, DEATH, 2, BLOOD, 2, SOUL, 2);
+		spell("blood blitz", SpriteID.Magicon2.BLOOD_BLITZ, DEATH, 2, BLOOD, 4);
+		spell("ice blitz", SpriteID.Magicon2.ICE_BLITZ, WATER, 3, DEATH, 2, BLOOD, 2);
+		spell("smoke barrage", SpriteID.Magicon2.SMOKE_BARRAGE, AIR, 4, FIRE, 4, DEATH, 4, BLOOD, 2);
+		spell("shadow barrage", SpriteID.Magicon2.SHADOW_BARRAGE, AIR, 4, DEATH, 4, BLOOD, 2, SOUL, 3);
+		spell("blood barrage", SpriteID.Magicon2.BLOOD_BARRAGE, DEATH, 4, BLOOD, 4, SOUL, 1);
+		spell("ice barrage", SpriteID.Magicon2.ICE_BARRAGE, WATER, 6, DEATH, 4, BLOOD, 2);
 
 		// Arceuus spellbook
-		spell("ghostly grasp", AIR, 4, CHAOS, 1);
-		spell("skeletal grasp", EARTH, 8, DEATH, 1);
-		spell("undead grasp", FIRE, 12, BLOOD, 1);
-		spell("inferior demonbane", FIRE, 3, CHAOS, 1);
-		spell("superior demonbane", FIRE, 5, SOUL, 1);
-		spell("dark demonbane", FIRE, 7, SOUL, 2);
+		spell("ghostly grasp", SpriteID.MagicNecroOn.GHOSTLY_GRASP, AIR, 4, CHAOS, 1);
+		spell("skeletal grasp", SpriteID.MagicNecroOn.SKELETAL_GRASP, EARTH, 8, DEATH, 1);
+		spell("undead grasp", SpriteID.MagicNecroOn.UNDEAD_GRASP, FIRE, 12, BLOOD, 1);
+		spell("inferior demonbane", SpriteID.MagicNecroOn.INFERIOR_DEMONBANE, FIRE, 3, CHAOS, 1);
+		spell("superior demonbane", SpriteID.MagicNecroOn.SUPERIOR_DEMONBANE, FIRE, 5, SOUL, 1);
+		spell("dark demonbane", SpriteID.MagicNecroOn.DARK_DEMONBANE, FIRE, 7, SOUL, 2);
 
 		support(SupportSpell.MARK_OF_DARKNESS, COSMIC, 1, SOUL, 1);
 		support(SupportSpell.CHARGE, AIR, 3, FIRE, 3, BLOOD, 3);
@@ -135,9 +137,10 @@ final class SpellRunes
 	{
 	}
 
-	private static void spell(String name, int... pairs)
+	private static void spell(String name, int sprite, int... pairs)
 	{
 		SPELLS.put(name, cost(pairs));
+		SPRITES.put(name, sprite);
 	}
 
 	private static void support(SupportSpell spell, int... pairs)
@@ -158,6 +161,12 @@ final class SpellRunes
 			cost.put(pairs[i], pairs[i + 1]);
 		}
 		return Collections.unmodifiableMap(cost);
+	}
+
+	/** The spellbook icon for a combat spell, or -1 when unknown. */
+	static int sprite(String spellName)
+	{
+		return spellName == null ? -1 : SPRITES.getOrDefault(spellName.toLowerCase(Locale.ROOT), -1);
 	}
 
 	/** Rune quantities for one cast of a combat spell, in spellbook order. */

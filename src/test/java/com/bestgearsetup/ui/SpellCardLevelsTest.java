@@ -21,6 +21,7 @@ import java.util.Set;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
+import net.runelite.client.ui.components.IconTextField;
 import org.junit.Test;
 
 public class SpellCardLevelsTest
@@ -115,10 +116,18 @@ public class SpellCardLevelsTest
 		{
 			ConstraintsPanel panel = new ConstraintsPanel(plugin);
 			panel.refresh();
+			// Like the item searches, nothing is suggested until the user types.
+			assertEquals(Collections.emptyList(), buttons((Container) named(panel, "blockedSpellsSuggestions")));
+			assertEquals(Collections.emptyList(), buttons((Container) named(panel, "forcedSpellsSuggestions")));
+			((IconTextField) named(panel, "blockedSpellsSearch")).setText("e");
+			((IconTextField) named(panel, "forcedSpellsSearch")).setText("e");
 			List<String> expected = Arrays.asList("Wind Strike (lvl 1, Standard)",
 				"Fire Bolt (lvl 35, Standard)", "Ice Barrage (lvl 94, Ancient)");
 			assertEquals(expected, buttons((Container) named(panel, "blockedSpellsSuggestions")));
 			assertEquals(expected, buttons((Container) named(panel, "forcedSpellsSuggestions")));
+			((IconTextField) named(panel, "forcedSpellsSearch")).setText("fire");
+			assertEquals(Collections.singletonList("Fire Bolt (lvl 35, Standard)"),
+				buttons((Container) named(panel, "forcedSpellsSuggestions")));
 		});
 	}
 

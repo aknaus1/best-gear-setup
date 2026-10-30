@@ -126,7 +126,7 @@ public class GearRulesTest
 			assertNotNull(label(lockCard, "Keep empty"));
 			assertNull("Exclusions are not listed with locks", label(lockCard, helm));
 			assertNotNull(label(excludedCard, helm));
-			assertEquals("Locks (2)", ((JLabel) ((Container) named(panel, "locksSection")).getComponent(1)).getText());
+			assertEquals("Locked items (2)", ((JLabel) ((Container) named(panel, "locksSection")).getComponent(1)).getText());
 
 			button(lockCard, "Clear locks").doClick();
 			assertEquals("Clearing locks keeps exclusions", List.of("locks"), cleared);

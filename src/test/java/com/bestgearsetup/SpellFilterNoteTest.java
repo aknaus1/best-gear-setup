@@ -27,7 +27,7 @@ public class SpellFilterNoteTest
 	public void forcedSpellsExplainWhyNoneCanBeAutocast()
 	{
 		SpellFilter forced = SpellFilter.of(Collections.emptySet(), Arrays.asList("ice barrage", "fire bolt"));
-		assertEquals("Spells: none of the forced spells (Ice Barrage, Fire Bolt) can be autocast here; "
+		assertEquals("Spells: none of the allowed spells (Ice Barrage, Fire Bolt) can be autocast here; "
 			+ "check your Magic level, spellbooks and the target.",
 			BestGearSetupPlugin.spellFilterNote(forced, Collections.emptyList()));
 	}
@@ -36,7 +36,7 @@ public class SpellFilterNoteTest
 	public void blockedSpellsExplainWhyNoneCanBeAutocast()
 	{
 		SpellFilter blocked = SpellFilter.of(Collections.singleton("fire bolt"), Collections.emptySet());
-		assertEquals("Spells: every spell you could autocast here is blocked.",
+		assertEquals("Spells: every spell you could autocast here is excluded.",
 			BestGearSetupPlugin.spellFilterNote(blocked, Collections.emptyList()));
 	}
 }

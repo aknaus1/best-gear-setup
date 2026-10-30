@@ -1686,6 +1686,12 @@ public class BestGearSetupPlugin extends Plugin
 			.collect(Collectors.toList());
 	}
 
+	/** The spellbook icon sprite for a combat spell, or -1 when unknown. */
+	public static int spellSprite(String spellName)
+	{
+		return SpellRunes.sprite(spellName);
+	}
+
 	/** Orders the supported spellbooks before other spellbooks. */
 	private static int spellbookOrder(String spellbook)
 	{
@@ -1719,16 +1725,16 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		if (autocastable.isEmpty() && !filter.getForced().isEmpty())
 		{
-			return "Spells: none of the forced spells ("
+			return "Spells: none of the allowed spells ("
 				+ filter.getForced().stream().map(GameData::titleCase).collect(Collectors.joining(", "))
 				+ ") can be autocast here; check your Magic level, spellbooks and the target.";
 		}
 		if (autocastable.isEmpty())
 		{
-			return "Spells: every spell you could autocast here is blocked.";
+			return "Spells: every spell you could autocast here is excluded.";
 		}
 		return magicResults ? null
-			: "Spells: no Magic setup is left; your spell rules may block every spell your weapons can autocast here.";
+			: "Spells: no Magic setup is left; your spell rules may exclude every spell your weapons can autocast here.";
 	}
 
 	public Map<Slot, SlotLock> getLocks()
