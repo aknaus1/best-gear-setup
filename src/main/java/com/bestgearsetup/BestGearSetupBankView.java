@@ -122,12 +122,17 @@ class BestGearSetupBankView
 				addItem(layout, itemIds, special.getLoadedAmmo(), SPEC_AMMO_CELL);
 			}
 			List<Integer> spellItems = SpellRunes.required(setup);
+			if (!spellItems.isEmpty())
+			{
+				// The runes may be in a pouch, which takes the first spell cell ahead of them.
+				layout.add(SpellRunes.POUCHES, SPELL_CELLS[0], SPELL);
+			}
 			for (int i = 0; i < spellItems.size(); i++)
 			{
 				List<Integer> ids = new ArrayList<>();
 				ids.add(spellItems.get(i));
 				ids.addAll(SpellRunes.substitutes(spellItems.get(i)));
-				layout.add(ids, reservedCell(SPELL_CELLS, i), SPELL);
+				layout.add(ids, reservedCell(SPELL_CELLS, i + 1), SPELL);
 			}
 			int cell = 0;
 			for (Potion potion : potions)
@@ -381,9 +386,12 @@ class BestGearSetupBankView
 		}
 		// Each cell's own item claims it first; the best-ranked alternative fills it in its absence (the
 		// highest dose, the first substitute) and the rest join the extra rows in rank order. Placeholders
-		// (quantity 0) come after every real item and only fill a cell nothing withdrawable can.
+		// (quantity 0) come after every real item and only fill a cell nothing withdrawable can, except a
+		// spell rune's own placeholder: the bank can't see a rune pouch, so it counts as owning the rune
+		// and keeps its cell ahead of combination runes.
 		List<Widget> ordered = new ArrayList<>(matches.keySet());
-		ordered.sort(Comparator.comparing(BestGearSetupBankView::isPlaceholder)
+		ordered.sort(Comparator.comparing((Widget w) -> isPlaceholder(w)
+				&& !(layout.groups.get(matches.get(w)) == SPELL && layout.primary.contains(matches.get(w))))
 			.thenComparing((Widget w) -> !layout.primary.contains(matches.get(w)))
 			.thenComparingInt(w -> layout.ranks.get(matches.get(w)))
 			.thenComparingInt(Widget::getOriginalY).thenComparingInt(Widget::getOriginalX));

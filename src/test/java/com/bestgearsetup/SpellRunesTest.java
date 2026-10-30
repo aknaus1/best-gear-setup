@@ -247,10 +247,10 @@ public class SpellRunesTest
 		Loadout loadout = loadout("dark demonbane", "magic staff", null);
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MAGIC, loadout, null,
 			0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.MARK_OF_DARKNESS, SupportSpell.THRALL)));
-		assertEquals(Integer.valueOf(7), cells.get(ItemID.BLOODRUNE));
-		assertEquals(Integer.valueOf(12), cells.get(ItemID.BOOK_OF_THE_DEAD));
+		assertEquals(Integer.valueOf(12), cells.get(ItemID.BLOODRUNE));
+		assertEquals(Integer.valueOf(13), cells.get(ItemID.BOOK_OF_THE_DEAD));
 		// Aether replaces soul and cosmic; it sits with the first of those (soul).
-		assertEquals(Integer.valueOf(5), cells.get(ItemID.AETHERRUNE));
+		assertEquals(Integer.valueOf(6), cells.get(ItemID.AETHERRUNE));
 		Map<Integer, Integer> thrall = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
 			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.THRALL)));
 		assertEquals(thrall.get(ItemID.COSMICRUNE), thrall.get(ItemID.AETHERRUNE));
@@ -263,14 +263,16 @@ public class SpellRunesTest
 		loadout.set(Slot.HEAD, gear(ItemID.WRATHRUNE, "test helm"));
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(
 			new SetupResult(CombatClass.MAGIC, loadout, null, 0));
-		// Equipment keeps its silhouette cell; runes follow on the top row in spellbook order.
+		// Equipment keeps its silhouette cell; a rune pouch, then the runes, follow on the top row in spellbook order.
 		assertEquals(Integer.valueOf(1), cells.get(ItemID.WRATHRUNE));
-		assertEquals(Integer.valueOf(4), cells.get(ItemID.AIRRUNE));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID.DIVINE_RUNE_POUCH));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID.BH_RUNE_POUCH));
+		assertEquals(Integer.valueOf(5), cells.get(ItemID.AIRRUNE));
 		// A combination rune sits with the first rune it replaces.
-		assertEquals(Integer.valueOf(4), cells.get(ItemID.SMOKERUNE));
-		assertEquals(Integer.valueOf(5), cells.get(ItemID.FIRERUNE));
-		assertEquals(Integer.valueOf(5), cells.get(ItemID.SUNFIRERUNE));
-		assertEquals(Integer.valueOf(5), cells.get(ItemID.LAVARUNE));
+		assertEquals(Integer.valueOf(5), cells.get(ItemID.SMOKERUNE));
+		assertEquals(Integer.valueOf(6), cells.get(ItemID.FIRERUNE));
+		assertEquals(Integer.valueOf(6), cells.get(ItemID.SUNFIRERUNE));
+		assertEquals(Integer.valueOf(6), cells.get(ItemID.LAVARUNE));
 		assertFalse(cells.containsKey(ItemID.EARTHRUNE));
 	}
 

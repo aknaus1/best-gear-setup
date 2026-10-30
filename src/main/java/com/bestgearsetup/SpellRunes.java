@@ -42,6 +42,9 @@ final class SpellRunes
 	private static final int COSMIC = ItemID.COSMICRUNE;
 	private static final Map<String, Map<Integer, Integer>> SPELLS = new LinkedHashMap<>();
 	private static final Map<String, Integer> SPRITES = new HashMap<>();
+	/** Rune pouches, best first; the bank can't see the runes inside them. */
+	static final List<Integer> POUCHES = Collections.unmodifiableList(Arrays.asList(ItemID.DIVINE_RUNE_POUCH,
+		ItemID.DIVINE_RUNE_POUCH_TROUVER, ItemID.BH_RUNE_POUCH, ItemID.BH_RUNE_POUCH_TROUVER));
 	private static final Map<SupportSpell, Map<Integer, Integer>> SUPPORT = new EnumMap<>(SupportSpell.class);
 	private static final Map<Thrall, Map<Integer, Integer>> THRALL_COSTS = new EnumMap<>(Thrall.class);
 	private static final Map<Integer, List<Integer>> SUBSTITUTES = new HashMap<>();

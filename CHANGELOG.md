@@ -11,6 +11,8 @@ is what the Plugin Hub shows.
 - Show expected attack and support runes per kill below estimated kills per hour. Counts include rune saving,
   staff and tome supply, special attack time, and the correct rune costs for each thrall tier. Powered staff
   charges, tome pages and the Master Combat Achievements thrall duration bonus are not counted.
+- The bank layout shows your rune pouch or divine rune pouch beside the spell runes, and a rune's bank
+  placeholder now keeps its cell ahead of combination runes, since runes in a pouch aren't visible to the bank.
 
 ## 1.1.1 (2026-10-20)
 

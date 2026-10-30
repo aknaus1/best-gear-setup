@@ -1235,7 +1235,12 @@ public class BestGearSetupPlugin extends Plugin
 				addBankHighlightItem(ids, setup.getSpecial().getAmmo());
 				addBankHighlightItem(ids, setup.getSpecial().getLoadedAmmo());
 			}
-			for (int rune : SpellRunes.required(setup))
+			List<Integer> runes = SpellRunes.required(setup);
+			if (!runes.isEmpty())
+			{
+				ids.addAll(SpellRunes.POUCHES);
+			}
+			for (int rune : runes)
 			{
 				ids.add(rune);
 				ids.addAll(SpellRunes.substitutes(rune));
