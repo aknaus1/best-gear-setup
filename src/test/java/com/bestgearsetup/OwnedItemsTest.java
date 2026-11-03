@@ -10,6 +10,7 @@ import com.bestgearsetup.calc.SearchMode;
 import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -203,6 +204,29 @@ public class OwnedItemsTest
 		}
 	}
 
+	/** RuneLite's ItemManager for these tests: the given ids are placeholders that canonicalise to their item. */
+	private static ItemManager itemsWithPlaceholders(Map<Integer, Integer> placeholderToItem)
+	{
+		ItemManager itemManager = mock(ItemManager.class);
+		when(itemManager.getItemComposition(anyInt())).thenAnswer(call ->
+		{
+			ItemComposition composition = mock(ItemComposition.class);
+			boolean placeholder = placeholderToItem.containsKey(call.<Integer>getArgument(0));
+			when(composition.getPlaceholderTemplateId()).thenReturn(placeholder ? 14401 : -1);
+			return composition;
+		});
+		when(itemManager.canonicalize(anyInt())).thenAnswer(call ->
+			placeholderToItem.getOrDefault(call.<Integer>getArgument(0), call.<Integer>getArgument(0)));
+		return itemManager;
+	}
+
+	private static ItemContainer holding(Item... items)
+	{
+		ItemContainer container = mock(ItemContainer.class);
+		when(container.getItems()).thenReturn(items);
+		return container;
+	}
+
 	@Test
 	public void bankPlaceholdersAreNotOwned()
 	{
@@ -211,38 +235,60 @@ public class OwnedItemsTest
 		int inquisitorHelmPlaceholder = 24420;
 		int inquisitorMace = 24417;
 		int macePlaceholder = 24418;
-		ItemManager itemManager = mock(ItemManager.class);
-		when(itemManager.getItemComposition(anyInt())).thenAnswer(call ->
-		{
-			int id = call.getArgument(0);
-			ItemComposition composition = mock(ItemComposition.class);
-			boolean placeholder = id == inquisitorHelmPlaceholder || id == macePlaceholder;
-			when(composition.getPlaceholderTemplateId()).thenReturn(placeholder ? 14401 : -1);
-			return composition;
-		});
-		// Placeholders canonicalise to the real item, as RuneLite's ItemManager does.
-		when(itemManager.canonicalize(anyInt())).thenAnswer(call ->
-		{
-			int id = call.getArgument(0);
-			return id == inquisitorHelmPlaceholder ? inquisitorHelm : id == macePlaceholder ? inquisitorMace : id;
-		});
-		OwnedItems owned = new OwnedItems(mock(ConfigManager.class), itemManager);
-		ItemContainer bank = mock(ItemContainer.class);
-		when(bank.getItems()).thenReturn(new Item[]{
+		Map<Integer, Integer> placeholders = new HashMap<>();
+		placeholders.put(inquisitorHelmPlaceholder, inquisitorHelm);
+		placeholders.put(macePlaceholder, inquisitorMace);
+		OwnedItems owned = new OwnedItems(mock(ConfigManager.class), itemsWithPlaceholders(placeholders));
+
+		owned.onContainerChanged(InventoryID.BANK, holding(
 			new Item(whip, 1),
 			// An empty placeholder, as the bank reports it.
 			new Item(inquisitorHelmPlaceholder, 0),
 			// A placeholder id is never owned, whatever quantity the container gives it.
 			new Item(macePlaceholder, 1),
-			new Item(-1, 0)
-		});
-
-		owned.onContainerChanged(InventoryID.BANK, bank);
+			new Item(-1, 0)));
 
 		assertTrue(owned.owns(whip));
 		assertFalse(owned.owns(inquisitorHelm));
 		assertFalse(owned.owns(inquisitorMace));
 		assertEquals(Collections.singletonMap(whip, 1L), owned.bank);
 		assertEquals(1, owned.count());
+	}
+
+	@Test
+	public void itemsCarriedWornOrMarkedOwnedStayOwnedBesideTheirBankPlaceholder()
+	{
+		int helm = 24419;
+		int helmPlaceholder = 24420;
+		int mace = 24417;
+		int macePlaceholder = 24418;
+		int plateskirt = 24425;
+		int plateskirtPlaceholder = 24426;
+		Map<Integer, Integer> placeholders = new HashMap<>();
+		placeholders.put(helmPlaceholder, helm);
+		placeholders.put(macePlaceholder, mace);
+		placeholders.put(plateskirtPlaceholder, plateskirt);
+		OwnedItems owned = new OwnedItems(mock(ConfigManager.class), itemsWithPlaceholders(placeholders));
+
+		// Each item has only a placeholder in the bank: the helm is carried, the mace worn, and the
+		// plateskirt is marked owned by hand (e.g. in a STASH unit or the POH costume room).
+		owned.onContainerChanged(InventoryID.BANK, holding(new Item(helmPlaceholder, 0),
+			new Item(macePlaceholder, 0), new Item(plateskirtPlaceholder, 0)));
+		owned.onContainerChanged(InventoryID.INV, holding(new Item(helm, 1)));
+		owned.onContainerChanged(InventoryID.WORN, holding(new Item(mace, 1)));
+		owned.setManual(plateskirt, true);
+
+		for (int id : new int[]{helm, mace, plateskirt})
+		{
+			assertTrue("Owned beside its placeholder: " + id, owned.owns(id));
+			assertTrue(owned.quantitySnapshot().get(id) > 0);
+		}
+		assertEquals(1L, (long) owned.quantitySnapshot().get(helm));
+		assertTrue(owned.isWorn(mace));
+		// Carried and worn items are owned in an Inventory + equipped only search too; manual entries aren't.
+		assertTrue(owned.snapshot(SearchMode.INVENTORY_ONLY).contains(helm));
+		assertTrue(owned.snapshot(SearchMode.INVENTORY_ONLY).contains(mace));
+		assertFalse(owned.snapshot(SearchMode.INVENTORY_ONLY).contains(plateskirt));
+		assertTrue(owned.bank.isEmpty());
 	}
 }
