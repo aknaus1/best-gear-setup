@@ -3,6 +3,11 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Bank placeholders no longer count as owned items, so *Owned items only* searches don't suggest gear you've
+  only kept a placeholder for. Open your bank once to refresh a bank remembered by an earlier version.
+
 ## 1.1.1 (2026-10-30)
 
 - Add The Fractured Archive's NPCs from the Wiki: the Archive Guardian (flying and grounded), Ezekiel, Bork and
