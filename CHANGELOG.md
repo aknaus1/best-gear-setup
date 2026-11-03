@@ -3,6 +3,11 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Keep the previous results in the sidebar, and the gear layout open in the bank, while a new search runs. The
+  new best setup replaces both when the search finishes, so the bank layout no longer needs selecting again.
+
 ## 1.1.1 (2026-10-30)
 
 - Add The Fractured Archive's NPCs from the Wiki: the Archive Guardian (flying and grounded), Ezekiel, Bork and
