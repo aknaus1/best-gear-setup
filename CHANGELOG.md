@@ -11,6 +11,8 @@ is what the Plugin Hub shows.
   only kept a placeholder for. Open your bank once to refresh a bank remembered by an earlier version.
 - Keep the previous results in the sidebar, and the gear layout open in the bank, while a new search runs. The
   new best setup replaces both when the search finishes, so the bank layout no longer needs selecting again.
+- Depositing gear into the bank, or withdrawing it, no longer searches again: the item is still owned, it has
+  only moved. Losing or gaining gear still updates the results, on the next game tick.
 
 ## 1.1.1 (2026-10-30)
 
