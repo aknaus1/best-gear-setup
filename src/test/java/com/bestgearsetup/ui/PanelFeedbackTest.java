@@ -167,6 +167,72 @@ public class PanelFeedbackTest
 	}
 
 
+	@Test
+	public void startingASearchKeepsThePreviousResultsAndBankLayout() throws Exception
+	{
+		java.util.List<Object> highlights = new java.util.ArrayList<>();
+		BestGearSetupPlugin recording = new BestGearSetupPlugin()
+		{
+			@Override
+			public net.runelite.client.config.ConfigDescriptor getConfigDescriptor()
+			{
+				return com.bestgearsetup.ConfigItemsForTests.descriptor();
+			}
+
+			@Override
+			public OwnedItems getOwnedItems()
+			{
+				return com.bestgearsetup.ConfigItemsForTests.emptyOwnedItems();
+			}
+
+			@Override
+			public Map<Slot, SlotLock> getLocks()
+			{
+				return Collections.emptyMap();
+			}
+
+			@Override
+			public Set<Integer> getExcluded()
+			{
+				return Collections.emptySet();
+			}
+
+			@Override
+			public String getPotionChoice(CombatClass cls)
+			{
+				return PotionChoice.BEST;
+			}
+
+			@Override
+			public void setConfig(String key, Object value)
+			{
+			}
+
+			@Override
+			public void setBankHighlightedSetup(com.bestgearsetup.calc.SetupResult setup)
+			{
+				highlights.add(setup);
+			}
+		};
+		SwingUtilities.invokeAndWait(() ->
+		{
+			BestGearSetupPanel panel = new BestGearSetupPanel(recording, new BestGearSetupConfig()
+			{
+			}, null, null, null);
+			panel.showResults(new SearchResults(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
+				Collections.emptyMap(), Collections.emptyMap(), false, Collections.emptyList(), false, false,
+				Collections.singletonList("Earlier search warning")));
+			highlights.clear();
+			com.bestgearsetup.data.MonsterSummary next = new com.bestgearsetup.data.MonsterSummary();
+			next.setName("Vorkath");
+			panel.showSearching(next);
+			assertNotNull("Previous results stay until the new ones arrive", named(panel, "assumptionWarnings"));
+			assertTrue("The bank layout isn't dropped while searching", highlights.isEmpty());
+			assertTrue(panel.statusLabel.getText().contains("Searching setups for"));
+		});
+	}
+
+
 	private static Component named(Container container, String name)
 	{
 		for (Component child : container.getComponents())

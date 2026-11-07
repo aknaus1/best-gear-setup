@@ -9,6 +9,8 @@ is what the Plugin Hub shows.
   what you just added, a lock suggestion says when it replaces the slot's current lock, and Escape clears a search.
 - Bank placeholders no longer count as owned items, so *Owned items only* searches don't suggest gear you've
   only kept a placeholder for. Open your bank once to refresh a bank remembered by an earlier version.
+- Keep the previous results in the sidebar, and the gear layout open in the bank, while a new search runs. The
+  new best setup replaces both when the search finishes, so the bank layout no longer needs selecting again.
 
 ## 1.1.1 (2026-10-30)
 
