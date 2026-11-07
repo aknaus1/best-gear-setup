@@ -169,8 +169,8 @@ public final class WeaponRules
 		}
 		if (name.startsWith("zorya's tome"))
 		{
-			// Wiki (release day, 2026-10-20): a 3-tick powered staff with a base max hit of 18; no level formula given.
-			return 18;
+			// Wiki "Zorya's tome", Maximum hit: floor(Magic / 3) - 9, so 24 at 99 Magic.
+			return Math.max(1, third - 9);
 		}
 		return -1;
 	}

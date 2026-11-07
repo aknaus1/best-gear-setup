@@ -72,6 +72,9 @@ ROLE_BY_ID = {
     7551: "great olm (head)", 7550: "great olm (mage hand)", 7552: "great olm (melee hand)",
     14009: "the hueycoatl (head)", 14014: "the hueycoatl (tail)",
 }
+# NPCs the Wiki documents on another NPC's page: they keep their own name and tags, so the page's name still
+# finds the boss (the quest's Strange Creature is on the Phantom Muspah page).
+OWN_PAGE_NAMES = {"Strange Creature"}
 WARDEN_VERSIONS = {"active": "phase 2", "damaged": "phase 3", "enraged": "phase 3 enraged"}
 TOB_MODE_BY_ID = {**{i: "entry mode" for i in range(10830, 10837)}, **{i: "hard mode" for i in range(10847, 10854)}}
 # Nylocas Vasilias changes colour; each colour has its own NPC id and accepts one combat class.
@@ -120,7 +123,8 @@ def as_list(value):
 
 
 def attack_styles(row):
-    styles = [s.strip() for s in as_list(row.get("attack_style")) if s and s.strip()]
+    # "N/a" or "None" mark an NPC that doesn't attack (Xarth's corpses), not a style.
+    styles = [s.strip() for s in as_list(row.get("attack_style")) if s and s.strip().lower() not in ("", "n/a", "none")]
     labelled, plain = {}, None
     for hit in (str(h) for h in as_list(row.get("max_hit"))):
         match = re.match(r"\s*(\d[\d,]*)\s*(?:\((.*?)\))?", hit)
@@ -215,6 +219,8 @@ def records(row, bosses):
     if not ids or number(row.get("hitpoints"), None) is None or version and "challenge mode" in version.lower() or stub(row):
         # Challenge Mode variants come from the CoX scaling option applied to the normal stats.
         return []
+    if row.get("name") in OWN_PAGE_NAMES:
+        row = {**row, "page_name": row["name"]}
     page = row["page_name"].lower()
     name = page + (f" ({version.lower()})" if version else "")
     if ids[0] in ROLE_BY_ID:
