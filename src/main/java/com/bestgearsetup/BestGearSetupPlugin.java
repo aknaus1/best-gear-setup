@@ -1220,6 +1220,8 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				if (panel != null && generation == searchGeneration.get())
 				{
+					// The kept results belong to an earlier search; don't leave them beside the failure.
+					panel.clearResults("");
 					panel.showError("Search failed: " + e.getMessage());
 				}
 			});
