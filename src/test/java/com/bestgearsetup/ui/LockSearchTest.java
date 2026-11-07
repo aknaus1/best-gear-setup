@@ -65,6 +65,12 @@ public class LockSearchTest
 			}
 
 			@Override
+			public Map<Slot, SlotLock> getLocks()
+			{
+				return new EnumMap<>(Slot.class);
+			}
+
+			@Override
 			public void lockItem(GearItem item)
 			{
 				locked.add(item);
@@ -88,7 +94,7 @@ public class LockSearchTest
 			ring.doClick();
 			assertEquals(1, locked.size());
 			assertEquals(Slot.RING, locked.get(0).getSlot());
-			assertEquals("", search.getText());
+			assertEquals("The text stays for the next pick", "lightbear", search.getText());
 
 			panel.startLockSearch(Slot.HEAD);
 			search.setText("lightbear");

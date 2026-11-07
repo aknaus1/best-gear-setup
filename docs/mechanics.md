@@ -6,7 +6,7 @@ This page covers what the plugin assumes and what it enforces. For installation 
 ## Items, ownership and prices
 
 - **Owned items**: the plugin remembers your bank (once you've opened it), inventory and worn equipment,
-  per account. Anything you own costs nothing in a setup.
+  per account. Anything you own costs nothing in a setup. Bank placeholders don't count as owned.
 - Decorated equipment also counts as its base item, including Twisted ancestral. Ornament kits that can be
   removed and traded are tracked separately and included in the price of getting the item. Owning only the
   base item or only the kit doesn't give you a paid upgrade for free.
