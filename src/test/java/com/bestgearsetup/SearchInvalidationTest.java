@@ -3,6 +3,9 @@ package com.bestgearsetup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.data.MonsterSummary;
 import com.google.gson.Gson;
@@ -14,6 +17,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.SwingUtilities;
+import net.runelite.api.Item;
+import net.runelite.api.ItemContainer;
+import net.runelite.api.events.GameTick;
+import net.runelite.api.events.ItemContainerChanged;
+import net.runelite.api.gameval.InventoryID;
+import net.runelite.client.config.ConfigManager;
+import net.runelite.client.game.ItemManager;
 import net.runelite.http.api.RuneLiteAPI;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -186,6 +196,59 @@ public class SearchInvalidationTest
 		owned.rebuild(true);
 		plugin.invalidateIfOwnershipChanged();
 		assertEquals(1, reruns.get());
+	}
+
+	private static ItemContainer holding(Item... items)
+	{
+		ItemContainer container = mock(ItemContainer.class);
+		when(container.getItems()).thenReturn(items);
+		return container;
+	}
+
+	/** A search captured with an Abyssal whip carried, fed by real container events and game ticks. */
+	private void searchedWithWhipCarried()
+	{
+		ItemManager itemManager = mock(ItemManager.class);
+		when(itemManager.canonicalize(anyInt())).thenAnswer(call -> call.getArgument(0));
+		owned = new OwnedItems(mock(ConfigManager.class), itemManager);
+		owned.onContainerChanged(InventoryID.BANK, holding());
+		owned.onContainerChanged(InventoryID.INV, holding(new Item(4151, 1)));
+		plugin = new BestGearSetupPlugin()
+		{
+			@Override
+			public void rerun()
+			{
+				reruns.incrementAndGet();
+			}
+		};
+		plugin.ownedItems = owned;
+		plugin.searchOwned = owned.snapshot();
+		plugin.searchQuantities = owned.quantitySnapshot();
+		plugin.lastSearched = new MonsterSummary();
+		plugin.gearIds = ids(4151);
+	}
+
+	/** Depositing empties the inventory before the bank fills; between the two events the whip isn't owned. */
+	@Test
+	public void depositingGearDoesNotRerunTheSearch()
+	{
+		searchedWithWhipCarried();
+		plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.INV, holding()));
+		plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.BANK, holding(new Item(4151, 1))));
+		plugin.onGameTick(new GameTick());
+		assertEquals("The whip only moved to the bank", 0, reruns.get());
+	}
+
+	@Test
+	public void losingGearRerunsTheSearchOnceOnTheNextTick()
+	{
+		searchedWithWhipCarried();
+		plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.INV, holding()));
+		assertEquals("Compared only once the tick's events have landed", 0, reruns.get());
+		plugin.onGameTick(new GameTick());
+		assertEquals(1, reruns.get());
+		plugin.onGameTick(new GameTick());
+		assertEquals("A tick without container events compares nothing", 1, reruns.get());
 	}
 
 	/** A stack that returns to the searched size before settling needs no refresh. */

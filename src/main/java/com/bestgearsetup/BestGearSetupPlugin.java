@@ -87,6 +87,7 @@ import net.runelite.api.QuestState;
 import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.StatChanged;
@@ -231,6 +232,8 @@ public class BestGearSetupPlugin extends Plugin
 	javax.swing.Timer supplyRefresh;
 	/** How long a stack must stay unchanged before a quantity-only change reruns the search. */
 	int supplySettleMillis = 5000;
+	/** A container changed this tick; ownership is compared on the next game tick. Client thread only. */
+	private boolean ownershipChanged;
 	/** Read and written on the client thread only. */
 	private NPC lookupTarget;
 	/** Swing thread only: whether this run has started loading the bundled data. */
@@ -562,7 +565,8 @@ public class BestGearSetupPlugin extends Plugin
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
 		ownedItems.onContainerChanged(event.getContainerId(), event.getItemContainer());
-		invalidateIfOwnershipChanged();
+		// A deposit or an equip arrives as two container events; compare once both have landed.
+		ownershipChanged = true;
 		SwingUtilities.invokeLater(() ->
 		{
 			if (panel != null)
@@ -570,6 +574,17 @@ public class BestGearSetupPlugin extends Plugin
 				panel.updateOwnedStatus();
 			}
 		});
+	}
+
+	/** Client thread: the tick's container events have all been delivered, so moved items count in both places. */
+	@Subscribe
+	public void onGameTick(GameTick event)
+	{
+		if (ownershipChanged)
+		{
+			ownershipChanged = false;
+			invalidateIfOwnershipChanged();
+		}
 	}
 
 	/**
