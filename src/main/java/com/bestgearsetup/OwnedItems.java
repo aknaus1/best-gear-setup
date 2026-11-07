@@ -101,8 +101,7 @@ public class OwnedItems
 		Map<Integer, Long> ids = new HashMap<>();
 		for (Item item : container.getItems())
 		{
-			// Quantity 0 is a bank placeholder: not owned.
-			if (item.getId() > 0 && item.getQuantity() > 0)
+			if (holdsItem(item))
 			{
 				ids.merge(itemManager.canonicalize(item.getId()), (long) item.getQuantity(), Long::sum);
 			}
@@ -137,6 +136,16 @@ public class OwnedItems
 		}
 		configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, key, serialize(ids));
 		rebuild(itemsChanged);
+	}
+
+	/**
+	 * Whether a container slot holds a real item. A bank placeholder is not owned: it has quantity 0 and its
+	 * own placeholder id, which {@link ItemManager#canonicalize} would otherwise map back to the real item.
+	 */
+	private boolean holdsItem(Item item)
+	{
+		return item.getId() > 0 && item.getQuantity() > 0
+			&& itemManager.getItemComposition(item.getId()).getPlaceholderTemplateId() == -1;
 	}
 
 	public Set<Integer> getManual()
