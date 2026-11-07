@@ -3,7 +3,7 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
-## Unreleased
+## 1.1.2 (2026-11-07)
 
 - Keep Gear's searches open after adding a rule, so one search can add several items or spells. Suggestions drop
   what you just added, a lock suggestion says when it replaces the slot's current lock, and Escape clears a search.
