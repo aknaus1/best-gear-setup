@@ -273,6 +273,15 @@ public class CombatMechanicsTest
 	}
 
 	@Test
+	public void zoryasTomeScalesWithMagicLevel()
+	{
+		GearItem tome = weapon(34725, "zorya's tome", "powered staff", 3, "accurate,magic,accurate");
+		assertEquals(24, WeaponRules.poweredStaffMaxHit(tome, 99)); // floor(99 / 3) - 9.
+		assertEquals(19, WeaponRules.poweredStaffMaxHit(tome, 85));
+		assertEquals(18, WeaponRules.poweredStaffMaxHit(tome, 81));
+	}
+
+	@Test
 	public void demonbaneHonoursVulnerabilityAndScorchingBow()
 	{
 		Monster m = monster(100, 20, "demon");

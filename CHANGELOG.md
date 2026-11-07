@@ -13,6 +13,16 @@ is what the Plugin Hub shows.
   new best setup replaces both when the search finishes, so the bank layout no longer needs selecting again.
 - Depositing gear into the bank, or withdrawing it, no longer searches again: the item is still owned, it has
   only moved. Losing or gaining gear still updates the results, on the next game tick.
+- Zorya's tome's max hit now scales with Magic level, as the Wiki now gives it: floor(Magic / 3) - 9, so 24 at
+  99 Magic instead of a flat 18.
+- Refresh The Fractured Archive's NPCs from the Wiki, which corrected many of them after release: the grounded
+  Archive Guardian has 1,100 Hitpoints, Moia 1,900 and Xarth's corpses 62; Ezekiel has 200 Defence and Bork 10
+  crush defence; the undead binders and void augmenters have their full defences and elemental weaknesses; and
+  the Dagon'hai and the Smorks count as bosses. Ocellus's second phase is added now that the Wiki has its stats.
+- Refresh the other Wiki monster data. The quest's Strange Creature keeps its own name now that the Wiki lists it
+  on the Phantom Muspah page, so "phantom muspah" still finds the boss. Some variants take the names of the
+  Wiki's new version tabs: Brutus is now *quest*, *charging* and *post-quest*, and the Slayer-only Nechryael and
+  Waterfiend are *slayer tower basement* and *slayer task area*.
 
 ## 1.1.1 (2026-10-30)
 
