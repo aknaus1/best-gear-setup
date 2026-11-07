@@ -7,6 +7,8 @@ is what the Plugin Hub shows.
 
 - Keep Gear's searches open after adding a rule, so one search can add several items or spells. Suggestions drop
   what you just added, a lock suggestion says when it replaces the slot's current lock, and Escape clears a search.
+- Bank placeholders no longer count as owned items, so *Owned items only* searches don't suggest gear you've
+  only kept a placeholder for. Open your bank once to refresh a bank remembered by an earlier version.
 
 ## 1.1.1 (2026-10-30)
 
