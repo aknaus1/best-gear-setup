@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.SwingUtilities;
 import net.runelite.api.Item;
+import net.runelite.api.ItemComposition;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
@@ -210,6 +211,9 @@ public class SearchInvalidationTest
 	{
 		ItemManager itemManager = mock(ItemManager.class);
 		when(itemManager.canonicalize(anyInt())).thenAnswer(call -> call.getArgument(0));
+		ItemComposition notPlaceholder = mock(ItemComposition.class);
+		when(notPlaceholder.getPlaceholderTemplateId()).thenReturn(-1);
+		when(itemManager.getItemComposition(anyInt())).thenReturn(notPlaceholder);
 		owned = new OwnedItems(mock(ConfigManager.class), itemManager);
 		owned.onContainerChanged(InventoryID.BANK, holding());
 		owned.onContainerChanged(InventoryID.INV, holding(new Item(4151, 1)));
