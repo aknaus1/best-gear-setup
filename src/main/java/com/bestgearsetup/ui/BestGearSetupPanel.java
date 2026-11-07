@@ -665,9 +665,14 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 	}
 
+	/**
+	 * A search started. The previous results and the bank layout stay as they are until the new results
+	 * replace them, so the sidebar doesn't empty and an open gear layout isn't dropped while searching.
+	 */
 	public void showSearching(MonsterSummary monster)
 	{
-		clearResults("Searching setups for " + monster.getDisplayName() + "...");
+		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		statusLabel.setText(html(escape("Searching setups for " + monster.getDisplayName() + "...")));
 		progressBar.setValue(0);
 		progressRow.setVisible(true);
 	}
@@ -701,10 +706,14 @@ public class BestGearSetupPanel extends PluginPanel
 			.collect(Collectors.joining("<br>"));
 	}
 
+	/** Replace the previous results; the new best setup takes over the bank layout in place. */
 	public void showResults(SearchResults found)
 	{
 		progressRow.setVisible(false);
-		plugin.setBankHighlightedSetup(null);
+		if (found.isEmpty())
+		{
+			plugin.setBankHighlightedSetup(null);
+		}
 		resultsPanel.removeAll();
 		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 
