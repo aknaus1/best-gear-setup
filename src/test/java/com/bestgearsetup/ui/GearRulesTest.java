@@ -149,7 +149,7 @@ public class GearRulesTest
 			assertEquals("Lightbearer (Ring)", suggestion.getText());
 			suggestion.doClick();
 			assertTrue(excluded.contains(lightbearer.getId()));
-			assertEquals("", search.getText());
+			assertEquals("The text stays for the next pick", "lightbear", search.getText());
 
 			search.setText("lightbear");
 			assertFalse("Excluded items aren't offered again", button(suggestions, "Lightbearer") != null);
