@@ -3,6 +3,13 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- A slot locked to an item you don't own is now worn in *Owned items only* and *Inventory + equipped only*
+  searches instead of being left empty (or, for a weapon, finding no setup at all). The rest of the setup still
+  uses only what you own, and the locked item still costs its price, so the result shows what buying it would
+  cost. *Owned + budget* is unchanged: a lock you don't own must still fit the budget.
+
 ## 1.1.2 (2026-11-07)
 
 - Keep Gear's searches open after adding a rule, so one search can add several items or spells. Suggestions drop
