@@ -1572,7 +1572,8 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		if (settings.isRequireAtlatlAmmoRecovery())
 		{
-			notes.add("Eclipse atlatl needs an Ava's device, an assembler cape or Dizana's quiver.");
+			notes.add("Ranged attacks firing ammo an Ava's device recovers require an Ava's device, an assembler cape or "
+				+ "Dizana's quiver; special-attack switches are exempt.");
 		}
 		String statusNote = statusNote(base);
 		if (statusNote != null)
