@@ -7,13 +7,32 @@ This page covers what the plugin assumes and what it enforces. For installation 
 
 - **Owned items**: the plugin remembers your bank (once you've opened it), inventory and worn equipment,
   per account. Anything you own costs nothing in a setup. Bank placeholders don't count as owned.
+- **Other storage**: with [Dude, Where's My Stuff?](https://runelite.net/plugin-hub/show/dude-wheres-my-stuff)
+  (DWMS) enabled, the gear it has recorded counts as owned too: STASH units, POH storage (the costume room's
+  boxes, armour case, magic wardrobe, cape rack, toy box and treasure chests, and the spice rack), active
+  deathbanks and death piles, group storage, bags and sailing storage. DWMS's own copies of the bank,
+  inventory and equipment are skipped, since those are read directly, as are log storage, pets, mounted POH
+  displays, coin counters and minigame points. Visit a storage once so DWMS has its contents; these are DWMS's
+  records, so a storage's retrieval rules or a deathbank's fee still apply. Hovering an item in a result lists
+  where it is ("Bank", "POH: Toy Box", "STASH: ..."), and **Search details** says whether DWMS is connected.
+  The plugin asks DWMS through its [plugin-message interface](https://github.com/Thource/dude-wheres-my-stuff/blob/2f636ab8f75400219b6e35dd0412b42f510e528a/src/main/java/dev/thource/runelite/dudewheresmystuff/DudeWheresMyStuffPlugin.java)
+  (version 1), with no dependency on that plugin: after the bank, inventory or equipment changes (storing or
+  retrieving an item moves it through the inventory) and otherwise about every 30 seconds. Each reply replaces
+  the whole set, so emptied storage drops out; no reply clears it. Logging out clears it (another account may
+  log in), a world hop keeps it. *Inventory + equipped only* ignores other storage.
+- **Moving items**: a deposit, withdrawal or equip arrives as one container update per side, sometimes on
+  different game ticks, so in between the item looks lost or doubled. The bank, inventory and worn equipment
+  (and DWMS's reply, when it was asked) are added up every tick, and a new total is only used once the next
+  tick sees the same total. Moving gear therefore doesn't search again, even when its two updates land on
+  consecutive ticks, and a real gain or loss updates the results one game tick (0.6 seconds) later than it
+  otherwise would.
 - Decorated equipment also counts as its base item, including Twisted ancestral. Ornament kits that can be
   removed and traded are tracked separately and included in the price of getting the item. Owning only the
   base item or only the kit doesn't give you a paid upgrade for free.
 - **Four modes**
   - *Owned items only*: only gear you already have.
-  - *Inventory + equipped only*: only what you're carrying right now, in your inventory or worn. Your bank
-    and items marked as owned by hand are ignored, so it suits picking a setup when you're already at the
+  - *Inventory + equipped only*: only what you're carrying right now, in your inventory or worn. Your bank,
+    other storage and items marked as owned by hand are ignored, so it suits picking a setup when you're already at the
     fight. It works without opening your bank, and withdrawing or dropping gear runs the search again.
   - *Owned + budget*: your gear plus anything you can buy within the budget (e.g. `50m`).
     Untradeable items are only used if you own them, unless they can be bought as tradeable components.
