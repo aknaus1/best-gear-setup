@@ -2,11 +2,20 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
 
 /** Equipment predicates shared by calculation and optimizer set seeds. */
 final class EquipmentEffects
 {
+	private static final NameLists.NameList TWO_HIT = NameLists.list("two-hit weapons");
+	private static final NameLists.NameList RAT_WEAPONS = NameLists.list("rat weapons");
+	private static final NameLists.NameList WILDERNESS_MELEE = NameLists.list("wilderness melee weapons");
+	private static final NameLists.NameList WILDERNESS_RANGED = NameLists.list("wilderness ranged weapons");
+	private static final NameLists.NameList WILDERNESS_MAGIC = NameLists.list("wilderness magic weapons");
+	private static final NameLists.NameTable PICKAXE_BONUS = NameLists.table("guardian pickaxe bonus");
+	private static final NameLists.NameTable VAMPYREBANE_DAMAGE = NameLists.table("vampyrebane damage percent");
+
 	private EquipmentEffects()
 	{
 	}
@@ -63,14 +72,13 @@ final class EquipmentEffects
 	static boolean twoHit(GearItem w)
 	{
 		String name = EncounterDamage.lower(w);
-		return name.startsWith("torag's hammers") || name.equals("sulphur blades")
-			|| name.equals("glacial temotli") || name.equals("earthbound tecpatl");
+		return TWO_HIT.matches(name);
 	}
 
 	static boolean ratWeapon(GearItem w)
 	{
 		String name = EncounterDamage.lower(w);
-		return name.equals("bone mace") || name.equals("bone shortbow") || name.equals("bone staff");
+		return RAT_WEAPONS.matches(name);
 	}
 
 	static boolean wildernessWeapon(Loadout l, CombatContext ctx)
@@ -81,15 +89,8 @@ final class EquipmentEffects
 			return false;
 		}
 		CombatClass cls = WeaponRules.classOf(l.getStyle());
-		switch (cls)
-		{
-			case MELEE:
-				return name.startsWith("ursine chainmace") || name.startsWith("viggora's chainmace");
-			case RANGED:
-				return name.startsWith("craw's bow") || name.startsWith("webweaver bow");
-			default:
-				return name.startsWith("thammaron's sceptre") || name.startsWith("accursed sceptre");
-		}
+		return (cls == CombatClass.MELEE ? WILDERNESS_MELEE : cls == CombatClass.RANGED ? WILDERNESS_RANGED
+			: WILDERNESS_MAGIC).matches(name);
 	}
 
 	static boolean vampyre(CombatContext ctx)
@@ -116,20 +117,14 @@ final class EquipmentEffects
 			}
 			if (EncounterDamage.guardian(ctx.getMonster()))
 			{
-				int pick = weapon.startsWith("bronze") || weapon.startsWith("iron") ? 1
-					: weapon.startsWith("steel") ? 6 : weapon.startsWith("black") ? 11
-					: weapon.startsWith("mithril") ? 21 : weapon.startsWith("adamant") ? 31
-					: weapon.startsWith("rune") || weapon.startsWith("gilded") ? 41 : 61;
+				int pick = PICKAXE_BONUS.get(weapon, 61);
 				hit = hit * (50 + Math.max(1, Math.min(99, ctx.getModifiers().getMiningLevel())) + pick) / 150;
 			}
 		}
 		if (vampyre(ctx))
 		{
-			int percent = weapon.startsWith("blisterwood flail") || weapon.startsWith("hallowed flail")
-				|| weapon.startsWith("blisterwood stake") ? 125 : weapon.equals("sunspear") ? 150
-				: weapon.startsWith("blisterwood sickle") ? 115 : weapon.startsWith("ivandis flail") ? 120
-				: weapon.startsWith("rod of ivandis") ? 110
-				: ctx.getMonster().hasAttribute("vampyre (t1)") && EncounterImmunities.silver(l) ? 110 : 100;
+			int percent = VAMPYREBANE_DAMAGE.get(weapon,
+				ctx.getMonster().hasAttribute("vampyre (t1)") && EncounterImmunities.silver(l) ? 110 : 100);
 			if (percent != 100)
 			{
 				if (named(l, Slot.RING, "efaritay's aid"))

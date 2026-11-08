@@ -2,6 +2,7 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
+import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
 import java.util.regex.Pattern;
 
@@ -11,6 +12,7 @@ public final class DragonfireProtection
 	// Compiled once: the search checks protection for every setup it scores.
 	private static final Pattern METAL_DRAGON = Pattern.compile("(bronze|iron|steel|mithril|adamant|rune) dragon.*");
 	private static final Pattern CHROMATIC_DRAGON = Pattern.compile("(green|blue|red|black|lava|frost|reanimated) dragon.*");
+	private static final NameLists.NameList PROTECTIVE_SHIELDS = NameLists.list("protective shields");
 
 	private DragonfireProtection()
 	{
@@ -23,10 +25,7 @@ public final class DragonfireProtection
 
 	static boolean isProtectiveShield(GearItem item)
 	{
-		String n = item == null ? "" : item.getLowerCombatName();
-		return n.startsWith("anti-dragon shield") || n.startsWith("dragonfire shield")
-			|| n.startsWith("dragonfire ward") || n.startsWith("ancient wyvern shield")
-			|| n.equals("elemental shield") || n.equals("mind shield");
+		return item != null && PROTECTIVE_SHIELDS.matches(item.getLowerCombatName());
 	}
 
 	private static boolean wyvern(Monster monster)

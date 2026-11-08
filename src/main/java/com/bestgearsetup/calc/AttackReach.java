@@ -2,13 +2,15 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
-import java.util.regex.Pattern;
+import com.bestgearsetup.data.NameLists;
+import java.util.Map;
 
 /** Tile reach and encounter restrictions, separate from damage and accuracy. */
 public final class AttackReach
 {
-	private static final Pattern METAL_CROSSBOW =
-		Pattern.compile("(bronze|blurite|iron|steel|mithril|adamant|rune|dragon) crossbow.*");
+	/** Base range by weapon subcategory and name. */
+	private static final Map<String, NameLists.NameTable> REACH = NameLists.tables("attack reach");
+	private static final NameLists.NameList FLYING = NameLists.list("flying monsters");
 
 	private AttackReach()
 	{
@@ -83,10 +85,7 @@ public final class AttackReach
 		return monster.hasAttribute("flying") || id >= 3162 && id <= 3165
 			|| id >= 3169 && id <= 3183 || id == 7037 || id == 12443 || id == 6492 || id == 15697
 			|| id == 7850 || id == 7852 || id == 7853 || id == 7884 || id == 7885
-			|| id == 15623 || id == 15635 || named(monster, "kree'arra")
-			|| named(monster, "wingman skree") || named(monster, "flockleader geerin")
-			|| named(monster, "flight kilisa") || named(monster, "aviansie")
-			|| named(monster, "reanimated aviansie") || named(monster, "dawn");
+			|| id == 15623 || id == 15635 || FLYING.matches(monster.getLowerName().replace('\u2019', '\''));
 	}
 
 	private static boolean named(Monster monster, String target)
@@ -189,103 +188,13 @@ public final class AttackReach
 	static int baseRange(GearItem weapon)
 	{
 		String name = weapon.getLowerCombatName().replace("corrupted ", "");
-		switch (weapon.getSubcategory())
+		String subcategory = weapon.getSubcategory();
+		if (subcategory.equals("thrown") && weapon.getId() == 28919 && name.startsWith("tonalztics of ralos"))
 		{
-			case "powered staff":
-				if (name.startsWith("tumeken's shadow"))
-				{
-					return 10;
-				}
-				if (name.startsWith("eye of ayak"))
-				{
-					return 6;
-				}
-				if (name.equals("dawnbringer") || name.startsWith("trident of") || name.startsWith("sanguinesti staff")
-					|| name.startsWith("holy sanguinesti staff") || name.startsWith("warped sceptre")
-					|| name.startsWith("bone staff") || name.startsWith("thammaron's sceptre")
-					|| name.startsWith("accursed sceptre") || name.startsWith("zorya's tome"))
-				{
-					return 7;
-				}
-				return 0;
-			case "bow":
-				if (name.contains("longbow") || name.contains(" comp bow") || name.startsWith("dark bow")
-					|| name.startsWith("twisted bow") || name.startsWith("crystal bow")
-					|| name.startsWith("bow of faerdhinen") || name.equals("ogre bow"))
-				{
-					return 10;
-				}
-				if (name.startsWith("3rd age bow") || name.startsWith("craw's bow") || name.startsWith("webweaver bow"))
-				{
-					return 9;
-				}
-				if (name.startsWith("venator bow") || name.startsWith("eclipse atlatl"))
-				{
-					return 6;
-				}
-				if (name.contains("shortbow") || name.equals("seercull") || name.startsWith("scorching bow"))
-				{
-					return 7;
-				}
-				if (name.equals("comp ogre bow"))
-				{
-					return 5;
-				}
-				return 0;
-			case "crossbow":
-				if (name.equals("crossbow"))
-				{
-					return 10;
-				}
-				if (name.startsWith("phoenix crossbow"))
-				{
-					return 5;
-				}
-				if (name.startsWith("dorgeshuun crossbow") || name.startsWith("ascension crossbows"))
-				{
-					return 6;
-				}
-				if (name.startsWith("karil's crossbow") || name.startsWith("armadyl crossbow")
-					|| name.startsWith("zaryte crossbow") || name.startsWith("hunters'"))
-				{
-					return 8;
-				}
-				if (name.equals("light ballista") || name.equals("heavy ballista"))
-				{
-					return 9;
-				}
-				if (name.startsWith("dragon hunter crossbow"))
-				{
-					return 7;
-				}
-				if (METAL_CROSSBOW.matcher(name).matches())
-				{
-					return 7;
-				}
-				return 0;
-			case "chinchompa":
-				return 9;
-			case "thrown":
-				if (name.startsWith("toxic blowpipe") || name.startsWith("camphor blowpipe")
-					|| name.startsWith("ironwood blowpipe") || name.startsWith("rosewood blowpipe"))
-				{
-					return 5;
-				}
-				if (name.startsWith("tonalztics of ralos"))
-				{
-					return weapon.getId() == 28919 || name.contains("uncharged") ? 6 : 7;
-				}
-				if (name.contains(" dart"))
-				{
-					return 3;
-				}
-				if (name.contains(" knife") || name.contains("thrownaxe") || name.contains("throwing axe"))
-				{
-					return 4;
-				}
-				return 0;
-			default:
-				return 0;
+			// The uncharged Tonalztics shares the charged item's name.
+			return 6;
 		}
+		NameLists.NameTable ranges = REACH.get(subcategory);
+		return ranges == null ? 0 : ranges.get(name, 0);
 	}
 }

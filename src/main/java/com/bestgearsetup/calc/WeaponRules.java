@@ -2,6 +2,7 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 
@@ -10,6 +11,9 @@ import com.bestgearsetup.data.Slot;
  */
 public final class WeaponRules
 {
+	private static final NameLists.NameTable SALAMANDER_BONUS = NameLists.table("salamander magic bonus");
+	private static final NameLists.NameList RECOVERY_CAPES = NameLists.list("ammo recovery capes");
+
 	private WeaponRules()
 	{
 	}
@@ -28,9 +32,7 @@ public final class WeaponRules
 	public static int salamanderMaxHit(GearItem weapon, int magic)
 	{
 		String name = EncounterDamage.lower(weapon);
-		int bonus = name.equals("swamp lizard") ? 56 : name.equals("orange salamander") ? 59
-			: name.equals("red salamander") ? 77 : name.equals("black salamander") ? 92
-			: name.equals("tecu salamander") ? 104 : -1;
+		int bonus = SALAMANDER_BONUS.get(name, -1);
 		return bonus < 0 ? -1 : (magic * (bonus + 64) + 320) / 640;
 	}
 
@@ -188,11 +190,7 @@ public final class WeaponRules
 		{
 			return false;
 		}
-		String name = item.getLowerCombatName();
-		return name.startsWith("ava's attractor") || name.startsWith("ava's accumulator")
-			|| name.startsWith("ava's assembler") || name.startsWith("assembler max cape")
-			|| name.startsWith("masori assembler") || name.startsWith("dizana's quiver")
-			|| name.startsWith("blessed dizana's quiver");
+		return RECOVERY_CAPES.matches(item.getLowerCombatName());
 	}
 
 	/**

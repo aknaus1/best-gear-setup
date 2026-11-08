@@ -1,6 +1,7 @@
 package com.bestgearsetup;
 
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.NameLists;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,7 +27,7 @@ public final class ItemCosts
 	 * (broken) page. Ancient sceptres also charge the ancient staff's current price, which their acquisition
 	 * price already covers.
 	 */
-	private static final Map<String, Long> REPAIR_COSTS = repairCosts();
+	private static final Map<String, Integer> REPAIR_COSTS = NameLists.exact("pvp repair fees");
 
 	private ItemCosts()
 	{
@@ -48,48 +49,6 @@ public final class ItemCosts
 		return Collections.unmodifiableMap(costs);
 	}
 
-	private static Map<String, Long> repairCosts()
-	{
-		Map<String, Long> costs = new HashMap<>();
-		repair(costs, 150_000, "fire cape", "fire max cape", "fighter torso");
-		repair(costs, 225_000, "infernal cape", "infernal max cape");
-		repair(costs, 240_000, "ava's assembler", "assembler max cape", "masori assembler",
-			"masori assembler max cape", "dragon defender");
-		repair(costs, 96_000, "imbued guthix cape", "imbued saradomin cape", "imbued zamorak cape");
-		repair(costs, 99_000, "imbued guthix max cape", "imbued saradomin max cape", "imbued zamorak max cape");
-		repair(costs, 1_000, "bronze defender");
-		repair(costs, 2_000, "iron defender");
-		repair(costs, 2_500, "steel defender");
-		repair(costs, 5_000, "black defender");
-		repair(costs, 15_000, "mithril defender");
-		repair(costs, 25_000, "adamant defender");
-		repair(costs, 35_000, "rune defender");
-		repair(costs, 600_000, "avernic defender");
-		repair(costs, 160_000, "void melee helm", "void mage helm", "void ranger helm");
-		repair(costs, 180_000, "void knight top", "void knight robe");
-		repair(costs, 250_000, "elite void top", "elite void robe");
-		repair(costs, 120_000, "void knight gloves");
-		repair(costs, 20_000, "void knight mace", "penance skirt");
-		repair(costs, 25_000, "guthix halo", "saradomin halo", "zamorak halo", "armadyl halo", "bandos halo",
-			"seren halo", "ancient halo", "brassica halo");
-		repair(costs, 45_000, "fighter hat", "ranger hat", "healer hat");
-		repair(costs, 40_005, "runner hat");
-		repair(costs, 10_500, "barronite mace");
-		repair(costs, 200_000, "blood ancient sceptre", "smoke ancient sceptre", "ice ancient sceptre",
-			"shadow ancient sceptre");
-		repair(costs, 270_000, "dizana's quiver");
-		repair(costs, 400_000, "blessed dizana's quiver", "dizana's max cape");
-		return Collections.unmodifiableMap(costs);
-	}
-
-	private static void repair(Map<String, Long> costs, long fee, String... names)
-	{
-		for (String name : names)
-		{
-			costs.put(name, fee);
-		}
-	}
-
 	/**
 	 * Coins needed to repair the item after an unprotected PvP death, or 0 if it doesn't break. Variants share
 	 * their base item's catalogue name, so a trimmed dragon defender pays the fee as well as losing its kit.
@@ -101,7 +60,7 @@ public final class ItemCosts
 		{
 			return 5_000;
 		}
-		return REPAIR_COSTS.getOrDefault(name, 0L);
+		return REPAIR_COSTS.getOrDefault(name, 0);
 	}
 
 	/** Component quantities, including consumed upgrades absent from RuneLite's resale mappings. */
