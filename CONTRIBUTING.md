@@ -58,6 +58,20 @@ requests one at a time with `maxlag`, follows the server's retry instructions, a
 error rather than overwriting a cache or snapshot. After regenerating, update the retrieval dates and counts
 in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (and its `META-INF` copy).
 
+Two tables are maintained by hand instead, so the code keeps only the rules that read them:
+
+- `name-lists.json`: item and monster name lists and name-keyed values (weapon reach, Slayer equipment, silver
+  and demonbane weapons, repair fees and so on). Each class reads its entries by name, through `NameLists`.
+- `special-attacks.json`: the damaging special attacks, tried in order.
+
+Names are lower case. A pattern is an exact name, or uses `*` for any text (`dragon dagger*`, `*sickle*`), and
+`kraken (*)` matches `kraken` alone or with a version. New data belongs in these files rather than in code; keep
+IDs that RuneLite provides as `ItemID`/`NpcID` constants in code. `NameListsTest` fails if code asks for a name
+the files don't have.
+`NameRulesParityTest` and `SpecialAttackParityTest` compare both files with the original hand-written rules,
+kept as `Legacy*` test classes, over every bundled item and monster. A deliberate data change updates the
+matching `Legacy*` rule in the same commit.
+
 ## Releasing
 
 1. Set the same version in `runelite-plugin.properties` (`version=`, which the Plugin Hub shows) and in

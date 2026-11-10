@@ -8,6 +8,7 @@ import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
+import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
 import java.util.ArrayList;
@@ -73,16 +74,9 @@ public class Optimizer
 	/** Weight that makes the calc-mode metric dominate DPS, which only breaks ties. */
 	private static final double PRIMARY_WEIGHT = 1e6;
 
-	private static final String[] SPECIAL_PREFIXES = {
-		"void ", "elite void", "slayer helmet", "black mask", "salve amulet", "obsidian helmet",
-		"obsidian platebody", "obsidian platelegs", "berserker necklace", "inquisitor's", "crystal helm",
-		"crystal body", "crystal legs", "eclipse moon",
-		"blood moon", "dharok's", "verac's", "ahrim's", "karil's", "amulet of the damned", "crystal blessing",
-		"virtus", "tome of", "chaos gauntlets", "brimstone ring", "confliction gauntlets", "amulet of avarice",
-		"efaritay's aid", "elemental amulet", "amulet of air", "amulet of water", "amulet of earth", "amulet of fire",
-		"saradomin cape", "guthix cape", "zamorak cape", "imbued saradomin", "imbued guthix", "imbued zamorak",
-		"serpentine helm", "tanzanite helm", "magma helm", "dizana's", "blessed dizana's",
-	};
+	/** Gear whose effects the calculator reads by name, so it stays a candidate whatever its bonuses. */
+	private static final NameLists.NameList SPECIAL_GEAR = NameLists.list("special gear");
+	private static final NameLists.NameList MAGIC_ONLY_GEAR = NameLists.list("magic-only gear");
 
 	private final GameData data;
 	private final CombatContext ctx;
@@ -1938,10 +1932,7 @@ public class Optimizer
 		{
 			return cls == CombatClass.MAGIC;
 		}
-		if (name.startsWith("virtus ") || name.startsWith("tome of ") || name.startsWith("elemental amulet")
-			|| name.startsWith("amulet of air") || name.startsWith("amulet of water") || name.startsWith("amulet of earth")
-			|| name.startsWith("amulet of fire") || name.startsWith("chaos gauntlets")
-			|| name.startsWith("confliction gauntlets") || name.startsWith("brimstone ring"))
+		if (MAGIC_ONLY_GEAR.matches(name))
 		{
 			return cls == CombatClass.MAGIC;
 		}
@@ -2057,14 +2048,7 @@ public class Optimizer
 
 	private static boolean specialName(String n)
 	{
-		for (String p : SPECIAL_PREFIXES)
-		{
-			if (n.startsWith(p))
-			{
-				return true;
-			}
-		}
-		return false;
+		return SPECIAL_GEAR.matches(n);
 	}
 
 	private List<GearItem> weapons(CombatClass cls)

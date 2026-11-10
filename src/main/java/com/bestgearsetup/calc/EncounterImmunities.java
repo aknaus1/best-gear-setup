@@ -3,11 +3,16 @@ package com.bestgearsetup.calc;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.Monster;
+import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
 
 /** Combat-class and equipment requirements shared by search filtering and direct DPS scoring. */
 final class EncounterImmunities
 {
+	private static final NameLists.NameList BROAD_AMMUNITION = NameLists.list("broad ammunition");
+	private static final NameLists.NameList VAMPYREBANE_MELEE = NameLists.list("vampyrebane melee weapons");
+	private static final NameLists.NameList SILVER_MELEE = NameLists.list("silver melee weapons");
+
 	/** Slot.values() copies the array on every call, and every scored setup is checked. */
 	private static final Slot[] SLOTS = Slot.values();
 
@@ -108,7 +113,7 @@ final class EncounterImmunities
 			boolean leaf = cls == CombatClass.MELEE && weapon.startsWith("leaf-bladed ")
 				|| cls == CombatClass.MAGIC && EncounterDamage.spell(loadout).equals("magic dart")
 				|| cls == CombatClass.RANGED && WeaponRules.firesAmmoSlot(loadout.getWeapon())
-				&& (ammo.startsWith("broad ") || ammo.startsWith("amethyst broad ") || ammo.startsWith("seeking broad "));
+				&& BROAD_AMMUNITION.matches(ammo);
 			if (!leaf)
 			{
 				return false;
@@ -133,9 +138,7 @@ final class EncounterImmunities
 		{
 			return true;
 		}
-		return (!tierThree || loadout.getStyle().isMelee()) && (weapon.startsWith("ivandis flail")
-			|| weapon.startsWith("blisterwood sickle") || weapon.startsWith("blisterwood flail")
-			|| weapon.startsWith("hallowed flail") || weapon.equals("sunspear")
+		return (!tierThree || loadout.getStyle().isMelee()) && (VAMPYREBANE_MELEE.matches(weapon)
 			|| !tierThree && weapon.startsWith("rod of ivandis"));
 	}
 
@@ -148,10 +151,6 @@ final class EncounterImmunities
 				&& EncounterDamage.lower(loadout.get(Slot.AMMO)).startsWith("silver bolts");
 		}
 		String weapon = EncounterDamage.lower(loadout.getWeapon());
-		return loadout.getStyle().isMelee() && (weapon.startsWith("silver sickle") || weapon.contains("emerald sickle")
-			|| weapon.contains("ruby sickle") || weapon.equals("blessed axe") || weapon.equals("wolfbane")
-			|| weapon.startsWith("silverlight") || weapon.startsWith("darklight") || weapon.startsWith("arclight")
-			|| weapon.startsWith("ivandis flail") || weapon.startsWith("rod of ivandis")
-			|| weapon.startsWith("blisterwood") || weapon.startsWith("hallowed flail"));
+		return loadout.getStyle().isMelee() && SILVER_MELEE.matches(weapon);
 	}
 }

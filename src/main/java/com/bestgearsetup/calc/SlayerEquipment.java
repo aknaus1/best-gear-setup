@@ -2,71 +2,43 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
+import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Predicate;
 
 /**
  * Protective equipment some Slayer monsters require, on or off task: without it they drain stats and hit
- * constantly, or can't be damaged at all, so no unprotected setup is usable. Each rule follows the monster's
- * OSRS Wiki page; superior variants share their base monster's rule. Requirements that are only recommended
+ * constantly, or can't be damaged at all, so no unprotected setup is usable. The rules are bundled in
+ * name-lists.json; superior variants share their base monster's rule. Requirements that are only recommended
  * (insulated boots, slayer gloves, witchwood icon) or only needed to start a fight (wall beasts) are notes.
  */
 public final class SlayerEquipment
 {
-	private static final Predicate<String> SLAYER_HELMET = n -> n.contains("slayer helmet");
-	private static final Predicate<String> KARUULM_ONLY = names(
-		"hydra", "colossal hydra", "alchemical hydra", "drake", "guardian drake", "sulphur lizard");
-	private static final Predicate<String> WYRMS = names("wyrm", "shadow wyrm");
-	private static final List<Rule> RULES = Collections.unmodifiableList(Arrays.asList(
-		new Rule(Slot.HEAD, "a facemask or slayer helmet", false,
-			names("dust devil", "choke devil", "smoke devil", "nuclear smoke devil", "thermonuclear smoke devil"),
-			SLAYER_HELMET.or(n -> n.equals("facemask"))),
-		new Rule(Slot.HEAD, "earmuffs or a slayer helmet", false,
-			names("banshee", "twisted banshee", "screaming banshee", "screaming twisted banshee"),
-			SLAYER_HELMET.or(n -> n.equals("earmuffs"))),
-		new Rule(Slot.HEAD, "a nose peg or slayer helmet", false,
-			names("aberrant spectre", "deviant spectre", "abhorrent spectre", "repugnant spectre"),
-			SLAYER_HELMET.or(n -> n.equals("nose peg"))),
-		new Rule(Slot.HEAD, "reinforced goggles or a slayer helmet", false, n -> n.equals("sourhog"),
-			SLAYER_HELMET.or(n -> n.equals("reinforced goggles"))),
-		// During A Porcine of Interest Spria hands over the goggles first; slayer helmets only gain their
-		// protection when the quest is complete, so the quest's sourhog needs the goggles themselves.
-		new Rule(Slot.HEAD, "reinforced goggles", false, n -> n.equals("sourhog (a porcine of interest)"),
-			n -> n.equals("reinforced goggles")),
-		new Rule(Slot.SHIELD, "a mirror shield or V's shield", false,
-			names("basilisk", "basilisk knight", "basilisk sentinel", "monstrous basilisk", "cockatrice", "cockathrice"),
-			n -> n.equals("mirror shield") || n.equals("v's shield")),
-		// The Wiki names only the mirror shield for younglings.
-		new Rule(Slot.SHIELD, "a mirror shield", false, names("basilisk youngling"), n -> n.equals("mirror shield")),
-		new Rule(Slot.SHIELD, "a lit bug lantern", false, names("harpie bug swarm"), n -> n.equals("lit bug lantern")),
-		// Wyrms share this rule only when the search location is Karuulm.
-		new Rule(Slot.FEET, "boots of stone, boots of brimstone or granite boots", true,
-			KARUULM_ONLY.or(WYRMS),
-			n -> n.equals("boots of stone") || n.equals("boots of brimstone") || n.equals("granite boots"))));
+	private static final NameLists.NameList KARUULM_ONLY = NameLists.list("karuulm monsters");
+	private static final NameLists.NameList WYRMS = NameLists.list("wyrms");
+	/** One rule per row of name-lists.json's "slayer equipment", each from the monster's OSRS Wiki page. */
+	private static final List<Rule> RULES = rules();
 
 	private SlayerEquipment()
 	{
 	}
 
-	/** Names equal to one of the bases or a base followed by a parenthesised version. */
-	private static Predicate<String> names(String... bases)
+	private static List<Rule> rules()
 	{
-		return n ->
+		List<Rule> rules = new ArrayList<>();
+		for (JsonElement element : NameLists.rows("slayer equipment"))
 		{
-			for (String base : bases)
-			{
-				if (EncounterDamage.versionOf(n, base))
-				{
-					return true;
-				}
-			}
-			return false;
-		};
+			JsonObject row = element.getAsJsonObject();
+			rules.add(new Rule(Slot.valueOf(row.get("slot").getAsString()), row.get("items").getAsString(),
+				row.has("karuulm") && row.get("karuulm").getAsBoolean(), NameLists.NameList.of(row.get("monsters")),
+				NameLists.NameList.of(row.get("gear"))));
+		}
+		return Collections.unmodifiableList(rules);
 	}
 
 	/** The rules this target imposes under these settings. */
@@ -76,7 +48,7 @@ public final class SlayerEquipment
 		List<Rule> out = new ArrayList<>();
 		for (Rule rule : RULES)
 		{
-			if (rule.monster.test(name)
+			if (rule.monster.matches(name)
 				&& !(rule.karuulm && (settings.isKourendEliteDiary() || !inKaruulm(monster, settings))))
 			{
 				out.add(rule);
@@ -89,13 +61,13 @@ public final class SlayerEquipment
 	public static boolean inKaruulm(Monster monster)
 	{
 		String name = monster.getLowerName();
-		return KARUULM_ONLY.test(name);
+		return KARUULM_ONLY.matches(name);
 	}
 
 	/** Whether heat-protection boots apply at this search's target location, before the diary exemption. */
 	public static boolean inKaruulm(Monster monster, OptimizerSettings settings)
 	{
-		return inKaruulm(monster) || settings.isKaruulmDungeon() && WYRMS.test(monster.getLowerName());
+		return inKaruulm(monster) || settings.isKaruulmDungeon() && WYRMS.matches(monster.getLowerName());
 	}
 
 	/** Whether the target requires protective equipment in any slot. */
@@ -168,12 +140,12 @@ public final class SlayerEquipment
 		{
 			notes.add("Karuulm Slayer Dungeon: no heat-protection boots needed (Elite Kourend & Kebos Diary complete).");
 		}
-		if (WYRMS.test(name) && !inKaruulm(monster, settings))
+		if (WYRMS.matches(name) && !inKaruulm(monster, settings))
 		{
 			notes.add("Wyrms in the Karuulm Slayer Dungeon need boots of stone, boots of brimstone or granite boots"
 				+ " (unless the Elite Kourend & Kebos Diary is complete); Wyrmscraig wyrms don't, so boots are not enforced.");
 		}
-		if (names("wall beast").test(name))
+		if (EncounterDamage.versionOf(name, "wall beast"))
 		{
 			notes.add("Wall beasts: a spiny helmet or slayer helmet is needed only to start the fight, so the head slot"
 				+ " is not restricted.");
@@ -187,10 +159,10 @@ public final class SlayerEquipment
 		private final String items;
 		/** Waived by the Elite Kourend & Kebos Diary. */
 		private final boolean karuulm;
-		private final Predicate<String> monster;
-		private final Predicate<String> item;
+		private final NameLists.NameList monster;
+		private final NameLists.NameList item;
 
-		private Rule(Slot slot, String items, boolean karuulm, Predicate<String> monster, Predicate<String> item)
+		private Rule(Slot slot, String items, boolean karuulm, NameLists.NameList monster, NameLists.NameList item)
 		{
 			this.slot = slot;
 			this.items = items;
@@ -201,7 +173,7 @@ public final class SlayerEquipment
 
 		private boolean satisfiedBy(GearItem worn)
 		{
-			return worn != null && (worn.getSlot() == null || worn.getSlot() == slot) && item.test(worn.getLowerCombatName());
+			return worn != null && (worn.getSlot() == null || worn.getSlot() == slot) && item.matches(worn.getLowerCombatName());
 		}
 	}
 }
