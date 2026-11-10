@@ -9,6 +9,11 @@ is what the Plugin Hub shows.
   searches instead of being left empty (or, for a weapon, finding no setup at all). The rest of the setup still
   uses only what you own, and the locked item still costs its price, so the result shows what buying it would
   cost. *Owned + budget* is unchanged: a lock you don't own must still fit the budget.
+- **Require Ava's / quiver** (Settings, Equipment; was *Require Ava's / quiver for atlatl*) now covers every ranged
+  attack whose ammunition an Ava's device recovers: arrows, bolts, javelins, atlatl darts, blowpipe darts and
+  thrown darts, knives and thrownaxes. Chinchompas, bolt racks, salamanders, crystal bows and other weapons
+  without ammunition are unaffected, and so are special-attack switches. It is now on by default; a setting you
+  turned off stays off. Dizana's max cape counts as a recovery cape.
 
 ## 1.1.2 (2026-11-07)
 

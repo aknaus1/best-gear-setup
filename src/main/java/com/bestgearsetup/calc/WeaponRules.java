@@ -10,6 +10,9 @@ import com.bestgearsetup.data.Slot;
  */
 public final class WeaponRules
 {
+	/** Bolt racks, Karil's crossbow's only ammunition, which Ava's devices cannot retrieve (OSRS Wiki). */
+	private static final int BOLT_RACK = 4740;
+
 	private WeaponRules()
 	{
 	}
@@ -175,13 +178,47 @@ public final class WeaponRules
 		return -1;
 	}
 
+	/**
+	 * Whether this class's attacks with the weapon fire ammunition an Ava's device or Dizana's quiver recovers: arrows,
+	 * bolts, javelins and atlatl darts from the ammo slot, blowpipe darts, and thrown darts, knives, thrownaxes,
+	 * toktz-xil-ul and blisterwood stakes. Bolt racks (so Karil's crossbow), chinchompas, holy water, mud pies,
+	 * salamander tar and weapons without consumable ammunition (crystal bows, Tonalztics of Ralos, the Hunter's
+	 * spear) are not recovered.
+	 */
+	public static boolean firesRecoverableAmmo(GearItem weapon, CombatClass combatClass)
+	{
+		if (weapon == null || combatClass != CombatClass.RANGED || weapon.getSubcategory().equals("salamander"))
+		{
+			return false;
+		}
+		if (firesAmmoSlot(weapon) || loadsAmmo(weapon))
+		{
+			// Only weapons whose every compatible ammunition is unrecoverable are exempt.
+			for (int ammo : weapon.getAmmunition())
+			{
+				if (ammo != BOLT_RACK)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		if (!consumedPerAttack(weapon) || !weapon.getSubcategory().equals("thrown"))
+		{
+			return false;
+		}
+		String name = EncounterDamage.lower(weapon);
+		return name.contains(" dart") || name.contains(" knife") || name.contains(" thrownaxe")
+			|| name.startsWith("toktz-xil-ul") || name.startsWith("blisterwood stake");
+	}
+
 	/** The eclipse atlatl: a ranged weapon that scales with Strength and melee strength bonus. */
 	public static boolean isAtlatl(GearItem weapon)
 	{
 		return weapon != null && weapon.getLowerCombatName().startsWith("eclipse atlatl");
 	}
 
-	/** Ava's devices and their assembler cape variants, plus charged or uncharged Dizana's quivers. */
+	/** Ava's devices and their assembler cape variants, plus charged or uncharged Dizana's quivers and max cape. */
 	public static boolean isAmmoRecoveryCape(GearItem item)
 	{
 		if (item == null || item.getSlot() != Slot.CAPE)
@@ -192,7 +229,7 @@ public final class WeaponRules
 		return name.startsWith("ava's attractor") || name.startsWith("ava's accumulator")
 			|| name.startsWith("ava's assembler") || name.startsWith("assembler max cape")
 			|| name.startsWith("masori assembler") || name.startsWith("dizana's quiver")
-			|| name.startsWith("blessed dizana's quiver");
+			|| name.startsWith("blessed dizana's quiver") || name.startsWith("dizana's max cape");
 	}
 
 	/**

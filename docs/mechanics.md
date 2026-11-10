@@ -202,8 +202,14 @@ These preferences are in RuneLite's configuration for the plugin (**Settings** i
   hit; search depth (fast, normal or best).
 - **Attack styles**: toggles for stab, slash, crush, ranged, magic and atlatl (the eclipse atlatl gets its
   own tab: ranged accuracy, Strength-based damage and Eclipse Moon burns).
-- **Equipment** and **Spellbooks**: Members, DMM, Beta and BH equipment, and the spellbooks allowed for
-  autocasting.
+- **Equipment** and **Spellbooks**: Members, DMM, Beta and BH equipment, the spellbooks allowed for
+  autocasting, and **Require Ava's / quiver** (on by default): every ranged attack whose ammunition an Ava's
+  device recovers must wear an Ava's device, an assembler cape, Dizana's quiver or Dizana's max cape. That
+  covers arrows, bolts, javelins and atlatl darts from the ammo slot, blowpipe darts, and thrown darts, knives,
+  thrownaxes, toktz-xil-ul and blisterwood stakes. Bolt racks (Karil's crossbow), chinchompas, holy water,
+  salamander tar and weapons without ammunition (crystal bows, Tonalztics of Ralos, the Hunter's spear) are
+  unaffected, and so are special-attack switches, which keep the worn cape. Ownership, budget, exclusions and
+  cape locks still apply to the recovery cape.
 - **Combat boosts**: potions (including whether raid potions count), prayers, thralls and other reusable
   combat assumptions.
 - **Dragonfire**: whether fire protection is required, and the antifire potion and Protect from Magic
