@@ -8,6 +8,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.OwnershipRules;
+import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Slot;
@@ -68,11 +69,25 @@ public class LockStatusTest
 	}
 
 	@Test
-	public void unownedLockInOwnedModeLeavesTheSlotEmpty()
+	public void unownedLockIsWornInOwnedModesAndPricedAsAPurchase()
 	{
-		LockStatus status = check(SearchMode.OWNED_ONLY, locks(Slot.HEAD, SlotLock.item(helm.getId()))).get(0);
-		assertEquals("you don't own it and the search uses owned items only", status.getProblem());
-		assertEquals("The head slot is left empty.", status.getEffect());
+		// Nothing is owned; the helm costs 2m and the scimitar has no price.
+		GearItem scimitar = weapon(1333, "rune scimitar", "scimitar", 4, "chop,slash,accurate");
+		scimitar.setPrice(0);
+		GameData data = TestData.gameData(Arrays.asList(scimitar, helm), Collections.emptyList());
+		CombatContext ctx = new CombatContext(monster(1, 0), levels, false, false, null);
+		Map<Slot, SlotLock> locks = locks(Slot.HEAD, SlotLock.item(helm.getId()));
+		for (SearchMode mode : new SearchMode[]{SearchMode.OWNED_ONLY, SearchMode.INVENTORY_ONLY})
+		{
+			locks.put(Slot.WEAPON, SlotLock.item(scimitar.getId()));
+			OptimizerSettings settings = OptimizerSettings.builder().mode(mode).locks(locks).build();
+			Optimizer optimizer = new Optimizer(data, ctx, settings, id -> false, GearItem::getPrice);
+			assertTrue(mode.toString(), LockStatus.check(data, optimizer, locks).stream().noneMatch(LockStatus::isBlocking));
+			List<SetupResult> found = optimizer.optimize(CombatClass.MELEE, () -> false);
+			assertFalse(mode.toString(), found.isEmpty());
+			assertEquals(mode.toString(), helm, found.get(0).getLoadout().get(Slot.HEAD));
+			assertEquals(mode.toString(), 2_000_000, found.get(0).getBuyCost());
+		}
 	}
 
 	@Test

@@ -185,9 +185,12 @@ follows the raid you're in.
   are listed with a remove button, and the search reruns automatically.
 - **Lock any item**: right-click any slot in a result and pick **Lock (slot) to another item...**, or use
   **Lock any item** in the Gear view. Search for the item (for example a lightbearer for the ring slot) and
-  click it. The slot filter limits the search to one slot. Locking an excluded item restores it. If the
-  locked item can't be used (not owned in *Owned items only*, levels too low, members items off...), the
-  slot is left empty, its padlock turns red and the reason is shown above the results.
+  click it. The slot filter limits the search to one slot. Locking an excluded item restores it. In *Owned
+  items only* and *Inventory + equipped only* a locked item is worn even if you don't own it (the rest of the
+  setup still uses only what you own); it keeps its price, so the result shows what buying it costs. In
+  *Owned + budget* a lock you don't own must still be buyable within the budget. If the locked item can't be
+  used (over the budget, levels too low, members items off...), the slot is left empty, its padlock turns red
+  and the reason is shown above the results.
 - **Marked as owned**: search for any item and mark it as owned. This is for things the bank scan can't
   see (the POH costume room, items on another account...).
 

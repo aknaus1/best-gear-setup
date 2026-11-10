@@ -2595,11 +2595,24 @@ public class Optimizer
 		{
 			return true;
 		}
-		if (DiaryRewards.isReward(item.getId()) || settings.getMode().isHeldOnly())
+		if (settings.getMode().isHeldOnly())
+		{
+			// The player chose to wear a locked item, so an owned-only search uses it even when it isn't held.
+			// It still costs what buying it would (itemCost), so the result shows the price to pay.
+			return locked(item);
+		}
+		if (DiaryRewards.isReward(item.getId()))
 		{
 			return false;
 		}
 		return purchasable(item) && withinBudget(item);
+	}
+
+	/** Whether the item is the one locked into its slot. */
+	private boolean locked(GearItem item)
+	{
+		SlotLock lock = item.getSlot() == null ? null : settings.getLocks().get(item.getSlot());
+		return lock != null && lock.getKind() == SlotLock.Kind.ITEM && data.getItem(item.getSlot(), lock.getItemId()) == item;
 	}
 
 	/**
