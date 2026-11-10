@@ -228,6 +228,20 @@ public class OwnedItemsTest
 	}
 
 	@Test
+	public void onlyItemsComingOrGoingCountAsAContainerChange()
+	{
+		OwnedItems owned = new OwnedItems(mock(ConfigManager.class), itemsWithPlaceholders(new HashMap<>()));
+		int bow = 20997;
+		int arrows = 11212;
+		assertTrue(owned.onContainerChanged(InventoryID.WORN, holding(new Item(bow, 1), new Item(arrows, 100))));
+		// Firing an arrow only shrinks the stack.
+		assertFalse(owned.onContainerChanged(InventoryID.WORN, holding(new Item(bow, 1), new Item(arrows, 99))));
+		assertFalse(owned.onContainerChanged(InventoryID.WORN, holding(new Item(bow, 1), new Item(arrows, 99))));
+		// The last arrow fired.
+		assertTrue(owned.onContainerChanged(InventoryID.WORN, holding(new Item(bow, 1))));
+	}
+
+	@Test
 	public void bankPlaceholdersAreNotOwned()
 	{
 		int whip = ItemID.ABYSSAL_WHIP;

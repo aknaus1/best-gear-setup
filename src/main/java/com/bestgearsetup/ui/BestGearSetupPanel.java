@@ -821,9 +821,8 @@ public class BestGearSetupPanel extends PluginPanel
 		int locations = plugin.getOwnedItems().getStoredLocations().size();
 		return "Owned items: " + plugin.getOwnedItems().count() + " tracked from bank, inventory and equipment"
 			+ (locations == 0 ? "" : " and " + locations + " other storage locations")
-			+ (manual == 0 ? "" : " + " + manual + " marked by hand") + ". "
-			+ (plugin.getOwnedItems().isStorageConnected() ? "Other storage supplied by Dude, Where's My Stuff?"
-				: "Enable or update Dude, Where's My Stuff? to include its tracked storage.");
+			+ (manual == 0 ? "" : " + " + manual + " marked by hand") + "."
+			+ (plugin.getOwnedItems().isStorageConnected() ? " Other storage supplied by Dude, Where's My Stuff?" : "");
 	}
 
 	/** Owned items or their recorded storage locations changed. */

@@ -80,7 +80,7 @@ public class AtlatlAmmoRecoveryTest
 	public void optionalSettingPreservesUnrestrictedAtlatlResults()
 	{
 		assertTrue(new BestGearSetupConfig() { }.requireAtlatlAmmoRecovery());
-		assertFalse(OptimizerSettings.builder().build().isRequireAtlatlAmmoRecovery());
+		assertTrue(OptimizerSettings.builder().build().isRequireAtlatlAmmoRecovery());
 		assertEquals(fireCape, run(settings().requireAtlatlAmmoRecovery(false)).get(0).getLoadout().get(Slot.CAPE));
 	}
 
@@ -111,16 +111,29 @@ public class AtlatlAmmoRecoveryTest
 	}
 
 	@Test
-	public void ownershipAndExclusionsCanRemoveAllAtlatlResults()
+	public void requirementLapsesWhenNoRecoveryCapeCanBeWorn()
 	{
-		for (SearchMode mode : Arrays.asList(SearchMode.OWNED_ONLY, SearchMode.BUDGET))
+		// An account without an Ava's device keeps its ranged setups: the rule applies only when one is usable.
+		for (SearchMode mode : Arrays.asList(SearchMode.OWNED_ONLY, SearchMode.INVENTORY_ONLY, SearchMode.BUDGET))
 		{
-			assertTrue(optimizer(settings().mode(mode).budget(1_000_000).build(), id -> id != accumulator.getId())
-				.optimize(CombatClass.RANGED, () -> false).isEmpty());
+			List<SetupResult> results = optimizer(settings().mode(mode).budget(1_000_000).build(),
+				id -> id != accumulator.getId()).optimize(CombatClass.RANGED, () -> false);
+			assertEquals(mode.name(), fireCape, results.get(0).getLoadout().get(Slot.CAPE));
 		}
-		assertTrue(run(settings().excluded(Collections.singleton(accumulator.getId()))).isEmpty());
+		assertEquals(fireCape, run(settings().excluded(Collections.singleton(accumulator.getId())))
+			.get(0).getLoadout().get(Slot.CAPE));
 		accumulator.setRangedReq(100);
-		assertTrue(run(settings()).isEmpty());
+		assertEquals(fireCape, run(settings()).get(0).getLoadout().get(Slot.CAPE));
+	}
+
+	@Test
+	public void ownedRecoveryCapeIsRequiredInOwnedModes()
+	{
+		for (SearchMode mode : Arrays.asList(SearchMode.OWNED_ONLY, SearchMode.INVENTORY_ONLY))
+		{
+			assertEquals(mode.name(), accumulator, optimizer(settings().mode(mode).build(), id -> true)
+				.optimize(CombatClass.RANGED, () -> false).get(0).getLoadout().get(Slot.CAPE));
+		}
 	}
 
 	@Test
@@ -202,8 +215,9 @@ public class AtlatlAmmoRecoveryTest
 				}
 			}
 			Optimizer excluded = optimizer(rangedSettings.excluded(Collections.singleton(accumulator.getId())).build(), id -> true);
-			assertTrue(kind[0], excluded.optimize(CombatClass.RANGED, () -> false).isEmpty());
-			assertTrue(kind[0], excluded.weaponLockReason(ranged).contains("Ava's"));
+			// With the only recovery cape excluded, the requirement lapses rather than removing the weapon.
+			assertEquals(kind[0], fireCape, excluded.optimize(CombatClass.RANGED, () -> false).get(0).getLoadout().get(Slot.CAPE));
+			assertNull(kind[0], excluded.weaponLockReason(ranged));
 		}
 	}
 

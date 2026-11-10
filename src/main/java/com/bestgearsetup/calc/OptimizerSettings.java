@@ -65,7 +65,7 @@ public class OptimizerSettings
 	 * switches are exempt. Name retained for saved-setting compatibility.
 	 */
 	@Builder.Default
-	boolean requireAtlatlAmmoRecovery = false;
+	boolean requireAtlatlAmmoRecovery = true;
 
 	@Builder.Default
 	FillMode fillMode = FillMode.NONE;

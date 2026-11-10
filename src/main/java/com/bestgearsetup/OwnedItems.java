@@ -109,8 +109,11 @@ public class OwnedItems
 		rebuild();
 	}
 
-	/** Must be called on the client thread (canonicalises item ids). */
-	public void onContainerChanged(int containerId, ItemContainer container)
+	/**
+	 * Must be called on the client thread (canonicalises item ids). Returns whether items came or went from the
+	 * container, not only stack sizes changed.
+	 */
+	public boolean onContainerChanged(int containerId, ItemContainer container)
 	{
 		String key;
 		if (containerId == InventoryID.BANK)
@@ -127,7 +130,7 @@ public class OwnedItems
 		}
 		else
 		{
-			return;
+			return false;
 		}
 
 		Map<Integer, Long> ids = new HashMap<>();
@@ -145,10 +148,10 @@ public class OwnedItems
 		}
 
 		Map<Integer, Long> previous = containerId == InventoryID.BANK ? bank : containerId == InventoryID.INV ? inventory : worn;
-		boolean changed = !ids.equals(previous) || (containerId == InventoryID.BANK && !bankKnown);
-		if (!changed)
+		boolean itemsChanged = !ids.keySet().equals(previous.keySet()) || (containerId == InventoryID.BANK && !bankKnown);
+		if (!itemsChanged && ids.equals(previous))
 		{
-			return;
+			return false;
 		}
 		if (containerId == InventoryID.BANK)
 		{
@@ -165,6 +168,7 @@ public class OwnedItems
 		}
 		configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, key, serialize(ids));
 		// Location and worn markers update now; settle() publishes the combined ownership once transfers land.
+		return itemsChanged;
 	}
 
 	/**

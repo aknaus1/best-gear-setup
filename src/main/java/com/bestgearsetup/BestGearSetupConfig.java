@@ -477,8 +477,8 @@ public interface BestGearSetupConfig extends Config
 	@ConfigItem(keyName = "requireAtlatlAmmoRecovery", name = "Require Ava's / quiver",
 		description = "Ranged attacks firing ammo an Ava's device recovers (arrows, bolts, darts, knives, thrownaxes, "
 			+ "javelins, atlatl darts) must equip an Ava's device, an assembler cape, or Dizana's quiver. Chinchompas and "
-			+ "weapons without ammo are unaffected, and so are special-attack switches. Ownership, budget, exclusions and cape "
-			+ "locks still apply.",
+			+ "weapons without ammo are unaffected, and so are special-attack switches. Applies only when one of those capes "
+			+ "is available to the search (owned, carried or bought, by the search mode), not excluded and wearable.",
 		section = equipmentSection, position = 4)
 	default boolean requireAtlatlAmmoRecovery()
 	{

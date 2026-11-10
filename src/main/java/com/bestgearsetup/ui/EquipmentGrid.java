@@ -265,7 +265,7 @@ class EquipmentGrid extends JPanel
 				return super.getToolTipText(event);
 			}
 			// Read when shown, so a deposit or a Dude, Where's My Stuff? update is reflected without a new search.
-			java.util.Set<String> locations = plugin.itemLocations(item);
+			Set<String> locations = plugin.itemLocations(item);
 			String locationTip = locations == null || locations.isEmpty() ? ""
 				: "<br>Location: " + BestGearSetupPanel.escape(String.join("; ", locations));
 			return itemTip + locationTip + (wearable ? (worn() ? "<br>Equipped" : "<br>Not equipped") : "") + TIP_FOOTER;

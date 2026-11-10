@@ -184,6 +184,29 @@ public class StoredItemsBridgeTest
 	}
 
 	@Test
+	public void transfersAskAgainOnTheNextTick()
+	{
+		// DWMS records some storage a tick after the items leave the inventory: the second reply corrects the first.
+		assertTrue(bridge.request(true));
+		bridge.onPluginMessage(reply(List.of()));
+		bridge.complete();
+		owned.settle();
+		assertTrue(bridge.request(false));
+		bridge.onPluginMessage(reply(List.of(storage("stash", "Test", item(4151, 1)))));
+		bridge.complete();
+		owned.settle(); owned.settle();
+		assertTrue(owned.owns(4151));
+		assertFalse(bridge.request(false)); // Back to polling.
+	}
+
+	@Test
+	public void anyWholeNumberTypeIsAccepted()
+	{
+		refresh(storage("stash", "Test", Map.of("id", 4151L, "quantity", 2), Map.of("id", (short) 11840, "quantity", 3.0)));
+		assertEquals(Map.of(4151, 2L, 11840, 3L), owned.quantitySnapshot());
+	}
+
+	@Test
 	public void invalidStacksAreIgnoredAndMalformedMessagesNeverPartiallyImport()
 	{
 		refresh(storage("stash", "Test", item(-1, 1), item(11840, 0), item(11865, -1), item(4151, 1)));

@@ -578,11 +578,10 @@ public class BestGearSetupPlugin extends Plugin
 	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
-		ownedItems.onContainerChanged(event.getContainerId(), event.getItemContainer());
-		int id = event.getContainerId();
-		if (id == InventoryID.BANK || id == InventoryID.INV || id == InventoryID.WORN)
+		// Storing or retrieving items moves them through the inventory: ask DWMS for its storage again. Firing
+		// ammunition only shrinks a stack, so it asks only once the last of it is gone.
+		if (ownedItems.onContainerChanged(event.getContainerId(), event.getItemContainer()))
 		{
-			// Storing or retrieving items moves them through the inventory: ask DWMS for its storage again.
 			containersChanged = true;
 		}
 		SwingUtilities.invokeLater(() ->
@@ -1645,7 +1644,7 @@ public class BestGearSetupPlugin extends Plugin
 		if (settings.isRequireAtlatlAmmoRecovery())
 		{
 			notes.add("Ranged attacks firing ammo an Ava's device recovers require an Ava's device, an assembler cape or "
-				+ "Dizana's quiver; special-attack switches are exempt.");
+				+ "Dizana's quiver when one is available to this search; special-attack switches are exempt.");
 		}
 		String statusNote = statusNote(base);
 		if (statusNote != null)
@@ -1914,16 +1913,20 @@ public class BestGearSetupPlugin extends Plugin
 
 	public void setManualOwned(int itemId, boolean owned)
 	{
-		ownedItems.setManual(itemId, owned);
-		// Owned items are per-account settings, which onConfigChanged ignores, so refresh the lists here.
-		SwingUtilities.invokeLater(() ->
+		// Publish on the client thread, which settles ownership each tick from the same pending totals.
+		clientThread.invoke(() ->
 		{
-			if (panel != null)
+			ownedItems.setManual(itemId, owned);
+			// Owned items are per-account settings, which onConfigChanged ignores, so refresh the lists here.
+			SwingUtilities.invokeLater(() ->
 			{
-				panel.onManualOwnedChanged();
-			}
+				if (panel != null)
+				{
+					panel.onManualOwnedChanged();
+				}
+			});
+			rerun();
 		});
-		rerun();
 	}
 
 	public String getPotionChoice(CombatClass cls)

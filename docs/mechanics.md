@@ -227,8 +227,10 @@ These preferences are in RuneLite's configuration for the plugin (**Settings** i
   covers arrows, bolts, javelins and atlatl darts from the ammo slot, blowpipe darts, and thrown darts, knives,
   thrownaxes, toktz-xil-ul and blisterwood stakes. Bolt racks (Karil's crossbow), chinchompas, holy water,
   salamander tar and weapons without ammunition (crystal bows, Tonalztics of Ralos, the Hunter's spear) are
-  unaffected, and so are special-attack switches, which keep the worn cape. Ownership, budget, exclusions and
-  cape locks still apply to the recovery cape.
+  unaffected, and so are special-attack switches, which keep the worn cape. The rule applies only when a
+  recovery cape is available to the search (owned, carried or bought, by the search mode), not excluded and
+  wearable; without one, ranged setups are searched as if it were off. A cape lock that allows no recovery
+  cape still blocks those weapons.
 - **Combat boosts**: potions (including whether raid potions count), prayers, thralls and other reusable
   combat assumptions.
 - **Dragonfire**: whether fire protection is required, and the antifire potion and Protect from Magic

@@ -25,6 +25,7 @@ final class StoredItemsBridge
 	private final EventBus eventBus;
 	private final OwnedItems owned;
 	private boolean pending;
+	private boolean followUp;
 	private String profile;
 	private List<StoredLocation> response;
 	private int ticks;
@@ -36,10 +37,17 @@ final class StoredItemsBridge
 		this.owned = owned;
 	}
 
-	/** Client thread, after DWMS has handled this tick. Transfers always request a fresh snapshot. */
+	/**
+	 * Client thread, after DWMS has handled this tick. Transfers request a fresh snapshot at once and again on the
+	 * next tick: DWMS records some storage a tick after the items leave the inventory (a STASH deposit message
+	 * arriving late, a death pile), and the second reply corrects the first before ownership settles.
+	 */
 	boolean request(boolean containersChanged)
 	{
-		if (pending || !containersChanged && ticks-- > 0) { return false; }
+		if (pending) { return false; }
+		boolean again = followUp;
+		followUp = containersChanged;
+		if (!containersChanged && !again && ticks-- > 0) { return false; }
 		profile = profiles.getRSProfileKey();
 		if (profile == null) { return false; }
 		ticks = POLL_TICKS;
@@ -74,6 +82,7 @@ final class StoredItemsBridge
 	void reset()
 	{
 		pending = false;
+		followUp = false;
 		response = null;
 		profile = null;
 		ticks = 0;
@@ -100,15 +109,17 @@ final class StoredItemsBridge
 			{
 				if (!(item instanceof Map)) { return null; }
 				Map<?, ?> stack = (Map<?, ?>) item;
-				if (!(stack.get("id") instanceof Integer) || !(stack.get("quantity") instanceof Long)) { return null; }
-				int id = (Integer) stack.get("id");
-				long quantity = (Long) stack.get("quantity");
+				// Version 1 sends Integer ids and Long quantities; any whole number is read the same way.
+				if (!(stack.get("id") instanceof Number) || !(stack.get("quantity") instanceof Number)) { return null; }
+				int id = ((Number) stack.get("id")).intValue();
+				long quantity = ((Number) stack.get("quantity")).longValue();
 				if (id > 0 && quantity > 0) { items.merge(id, quantity, OwnedItems::saturatedAdd); }
 			}
 			if (!items.isEmpty())
 			{
 				Object updated = storage.get("lastUpdated");
-				locations.add(new StoredLocation(category, name, updated instanceof Long ? (Long) updated : -1, items));
+				locations.add(new StoredLocation(category, name,
+					updated instanceof Number ? ((Number) updated).longValue() : -1, items));
 			}
 		}
 		return Collections.unmodifiableList(locations);
