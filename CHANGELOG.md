@@ -13,7 +13,8 @@ is what the Plugin Hub shows.
   attack whose ammunition an Ava's device recovers: arrows, bolts, javelins, atlatl darts, blowpipe darts and
   thrown darts, knives and thrownaxes. Chinchompas, bolt racks, salamanders, crystal bows and other weapons
   without ammunition are unaffected, and so are special-attack switches. It applies only when the search could
-  wear one of those capes, so an account without one keeps its ranged setups. It is now on for new installs;
+  wear one of those capes, so an account without one, or a cape locked to something else, keeps its ranged
+  setups. It is now on for new installs;
   existing installs keep their saved choice. Dizana's max cape counts as a recovery cape.
 - With [Dude, Where's My Stuff?](https://runelite.net/plugin-hub/show/dude-wheres-my-stuff) enabled, gear it has
   recorded in STASH units, POH storage (costume room, armour case, cape rack, toy box, treasure chests), active

@@ -155,14 +155,15 @@ public class AtlatlAmmoRecoveryTest
 	}
 
 	@Test
-	public void capeLocksRespectTheRequirementAndExplainWeaponConflicts()
+	public void capeLockedToAnotherCapeLiftsTheRequirement()
 	{
 		for (SlotLock lock : Arrays.asList(SlotLock.empty(), SlotLock.item(fireCape.getId())))
 		{
 			OptimizerSettings locked = settings().locks(Collections.singletonMap(Slot.CAPE, lock)).build();
 			Optimizer optimizer = optimizer(locked, id -> true);
-			assertTrue(optimizer.optimize(CombatClass.RANGED, () -> false).isEmpty());
-			assertTrue(optimizer.weaponLockReason(atlatl).contains("Ava's"));
+			assertEquals(lock.getKind() == SlotLock.Kind.EMPTY ? null : fireCape,
+				optimizer.optimize(CombatClass.RANGED, () -> false).get(0).getLoadout().get(Slot.CAPE));
+			assertNull(optimizer.weaponLockReason(atlatl));
 		}
 		for (SlotLock lock : Arrays.asList(SlotLock.fill(), SlotLock.item(accumulator.getId())))
 		{
@@ -314,8 +315,9 @@ public class AtlatlAmmoRecoveryTest
 		assertEquals(fireCape, worn.getLoadout().get(Slot.CAPE));
 		assertEquals(crossbow, worn.getSpecial().getWeapon());
 		assertEquals(bolts, worn.getSpecial().getAmmo());
-		// The crossbow as the primary weapon still needs the recovery cape the lock rules out.
-		assertTrue(locked.stream().noneMatch(s -> s.getLoadout().getWeapon() == crossbow));
+		// The lock rules out every recovery cape, so the crossbow is searched as a primary weapon with the fire cape.
+		assertTrue(locked.stream().filter(s -> s.getLoadout().getWeapon() == crossbow)
+			.allMatch(s -> s.getLoadout().get(Slot.CAPE) == fireCape));
 
 		List<SetupResult> free = new Optimizer(data, rangedCtx, specs.locks(Collections.emptyMap()).build(), id -> true,
 			GearItem::getPrice).optimize(CombatClass.RANGED, () -> false);
