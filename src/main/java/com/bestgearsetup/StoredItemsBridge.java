@@ -44,7 +44,12 @@ final class StoredItemsBridge
 	 */
 	boolean request(boolean containersChanged)
 	{
-		if (pending) { return false; }
+		if (pending)
+		{
+			// Keep a transfer seen while a reply is outstanding for the next request.
+			followUp |= containersChanged;
+			return false;
+		}
 		boolean again = followUp;
 		followUp = containersChanged;
 		if (!containersChanged && !again && ticks-- > 0) { return false; }
