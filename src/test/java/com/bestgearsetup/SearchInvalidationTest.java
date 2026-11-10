@@ -217,6 +217,7 @@ public class SearchInvalidationTest
 		owned = new OwnedItems(mock(ConfigManager.class), itemManager);
 		owned.onContainerChanged(InventoryID.BANK, holding());
 		owned.onContainerChanged(InventoryID.INV, holding(new Item(4151, 1)));
+		owned.rebuild(true);
 		plugin = new BestGearSetupPlugin()
 		{
 			@Override
@@ -244,15 +245,78 @@ public class SearchInvalidationTest
 	}
 
 	@Test
-	public void losingGearRerunsTheSearchOnceOnTheNextTick()
+	public void losingGearRerunsTheSearchOnceItHasSettled()
 	{
 		searchedWithWhipCarried();
 		plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.INV, holding()));
 		assertEquals("Compared only once the tick's events have landed", 0, reruns.get());
 		plugin.onGameTick(new GameTick());
+		assertEquals("The bank's half of a transfer may still be on its way", 0, reruns.get());
+		plugin.onGameTick(new GameTick());
 		assertEquals(1, reruns.get());
 		plugin.onGameTick(new GameTick());
-		assertEquals("A tick without container events compares nothing", 1, reruns.get());
+		assertEquals("Unchanged ownership compares nothing new", 1, reruns.get());
+	}
+
+	/** A deposit whose two container updates land on different ticks, in either order, moved nothing owned. */
+	@Test
+	public void depositSplitAcrossTicksDoesNotRerunTheSearch()
+	{
+		for (boolean inventoryFirst : new boolean[]{true, false})
+		{
+			searchedWithWhipCarried();
+			if (inventoryFirst)
+			{
+				plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.INV, holding()));
+			}
+			else
+			{
+				plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.BANK, holding(new Item(4151, 1))));
+			}
+			plugin.onGameTick(new GameTick());
+			if (inventoryFirst)
+			{
+				plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.BANK, holding(new Item(4151, 1))));
+			}
+			else
+			{
+				plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.INV, holding()));
+			}
+			plugin.onGameTick(new GameTick());
+			plugin.onGameTick(new GameTick());
+			plugin.onGameTick(new GameTick());
+			assertEquals("inventory first: " + inventoryFirst, 0, reruns.get());
+			assertTrue(owned.owns(4151));
+		}
+	}
+
+	/** Equipping across a tick boundary: the whip leaves the inventory, then reaches the worn equipment. */
+	@Test
+	public void equipSplitAcrossTicksDoesNotRerunTheSearch()
+	{
+		searchedWithWhipCarried();
+		plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.INV, holding()));
+		plugin.onGameTick(new GameTick());
+		plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.WORN, holding(new Item(4151, 1))));
+		plugin.onGameTick(new GameTick());
+		plugin.onGameTick(new GameTick());
+		assertEquals(0, reruns.get());
+		assertTrue(owned.owns(4151));
+		assertTrue(owned.isWorn(4151));
+	}
+
+	/** Gaining gear is published, and searched again, once it has held for two ticks. */
+	@Test
+	public void gainingGearRerunsTheSearchOnceItHasSettled()
+	{
+		searchedWithWhipCarried();
+		plugin.gearIds = ids(4151, 11840);
+		plugin.onItemContainerChanged(new ItemContainerChanged(InventoryID.INV, holding(new Item(4151, 1), new Item(11840, 1))));
+		plugin.onGameTick(new GameTick());
+		assertFalse(owned.owns(11840));
+		plugin.onGameTick(new GameTick());
+		assertTrue(owned.owns(11840));
+		assertEquals(1, reruns.get());
 	}
 
 	/** A stack that returns to the searched size before settling needs no refresh. */

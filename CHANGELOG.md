@@ -14,6 +14,13 @@ is what the Plugin Hub shows.
   thrown darts, knives and thrownaxes. Chinchompas, bolt racks, salamanders, crystal bows and other weapons
   without ammunition are unaffected, and so are special-attack switches. It is now on by default; a setting you
   turned off stays off. Dizana's max cape counts as a recovery cape.
+- With [Dude, Where's My Stuff?](https://runelite.net/plugin-hub/show/dude-wheres-my-stuff) enabled, gear it has
+  recorded in STASH units, POH storage (costume room, armour case, cape rack, toy box, treasure chests), active
+  deathbanks and death piles, group storage, bags and sailing storage counts as owned. Hovering an item in a
+  result shows where it is. Without that plugin nothing changes.
+- A deposit, withdrawal or equip whose two container updates arrive on different game ticks no longer searches
+  again. Ownership is now published once it has held for two ticks, so gaining or losing gear updates the
+  results one tick later than before.
 
 ## 1.1.2 (2026-11-07)
 

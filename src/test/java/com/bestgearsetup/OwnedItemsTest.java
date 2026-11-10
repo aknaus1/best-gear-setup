@@ -247,6 +247,9 @@ public class OwnedItemsTest
 			// A placeholder id is never owned, whatever quantity the container gives it.
 			new Item(macePlaceholder, 1),
 			new Item(-1, 0)));
+		// Ownership is published once the bank's contents have held for two game ticks.
+		owned.settle();
+		owned.settle();
 
 		assertTrue(owned.owns(whip));
 		assertFalse(owned.owns(inquisitorHelm));

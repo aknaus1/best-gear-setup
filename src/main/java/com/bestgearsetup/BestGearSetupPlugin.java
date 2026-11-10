@@ -134,7 +134,7 @@ public class BestGearSetupPlugin extends Plugin
 	private static final String KINGDOM_DIVIDED_KEY = "kingdomDivided";
 
 	@Inject
-	private Client client;
+	Client client;
 
 	@Inject
 	ClientThread clientThread;
@@ -232,8 +232,10 @@ public class BestGearSetupPlugin extends Plugin
 	javax.swing.Timer supplyRefresh;
 	/** How long a stack must stay unchanged before a quantity-only change reruns the search. */
 	int supplySettleMillis = 5000;
-	/** A container changed this tick; ownership is compared on the next game tick. Client thread only. */
-	private boolean ownershipChanged;
+	/** The bank, inventory or worn equipment changed since the last tick. Client thread only. */
+	private boolean containersChanged;
+	/** Optional Dude, Where's My Stuff? storage; null while the plugin is stopped. */
+	StoredItemsBridge storedItemsBridge;
 	/** Read and written on the client thread only. */
 	private NPC lookupTarget;
 	/** Swing thread only: whether this run has started loading the bundled data. */
@@ -297,6 +299,8 @@ public class BestGearSetupPlugin extends Plugin
 		}
 
 		ownedItems.load();
+		storedItemsBridge = new StoredItemsBridge(configManager, eventBus, ownedItems);
+		eventBus.register(storedItemsBridge);
 		panel.updateOwnedStatus();
 		// Enabled while logged in: no container event fires until something changes, so read them now.
 		clientThread.invokeLater(this::readLiveContainers);
@@ -321,6 +325,9 @@ public class BestGearSetupPlugin extends Plugin
 		bankButton = null;
 		eventBus.unregister(liveSpecs);
 		liveSpecs = null;
+		eventBus.unregister(storedItemsBridge);
+		storedItemsBridge.reset();
+		storedItemsBridge = null;
 		if (partySpecs != null)
 		{
 			eventBus.unregister(partySpecs);
@@ -520,6 +527,11 @@ public class BestGearSetupPlugin extends Plugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged event)
 	{
+		// Logging out may switch accounts, so recorded storage is dropped; a world hop keeps the account and its storage.
+		if (event.getGameState() == GameState.LOGIN_SCREEN && storedItemsBridge != null)
+		{
+			storedItemsBridge.reset();
+		}
 		if (event.getGameState().getState() >= GameState.LOGIN_SCREEN.getState())
 		{
 			SwingUtilities.invokeLater(this::requestGameData);
@@ -552,6 +564,8 @@ public class BestGearSetupPlugin extends Plugin
 				ownedItems.onContainerChanged(containerId, container);
 			}
 		}
+		// Nothing is moving: publish what was read rather than waiting for it to settle.
+		ownedItems.rebuild(true);
 		SwingUtilities.invokeLater(() ->
 		{
 			if (panel != null)
@@ -565,8 +579,12 @@ public class BestGearSetupPlugin extends Plugin
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
 		ownedItems.onContainerChanged(event.getContainerId(), event.getItemContainer());
-		// A deposit or an equip arrives as two container events; compare once both have landed.
-		ownershipChanged = true;
+		int id = event.getContainerId();
+		if (id == InventoryID.BANK || id == InventoryID.INV || id == InventoryID.WORN)
+		{
+			// Storing or retrieving items moves them through the inventory: ask DWMS for its storage again.
+			containersChanged = true;
+		}
 		SwingUtilities.invokeLater(() ->
 		{
 			if (panel != null)
@@ -576,14 +594,63 @@ public class BestGearSetupPlugin extends Plugin
 		});
 	}
 
-	/** Client thread: the tick's container events have all been delivered, so moved items count in both places. */
+	/**
+	 * Client thread: RuneLite delivers the tick's container events before GameTick. Ownership is published once
+	 * its totals agree on two consecutive ticks, after Dude, Where's My Stuff? has answered when it was asked.
+	 */
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		if (ownershipChanged)
+		StoredItemsBridge bridge = storedItemsBridge;
+		if (bridge != null && client.getGameState() == GameState.LOGGED_IN && bridge.request(containersChanged))
 		{
-			ownershipChanged = false;
+			containersChanged = false;
+			int life = lifecycle.get();
+			// DWMS queues its reply on the client thread; queue behind it before checking ownership.
+			clientThread.invokeLater(() ->
+			{
+				if (life == lifecycle.get() && bridge == storedItemsBridge)
+				{
+					settleOwnedItems(bridge.complete());
+				}
+			});
+		}
+		else
+		{
+			containersChanged = false;
+			settleOwnedItems(false);
+		}
+	}
+
+	/** Client thread: publish settled ownership, then search again if gear was really gained or lost. */
+	private void settleOwnedItems(boolean locationsChanged)
+	{
+		Set<Integer> idsBefore = ownedItems.snapshot();
+		boolean changed = ownedItems.settle();
+		if (changed)
+		{
 			invalidateIfOwnershipChanged();
+		}
+		// Firing ammunition only changes stack sizes: repaint the owned markers, but rebuild the Gear lists only
+		// when items come or go, or recorded storage changes.
+		boolean listsChanged = locationsChanged || ownedItems.snapshot() != idsBefore;
+		if (changed || listsChanged)
+		{
+			SwingUtilities.invokeLater(() ->
+			{
+				if (panel == null)
+				{
+					return;
+				}
+				if (listsChanged)
+				{
+					panel.onManualOwnedChanged();
+				}
+				else
+				{
+					panel.updateOwnedStatus();
+				}
+			});
 		}
 	}
 
@@ -692,6 +759,10 @@ public class BestGearSetupPlugin extends Plugin
 		lookupTarget = null;
 		lastRememberedLevels = null;
 		ownedItems.load();
+		if (storedItemsBridge != null)
+		{
+			storedItemsBridge.reset();
+		}
 		SwingUtilities.invokeLater(() ->
 		{
 			if (panel != null)
@@ -932,8 +1003,9 @@ public class BestGearSetupPlugin extends Plugin
 			prices = quotes;
 			// Ownership is fixed for the whole search; later gear changes invalidate the results instead.
 			SearchMode mode = assumptions.mode();
-			Set<Integer> owned = ownedItems.snapshot(mode);
-			Map<Integer, Long> quantities = ownedItems.quantitySnapshot(mode);
+			OwnedItems.Snapshot ownership = ownedItems.capture(mode);
+			Set<Integer> owned = ownership.getIds();
+			Map<Integer, Long> quantities = ownership.getQuantities();
 			searchMode = mode;
 			searchOwned = owned;
 			searchQuantities = quantities;
@@ -1933,6 +2005,12 @@ public class BestGearSetupPlugin extends Plugin
 			}
 		}
 		return false;
+	}
+
+	/** Where the item and its reviewed ownership variants are: "Bank", "Inventory", "POH: Toy Box"... */
+	public Set<String> itemLocations(GearItem item)
+	{
+		return ownedItems.locations(item.getId(), item.getOwnershipVariants());
 	}
 
 	/** Units held of the item and its catalogued variants; {@link OwnedItems#UNLIMITED} if marked owned by hand. */
