@@ -1,0 +1,134 @@
+{
+  "_about": "Lower-case item and monster names read by the calculator. A pattern is an exact name, or uses * for any text ('dragon dagger*', '*sickle*'); 'kraken (*)' matches 'kraken' alone or with a version such as 'kraken (cave)'. Lists are arrays of patterns. Tables map patterns to values and are tried in order, so the first matching pattern wins.",
+
+  "attack reach": {
+    "_about": "Base attack range in tiles by weapon subcategory, before the longrange stance's +2; unlisted weapons reach 0 (melee distance).",
+    "powered staff": {
+      "tumeken's shadow*": 10, "eye of ayak*": 6, "dawnbringer": 7, "trident of*": 7, "sanguinesti staff*": 7,
+      "holy sanguinesti staff*": 7, "warped sceptre*": 7, "bone staff*": 7, "thammaron's sceptre*": 7,
+      "accursed sceptre*": 7, "zorya's tome*": 7
+    },
+    "bow": {
+      "*longbow*": 10, "* comp bow*": 10, "dark bow*": 10, "twisted bow*": 10, "crystal bow*": 10,
+      "bow of faerdhinen*": 10, "ogre bow": 10, "3rd age bow*": 9, "craw's bow*": 9, "webweaver bow*": 9,
+      "venator bow*": 6, "eclipse atlatl*": 6, "*shortbow*": 7, "seercull": 7, "scorching bow*": 7, "comp ogre bow": 5
+    },
+    "crossbow": {
+      "crossbow": 10, "phoenix crossbow*": 5, "dorgeshuun crossbow*": 6, "ascension crossbows*": 6,
+      "karil's crossbow*": 8, "armadyl crossbow*": 8, "zaryte crossbow*": 8, "hunters'*": 8, "light ballista": 9,
+      "heavy ballista": 9, "dragon hunter crossbow*": 7, "bronze crossbow*": 7, "blurite crossbow*": 7,
+      "iron crossbow*": 7, "steel crossbow*": 7, "mithril crossbow*": 7, "adamant crossbow*": 7, "rune crossbow*": 7,
+      "dragon crossbow*": 7
+    },
+    "chinchompa": {"*": 9},
+    "thrown": {
+      "toxic blowpipe*": 5, "camphor blowpipe*": 5, "ironwood blowpipe*": 5, "rosewood blowpipe*": 5,
+      "tonalztics of ralos*uncharged*": 6, "tonalztics of ralos*": 7, "* dart*": 3, "* knife*": 4, "*thrownaxe*": 4,
+      "*throwing axe*": 4
+    }
+  },
+  "flying monsters": [
+    "kree'arra (*)", "wingman skree (*)", "flockleader geerin (*)", "flight kilisa (*)", "aviansie (*)",
+    "reanimated aviansie (*)", "dawn (*)"
+  ],
+  "protective shields": ["anti-dragon shield*", "dragonfire shield*", "dragonfire ward*", "ancient wyvern shield*", "elemental shield", "mind shield"],
+
+  "demonbane melee weapons": ["silverlight*", "darklight*", "arclight*", "emberlight*", "bone claws*", "burning claws*"],
+  "abyssal weapons": ["abyssal whip*", "abyssal tentacle*", "abyssal dagger*", "abyssal bludgeon*"],
+  "vampyrebane melee weapons": ["ivandis flail*", "blisterwood sickle*", "blisterwood flail*", "hallowed flail*", "sunspear"],
+  "silver melee weapons": [
+    "silver sickle*", "*emerald sickle*", "*ruby sickle*", "blessed axe", "wolfbane", "silverlight*", "darklight*",
+    "arclight*", "ivandis flail*", "rod of ivandis*", "blisterwood*", "hallowed flail*"
+  ],
+  "broad ammunition": ["broad *", "amethyst broad *", "seeking broad *"],
+  "vampyrebane damage percent": {
+    "_about": "Damage against vampyres, as a percentage; other weapons deal 110% against tier 1 vampyres when silver.",
+    "blisterwood flail*": 125, "hallowed flail*": 125, "blisterwood stake*": 125, "sunspear": 150,
+    "blisterwood sickle*": 115, "ivandis flail*": 120, "rod of ivandis*": 110
+  },
+  "guardian pickaxe bonus": {
+    "_about": "Pickaxe bonus in the CoX guardian damage formula; unlisted pickaxes (dragon, crystal and better) use 61.",
+    "bronze*": 1, "iron*": 1, "steel*": 6, "black*": 11, "mithril*": 21, "adamant*": 31, "rune*": 41, "gilded*": 41
+  },
+  "two-hit weapons": ["torag's hammers*", "sulphur blades", "glacial temotli", "earthbound tecpatl"],
+  "rat weapons": ["bone mace", "bone shortbow", "bone staff"],
+  "wilderness melee weapons": ["ursine chainmace*", "viggora's chainmace*"],
+  "wilderness ranged weapons": ["craw's bow*", "webweaver bow*"],
+  "wilderness magic weapons": ["thammaron's sceptre*", "accursed sceptre*"],
+
+  "salamander magic bonus": {"swamp lizard": 56, "orange salamander": 59, "red salamander": 77, "black salamander": 92, "tecu salamander": 104},
+  "ammo recovery capes": [
+    "ava's attractor*", "ava's accumulator*", "ava's assembler*", "assembler max cape*", "masori assembler*",
+    "dizana's quiver*", "blessed dizana's quiver*", "dizana's max cape*"
+  ],
+  "venom helms": ["serpentine helm*", "tanzanite helm*", "magma helm*"],
+
+  "wilderness-only monsters": [
+    "mammoth", "lava dragon", "elder chaos druid", "callisto", "artio", "venenatis", "venenatis' spiderling (monster)",
+    "spindel", "spindel's spiderling", "scorpia", "scorpia's guardian", "scorpia's offspring (monster)",
+    "chaos elemental", "chaos fanatic", "crazy archaeologist", "revenant *", "vet'ion*", "calvar'ion*",
+    "*(vet'ion)", "*(calvar'ion)"
+  ],
+
+  "karuulm monsters": ["hydra (*)", "colossal hydra (*)", "alchemical hydra (*)", "drake (*)", "guardian drake (*)", "sulphur lizard (*)"],
+  "wyrms": ["wyrm (*)", "shadow wyrm (*)"],
+  "slayer equipment": [
+    {"slot": "HEAD", "items": "a facemask or slayer helmet",
+      "monsters": ["dust devil (*)", "choke devil (*)", "smoke devil (*)", "nuclear smoke devil (*)", "thermonuclear smoke devil (*)"],
+      "gear": ["*slayer helmet*", "facemask"]},
+    {"slot": "HEAD", "items": "earmuffs or a slayer helmet",
+      "monsters": ["banshee (*)", "twisted banshee (*)", "screaming banshee (*)", "screaming twisted banshee (*)"],
+      "gear": ["*slayer helmet*", "earmuffs"]},
+    {"slot": "HEAD", "items": "a nose peg or slayer helmet",
+      "monsters": ["aberrant spectre (*)", "deviant spectre (*)", "abhorrent spectre (*)", "repugnant spectre (*)"],
+      "gear": ["*slayer helmet*", "nose peg"]},
+    {"slot": "HEAD", "items": "reinforced goggles or a slayer helmet", "monsters": ["sourhog"],
+      "gear": ["*slayer helmet*", "reinforced goggles"]},
+    {"_about": "During A Porcine of Interest Spria hands over the goggles first; slayer helmets only protect once the quest is complete.",
+      "slot": "HEAD", "items": "reinforced goggles", "monsters": ["sourhog (a porcine of interest)"], "gear": ["reinforced goggles"]},
+    {"slot": "SHIELD", "items": "a mirror shield or V's shield",
+      "monsters": ["basilisk (*)", "basilisk knight (*)", "basilisk sentinel (*)", "monstrous basilisk (*)", "cockatrice (*)", "cockathrice (*)"],
+      "gear": ["mirror shield", "v's shield"]},
+    {"_about": "The Wiki names only the mirror shield for younglings.",
+      "slot": "SHIELD", "items": "a mirror shield", "monsters": ["basilisk youngling (*)"], "gear": ["mirror shield"]},
+    {"slot": "SHIELD", "items": "a lit bug lantern", "monsters": ["harpie bug swarm (*)"], "gear": ["lit bug lantern"]},
+    {"_about": "Waived by the Elite Kourend & Kebos Diary; wyrms need the boots only when the search location is Karuulm.",
+      "slot": "FEET", "items": "boots of stone, boots of brimstone or granite boots", "karuulm": true,
+      "monsters": ["hydra (*)", "colossal hydra (*)", "alchemical hydra (*)", "drake (*)", "guardian drake (*)", "sulphur lizard (*)", "wyrm (*)", "shadow wyrm (*)"],
+      "gear": ["boots of stone", "boots of brimstone", "granite boots"]}
+  ],
+
+  "special gear": [
+    "void *", "elite void*", "slayer helmet*", "black mask*", "salve amulet*", "obsidian helmet*",
+    "obsidian platebody*", "obsidian platelegs*", "berserker necklace*", "inquisitor's*", "crystal helm*", "crystal body*",
+    "crystal legs*", "eclipse moon*", "blood moon*", "dharok's*", "verac's*", "ahrim's*",
+    "karil's*", "amulet of the damned*", "crystal blessing*", "virtus*", "tome of*", "chaos gauntlets*",
+    "brimstone ring*", "confliction gauntlets*", "amulet of avarice*", "efaritay's aid*", "elemental amulet*", "amulet of air*",
+    "amulet of water*", "amulet of earth*", "amulet of fire*", "saradomin cape*", "guthix cape*", "zamorak cape*",
+    "imbued saradomin*", "imbued guthix*", "imbued zamorak*", "serpentine helm*", "tanzanite helm*", "magma helm*",
+    "dizana's*", "blessed dizana's*"
+  ],
+  "magic-only gear": ["virtus *", "tome of *", "elemental amulet*", "amulet of air*", "amulet of water*", "amulet of earth*",
+    "amulet of fire*", "chaos gauntlets*", "confliction gauntlets*", "brimstone ring*"],
+  "pvp repair fees": {
+    "_about": "Coins to repair an item after an unprotected PvP death, by its catalogue name; decorative armour costs 5,000.",
+    "fire cape": 150000, "fire max cape": 150000, "fighter torso": 150000, "infernal cape": 225000,
+    "infernal max cape": 225000, "ava's assembler": 240000, "assembler max cape": 240000, "masori assembler": 240000,
+    "masori assembler max cape": 240000, "dragon defender": 240000, "imbued guthix cape": 96000, "imbued saradomin cape": 96000,
+    "imbued zamorak cape": 96000, "imbued guthix max cape": 99000, "imbued saradomin max cape": 99000, "imbued zamorak max cape": 99000,
+    "bronze defender": 1000, "iron defender": 2000, "steel defender": 2500, "black defender": 5000,
+    "mithril defender": 15000, "adamant defender": 25000, "rune defender": 35000, "avernic defender": 600000,
+    "void melee helm": 160000, "void mage helm": 160000, "void ranger helm": 160000, "void knight top": 180000,
+    "void knight robe": 180000, "elite void top": 250000, "elite void robe": 250000, "void knight gloves": 120000,
+    "void knight mace": 20000, "penance skirt": 20000, "guthix halo": 25000, "saradomin halo": 25000,
+    "zamorak halo": 25000, "armadyl halo": 25000, "bandos halo": 25000, "seren halo": 25000,
+    "ancient halo": 25000, "brassica halo": 25000, "fighter hat": 45000, "ranger hat": 45000,
+    "healer hat": 45000, "runner hat": 40005, "barronite mace": 10500, "blood ancient sceptre": 200000,
+    "smoke ancient sceptre": 200000, "ice ancient sceptre": 200000, "shadow ancient sceptre": 200000, "dizana's quiver": 270000,
+    "blessed dizana's quiver": 400000, "dizana's max cape": 400000
+  },
+  "league equipment": [
+    "the dogsword (*)", "drygore blowpipe (*)", "amulet of the monarchs (*)", "emperor ring (*)", "devil's element (*)", "nature's reprisal (*)",
+    "gloves of the damned (*)", "crystal blessing (*)", "sunlight spear (*)", "sunlit bracers (*)", "thunder khopesh (*)", "thousand-dragon ward (*)"
+  ]
+}

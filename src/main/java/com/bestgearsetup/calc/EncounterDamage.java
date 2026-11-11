@@ -4,6 +4,7 @@ import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
+import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /** Per-hit encounter mitigation, applied after player damage bonuses and before thralls. */
 final class EncounterDamage
 {
+	private static final NameLists.NameList DEMONBANE_MELEE = NameLists.list("demonbane melee weapons");
+	private static final NameLists.NameList ABYSSAL_WEAPONS = NameLists.list("abyssal weapons");
 	private static final Rule NONE = new Rule(1, 1, false, -1, 0, false, null);
 	private static final Rule THIRD = new Rule(1, 3, false, -1, 0, false, "Damage / 3, rounded per hit");
 	private static final Rule HALF = new Rule(1, 2, false, -1, 0, false, "Damage / 2, rounded per hit");
@@ -121,15 +124,13 @@ final class EncounterDamage
 		{
 			return weapon.startsWith("scorching bow");
 		}
-		return weapon.startsWith("silverlight") || weapon.startsWith("darklight") || weapon.startsWith("arclight")
-			|| weapon.startsWith("emberlight") || weapon.startsWith("bone claws") || weapon.startsWith("burning claws");
+		return DEMONBANE_MELEE.matches(weapon);
 	}
 
 	static boolean abyssal(Loadout loadout)
 	{
 		String weapon = lower(loadout.getWeapon());
-		return loadout.getStyle().isMelee() && (weapon.startsWith("abyssal whip") || weapon.startsWith("abyssal tentacle")
-			|| weapon.startsWith("abyssal dagger") || weapon.startsWith("abyssal bludgeon"));
+		return loadout.getStyle().isMelee() && ABYSSAL_WEAPONS.matches(weapon);
 	}
 
 	static String lower(GearItem item)

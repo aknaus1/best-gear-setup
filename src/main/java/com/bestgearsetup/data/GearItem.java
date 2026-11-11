@@ -17,6 +17,9 @@ import net.runelite.api.gameval.ItemID;
 @Data
 public class GearItem
 {
+	/** Historical Leagues rewards, by name; Gson skips static fields. */
+	private static final NameLists.NameList LEAGUE_EQUIPMENT = NameLists.list("league equipment");
+
 	private int id;
 	private String name;
 	/** Original snapshot identity for stat-identical cosmetics whose display name has a prefix. */
@@ -239,16 +242,7 @@ public class GearItem
 			return false;
 		}
 		String lower = getName().toLowerCase(Locale.ROOT);
-		for (String name : new String[]{"the dogsword", "drygore blowpipe", "amulet of the monarchs", "emperor ring",
-			"devil's element", "nature's reprisal", "gloves of the damned", "crystal blessing", "sunlight spear",
-			"sunlit bracers", "thunder khopesh", "thousand-dragon ward"})
-		{
-			if (lower.equals(name) || lower.startsWith(name + " ("))
-			{
-				return true;
-			}
-		}
-		return false;
+		return LEAGUE_EQUIPMENT.matches(lower);
 	}
 
 	/** Explicitly labelled beta equipment. */

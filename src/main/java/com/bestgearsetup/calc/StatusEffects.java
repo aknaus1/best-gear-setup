@@ -3,6 +3,7 @@ package com.bestgearsetup.calc;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
+import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.StatusImmunities;
 import java.util.ArrayList;
@@ -21,6 +22,8 @@ import lombok.Value;
  */
 public final class StatusEffects
 {
+	private static final NameLists.NameList VENOM_HELMS = NameLists.list("venom helms");
+
 	static final int POISON_INTERVAL = 30;
 	static final int BURN_INTERVAL = 4;
 	static final int BURN_HITS = 10;
@@ -58,8 +61,7 @@ public final class StatusEffects
 	static boolean serpentineHelm(Loadout l)
 	{
 		String head = EncounterDamage.lower(l.get(Slot.HEAD));
-		return (head.startsWith("serpentine helm") || head.startsWith("tanzanite helm") || head.startsWith("magma helm"))
-			&& !head.contains("uncharged");
+		return VENOM_HELMS.matches(head) && !head.contains("uncharged");
 	}
 
 	/** Whether the weapon option poisons this weapon or its ammunition. */
