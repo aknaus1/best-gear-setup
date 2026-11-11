@@ -1710,7 +1710,7 @@ public class Optimizer
 			{
 				if (isSpecial(item) || DragonfireProtection.isProtectiveShield(item)
 					|| SlayerEquipment.isRequired(monster, settings, item)
-					|| settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAmmoRecoveryCape(item))
+					|| settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAmmoRecoveryCape(item) && !outranked(item, pool))
 				{
 					keep.add(item);
 				}
@@ -2000,6 +2000,21 @@ public class Optimizer
 		return betterBonuses(a, b) || noWorseBonuses(a, b) && noWorseBonuses(b, a) && preferredDuplicate(a, b);
 	}
 
+	/** Whether another item in the pool is an exact duplicate of this one that is preferred to it. */
+	private boolean outranked(GearItem item, List<GearItem> pool)
+	{
+		for (GearItem other : pool)
+		{
+			if (other != item && noWorseBonuses(other, item) && noWorseBonuses(item, other)
+				&& itemCost(other) == itemCost(item) && expensive(other) == expensive(item)
+				&& isSpecial(other) == isSpecial(item) && preferredDuplicate(other, item))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Of two exact duplicates: the one held, then a catalogue item over a cosmetic copy, then the newer catalogue
 	 * item, so kitted and upgraded versions (Masori assembler over Ava's assembler) win over the base.
@@ -2197,7 +2212,16 @@ public class Optimizer
 				capes.add(cape);
 			}
 		}
-		return capes;
+		// Exact duplicates seed the same search; keep the preferred one (Masori assembler over Ava's assembler).
+		List<GearItem> distinct = new ArrayList<>(capes.size());
+		for (GearItem cape : capes)
+		{
+			if (!outranked(cape, capes))
+			{
+				distinct.add(cape);
+			}
+		}
+		return distinct;
 	}
 
 	/** Whether any of the weapon's styles in this class has a damaging special attack. */

@@ -55,8 +55,14 @@ public class DuplicateItemTieTest
 
 	private GearItem cape(SearchMode mode, IntPredicate owned)
 	{
+		return cape(mode, owned, false);
+	}
+
+	private GearItem cape(SearchMode mode, IntPredicate owned, boolean recovery)
+	{
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).spellbooks(Collections.emptySet())
-			.styles(EnumSet.of(AttackStyle.Type.RANGED)).build();
+			.styles(EnumSet.of(AttackStyle.Type.RANGED, AttackStyle.Type.ATLATL))
+			.requireAtlatlAmmoRecovery(recovery).build();
 		return new Optimizer(data, ctx, settings, owned, GearItem::getPrice)
 			.optimize(CombatClass.RANGED, () -> false).get(0).getLoadout().get(Slot.CAPE);
 	}
@@ -67,6 +73,21 @@ public class DuplicateItemTieTest
 		assertEquals(masori, cape(SearchMode.UNLIMITED, id -> false));
 		assertEquals(masori, cape(SearchMode.UNLIMITED, id -> true));
 		assertEquals(masori, cape(SearchMode.OWNED_ONLY, id -> true));
+	}
+
+	@Test
+	public void kittedVersionWinsWhenAmmunitionRecoveryIsRequired()
+	{
+		GearItem atlatl = weapon(29000, "eclipse atlatl", "bow", 4, "rapid,ranged,rapid");
+		atlatl.setRangedBonus(87);
+		atlatl.setMeleeStr(40);
+		atlatl.setTwoHanded(true);
+		atlatl.setAmmunition(Collections.singletonList(29001));
+		data = TestData.gameData(Arrays.asList(atlatl, item(29001, "atlatl dart", Slot.AMMO), avas, masori),
+			Collections.emptyList());
+		assertEquals(masori, cape(SearchMode.UNLIMITED, id -> true, true));
+		assertEquals(masori, cape(SearchMode.OWNED_ONLY, id -> true, true));
+		assertEquals(avas, cape(SearchMode.OWNED_ONLY, id -> id != masori.getId(), true));
 	}
 
 	@Test
