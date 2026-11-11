@@ -38,7 +38,7 @@ is what the Plugin Hub shows.
   ancient school can be cast (Fire Wave beside Fire Surge, Ice Blitz beside Ice Barrage), unless chaos gauntlets, the
   twinflame staff or grouped targets could make the weaker one win. With **Require Ava's / quiver** on, a search
   starts only from the recovery capes no other one beats. Results are unchanged.
-- Searches are faster at every depth, up to twice as fast at *Best*. Gear with a named effect (Dharok's, void,
+- Searches are faster at every depth, most of all at *Best*. Gear with a named effect (Dharok's, void,
   obsidian, a slayer helmet off task) is only tried with weapons and targets its effect can apply to, unless its
   bonuses alone earn it a place. Results are unchanged.
 - Owned items are only added up again on a game tick after something moved.
