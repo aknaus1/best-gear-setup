@@ -222,7 +222,8 @@ These preferences are in RuneLite's configuration for the plugin (**Settings** i
 - **Attack styles**: toggles for stab, slash, crush, ranged, magic and atlatl (the eclipse atlatl gets its
   own tab: ranged accuracy, Strength-based damage and Eclipse Moon burns).
 - **Equipment** and **Spellbooks**: Members, DMM, Beta and BH equipment, the spellbooks allowed for
-  autocasting, and **Require Ava's / quiver** (on by default): every ranged attack whose ammunition an Ava's
+  casting, **Prevent manual casting** (off by default; on, spells are only autocast, never cast by hand),
+  and **Require Ava's / quiver** (on by default): every ranged attack whose ammunition an Ava's
   device recovers must wear an Ava's device, an assembler cape, Dizana's quiver or Dizana's max cape. That
   covers arrows, bolts, javelins and atlatl darts from the ammo slot, blowpipe darts, and thrown darts, knives,
   thrownaxes, toktz-xil-ul and blisterwood stakes. Bolt racks (Karil's crossbow), chinchompas, holy water,
@@ -420,7 +421,9 @@ The plugin has its own DPS calculator (using OSRS Wiki formulas) and optimiser. 
 bundled snapshots: 3,130 monster variants (`tools/wiki_monsters.py`) and about 1,900 pieces of equipment
 along with the spell, prayer and potion tables (`tools/wiki_equipment.py`). Copies with identical stats
 (charges, ornament kits, locked, poisoned, degraded and NMZ versions, recolours) are merged into one entry,
-and owning any of them counts. League-only, Grid Master, beta, Last Man Standing and PvP Arena items are
+and owning any of them counts. Separate items that are still equal in everything the search scores (the
+Masori assembler and Ava's assembler, say) are settled by the one you hold, then the newer, kitted or
+upgraded item. League-only, Grid Master, beta, Last Man Standing and PvP Arena items are
 left out (League reward-shop cosmetics of main-game items, such as the soulreaper axe (o), are kept), and
 Deadman and Bounty Hunter gear is hidden behind its setting.
 See [the bundled data notes](equipment-requirements.md) for how the snapshots are built.
@@ -430,6 +433,12 @@ fields, so they're kept as small tables in the generator, each based on its Wiki
 Arrows, Bolts, Darts, Autocast, Combat spells, and each prayer and potion). The Wiki pages set the rules.
 For example, the skull sceptre (i) can only autocast Crumble Undead from the standard spellbook, and
 slayer's staves and the void knight mace can only autocast waves and surges.
+
+Any weapon can also cast a spell by hand, so Magic setups include each allowed spell a weapon can't
+autocast, shown as *Manual cast*; damage, accuracy and speed are the same as autocasting it. Weapons
+without Magic styles (a twisted bow, say) cast by hand only when no Magic weapon is left: none is held, or
+the weapon slot is locked to another kind. **Prevent manual casting** turns this off. Special-attack
+searches never cast by hand.
 
 Modelled effects: void (including elite), slayer helmet and black mask (including imbued), salve amulet
 variants, obsidian armour and the berserker necklace, inquisitor's, crystal armour with the bow of
