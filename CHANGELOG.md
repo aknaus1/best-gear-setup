@@ -3,7 +3,7 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
-## Unreleased
+## 1.1.3 (2026-11-10)
 
 - A slot locked to an item you don't own is now worn in *Owned items only* and *Inventory + equipped only*
   searches instead of being left empty (or, for a weapon, finding no setup at all). The rest of the setup still
