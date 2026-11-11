@@ -3,6 +3,12 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- When two items are equal in everything the search scores, a kitted or upgraded version is now chosen over the
+  base item, so a ranged setup shows the Masori assembler rather than Ava's assembler. An item you hold still wins
+  over one you don't.
+
 ## 1.1.2 (2026-11-07)
 
 - Keep Gear's searches open after adding a rule, so one search can add several items or spells. Suggestions drop

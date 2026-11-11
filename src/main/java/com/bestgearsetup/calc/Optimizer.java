@@ -1974,7 +1974,7 @@ public class Optimizer
 		return true;
 	}
 
-	private static boolean dominates(List<GearItem> pool, double[][] values, long[] costs, boolean[] risky, int j, int i)
+	private boolean dominates(List<GearItem> pool, double[][] values, long[] costs, boolean[] risky, int j, int i)
 	{
 		if (costs[j] > costs[i] || risky[j] && !risky[i])
 		{
@@ -1994,10 +1994,28 @@ public class Optimizer
 			return true;
 		}
 		// Equal in everything the search scores: keep other bonuses the fill phase may use (Fury vs Glory), and
-		// only the first of exact duplicates.
+		// only one of exact duplicates.
 		GearItem a = pool.get(j);
 		GearItem b = pool.get(i);
-		return betterBonuses(a, b) || j < i && noWorseBonuses(a, b) && noWorseBonuses(b, a);
+		return betterBonuses(a, b) || noWorseBonuses(a, b) && noWorseBonuses(b, a) && preferredDuplicate(a, b);
+	}
+
+	/**
+	 * Of two exact duplicates: the one held, then a catalogue item over a cosmetic copy, then the newer catalogue
+	 * item, so kitted and upgraded versions (Masori assembler over Ava's assembler) win over the base.
+	 */
+	private boolean preferredDuplicate(GearItem a, GearItem b)
+	{
+		if (isOwned(a) != isOwned(b))
+		{
+			return isOwned(a);
+		}
+		boolean catalogueA = a.getId() == a.getCombatId();
+		if (catalogueA != (b.getId() == b.getCombatId()))
+		{
+			return catalogueA;
+		}
+		return catalogueA ? a.getId() > b.getId() : a.getId() < b.getId();
 	}
 
 	/** Prefer a strict stat upgrade when score and acquisition cost tie; avoid arbitrary swap cycles. */
