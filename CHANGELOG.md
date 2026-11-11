@@ -3,17 +3,6 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
-## Unreleased
-
-- Magic and Ranged searches are faster. A spell is no longer scored when a stronger tier of the same element or
-  ancient school can be cast (Fire Wave beside Fire Surge, Ice Blitz beside Ice Barrage), unless chaos gauntlets, the
-  twinflame staff or grouped targets could make the weaker one win. With **Require Ava's / quiver** on, a search
-  starts only from the recovery capes no other one beats. Results are unchanged.
-- Searches are faster at every depth, up to twice as fast at *Best*. Gear with a named effect (Dharok's, void,
-  obsidian, a slayer helmet off task) is only tried with weapons and targets its effect can apply to, unless its
-  bonuses alone earn it a place. Results are unchanged.
-- Owned items are only added up again on a game tick after something moved.
-
 ## 1.1.3 (2026-11-10)
 
 - A slot locked to an item you don't own is now worn in *Owned items only* and *Inventory + equipped only*
@@ -43,6 +32,14 @@ is what the Plugin Hub shows.
   keep to autocast only.
 - Removed the "no Magic setup is left" spell warning, which blamed spell rules when something else emptied the
   Magic tab. A spell warning now shows only when no allowed spell can be cast at all.
+- Magic and Ranged searches are faster. A spell is no longer scored when a stronger tier of the same element or
+  ancient school can be cast (Fire Wave beside Fire Surge, Ice Blitz beside Ice Barrage), unless chaos gauntlets, the
+  twinflame staff or grouped targets could make the weaker one win. With **Require Ava's / quiver** on, a search
+  starts only from the recovery capes no other one beats. Results are unchanged.
+- Searches are faster at every depth, up to twice as fast at *Best*. Gear with a named effect (Dharok's, void,
+  obsidian, a slayer helmet off task) is only tried with weapons and targets its effect can apply to, unless its
+  bonuses alone earn it a place. Results are unchanged.
+- Owned items are only added up again on a game tick after something moved.
 
 ## 1.1.2 (2026-11-07)
 
