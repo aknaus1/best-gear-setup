@@ -625,6 +625,13 @@ public class OptimizerOracleTest
 			}
 		}
 
+		/** Whether the item is the one locked into its slot. */
+		private boolean locked(GearItem item)
+		{
+			SlotLock lock = item.getSlot() == null ? null : s.getLocks().get(item.getSlot());
+			return lock != null && lock.getKind() == SlotLock.Kind.ITEM && find(item.getSlot(), lock.getItemId()) == item;
+		}
+
 		private boolean owns(GearItem item)
 		{
 			if (c.owned.contains(item.getId()))
@@ -677,7 +684,12 @@ public class OptimizerOracleTest
 			{
 				return true;
 			}
-			if (s.getMode().isHeldOnly() || OwnershipRules.requiresOwnership(item.getId())
+			if (s.getMode().isHeldOnly())
+			{
+				// An owned-only search wears a locked item even when it isn't held; cost() still prices it.
+				return locked(item);
+			}
+			if (OwnershipRules.requiresOwnership(item.getId())
 				|| !item.isTradeable() && !ItemCosts.hasTradableComponents(item.getId()))
 			{
 				return false;

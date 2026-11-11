@@ -473,13 +473,17 @@ public interface BestGearSetupConfig extends Config
 		return false;
 	}
 
-	@ConfigItem(keyName = "requireAtlatlAmmoRecovery", name = "Require Ava's / quiver for atlatl",
-		description = "Eclipse atlatl setups must equip an Ava's device, an assembler cape, or Dizana's quiver. "
-			+ "Ownership, budget, exclusions and cape locks still apply; without a usable cape, no atlatl setup is returned.",
+	// Retain the original key so existing saved preferences continue to apply.
+	@ConfigItem(keyName = "requireAtlatlAmmoRecovery", name = "Require Ava's / quiver",
+		description = "Ranged attacks firing ammo an Ava's device recovers (arrows, bolts, darts, knives, thrownaxes, "
+			+ "javelins, atlatl darts) must equip an Ava's device, an assembler cape, or Dizana's quiver. Chinchompas and "
+			+ "weapons without ammo are unaffected, and so are special-attack switches. Applies only when one of those capes "
+			+ "is available to the search (owned, carried or bought, by the search mode), not excluded, wearable and allowed by "
+			+ "the cape lock.",
 		section = equipmentSection, position = 4)
 	default boolean requireAtlatlAmmoRecovery()
 	{
-		return false;
+		return true;
 	}
 
 	// ------------------------------------------------------------ options

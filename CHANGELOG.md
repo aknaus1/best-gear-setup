@@ -3,6 +3,27 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- A slot locked to an item you don't own is now worn in *Owned items only* and *Inventory + equipped only*
+  searches instead of being left empty (or, for a weapon, finding no setup at all). The rest of the setup still
+  uses only what you own, and the locked item still costs its price, so the result shows what buying it would
+  cost. *Owned + budget* is unchanged: a lock you don't own must still fit the budget.
+- **Require Ava's / quiver** (Settings, Equipment; was *Require Ava's / quiver for atlatl*) now covers every ranged
+  attack whose ammunition an Ava's device recovers: arrows, bolts, javelins, atlatl darts, blowpipe darts and
+  thrown darts, knives and thrownaxes. Chinchompas, bolt racks, salamanders, crystal bows and other weapons
+  without ammunition are unaffected, and so are special-attack switches. It applies only when the search could
+  wear one of those capes, so an account without one, or a cape locked to something else, keeps its ranged
+  setups. It is now on for new installs;
+  existing installs keep their saved choice. Dizana's max cape counts as a recovery cape.
+- With [Dude, Where's My Stuff?](https://runelite.net/plugin-hub/show/dude-wheres-my-stuff) enabled, gear it has
+  recorded in STASH units, POH storage (costume room, armour case, cape rack, toy box, treasure chests), active
+  deathbanks and death piles, group storage, bags and sailing storage counts as owned. Hovering an item in a
+  result shows where it is. Without that plugin nothing changes.
+- A deposit, withdrawal or equip whose two container updates arrive on different game ticks no longer searches
+  again. Ownership is now published once it has held for two ticks, so gaining or losing gear updates the
+  results one tick later than before.
+
 ## 1.1.2 (2026-11-07)
 
 - Keep Gear's searches open after adding a rule, so one search can add several items or spells. Suggestions drop

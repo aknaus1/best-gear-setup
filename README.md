@@ -26,7 +26,9 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
   Powered staves and salamanders can still compete.
 - **Runes per kill** estimate attack and support rune use, including runes supplied by your staff or tome,
   rune-saving weapons, special attacks and your thrall tier.
-- **Knows your account:** owned items, levels, prayers, Slayer task and diaries, remembered per profile.
+- **Knows your account:** owned items, levels, prayers, Slayer task and diaries, remembered per profile. With
+  [Dude, Where's My Stuff?](https://runelite.net/plugin-hub/show/dude-wheres-my-stuff) enabled, gear in your STASH
+  units, POH, deathbanks and other storage it tracks counts too.
 - **Potions, prayers, thralls and special attacks** are all counted, with the best spec weapon suggested.
 - **Bank gear layout and highlights** lay out the setup's gear, runes and potions in your bank, ready to
   withdraw.

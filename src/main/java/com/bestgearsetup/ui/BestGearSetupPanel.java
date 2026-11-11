@@ -818,11 +818,14 @@ public class BestGearSetupPanel extends PluginPanel
 	private String ownedSummary()
 	{
 		int manual = plugin.getOwnedItems().getManual().size();
+		int locations = plugin.getOwnedItems().getStoredLocations().size();
 		return "Owned items: " + plugin.getOwnedItems().count() + " tracked from bank, inventory and equipment"
-			+ (manual == 0 ? "" : " + " + manual + " marked by hand") + ".";
+			+ (locations == 0 ? "" : " and " + locations + " other storage locations")
+			+ (manual == 0 ? "" : " + " + manual + " marked by hand") + "."
+			+ (plugin.getOwnedItems().isStorageConnected() ? " Other storage supplied by Dude, Where's My Stuff?" : "");
 	}
 
-	/** An item was marked or unmarked as owned by hand. */
+	/** Owned items or their recorded storage locations changed. */
 	public void onManualOwnedChanged()
 	{
 		updateOwnedStatus();
@@ -833,7 +836,9 @@ public class BestGearSetupPanel extends PluginPanel
 	{
 		// The tracked count is listed under Search details; only the missing bank needs a standing prompt.
 		boolean known = plugin.getOwnedItems().isBankKnown();
-		ownedLabel.setText(known ? "" : html("Open your bank once to use your owned items."));
+		ownedLabel.setText(known ? "" : html(plugin.getOwnedItems().isStorageConnected()
+			? "Other storage connected. Open your bank once to include bank items."
+			: "Open your bank once to use your owned items."));
 		ownedLabel.setVisible(!known);
 		// Equipped markers are read when painted, so equipping an item updates the shown setup.
 		resultsPanel.repaint();

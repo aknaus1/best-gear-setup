@@ -60,9 +60,12 @@ public class OptimizerSettings
 	boolean betaItems = false;
 	@Builder.Default
 	boolean bountyHunterItems = false;
-	/** Eclipse atlatl setups must wear an Ava's device or quiver to recover ammunition. */
+	/**
+	 * Ranged attacks firing ammunition an Ava's device recovers must wear an Ava's device or quiver; special-attack
+	 * switches are exempt. Name retained for saved-setting compatibility.
+	 */
 	@Builder.Default
-	boolean requireAtlatlAmmoRecovery = false;
+	boolean requireAtlatlAmmoRecovery = true;
 
 	@Builder.Default
 	FillMode fillMode = FillMode.NONE;

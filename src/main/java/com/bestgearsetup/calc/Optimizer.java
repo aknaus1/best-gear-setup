@@ -129,6 +129,9 @@ public class Optimizer
 	// Whether the target demands protective equipment is fixed for the search; only the setup varies.
 	private final boolean fireProtectionRequired;
 	private final boolean slayerEquipmentRequired;
+	// An ammunition recovery cape is required only when the setting is on and one could be worn here, cape lock included.
+	// Decided on first use, so a search that never asks doesn't scan the capes; null until then.
+	private Boolean recoveryRequired;
 
 	/** As the full constructor, with every owned item held in any quantity. */
 	public Optimizer(GameData data, CombatContext ctx, OptimizerSettings settings, IntPredicate owned,
@@ -429,11 +432,12 @@ public class Optimizer
 		{
 			return null;
 		}
-		if (settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon))
+		boolean recoveryCape = recoveryRequired() && WeaponRules.firesRecoverableAmmo(weapon, cls);
+		if (recoveryCape)
 		{
 			// Seed every usable recovery cape, including zero-damage devices that ascent would otherwise drop.
 			List<Seed> recoverySeeds = new ArrayList<>();
-			for (GearItem cape : atlatlRecoveryCapes())
+			for (GearItem cape : ammoRecoveryCapes())
 			{
 				for (Seed seed : seeds)
 				{
@@ -465,8 +469,7 @@ public class Optimizer
 			l.set(Slot.AMMO, null);
 			applyLocks(l, weapon, firesAmmo);
 			SlotLock capeLock = settings.getLocks().get(Slot.CAPE);
-			if (settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon)
-				&& capeLock != null && capeLock.getKind() == SlotLock.Kind.FILL)
+			if (recoveryCape && capeLock != null && capeLock.getKind() == SlotLock.Kind.FILL)
 			{
 				// A fill lock may choose a different recovery cape later, but must start with usable equipment.
 				l.set(Slot.CAPE, seed.getLoadout().get(Slot.CAPE));
@@ -1227,13 +1230,20 @@ public class Optimizer
 		return protectedSetup(l) && withinWildernessRisk(l) ? DpsCalculator.calculate(l, ctx) : DpsResult.ZERO;
 	}
 
-	/** Mandatory protection and the optional atlatl cape requirement are enforced throughout the search. */
+	/** Mandatory protection and, when required, an ammunition recovery cape are enforced throughout the search. */
 	private boolean protectedSetup(Loadout l)
 	{
-		return (!fireProtectionRequired || DragonfireProtection.protects(monster, l, settings, levels))
-			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l))
-			&& (!settings.isRequireAtlatlAmmoRecovery() || !WeaponRules.isAtlatl(l.getWeapon())
+		return protectedEquipment(l)
+			&& (!recoveryRequired() || l.getStyle() == null
+				|| !WeaponRules.firesRecoverableAmmo(l.getWeapon(), WeaponRules.classOf(l.getStyle()))
 				|| WeaponRules.isAmmoRecoveryCape(l.get(Slot.CAPE)));
+	}
+
+	/** Special switches must meet the equipment protection rules, but keep the worn cape: no recovery cape is required. */
+	private boolean protectedEquipment(Loadout l)
+	{
+		return (!fireProtectionRequired || DragonfireProtection.protects(monster, l, settings, levels))
+			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l));
 	}
 
 	private double metric(DpsResult r)
@@ -1454,7 +1464,7 @@ public class Optimizer
 				l.set(slot, item);
 			}
 			long c = baseCost + (item == null ? 0 : itemCost(item));
-			if (!protectedSetup(l) || !withinBudget(wornCost + c))
+			if (!protectedEquipment(l) || !withinBudget(wornCost + c))
 			{
 				continue;
 			}
@@ -1710,7 +1720,7 @@ public class Optimizer
 			{
 				if (isSpecial(item) || DragonfireProtection.isProtectiveShield(item)
 					|| SlayerEquipment.isRequired(monster, settings, item)
-					|| settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAmmoRecoveryCape(item))
+					|| recoveryRequired() && WeaponRules.isAmmoRecoveryCape(item))
 				{
 					keep.add(item);
 				}
@@ -1861,7 +1871,8 @@ public class Optimizer
 	private boolean plain(GearItem item, GearItem weapon)
 	{
 		if (DragonfireProtection.isProtectiveShield(item) || SlayerEquipment.isRequired(monster, settings, item)
-			|| WeaponRules.isAmmoRecoveryCape(item) && settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon))
+			|| WeaponRules.isAmmoRecoveryCape(item) && recoveryRequired()
+				&& WeaponRules.firesRecoverableAmmo(weapon, boundClass))
 		{
 			return false;
 		}
@@ -2165,8 +2176,18 @@ public class Optimizer
 		return snapshotA != snapshotB ? snapshotA : a.getId() < b.getId();
 	}
 
+	private boolean recoveryRequired()
+	{
+		if (recoveryRequired == null)
+		{
+			// A cape locked to anything else, or left empty, lifts the rule rather than blocking ranged.
+			recoveryRequired = settings.isRequireAtlatlAmmoRecovery() && !ammoRecoveryCapes().isEmpty();
+		}
+		return recoveryRequired;
+	}
+
 	/** Recovery capes that satisfy availability and the cape lock, before combined setup costs are checked. */
-	private List<GearItem> atlatlRecoveryCapes()
+	private List<GearItem> ammoRecoveryCapes()
 	{
 		SlotLock lock = settings.getLocks().get(Slot.CAPE);
 		List<GearItem> capes = new ArrayList<>();
@@ -2595,11 +2616,24 @@ public class Optimizer
 		{
 			return true;
 		}
-		if (DiaryRewards.isReward(item.getId()) || settings.getMode().isHeldOnly())
+		if (settings.getMode().isHeldOnly())
+		{
+			// The player chose to wear a locked item, so an owned-only search uses it even when it isn't held.
+			// It still costs what buying it would (itemCost), so the result shows the price to pay.
+			return locked(item);
+		}
+		if (DiaryRewards.isReward(item.getId()))
 		{
 			return false;
 		}
 		return purchasable(item) && withinBudget(item);
+	}
+
+	/** Whether the item is the one locked into its slot. */
+	private boolean locked(GearItem item)
+	{
+		SlotLock lock = item.getSlot() == null ? null : settings.getLocks().get(item.getSlot());
+		return lock != null && lock.getKind() == SlotLock.Kind.ITEM && data.getItem(item.getSlot(), lock.getItemId()) == item;
 	}
 
 	/**
@@ -2684,11 +2718,6 @@ public class Optimizer
 		if (reason != null)
 		{
 			return reason;
-		}
-		if (settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAtlatl(weapon) && atlatlRecoveryCapes().isEmpty())
-		{
-			return "it requires an Ava's device or Dizana's quiver, but none is usable with your cape lock, "
-				+ "exclusions and availability settings";
 		}
 		SlotLock shieldLock = settings.getLocks().get(Slot.SHIELD);
 		if (weapon.isTwoHanded() && shieldLock != null && shieldLock.getKind() != SlotLock.Kind.EMPTY)
