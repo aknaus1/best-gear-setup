@@ -81,6 +81,7 @@ public class SearchAssumptionsTest
 		GETTERS.put("betaItems", BestGearSetupConfig::betaItems);
 		GETTERS.put("bountyHunterItems", BestGearSetupConfig::bountyHunterItems);
 		GETTERS.put("requireAtlatlAmmoRecovery", BestGearSetupConfig::requireAtlatlAmmoRecovery);
+		GETTERS.put("preventManualCast", BestGearSetupConfig::preventManualCast);
 		GETTERS.put("styleStab", BestGearSetupConfig::styleStab);
 		GETTERS.put("styleSlash", BestGearSetupConfig::styleSlash);
 		GETTERS.put("styleCrush", BestGearSetupConfig::styleCrush);

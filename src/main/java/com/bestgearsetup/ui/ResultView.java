@@ -549,7 +549,7 @@ class ResultView extends JPanel
 		if (l.getSpell() != null)
 		{
 			name = l.getSpell().toString();
-			sub = "Autocast";
+			sub = style != null && style.isManualCast() ? "Manual cast" : "Autocast";
 		}
 		else if (style != null && style.getType() == AttackStyle.Type.MAGIC && WeaponRules.isPoweredStaff(l.getWeapon()))
 		{

@@ -384,9 +384,10 @@ public class OptimizerOracleTest
 			}
 		}
 
+		// The oracle enumerates autocast spells only; ManualCastTest covers casting by hand.
 		OptimizerSettings.OptimizerSettingsBuilder s = OptimizerSettings.builder().depth(SearchDepth.BEST)
 			.styles(EnumSet.of(c.tab)).spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus")))
-			.resultsPerClass(1);
+			.resultsPerClass(1).preventManualCast(true);
 		switch (r.nextInt(4))
 		{
 			case 0:

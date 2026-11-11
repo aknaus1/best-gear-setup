@@ -2073,6 +2073,7 @@ public class Optimizer
 		SlotLock shieldLock = settings.getLocks().get(Slot.SHIELD);
 		boolean shieldTaken = shieldLock != null && shieldLock.getKind() != SlotLock.Kind.EMPTY;
 		List<GearItem> out = new ArrayList<>();
+		List<GearItem> byHand = new ArrayList<>();
 		for (GearItem w : data.getItems(Slot.WEAPON))
 		{
 			if (!usable(w))
@@ -2092,19 +2093,28 @@ public class Optimizer
 					continue;
 				}
 			}
-			if (!WeaponRules.supports(w, cls) || ctx.getModifiers().isSpecialAttack() && !hasSpecialAttack(w, cls))
-			{
-				continue;
-			}
 			if (settings.getWeaponHands() == WeaponHands.ONE_HANDED && w.isTwoHanded()
 				|| settings.getWeaponHands() == WeaponHands.TWO_HANDED && !w.isTwoHanded()
 				|| shieldTaken && w.isTwoHanded())
 			{
 				continue;
 			}
+			if (!WeaponRules.supports(w, cls))
+			{
+				if (cls == CombatClass.MAGIC && !ctx.getModifiers().isSpecialAttack() && !settings.isPreventManualCast())
+				{
+					byHand.add(w);
+				}
+				continue;
+			}
+			if (ctx.getModifiers().isSpecialAttack() && !hasSpecialAttack(w, cls))
+			{
+				continue;
+			}
 			out.add(w);
 		}
-		return withoutCosmeticCopies(out);
+		// With no Magic weapon left (none held, or the weapon locked to another kind), spells are cast by hand.
+		return withoutCosmeticCopies(out.isEmpty() ? byHand : out);
 	}
 
 	/**
@@ -2321,6 +2331,19 @@ public class Optimizer
 			else
 			{
 				out.add(new Option(s, null));
+			}
+		}
+		if (cls == CombatClass.MAGIC && !anyType && !ctx.getModifiers().isSpecialAttack() && !settings.isPreventManualCast()
+			&& styleAllowed(weapon, AttackStyle.MANUAL_CAST, false))
+		{
+			// Any weapon can cast a spell by hand, including one it can't autocast.
+			boolean autocasts = spells != null;
+			for (Spell spell : autocastableSpells)
+			{
+				if (!autocasts || !spell.castableWith(weapon.getCombatId()))
+				{
+					out.add(new Option(AttackStyle.MANUAL_CAST, spell));
+				}
 			}
 		}
 		return out;

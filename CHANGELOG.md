@@ -3,6 +3,15 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## Unreleased
+
+- Magic setups can cast a spell by hand with any weapon, including one that can't autocast it. A weapon locked to
+  a bow or melee weapon, an allowed spell no staff of yours autocasts, or an account with no Magic weapon now
+  still gets a Magic setup, shown as *Manual cast*. Turn on **Prevent manual casting** (Settings, Spellbooks) to
+  keep to autocast only.
+- Removed the "no Magic setup is left" spell warning, which blamed spell rules when something else emptied the
+  Magic tab. A spell warning now shows only when no allowed spell can be cast at all.
+
 ## 1.1.2 (2026-11-07)
 
 - Keep Gear's searches open after adding a rule, so one search can add several items or spells. Suggestions drop

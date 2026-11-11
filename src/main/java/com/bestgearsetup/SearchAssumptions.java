@@ -65,6 +65,7 @@ final class SearchAssumptions implements BestGearSetupConfig
 	private final boolean betaItems;
 	private final boolean bountyHunterItems;
 	private final boolean requireAtlatlAmmoRecovery;
+	private final boolean preventManualCast;
 	private final boolean styleStab;
 	private final boolean styleSlash;
 	private final boolean styleCrush;
@@ -152,6 +153,7 @@ final class SearchAssumptions implements BestGearSetupConfig
 		betaItems = o.get("betaItems", source.betaItems());
 		bountyHunterItems = o.get("bountyHunterItems", source.bountyHunterItems());
 		requireAtlatlAmmoRecovery = o.get("requireAtlatlAmmoRecovery", source.requireAtlatlAmmoRecovery());
+		preventManualCast = o.get("preventManualCast", source.preventManualCast());
 		styleStab = o.get("styleStab", source.styleStab());
 		styleSlash = o.get("styleSlash", source.styleSlash());
 		styleCrush = o.get("styleCrush", source.styleCrush());
@@ -246,6 +248,7 @@ final class SearchAssumptions implements BestGearSetupConfig
 	@Override public boolean betaItems() { return betaItems; }
 	@Override public boolean bountyHunterItems() { return bountyHunterItems; }
 	@Override public boolean requireAtlatlAmmoRecovery() { return requireAtlatlAmmoRecovery; }
+	@Override public boolean preventManualCast() { return preventManualCast; }
 	@Override public boolean styleStab() { return styleStab; }
 	@Override public boolean styleSlash() { return styleSlash; }
 	@Override public boolean styleCrush() { return styleCrush; }

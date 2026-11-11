@@ -25,6 +25,9 @@ public class AttackStyle
 	 */
 	private static final Map<String, AttackStyle> PARSED = new ConcurrentHashMap<>();
 
+	/** Casting a spell by hand, which any weapon can do, including one that can't autocast that spell. */
+	public static final AttackStyle MANUAL_CAST = parse("manual cast,magic,magic");
+
 	String name;
 	Type type;
 	/** accurate, aggressive, controlled, defensive, rapid, longrange or magic (autocast). */
@@ -85,10 +88,15 @@ public class AttackStyle
 		return type == Type.STAB || type == Type.SLASH || type == Type.CRUSH;
 	}
 
-	/** Autocast with a spell, as opposed to a powered staff's built-in attack. */
+	/** Cast with a spell (autocast or by hand), as opposed to a powered staff's built-in attack. */
 	public boolean isAutocast()
 	{
 		return type == Type.MAGIC && "magic".equals(stance);
+	}
+
+	public boolean isManualCast()
+	{
+		return this == MANUAL_CAST;
 	}
 
 	@Override

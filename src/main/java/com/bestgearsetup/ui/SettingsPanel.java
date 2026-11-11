@@ -48,6 +48,7 @@ class SettingsPanel extends JPanel
 		setting("requireAtlatlAmmoRecovery", BestGearSetupConfig::requireAtlatlAmmoRecovery),
 		setting("ancientMagicks", BestGearSetupConfig::ancientMagicks),
 		setting("arceuusSpellbook", BestGearSetupConfig::arceuusSpellbook),
+		setting("preventManualCast", BestGearSetupConfig::preventManualCast),
 		setting("usePrayers", BestGearSetupConfig::usePrayers),
 		setting("raidPotions", BestGearSetupConfig::raidPotions),
 		setting("meleePotionChoice", BestGearSetupConfig::meleePotion),

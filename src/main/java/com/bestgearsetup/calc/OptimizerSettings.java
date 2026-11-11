@@ -63,6 +63,9 @@ public class OptimizerSettings
 	/** Eclipse atlatl setups must wear an Ava's device or quiver to recover ammunition. */
 	@Builder.Default
 	boolean requireAtlatlAmmoRecovery = false;
+	/** Spells are only autocast, never cast by hand. */
+	@Builder.Default
+	boolean preventManualCast = false;
 
 	@Builder.Default
 	FillMode fillMode = FillMode.NONE;
