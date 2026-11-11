@@ -1,16 +1,12 @@
 package com.bestgearsetup.ui;
 
-import static com.bestgearsetup.ui.SettingRows.setting;
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterSummary;
-import com.bestgearsetup.ui.SettingRows.Setting;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
@@ -23,35 +19,6 @@ import net.runelite.client.ui.ColorScheme;
 /** Boss lookup assumptions, edited here while configuration stores their existing keys. */
 class FightOptionsPanel extends JPanel
 {
-	/** The settings shown here and their getters; {@link SettingRows} builds their editors. */
-	private static final List<Setting> SETTINGS = Arrays.asList(
-		setting("taskMode", BestGearSetupConfig::taskMode),
-		setting("autoRaid", BestGearSetupConfig::autoRaid),
-		setting("currentHitpoints", BestGearSetupConfig::currentHitpoints),
-		setting("aoe", BestGearSetupConfig::aoe),
-		setting("aoeTargets", BestGearSetupConfig::aoeTargets),
-		setting("wilderness", BestGearSetupConfig::wilderness),
-		setting("limitWildernessRisk", BestGearSetupConfig::limitWildernessRisk),
-		setting("maxExpensiveItems", BestGearSetupConfig::maxExpensiveItems),
-		setting("expensiveItemThreshold", BestGearSetupConfig::expensiveItemThreshold),
-		setting("forinthrySurge", BestGearSetupConfig::forinthrySurge),
-		setting("soulreaperStacks", BestGearSetupConfig::soulreaperStacks),
-		setting("miningLevel", BestGearSetupConfig::miningLevel),
-		setting("raidPartySize", BestGearSetupConfig::raidPartySize),
-		setting("toaRaidLevel", BestGearSetupConfig::toaRaidLevel),
-		setting("toaPathLevel", BestGearSetupConfig::toaPathLevel),
-		setting("coxChallengeMode", BestGearSetupConfig::coxChallengeMode),
-		setting("autoSpecs", BestGearSetupConfig::autoSpecs),
-		setting("specVulnerability", BestGearSetupConfig::specVulnerability),
-		setting("specTomeOfWater", BestGearSetupConfig::specTomeOfWater),
-		setting("specElderMaul", BestGearSetupConfig::specElderMaul),
-		setting("specDwh", BestGearSetupConfig::specDwh),
-		setting("specEmberlight", BestGearSetupConfig::specEmberlight),
-		setting("specArclight", BestGearSetupConfig::specArclight),
-		setting("specTonalztics", BestGearSetupConfig::specTonalztics),
-		setting("specBgsDamage", BestGearSetupConfig::specBgsDamage),
-		setting("specSeercullDamage", BestGearSetupConfig::specSeercullDamage),
-		setting("specAyakDamage", BestGearSetupConfig::specAyakDamage));
 	/** Pre-fight drains, counted in the collapsed section's heading when any is set. */
 	private static final String[] PREPARATION = {"specVulnerability", "specTomeOfWater", "specElderMaul", "specDwh",
 		"specEmberlight", "specArclight", "specTonalztics", "specBgsDamage", "specSeercullDamage", "specAyakDamage"};
@@ -74,16 +41,12 @@ class FightOptionsPanel extends JPanel
 	{
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
-		// Build the controls first, then place them in one-level sections by purpose.
+		// Each row's control is built as its one-level section is filled.
 		settingRows = new SettingRows(plugin, config, items, SPINNER_COLUMNS, this::updateVisibility);
-		for (Setting entry : SETTINGS)
-		{
-			settingRows.add(entry);
-		}
-		wildernessTip = control("wilderness").getToolTipText();
 		SidebarSection conditions = accordion.create("fightConditions", "Fight conditions");
 		addRows(conditions, "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
 			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks");
+		wildernessTip = control("wilderness").getToolTipText();
 		conditions.showAsEditor();
 		add(BestGearSetupPanel.left(conditions));
 		raidSection = accordion.create("raidScaling", "Raid scaling");
@@ -103,7 +66,7 @@ class FightOptionsPanel extends JPanel
 	{
 		for (String key : keys)
 		{
-			section.getContent().add(settingRows.row(key));
+			section.getContent().add(settingRows.add(key));
 		}
 	}
 
