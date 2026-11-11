@@ -66,6 +66,9 @@ public class OptimizerSettings
 	 */
 	@Builder.Default
 	boolean requireAtlatlAmmoRecovery = true;
+	/** Spells are only autocast, never cast by hand. */
+	@Builder.Default
+	boolean preventManualCast = false;
 
 	@Builder.Default
 	FillMode fillMode = FillMode.NONE;

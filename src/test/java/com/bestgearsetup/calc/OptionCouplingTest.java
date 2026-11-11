@@ -76,7 +76,8 @@ public class OptionCouplingTest
 
 	private static OptimizerSettings.OptimizerSettingsBuilder settings(AttackStyle.Type tab)
 	{
-		return OptimizerSettings.builder().depth(SearchDepth.BEST).styles(Collections.singleton(tab))
+		// These pin how autocast spells couple with gear; manual casting would let the staves cast anything.
+		return OptimizerSettings.builder().depth(SearchDepth.BEST).styles(Collections.singleton(tab)).preventManualCast(true)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus")));
 	}
 

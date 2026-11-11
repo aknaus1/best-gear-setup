@@ -1263,8 +1263,7 @@ public class BestGearSetupPlugin extends Plugin
 			if (settings.getStyles().contains(AttackStyle.Type.MAGIC))
 			{
 				String spellNote = spellFilterNote(settings.getSpellFilter(),
-					Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings),
-					byType.containsKey(AttackStyle.Type.MAGIC));
+					Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings));
 				if (spellNote != null)
 				{
 					warnings.add(spellNote);
@@ -1536,6 +1535,7 @@ public class BestGearSetupPlugin extends Plugin
 			.betaItems(config.betaItems())
 			.bountyHunterItems(config.bountyHunterItems())
 			.requireAtlatlAmmoRecovery(config.requireAtlatlAmmoRecovery())
+			.preventManualCast(config.preventManualCast())
 			.fillMode(config.fillMode())
 			.defenceFocus(config.defenceFocus())
 			.fillMarginPercent(config.fillMargin())
@@ -1804,31 +1804,20 @@ public class BestGearSetupPlugin extends Plugin
 		return 3;
 	}
 
-	/** Explains when spell rules leave no spell available for autocasting. */
-	static String spellFilterNote(SpellFilter filter, List<Spell> autocastable)
+	/** Explains when spell rules leave no spell to cast; any allowed spell can at least be cast by hand. */
+	static String spellFilterNote(SpellFilter filter, List<Spell> castable)
 	{
-		return spellFilterNote(filter, autocastable, true);
-	}
-
-	/** Explains when spell rules leave no Magic setup in the results. */
-	static String spellFilterNote(SpellFilter filter, List<Spell> autocastable, boolean magicResults)
-	{
-		if (filter.isEmpty())
+		if (filter.isEmpty() || !castable.isEmpty())
 		{
 			return null;
 		}
-		if (autocastable.isEmpty() && !filter.getForced().isEmpty())
+		if (!filter.getForced().isEmpty())
 		{
 			return "Spells: none of the allowed spells ("
 				+ filter.getForced().stream().map(GameData::titleCase).collect(Collectors.joining(", "))
-				+ ") can be autocast here; check your Magic level, spellbooks and the target.";
+				+ ") can be cast here; check your Magic level, spellbooks and the target.";
 		}
-		if (autocastable.isEmpty())
-		{
-			return "Spells: every spell you could autocast here is excluded.";
-		}
-		return magicResults ? null
-			: "Spells: no Magic setup is left; your spell rules may exclude every spell your weapons can autocast here.";
+		return "Spells: every spell you could cast here is excluded.";
 	}
 
 	public Map<Slot, SlotLock> getLocks()

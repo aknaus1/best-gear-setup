@@ -37,6 +37,7 @@ public final class ConfigSettings
 		add("onSlayerTask", BestGearSetupConfig::onSlayerTask);
 		add("ancientMagicks", BestGearSetupConfig::ancientMagicks);
 		add("arceuusSpellbook", BestGearSetupConfig::arceuusSpellbook);
+		add("preventManualCast", BestGearSetupConfig::preventManualCast);
 		add("membersItems", BestGearSetupConfig::membersItems);
 		add("ammoCount", BestGearSetupConfig::ammoCount);
 		add("currentHitpoints", BestGearSetupConfig::currentHitpoints);

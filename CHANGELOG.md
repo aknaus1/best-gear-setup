@@ -26,6 +26,12 @@ is what the Plugin Hub shows.
 - When two items are equal in everything the search scores, a kitted or upgraded version is now chosen over the
   base item, so a ranged setup shows the Masori assembler rather than Ava's assembler. An item you hold still wins
   over one you don't.
+- Magic setups can cast a spell by hand with any weapon, including one that can't autocast it. A weapon locked to
+  a bow or melee weapon, an allowed spell no staff of yours autocasts, or an account with no Magic weapon now
+  still gets a Magic setup, shown as *Manual cast*. Turn on **Prevent manual casting** (Settings, Spellbooks) to
+  keep to autocast only.
+- Removed the "no Magic setup is left" spell warning, which blamed spell rules when something else emptied the
+  Magic tab. A spell warning now shows only when no allowed spell can be cast at all.
 
 ## 1.1.2 (2026-11-07)
 

@@ -60,7 +60,7 @@ public interface BestGearSetupConfig extends Config
 		position = 2, closedByDefault = true)
 	String equipmentSection = "equipment";
 
-	@ConfigSection(name = "Spellbooks", description = "Spellbooks available for autocasting",
+	@ConfigSection(name = "Spellbooks", description = "Spellbooks available for casting",
 		position = 3, closedByDefault = true)
 	String spellbooksSection = "spellbooks";
 
@@ -196,7 +196,7 @@ public interface BestGearSetupConfig extends Config
 	@ConfigItem(
 		keyName = "ancientMagicks",
 		name = "Ancient Magicks",
-		description = "Allow autocasting Ancient spells",
+		description = "Allow casting Ancient spells",
 		section = spellbooksSection,
 		position = 0
 	)
@@ -208,13 +208,25 @@ public interface BestGearSetupConfig extends Config
 	@ConfigItem(
 		keyName = "arceuusSpellbook",
 		name = "Arceuus spellbook",
-		description = "Allow autocasting Arceuus spells",
+		description = "Allow casting Arceuus spells",
 		section = spellbooksSection,
 		position = 1
 	)
 	default boolean arceuusSpellbook()
 	{
 		return SearchAssumptions.value(this, "arceuusSpellbook", true);
+	}
+
+	@ConfigItem(
+		keyName = "preventManualCast",
+		name = "Prevent manual casting",
+		description = "Only autocast spells. Off: any weapon can also cast a spell by hand, including one it can't autocast",
+		section = spellbooksSection,
+		position = 2
+	)
+	default boolean preventManualCast()
+	{
+		return SearchAssumptions.value(this, "preventManualCast", false);
 	}
 
 	@ConfigItem(
