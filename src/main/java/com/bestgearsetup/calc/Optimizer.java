@@ -126,6 +126,17 @@ public class Optimizer
 	// An ammunition recovery cape is required only when the setting is on and one could be worn here, cape lock included.
 	// Decided on first use, so a search that never asks doesn't scan the capes; null until then.
 	private Boolean recoveryRequired;
+	private List<GearItem> recoveryCapes;
+	// Whether chaos gauntlets could be worn, which keeps bolt spells in the search; null until first asked.
+	private Boolean chaosGauntlets;
+	/** Tests turn this off to compare the search against one that scores every spell. */
+	static boolean pruneSpells = true;
+	/** Per slot, the candidates kept for their bonuses rather than for a named effect (see {@link #candidates}). */
+	private final Map<Slot, Set<GearItem>> statCandidates = new EnumMap<>(Slot.class);
+	/** {@link #candidatesFor} by weapon, for the class being searched. */
+	private final Map<GearItem, Map<Slot, List<GearItem>>> weaponCandidates = new IdentityHashMap<>();
+	/** Tests turn this off to compare the search against one that tries every special item with every weapon. */
+	static boolean pruneGear = true;
 
 	/** As the full constructor, with every owned item held in any quantity. */
 	public Optimizer(GameData data, CombatContext ctx, OptimizerSettings settings, IntPredicate owned,
@@ -194,6 +205,7 @@ public class Optimizer
 		boundCandidates = candidates;
 		boundClass = cls;
 		boundWeapon = null;
+		weaponCandidates.clear();
 		specShields = candidates.getOrDefault(Slot.SHIELD, Collections.emptyList());
 		List<GearItem> weapons = weapons(cls);
 		if (weapons.size() > maxWeapons)
@@ -419,6 +431,7 @@ public class Optimizer
 		{
 			return null;
 		}
+		candidates = candidatesFor(weapon, candidates);
 		boolean firesAmmo = WeaponRules.firesAmmoSlot(weapon);
 		boolean loadsAmmo = WeaponRules.loadsAmmo(weapon);
 		List<GearItem> ammo = firesAmmo || loadsAmmo ? compatibleAmmo(weapon, firesAmmo) : Collections.emptyList();
@@ -536,6 +549,7 @@ public class Optimizer
 		}
 		Loadout l = found.getLoadout().copy();
 		GearItem weapon = l.getWeapon();
+		candidates = candidatesFor(weapon, candidates);
 		boolean firesAmmo = WeaponRules.firesAmmoSlot(weapon);
 		boolean loadsAmmo = WeaponRules.loadsAmmo(weapon);
 		List<GearItem> ammo = firesAmmo || loadsAmmo ? compatibleAmmo(weapon, firesAmmo) : Collections.emptyList();
@@ -1710,6 +1724,9 @@ public class Optimizer
 				}
 			}
 			Set<GearItem> keep = new LinkedHashSet<>(nondominated(pool, stats));
+			Set<GearItem> onStats = Collections.newSetFromMap(new IdentityHashMap<>());
+			onStats.addAll(keep);
+			statCandidates.put(slot, onStats);
 			for (GearItem item : pool)
 			{
 				if (isSpecial(item) || DragonfireProtection.isProtectiveShield(item)
@@ -1722,6 +1739,33 @@ public class Optimizer
 			out.put(slot, new ArrayList<>(keep));
 		}
 		return out;
+	}
+
+	/**
+	 * The class's candidates this weapon can use: a special item whose effect can't apply with the weapon ({@link #plain})
+	 * is only its bonuses, so it stays just when those earned it a place. The bounds follow the weapon's own list.
+	 */
+	private Map<Slot, List<GearItem>> candidatesFor(GearItem weapon, Map<Slot, List<GearItem>> candidates)
+	{
+		if (!pruneGear)
+		{
+			return candidates;
+		}
+		Map<Slot, List<GearItem>> own = weaponCandidates.get(weapon);
+		if (own == null)
+		{
+			own = new EnumMap<>(Slot.class);
+			for (Map.Entry<Slot, List<GearItem>> e : candidates.entrySet())
+			{
+				List<GearItem> kept = new ArrayList<>(e.getValue());
+				kept.removeIf(item -> !statCandidates.get(e.getKey()).contains(item) && plain(item, weapon));
+				own.put(e.getKey(), kept);
+			}
+			weaponCandidates.put(weapon, own);
+		}
+		boundCandidates = own;
+		boundWeapon = null;
+		return own;
 	}
 
 	/** The item bonuses the class's damage reads; damage never falls as one of them rises. */
@@ -2216,6 +2260,10 @@ public class Optimizer
 	/** Recovery capes that satisfy availability and the cape lock, before combined setup costs are checked. */
 	private List<GearItem> ammoRecoveryCapes()
 	{
+		if (recoveryCapes != null)
+		{
+			return recoveryCapes;
+		}
 		SlotLock lock = settings.getLocks().get(Slot.CAPE);
 		List<GearItem> capes = new ArrayList<>();
 		for (GearItem cape : data.getItems(Slot.CAPE))
@@ -2227,16 +2275,41 @@ public class Optimizer
 				capes.add(cape);
 			}
 		}
-		// Exact duplicates seed the same search; keep the preferred one (Masori assembler over Ava's assembler).
-		List<GearItem> distinct = new ArrayList<>(capes.size());
+		// Each cape left seeds every weapon's search, so keep only those no other cape beats outright: exact
+		// duplicates keep the preferred one (Masori assembler over Ava's assembler), and a cape that is no cheaper,
+		// no safer and no stronger than another is never the better start.
+		List<GearItem> unique = new ArrayList<>(capes.size());
 		for (GearItem cape : capes)
 		{
 			if (!outranked(cape, capes))
 			{
-				distinct.add(cape);
+				unique.add(cape);
 			}
 		}
+		List<GearItem> distinct = new ArrayList<>(unique.size());
+		for (int i = 0; i < unique.size(); i++)
+		{
+			boolean beaten = false;
+			for (int j = 0; j < unique.size() && !beaten; j++)
+			{
+				beaten = j != i && beatsCape(unique.get(j), unique.get(i)) && (j < i || !beatsCape(unique.get(i), unique.get(j)));
+			}
+			if (!beaten)
+			{
+				distinct.add(unique.get(i));
+			}
+		}
+		recoveryCapes = distinct;
 		return distinct;
+	}
+
+	/** Defences and prayer only matter to a cape's choice when the fill phase may weigh them. */
+	private boolean beatsCape(GearItem a, GearItem b)
+	{
+		return itemCost(a) <= itemCost(b) && (!expensive(a) || expensive(b)) && (isSpecial(a) || !isSpecial(b))
+			&& (settings.getFillMode() == FillMode.NONE ? a.getRangedBonus() >= b.getRangedBonus()
+				&& a.getRangedStr() >= b.getRangedStr() && a.getMeleeStr() >= b.getMeleeStr()
+				&& a.getPrayerBonus() >= b.getPrayerBonus() : noWorseBonuses(a, b));
 	}
 
 	/** Whether any of the weapon's styles in this class has a damaging special attack. */
@@ -2344,7 +2417,12 @@ public class Optimizer
 	{
 		List<Option> out = new ArrayList<>();
 		Set<String> seen = new HashSet<>();
-		List<Spell> spells = null;
+		boolean byHand = cls == CombatClass.MAGIC && !anyType && !ctx.getModifiers().isSpecialAttack()
+			&& !settings.isPreventManualCast() && styleAllowed(weapon, AttackStyle.MANUAL_CAST, false);
+		// Any weapon can cast a spell by hand, including one it can't autocast.
+		List<Spell> spells = cls == CombatClass.MAGIC ? strongest(byHand ? autocastableSpells : spellsFor(weapon), weapon)
+			: Collections.emptyList();
+		boolean autocasts = false;
 		for (String raw : weapon.getStyles())
 		{
 			AttackStyle s = AttackStyle.parse(raw);
@@ -2361,13 +2439,13 @@ public class Optimizer
 				}
 				else if (s.isAutocast())
 				{
-					if (spells == null)
-					{
-						spells = spellsFor(weapon);
-					}
+					autocasts = true;
 					for (Spell spell : spells)
 					{
-						out.add(new Option(s, spell));
+						if (spell.castableWith(weapon.getCombatId()))
+						{
+							out.add(new Option(s, spell));
+						}
 					}
 				}
 				else if (WeaponRules.isPoweredStaff(weapon) && WeaponRules.poweredStaffMaxHit(weapon, ctx.getMagic()) > 0)
@@ -2380,12 +2458,9 @@ public class Optimizer
 				out.add(new Option(s, null));
 			}
 		}
-		if (cls == CombatClass.MAGIC && !anyType && !ctx.getModifiers().isSpecialAttack() && !settings.isPreventManualCast()
-			&& styleAllowed(weapon, AttackStyle.MANUAL_CAST, false))
+		if (byHand)
 		{
-			// Any weapon can cast a spell by hand, including one it can't autocast.
-			boolean autocasts = spells != null;
-			for (Spell spell : autocastableSpells)
+			for (Spell spell : spells)
 			{
 				if (!autocasts || !spell.castableWith(weapon.getCombatId()))
 				{
@@ -2417,6 +2492,37 @@ public class Optimizer
 		boolean grantsDefence = (melee && (stance.equals("defensive") || controlled)) || stance.equals("longrange");
 		return (settings.isAttackXp() || !grantsAttack) && (settings.isStrengthXp() || !grantsStrength)
 			&& (settings.isDefenceXp() || !grantsDefence);
+	}
+
+	/**
+	 * The spells worth scoring with this weapon: a spell is dropped when a stronger tier of the same element or
+	 * ancient school is also castable, since nothing the setup wears can make the weaker one win.
+	 */
+	private List<Spell> strongest(List<Spell> spells, GearItem weapon)
+	{
+		if (chaosGauntlets == null)
+		{
+			chaosGauntlets = false;
+			for (GearItem hands : data.getItems(Slot.HANDS))
+			{
+				chaosGauntlets |= hands.getLowerCombatName().startsWith("chaos gauntlets") && usable(hands);
+			}
+		}
+		boolean twinflame = weapon.getLowerCombatName().startsWith("twinflame staff");
+		List<Spell> out = new ArrayList<>();
+		for (Spell weak : spells)
+		{
+			boolean beaten = false;
+			for (Spell strong : spells)
+			{
+				beaten |= SpellRules.outclasses(strong, weak, ctx.getMagic(), twinflame, chaosGauntlets, ctx.getAoeTargets() > 1);
+			}
+			if (!beaten || !pruneSpells)
+			{
+				out.add(weak);
+			}
+		}
+		return out;
 	}
 
 	private List<Spell> spellsFor(GearItem weapon)

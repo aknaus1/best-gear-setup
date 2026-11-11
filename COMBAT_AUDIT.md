@@ -110,7 +110,10 @@ scythe's three hits, or treating two linked hits as if they were independent.
 
 The optimizer keeps equipment with special effects that ordinary stat pruning would throw away, and
 seeds sets that work together. Stat pruning only drops an item when another is at least as good in
-every damage bonus, no dearer and no riskier under the expensive-item cap. Each equipment change is
+every damage bonus, no dearer and no riskier under the expensive-item cap. A special item is kept for
+a weapon only when its effect could apply with that weapon, class and target (Dharok's armour with the
+greataxe, a slayer helmet on task, a salve amulet against undead; unrecognised effects count as applying);
+elsewhere it is judged on its bonuses like any other item. No DPS formula changes. Each equipment change is
 judged with its best allowed stance or spell, since some only win together. The initial weapon
 shortlist also keeps the relevant set weapons, Twinflame and the Bulwark. It's still a bounded local
 search, so it can't prove that a combination is the best possible one under every budget: compared
@@ -171,7 +174,12 @@ Excluded (blocked) and allowed (forced) spell names are matched after the usual 
 Blocked names win if a name is present in both lists. A nonempty forced list permits only its named
 spells; powered staves and salamanders remain eligible because they do not cast a spell. A spell the weapon
 can't autocast is still cast by hand (*Manual cast*, same damage, accuracy and speed) unless **Prevent manual
-casting** is on; weapons without Magic styles cast by hand only when no Magic weapon is left.
+casting** is on; weapons without Magic styles cast by hand only when no Magic weapon is left. Of the
+spells a weapon can cast, one is left out when a higher tier of the same element (strike, bolt, blast, wave, surge)
+or ancient school (rush, burst, blitz, barrage) is castable too: both share every weakness, tome, amulet and sceptre
+effect, so only the maximum differs. Tier-only effects keep the weaker spell in: bolts when chaos gauntlets can be
+worn, bolt, blast and wave on the twinflame staff (its second hit skips surges), and a burst beside a blitz when
+targets are grouped. No DPS formula changes.
 Unknown names remain stored so an outdated forced name does not silently permit another spell.
 
 The result's **Runes/kill** and **Support/kill** rows are expected values. For a target with full
