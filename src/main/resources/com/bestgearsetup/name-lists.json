@@ -94,7 +94,7 @@
     {"slot": "SHIELD", "items": "a lit bug lantern", "monsters": ["harpie bug swarm (*)"], "gear": ["lit bug lantern"]},
     {"_about": "Waived by the Elite Kourend & Kebos Diary; wyrms need the boots only when the search location is Karuulm.",
       "slot": "FEET", "items": "boots of stone, boots of brimstone or granite boots", "karuulm": true,
-      "monsters": ["hydra (*)", "colossal hydra (*)", "alchemical hydra (*)", "drake (*)", "guardian drake (*)", "sulphur lizard (*)", "wyrm (*)", "shadow wyrm (*)"],
+      "monsterLists": ["karuulm monsters", "wyrms"],
       "gear": ["boots of stone", "boots of brimstone", "granite boots"]}
   ],
 

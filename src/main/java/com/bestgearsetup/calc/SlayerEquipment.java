@@ -4,6 +4,7 @@ import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.util.ArrayList;
@@ -34,8 +35,15 @@ public final class SlayerEquipment
 		for (JsonElement element : NameLists.rows("slayer equipment"))
 		{
 			JsonObject row = element.getAsJsonObject();
+			// A row names its monsters, or other lists of this file under "monsterLists".
+			JsonArray monsters = new JsonArray();
+			if (row.has("monsters"))
+				monsters.addAll(row.getAsJsonArray("monsters"));
+			if (row.has("monsterLists"))
+				for (JsonElement list : row.getAsJsonArray("monsterLists"))
+					monsters.addAll(NameLists.rows(list.getAsString()));
 			rules.add(new Rule(Slot.valueOf(row.get("slot").getAsString()), row.get("items").getAsString(),
-				row.has("karuulm") && row.get("karuulm").getAsBoolean(), NameLists.NameList.of(row.get("monsters")),
+				row.has("karuulm") && row.get("karuulm").getAsBoolean(), NameLists.NameList.of(monsters),
 				NameLists.NameList.of(row.get("gear"))));
 		}
 		return Collections.unmodifiableList(rules);

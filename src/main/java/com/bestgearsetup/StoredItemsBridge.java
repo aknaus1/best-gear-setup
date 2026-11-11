@@ -52,9 +52,11 @@ final class StoredItemsBridge
 		}
 		boolean again = followUp;
 		followUp = containersChanged;
-		if (!containersChanged && !again && ticks-- > 0) { return false; }
+		if (!containersChanged && !again && ticks-- > 0)
+			return false;
 		profile = profiles.getRSProfileKey();
-		if (profile == null) { return false; }
+		if (profile == null)
+			return false;
 		ticks = POLL_TICKS;
 		pending = true;
 		response = null;
@@ -70,17 +72,21 @@ final class StoredItemsBridge
 			|| !NAMESPACE.equals(message.getNamespace()) || !"storages-response".equals(message.getName())
 			|| data == null || !SOURCE.equals(data.get("target"))
 			|| !"Dude, Where's My Stuff?".equals(data.get("source"))
-			|| !Integer.valueOf(1).equals(data.get("version"))) { return; }
+			|| !Integer.valueOf(1).equals(data.get("version")))
+			return;
 		List<StoredLocation> parsed = parse(data.get("storages"));
-		if (parsed != null) { response = parsed; }
+		if (parsed != null)
+			response = parsed;
 	}
 
 	/** Queued after the provider's reply; never compare a half-completed storage transfer. */
 	boolean complete()
 	{
-		if (!pending) { return false; }
+		if (!pending)
+			return false;
 		pending = false;
-		if (!Objects.equals(profile, profiles.getRSProfileKey())) { return false; }
+		if (!Objects.equals(profile, profiles.getRSProfileKey()))
+			return false;
 		return owned.setStoredLocations(response == null ? Collections.emptyList() : response, response != null);
 	}
 
@@ -98,27 +104,34 @@ final class StoredItemsBridge
 	/** Null denotes an unsupported payload; an empty list is an authoritative empty snapshot. */
 	static List<StoredLocation> parse(Object payload)
 	{
-		if (!(payload instanceof List)) { return null; }
+		if (!(payload instanceof List))
+			return null;
 		List<StoredLocation> locations = new ArrayList<>();
 		for (Object entry : (List<?>) payload)
 		{
-			if (!(entry instanceof Map)) { return null; }
+			if (!(entry instanceof Map))
+				return null;
 			Map<?, ?> storage = (Map<?, ?>) entry;
 			if (!(storage.get("category") instanceof String) || !(storage.get("name") instanceof String)
-				|| !(storage.get("items") instanceof List)) { return null; }
+				|| !(storage.get("items") instanceof List))
+				return null;
 			String category = (String) storage.get("category");
 			String name = (String) storage.get("name");
-			if (!include(category, name)) { continue; }
+			if (!include(category, name))
+				continue;
 			Map<Integer, Long> items = new HashMap<>();
 			for (Object item : (List<?>) storage.get("items"))
 			{
-				if (!(item instanceof Map)) { return null; }
+				if (!(item instanceof Map))
+					return null;
 				Map<?, ?> stack = (Map<?, ?>) item;
 				// Version 1 sends Integer ids and Long quantities; any whole number is read the same way.
-				if (!(stack.get("id") instanceof Number) || !(stack.get("quantity") instanceof Number)) { return null; }
+				if (!(stack.get("id") instanceof Number) || !(stack.get("quantity") instanceof Number))
+					return null;
 				int id = ((Number) stack.get("id")).intValue();
 				long quantity = ((Number) stack.get("quantity")).longValue();
-				if (id > 0 && quantity > 0) { items.merge(id, quantity, OwnedItems::saturatedAdd); }
+				if (id > 0 && quantity > 0)
+					items.merge(id, quantity, OwnedItems::saturatedAdd);
 			}
 			if (!items.isEmpty())
 			{
@@ -132,8 +145,10 @@ final class StoredItemsBridge
 
 	private static boolean include(String category, String name)
 	{
-		if ("carryable".equals(category)) { return !"Inventory".equals(name) && !"Equipment".equals(name); }
-		if ("world".equals(category)) { return !"Bank".equals(name) && !"Log Storage".equals(name); }
+		if ("carryable".equals(category))
+			return !"Inventory".equals(name) && !"Equipment".equals(name);
+		if ("world".equals(category))
+			return !"Bank".equals(name) && !"Log Storage".equals(name);
 		if ("poh".equals(category))
 		{
 			// The message also includes pets, mounted displays and capes from potentially someone else's house.
