@@ -79,6 +79,9 @@ public class OwnedItems
 	/** Totals seen on the previous tick; a total is published once the next tick sees it again. Client thread. */
 	private Map<Integer, Long> pendingOwned;
 	private Map<Integer, Long> pendingCarried;
+	/** Something moved since the totals were last combined, and whether the combined totals are still unpublished. */
+	private volatile boolean moved;
+	private volatile boolean unsettled;
 	/** Storage recorded by Dude, Where's My Stuff?, replaced whole on each of its replies. */
 	@Getter
 	private volatile List<StoredLocation> storedLocations = Collections.emptyList();
@@ -167,6 +170,7 @@ public class OwnedItems
 			worn = ids;
 		}
 		configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, key, serialize(ids));
+		moved = true;
 		// Location and worn markers update now; settle() publishes the combined ownership once transfers land.
 		return itemsChanged;
 	}
@@ -279,6 +283,7 @@ public class OwnedItems
 		// A newer DWMS timestamp alone moves no items: keep it, but don't report a change.
 		boolean itemsChanged = !contents(storedLocations).equals(contents(locations));
 		storedLocations = Collections.unmodifiableList(new ArrayList<>(locations));
+		moved |= itemsChanged;
 		return statusChanged || itemsChanged;
 	}
 
@@ -349,6 +354,8 @@ public class OwnedItems
 		carried = snapshot(carried, combine(Arrays.asList(inventory, worn), Collections.emptySet()));
 		pendingOwned = null;
 		pendingCarried = null;
+		moved = false;
+		unsettled = false;
 	}
 
 	/**
@@ -357,6 +364,13 @@ public class OwnedItems
 	 */
 	boolean settle()
 	{
+		// Nothing has moved since the totals were published: most ticks end here, without walking the bank.
+		if (!moved && !unsettled)
+		{
+			return false;
+		}
+		unsettled = moved;
+		moved = false;
 		Map<Integer, Long> total = combine(allContainers(), manual);
 		Map<Integer, Long> held = combine(Arrays.asList(inventory, worn), Collections.emptySet());
 		Snapshot ownedBefore = owned;
