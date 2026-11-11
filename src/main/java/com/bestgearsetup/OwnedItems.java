@@ -272,7 +272,7 @@ public class OwnedItems
 	 * Replace the whole Dude, Where's My Stuff? snapshot, including removals; it is not persisted here. The next
 	 * {@link #settle()} counts it. Returns whether anything shown changed: the connection, or what is stored where.
 	 */
-	boolean setStoredLocations(List<StoredLocation> locations, boolean connected)
+	synchronized boolean setStoredLocations(List<StoredLocation> locations, boolean connected)
 	{
 		boolean statusChanged = storageConnected != connected;
 		storageConnected = connected;
@@ -348,7 +348,7 @@ public class OwnedItems
 	 * Publish the current totals at once, without waiting for them to settle: on loading a profile, marking an
 	 * item owned by hand, reading the live containers at start-up or clearing recorded storage.
 	 */
-	void rebuild(boolean itemsChanged)
+	synchronized void rebuild(boolean itemsChanged)
 	{
 		owned = snapshot(owned, combine(allContainers(), manual));
 		carried = snapshot(carried, combine(Arrays.asList(inventory, worn), Collections.emptySet()));
@@ -362,7 +362,7 @@ public class OwnedItems
 	 * Client thread, once per game tick (after the optional storage reply): publish each total that matches the
 	 * one seen on the previous tick. Returns whether published ownership changed.
 	 */
-	boolean settle()
+	synchronized boolean settle()
 	{
 		// Nothing has moved since the totals were published: most ticks end here, without walking the bank.
 		if (!moved && !unsettled)

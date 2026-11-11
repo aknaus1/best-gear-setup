@@ -77,6 +77,10 @@ public class Optimizer
 	/** Gear whose effects the calculator reads by name, so it stays a candidate whatever its bonuses. */
 	private static final NameLists.NameList SPECIAL_GEAR = NameLists.list("special gear");
 	private static final NameLists.NameList MAGIC_ONLY_GEAR = NameLists.list("magic-only gear");
+	/** Spells that need one of their staves wielded to be cast at all, so no other weapon casts them by hand. */
+	private static final NameLists.NameList STAFF_BOUND_SPELLS = NameLists.list("staff-bound spells");
+	/** The plain god staves cast their god spell, but can't autocast it (each spell's OSRS Wiki page). */
+	private static final NameLists.NameList HAND_CAST_STAVES = NameLists.list("hand-cast god staves");
 
 	private final GameData data;
 	private final CombatContext ctx;
@@ -2419,10 +2423,11 @@ public class Optimizer
 		Set<String> seen = new HashSet<>();
 		boolean byHand = cls == CombatClass.MAGIC && !anyType && !ctx.getModifiers().isSpecialAttack()
 			&& !settings.isPreventManualCast() && styleAllowed(weapon, AttackStyle.MANUAL_CAST, false);
-		// Any weapon can cast a spell by hand, including one it can't autocast.
+		// Any weapon can cast a spell by hand, including one it can't autocast, unless the spell needs its own staff.
 		List<Spell> spells = cls == CombatClass.MAGIC ? strongest(byHand ? autocastableSpells : spellsFor(weapon), weapon)
 			: Collections.emptyList();
 		boolean autocasts = false;
+		boolean handOnly = HAND_CAST_STAVES.matches(weapon.getLowerCombatName());
 		for (String raw : weapon.getStyles())
 		{
 			AttackStyle s = AttackStyle.parse(raw);
@@ -2442,7 +2447,7 @@ public class Optimizer
 					autocasts = true;
 					for (Spell spell : spells)
 					{
-						if (spell.castableWith(weapon.getCombatId()))
+						if (spell.castableWith(weapon.getCombatId()) && !(handOnly && staffBound(spell)))
 						{
 							out.add(new Option(s, spell));
 						}
@@ -2462,7 +2467,9 @@ public class Optimizer
 		{
 			for (Spell spell : spells)
 			{
-				if (!autocasts || !spell.castableWith(weapon.getCombatId()))
+				boolean castable = spell.castableWith(weapon.getCombatId());
+				boolean bound = staffBound(spell);
+				if ((!autocasts || !castable || handOnly && bound) && (castable || !bound))
 				{
 					out.add(new Option(AttackStyle.MANUAL_CAST, spell));
 				}
@@ -2523,6 +2530,12 @@ public class Optimizer
 			}
 		}
 		return out;
+	}
+
+	/** Whether the spell needs one of its own staves wielded to be cast at all. */
+	public static boolean staffBound(Spell spell)
+	{
+		return STAFF_BOUND_SPELLS.matches(spell.getLowerName());
 	}
 
 	private List<Spell> spellsFor(GearItem weapon)

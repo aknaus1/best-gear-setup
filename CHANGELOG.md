@@ -28,8 +28,10 @@ is what the Plugin Hub shows.
   over one you don't.
 - Magic setups can cast a spell by hand with any weapon, including one that can't autocast it. A weapon locked to
   a bow or melee weapon, an allowed spell no staff of yours autocasts, or an account with no Magic weapon now
-  still gets a Magic setup, shown as *Manual cast*. Turn on **Prevent manual casting** (Settings, Spellbooks) to
-  keep to autocast only.
+  still gets a Magic setup, shown as *Manual cast*. Spells that need their own staff (Iban Blast, Magic Dart and
+  the god spells) are still only cast with it, with a warning when they are the only allowed spells and no
+  such staff is available. The plain Saradomin, Guthix and Zamorak staves cast their god spell by hand, since
+  they can't autocast it, and the harmonised nightmare staff's faster casts apply to autocasting only. Turn on **Prevent manual casting** (Settings, Spellbooks) to keep to autocast only.
 - Removed the "no Magic setup is left" spell warning, which blamed spell rules when something else emptied the
   Magic tab. A spell warning now shows only when no allowed spell can be cast at all.
 - Magic and Ranged searches are faster. A spell is no longer scored when a stronger tier of the same element or

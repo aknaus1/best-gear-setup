@@ -220,7 +220,8 @@ public interface BestGearSetupConfig extends Config
 	@ConfigItem(
 		keyName = "preventManualCast",
 		name = "Prevent manual casting",
-		description = "Only autocast spells. Off: any weapon can also cast a spell by hand, including one it can't autocast",
+		description = "Only autocast spells. Off: any weapon can also cast a spell by hand, including one it can't autocast. "
+			+ "Spells that need their own staff (Iban Blast, Magic Dart, god spells) are only cast with it",
 		section = spellbooksSection,
 		position = 2
 	)

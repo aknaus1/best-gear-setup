@@ -805,7 +805,8 @@ public final class DpsCalculator
 			}
 			baseMax = SpellRules.maxHit(l, ctx);
 			speed = l.getSpell().getAttackSpeed();
-			if (lower(weapon).startsWith("harmonised nightmare staff")
+			// The harmonised staff's faster casts apply to autocasting only (OSRS Wiki).
+			if (lower(weapon).startsWith("harmonised nightmare staff") && !style.isManualCast()
 				&& "standard".equalsIgnoreCase(l.getSpell().getSpellbook()))
 			{
 				speed = 4;

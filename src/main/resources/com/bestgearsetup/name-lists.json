@@ -61,6 +61,8 @@
     "ava's attractor*", "ava's accumulator*", "ava's assembler*", "assembler max cape*", "masori assembler*",
     "dizana's quiver*", "blessed dizana's quiver*", "dizana's max cape*"
   ],
+  "staff-bound spells": ["iban blast", "magic dart", "saradomin strike", "claws of guthix", "flames of zamorak"],
+  "hand-cast god staves": ["saradomin staff", "guthix staff", "zamorak staff"],
   "venom helms": ["serpentine helm*", "tanzanite helm*", "magma helm*"],
 
   "wilderness-only monsters": [

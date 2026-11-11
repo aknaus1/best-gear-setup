@@ -173,8 +173,12 @@ that the direct-damage formulas follow doesn't model poison or venom.
 Excluded (blocked) and allowed (forced) spell names are matched after the usual level, spellbook and target gates.
 Blocked names win if a name is present in both lists. A nonempty forced list permits only its named
 spells; powered staves and salamanders remain eligible because they do not cast a spell. A spell the weapon
-can't autocast is still cast by hand (*Manual cast*, same damage, accuracy and speed) unless **Prevent manual
-casting** is on; weapons without Magic styles cast by hand only when no Magic weapon is left. Of the
+can't autocast is still cast by hand (*Manual cast*, same damage and accuracy) unless **Prevent manual
+casting** is on; weapons without Magic styles cast by hand only when no Magic weapon is left. Iban Blast, Magic
+Dart, Saradomin Strike, Claws of Guthix and Flames of Zamorak need one of their staves wielded (each spell's
+OSRS Wiki page), so only those staves cast them (name-lists.json, "staff-bound spells"); the plain Saradomin, Guthix and Zamorak
+staves cast their god spell by hand only ("hand-cast god staves"), as those pages say they can't autocast it; and the harmonised
+nightmare staff's 4-tick casts apply to autocasting only (its Wiki page), so a hand cast keeps 5 ticks. Of the
 spells a weapon can cast, one is left out when a higher tier of the same element (strike, bolt, blast, wave, surge)
 or ancient school (rush, burst, blitz, barrage) is castable too: both share every weakness, tome, amulet and sceptre
 effect, so only the maximum differs. Tier-only effects keep the weaker spell in: bolts when chaos gauntlets can be

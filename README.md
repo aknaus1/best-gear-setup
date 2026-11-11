@@ -23,7 +23,8 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
 - **A result per attack style** with DPS, max hit, accuracy, time to kill, kills per hour and the cost of
   anything you'd need to buy, plus the next-best alternatives.
 - **Allowed and Excluded spells** in Gear let you limit searches to the spells you choose or exclude spells.
-  Spells can be autocast or cast by hand with any weapon, and powered staves and salamanders can still compete.
+  Spells can be autocast or cast by hand with any weapon (spells that need their own staff, such as Iban Blast,
+  only with it), and powered staves and salamanders can still compete.
 - **Runes per kill** estimate attack and support rune use, including runes supplied by your staff or tome,
   rune-saving weapons, special attacks and your thrall tier.
 - **Knows your account:** owned items, levels, prayers, Slayer task and diaries, remembered per profile. With

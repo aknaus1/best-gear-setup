@@ -9,6 +9,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.OwnershipRules;
 import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
@@ -120,6 +121,73 @@ public class ManualCastTest
 		assertSame(staff, l.getWeapon());
 		assertEquals(fireBolt, l.getSpell());
 		assertFalse(l.getStyle().isManualCast());
+	}
+
+	@Test
+	public void staffBoundSpellIsOnlyCastWithItsStaff()
+	{
+		GearItem ibans = weapon(1409, "iban's staff", "staff", 5, "bash,crush,accurate", "spell,magic,magic");
+		Spell ibanBlast = spell("Iban Blast", "standard", 25, 50, ibans.getId());
+		OptimizerSettings s = settings().spellbooks(new HashSet<>(Arrays.asList("standard", "ancient")))
+			.styles(EnumSet.allOf(AttackStyle.Type.class)).resultsPerClass(10).build();
+		// The staff of air has the higher Magic bonus, but can't cast Iban Blast by hand.
+		List<SetupResult> results = new Optimizer(TestData.gameData(Arrays.asList(bow, staff, ibans),
+			Arrays.asList(fireBolt, ibanBlast)), ctx, s, id -> true, GearItem::getPrice)
+			.optimize(CombatClass.MAGIC, () -> false);
+		assertFalse(results.isEmpty());
+		for (SetupResult r : results)
+		{
+			Loadout l = r.getLoadout();
+			if (ibanBlast.equals(l.getSpell()))
+			{
+				assertSame(ibans, l.getWeapon());
+				assertFalse(l.getStyle().isManualCast());
+			}
+		}
+		assertSame(ibans, results.get(0).getLoadout().getWeapon());
+		// With no staff that casts it, the spell is not offered at all.
+		for (SetupResult r : new Optimizer(TestData.gameData(Arrays.asList(bow, staff),
+			Arrays.asList(fireBolt, ibanBlast)), ctx, s, id -> true, GearItem::getPrice)
+			.optimize(CombatClass.MAGIC, () -> false))
+		{
+			assertEquals(fireBolt, r.getLoadout().getSpell());
+		}
+	}
+
+	@Test
+	public void plainGodStaffCastsItsGodSpellByHandOnly()
+	{
+		GearItem zamorak = weapon(2417, "zamorak staff", "staff", 5, "bash,crush,accurate", "spell,magic,magic");
+		Spell flames = spell("Flames of Zamorak", "standard", 20, 60, zamorak.getId());
+		fireBolt = spell("Fire Bolt", "standard", 12, 35, staff.getId(), zamorak.getId());
+		OptimizerSettings.OptimizerSettingsBuilder s = settings().locks(Collections.singletonMap(Slot.WEAPON,
+			SlotLock.item(zamorak.getId()))).spellbooks(new HashSet<>(Arrays.asList("standard", "ancient")))
+			.styles(EnumSet.allOf(AttackStyle.Type.class));
+		GameData data = TestData.gameData(Arrays.asList(bow, staff, zamorak), Arrays.asList(fireBolt, flames));
+		Loadout l = new Optimizer(data, ctx, s.build(), id -> true, GearItem::getPrice)
+			.optimize(CombatClass.MAGIC, () -> false).get(0).getLoadout();
+		assertEquals(flames, l.getSpell());
+		assertTrue(l.getStyle().isManualCast());
+		// Autocast only: the staff still autocasts ordinary spells, but not its god spell.
+		l = new Optimizer(data, ctx, s.preventManualCast(true).build(), id -> true, GearItem::getPrice)
+			.optimize(CombatClass.MAGIC, () -> false).get(0).getLoadout();
+		assertEquals(fireBolt, l.getSpell());
+		assertFalse(l.getStyle().isManualCast());
+	}
+
+	@Test
+	public void harmonisedStaffCastsByHandAtTheSpellsSpeed()
+	{
+		GearItem harmonised = weapon(24423, "harmonised nightmare staff", "staff", 5, "bash,crush,accurate",
+			"spell,magic,magic");
+		Spell crumble = spell("Crumble Undead", "standard", 15, 39);
+		Loadout l = new Loadout();
+		l.set(Slot.WEAPON, harmonised);
+		l.setSpell(crumble);
+		l.setStyle(AttackStyle.MANUAL_CAST);
+		assertEquals(5, DpsCalculator.calculate(l, ctx).getAttackSpeedTicks());
+		l.setStyle(AttackStyle.parse("spell,magic,magic"));
+		assertEquals(4, DpsCalculator.calculate(l, ctx).getAttackSpeedTicks());
 	}
 
 	@Test

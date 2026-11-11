@@ -435,7 +435,11 @@ For example, the skull sceptre (i) can only autocast Crumble Undead from the sta
 slayer's staves and the void knight mace can only autocast waves and surges.
 
 Any weapon can also cast a spell by hand, so Magic setups include each allowed spell a weapon can't
-autocast, shown as *Manual cast*; damage, accuracy and speed are the same as autocasting it. Weapons
+autocast, shown as *Manual cast*; damage and accuracy are the same as autocasting it, at the spell's own
+speed (the harmonised nightmare staff's faster casts apply to autocasting only). Iban Blast, Magic Dart,
+Saradomin Strike, Claws of Guthix and Flames of Zamorak need one of their own staves wielded, so no other
+weapon casts them by hand. The plain Saradomin, Guthix and Zamorak staves can't autocast their god spell, so
+they cast it by hand. Weapons
 without Magic styles (a twisted bow, say) cast by hand only when no Magic weapon is left: none is held, or
 the weapon slot is locked to another kind. **Prevent manual casting** turns this off. Special-attack
 searches never cast by hand.

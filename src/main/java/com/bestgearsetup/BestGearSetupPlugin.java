@@ -325,9 +325,11 @@ public class BestGearSetupPlugin extends Plugin
 		bankButton = null;
 		eventBus.unregister(liveSpecs);
 		liveSpecs = null;
-		eventBus.unregister(storedItemsBridge);
-		storedItemsBridge.reset();
+		StoredItemsBridge bridge = storedItemsBridge;
 		storedItemsBridge = null;
+		eventBus.unregister(bridge);
+		// The bridge and settling ownership belong to the client thread.
+		clientThread.invoke(bridge::reset);
 		if (partySpecs != null)
 		{
 			eventBus.unregister(partySpecs);
@@ -758,9 +760,10 @@ public class BestGearSetupPlugin extends Plugin
 		lookupTarget = null;
 		lastRememberedLevels = null;
 		ownedItems.load();
-		if (storedItemsBridge != null)
+		StoredItemsBridge bridge = storedItemsBridge;
+		if (bridge != null)
 		{
-			storedItemsBridge.reset();
+			clientThread.invoke(bridge::reset);
 		}
 		SwingUtilities.invokeLater(() ->
 		{
@@ -1262,8 +1265,13 @@ public class BestGearSetupPlugin extends Plugin
 			List<String> warnings = assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config);
 			if (settings.getStyles().contains(AttackStyle.Type.MAGIC))
 			{
-				String spellNote = spellFilterNote(settings.getSpellFilter(),
-					Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings));
+				List<Spell> castable = Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings);
+				String spellNote = spellFilterNote(settings.getSpellFilter(), castable);
+				if (spellNote == null)
+				{
+					spellNote = staffBoundNote(settings.getSpellFilter(), castable,
+						byType.getOrDefault(AttackStyle.Type.MAGIC, Collections.emptyList()));
+				}
 				if (spellNote != null)
 				{
 					warnings.add(spellNote);
@@ -1641,7 +1649,8 @@ public class BestGearSetupPlugin extends Plugin
 				notes.add(0, "Invalid expensive-item threshold: using 0 GP, so every equipped item counts as expensive. Enter an amount such as 500k or 1m in Fight.");
 			}
 		}
-		if (settings.isRequireAtlatlAmmoRecovery())
+		if (settings.isRequireAtlatlAmmoRecovery() && (settings.getStyles().contains(AttackStyle.Type.RANGED)
+			|| settings.getStyles().contains(AttackStyle.Type.ATLATL)))
 		{
 			notes.add("Ranged attacks firing ammo an Ava's device recovers require an Ava's device, an assembler cape or "
 				+ "Dizana's quiver when one is available to this search; special-attack switches are exempt.");
@@ -1804,7 +1813,7 @@ public class BestGearSetupPlugin extends Plugin
 		return 3;
 	}
 
-	/** Explains when spell rules leave no spell to cast; any allowed spell can at least be cast by hand. */
+	/** Explains when spell rules leave no spell to cast; most allowed spells can at least be cast by hand. */
 	static String spellFilterNote(SpellFilter filter, List<Spell> castable)
 	{
 		if (filter.isEmpty() || !castable.isEmpty())
@@ -1818,6 +1827,18 @@ public class BestGearSetupPlugin extends Plugin
 				+ ") can be cast here; check your Magic level, spellbooks and the target.";
 		}
 		return "Spells: every spell you could cast here is excluded.";
+	}
+
+	/** Explains when the only allowed spells need their own staff and no setup found wields one. */
+	static String staffBoundNote(SpellFilter filter, List<Spell> castable, List<SetupResult> magic)
+	{
+		if (filter.getForced().isEmpty() || castable.isEmpty() || !castable.stream().allMatch(Optimizer::staffBound)
+			|| magic.stream().anyMatch(r -> r.getLoadout().getSpell() != null))
+		{
+			return null;
+		}
+		return "Spells: " + castable.stream().map(Spell::toString).collect(Collectors.joining(", "))
+			+ " can only be cast with the right staff wielded, and none is available to this search.";
 	}
 
 	public Map<Slot, SlotLock> getLocks()
