@@ -54,6 +54,9 @@ highlights.
 
 ## Support
 
+[Join the Discord community](https://discord.gg/gxFXvnUrUs) for setup help, gear discussions, FAQs and
+feature requests.
+
 Report bugs on the [issue tracker](https://github.com/aknaus1/best-gear-setup/issues). If a result looks
 wrong, include the monster, version, mode and the text under **Search details**, but not your account name
 or whole bank.
