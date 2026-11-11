@@ -23,6 +23,9 @@ is what the Plugin Hub shows.
 - A deposit, withdrawal or equip whose two container updates arrive on different game ticks no longer searches
   again. Ownership is now published once it has held for two ticks, so gaining or losing gear updates the
   results one tick later than before.
+- When two items are equal in everything the search scores, a kitted or upgraded version is now chosen over the
+  base item, so a ranged setup shows the Masori assembler rather than Ava's assembler. An item you hold still wins
+  over one you don't.
 
 ## 1.1.2 (2026-11-07)
 
