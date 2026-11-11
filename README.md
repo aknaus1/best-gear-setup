@@ -22,8 +22,8 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
   *Best in slot*.
 - **A result per attack style** with DPS, max hit, accuracy, time to kill, kills per hour and the cost of
   anything you'd need to buy, plus the next-best alternatives.
-- **Allowed and Excluded spells** in Gear let you limit searches to the spells you choose or exclude autocast spells.
-  Powered staves and salamanders can still compete.
+- **Allowed and Excluded spells** in Gear let you limit searches to the spells you choose or exclude spells.
+  Spells can be autocast or cast by hand with any weapon, and powered staves and salamanders can still compete.
 - **Runes per kill** estimate attack and support rune use, including runes supplied by your staff or tome,
   rune-saving weapons, special attacks and your thrall tier.
 - **Knows your account:** owned items, levels, prayers, Slayer task and diaries, remembered per profile. With
@@ -42,7 +42,7 @@ and pre-fight defence reductions. **Gear** lists your locks, excluded items, spe
 search to add more. **Settings** covers search options, attack styles, equipment, spellbooks, boosts and
 highlights.
 
-![The Fight and Settings panels in the sidebar](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
+![The Fight, Gear and Settings panels in the sidebar](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
 
 ## Good to know
 

@@ -127,23 +127,23 @@ class ConstraintsPanel extends JPanel
 			"Search an item the search should never use", this::updateExcludeSuggestions);
 
 		forcedSpellsSection = card(accordion, "forcedSpells", "Allowed spells");
-		forcedSpellsSection.setToolTip("Only these spells are autocast. Powered staves and salamanders are still used.");
+		forcedSpellsSection.setToolTip("Only these spells are cast. Powered staves and salamanders are still used.");
 		body = forcedSpellsSection.getContent();
-		body.add(hint("Only these spells are autocast. Powered staves and salamanders are still used."));
+		body.add(hint("Only these spells are cast. Powered staves and salamanders are still used."));
 		body.add(transparent(forcedSpellsList));
 		body.add(caption("Allow a spell"));
 		forcedSpellsSearch.setName("forcedSpellsSearch");
 		addSearch(body, forcedSpellsSearch, forcedSpellsSuggestions, "forcedSpellsSuggestions",
-			"Search spells to allow...", "Search a spell to always autocast", this::updateForcedSpellSuggestions);
+			"Search spells to allow...", "Search a spell to always cast", this::updateForcedSpellSuggestions);
 
 		blockedSpellsSection = card(accordion, "blockedSpells", "Excluded spells");
 		body = blockedSpellsSection.getContent();
-		body.add(hint("Never autocast these spells."));
+		body.add(hint("Never cast these spells."));
 		body.add(transparent(blockedSpellsList));
 		body.add(caption("Exclude a spell"));
 		blockedSpellsSearch.setName("blockedSpellsSearch");
 		addSearch(body, blockedSpellsSearch, blockedSpellsSuggestions, "blockedSpellsSuggestions",
-			"Search spells to exclude...", "Search a spell the search should never autocast", this::updateBlockedSpellSuggestions);
+			"Search spells to exclude...", "Search a spell the search should never cast", this::updateBlockedSpellSuggestions);
 
 		ownedSection = card(accordion, "extraOwnedItems", "Extra owned items");
 		body = ownedSection.getContent();
