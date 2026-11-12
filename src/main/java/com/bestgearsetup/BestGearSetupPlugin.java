@@ -1605,6 +1605,9 @@ public class BestGearSetupPlugin extends Plugin
 			case TOA:
 				scaling = "ToA party: " + raid.getPartySize() + ", raid level " + raid.getToaRaidLevel();
 				break;
+			case TFA:
+				scaling = "TFA party: " + raid.getPartySize() + (raid.getPartySize() < 2 ? " (scaled as 2)" : "");
+				break;
 			default:
 				return null;
 		}

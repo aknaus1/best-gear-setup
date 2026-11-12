@@ -188,4 +188,59 @@ public class RaidScalingTest
 		assertEquals(126, PlayerLevels.maxed().combatLevel());
 		assertEquals(3, new PlayerLevels(1, 1, 1, 1, 1, 1, 10, 1).combatLevel());
 	}
+
+	private static Monster tfa(String name, int hp, String... attributes)
+	{
+		String[] all = new String[attributes.length + 1];
+		all[0] = "the fractured archive";
+		System.arraycopy(attributes, 0, all, 1, attributes.length);
+		Monster m = monster(200, 50, all);
+		m.setName(name);
+		m.setHitpoints(hp);
+		return m;
+	}
+
+	@Test
+	public void tfaSoloAndDuoBossesHaveTenPercentMoreThanTheirListedBase()
+	{
+		// Xarth's Wiki table after the 2026-11-11 update: 2,450 listed, 2,700 in a duo (2,695 to the nearest 10).
+		Monster xarth = tfa("xarth", 2450, "boss");
+		assertEquals(RaidScaling.Raid.TFA, RaidScaling.raid(xarth));
+		assertEquals(2700, RaidScaling.apply(xarth, party(2).build()).getHitpoints());
+		assertEquals("A solo raid uses duo scaling", 2700, RaidScaling.apply(xarth, party(1).build()).getHitpoints());
+		assertEquals(2450, xarth.getHitpoints());
+	}
+
+	@Test
+	public void tfaLargerTeamsMatchTheWikiTeamSizeTables()
+	{
+		Monster ezekiel = tfa("ezekiel", 3000, "boss");
+		int[] wiki = {0, 0, 0, 4350, 5610, 6870, 8130, 9390, 10650};
+		for (int size = 3; size <= 8; size++)
+		{
+			assertEquals("Ezekiel, team of " + size, wiki[size],
+				RaidScaling.apply(ezekiel, party(size).build()).getHitpoints());
+		}
+		// Ocellus's remainder: 5,250 x 1.45 = 7,612.5, rounded to 7,610; eight players cap the scale.
+		Monster ocellus = tfa("ocellus (phase 3)", 5250, "boss");
+		assertEquals(7610, RaidScaling.apply(ocellus, party(3).build()).getHitpoints());
+		assertEquals(18640, RaidScaling.apply(ocellus, party(12).build()).getHitpoints());
+		// The flying Archive Guardian: 550 x 1.1 = 605, rounded up to 610.
+		assertEquals(610, RaidScaling.apply(tfa("archive guardian (flying)", 550, "boss"), party(2).build()).getHitpoints());
+	}
+
+	@Test
+	public void tfaAddsKeepTheirStatsExceptMoiasUndeadBinders()
+	{
+		Monster jelly = tfa("jelly (dreadnoth)", 61);
+		assertEquals(61, RaidScaling.apply(jelly, party(5).build()).getHitpoints());
+		assertEquals("TFA: this target uses its listed stats.", RaidScaling.describe(jelly, jelly, party(5).build()));
+		// 95 x 1.1 = 104.5: adds round to the nearest hitpoint, not 10.
+		assertEquals(105, RaidScaling.apply(tfa("undead binder", 95), party(2).build()).getHitpoints());
+		Monster blade = tfa("ocellus (phase 2)", 1000, "boss");
+		assertEquals(1000, RaidScaling.apply(blade, party(4).build()).getHitpoints());
+		Monster bork = tfa("bork", 1650, "boss");
+		assertEquals("TFA HP scaling: party 1 (a solo counts as 2); HP 1650 -> 1820.",
+			RaidScaling.describe(bork, RaidScaling.apply(bork, party(1).build()), party(1).build()));
+	}
 }

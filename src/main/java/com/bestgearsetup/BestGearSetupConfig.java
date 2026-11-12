@@ -383,7 +383,7 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(keyName = "raidPartySize", name = "Raid party size", hidden = true,
-		description = "Players in the raid. Scales CoX levels and HP, ToB HP (normal/hard below 3 count as 3) and ToA HP.",
+		description = "Players in the raid. Scales CoX levels and HP, ToB HP (normal/hard below 3 count as 3), ToA HP and TFA boss HP (a solo counts as 2).",
 		section = searchSection, position = 27)
 	@Range(min = 1, max = 100)
 	default int raidPartySize()

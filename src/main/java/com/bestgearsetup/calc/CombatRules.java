@@ -140,8 +140,26 @@ final class CombatRules
 			: name.startsWith("zebak") ? 50 : name.contains("warden") && name.contains("phase 3") ? 120
 			: EncounterDamage.named(m, "nex") ? 250 : EncounterDamage.named(m, "araxxor") ? 90
 			: EncounterDamage.named(m, "the hueycoatl") ? 120 : EncounterDamage.named(m, "yama") ? 145
-			: EncounterDamage.named(m, "doom of mokhaiotl") ? 60 : 0;
+			: EncounterDamage.named(m, "doom of mokhaiotl") ? 60
+			: tfaDrainCapped(m) ? m.getDefenceLevel() * 3 / 5 : 0;
 		return Math.min(m.getDefenceLevel(), Math.max(floor, m.getDefenceFloor()));
+	}
+
+	/**
+	 * The Fractured Archive's bosses whose Defence can only be drained to 60% of its original value ("The Fractured
+	 * Archive - Out Today", 2026-10-21 hotfix): not the Dagon'hai, Dreadnoth, the Smorks or the adds, nor Ocellus's
+	 * second phase (the Blade), whose Defence can be drained to 0 (Wiki "Ocellus").
+	 */
+	static boolean tfaDrainCapped(Monster m)
+	{
+		if (!m.hasAttribute("the fractured archive"))
+		{
+			return false;
+		}
+		return EncounterDamage.named(m, "archive guardian") || EncounterDamage.named(m, "bork")
+			|| EncounterDamage.named(m, "ezekiel") || EncounterDamage.named(m, "moia")
+			|| EncounterDamage.named(m, "xarth")
+			|| EncounterDamage.named(m, "ocellus") && !m.getLowerName().equals("ocellus (phase 2)");
 	}
 
 	static boolean wardenCore(Monster m)
