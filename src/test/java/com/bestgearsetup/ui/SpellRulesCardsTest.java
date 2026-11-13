@@ -27,6 +27,9 @@ import org.junit.Test;
 
 public class SpellRulesCardsTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	private SpellFilter filter = SpellFilter.NONE;
 	private final List<String> actions = new ArrayList<>();
 	private final List<Spell> spells = Arrays.asList(spell("ice barrage", "ancient"),

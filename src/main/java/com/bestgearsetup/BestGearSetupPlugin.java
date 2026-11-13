@@ -966,16 +966,12 @@ public class BestGearSetupPlugin extends Plugin
 				npc == null ? null : npc.getWorldLocation(), taskLocation);
 			boolean onTask = config.taskMode().resolve(matched, false);
 			detected.put("onSlayerTask", onTask);
-			String taskNote = config.taskMode() == AutoState.AUTO
-				? "Slayer task: " + (matched == null ? "unknown; task bonus not assumed. Use Fight to override." : onTask ? "matched to this target." : "this target is off task.")
-				: "Slayer task: " + config.taskMode() + " (planning override).";
-			taskNote += " " + AccountFacts.describe(assignment);
-			if (matched == null && assignment != null && assignment.locationRestricted)
-			{ taskNote += " The assigned location could not be verified for this search."; }
-			if (npc != null && assignment != null && assignment.locationRestricted)
-			{ taskNote += " Checked the target's region " + taskLocation.getRegionID() + ", floor " + taskLocation.getPlane() + "."; }
-			else if (Boolean.TRUE.equals(matched) && assignment.locationRestricted)
-			{ taskNote += " Assumes you fight it at the assigned location; right-click the monster there to check."; }
+			// The task summary's hover text: one short line.
+			String taskNote = config.taskMode() != AutoState.AUTO ? "Slayer task " + config.taskMode() + " (Fight override)."
+				: matched == null ? "Slayer task unknown; task bonus not assumed."
+				: !onTask ? "This target is off task."
+				: npc == null && assignment.locationRestricted ? "On task, assuming the assigned location."
+				: "Slayer task matched to this target.";
 			if (WildernessTargets.only(summary.getName()))
 			{
 				detected.put("wilderness", true);

@@ -202,14 +202,6 @@ final class AccountFacts
 		return inKaruulm(player);
 	}
 
-	static String describe(TaskRecord record)
-	{
-		if (record == null) { return "Slayer assignment unavailable."; }
-		if (record.remaining == 0) { return "No remaining Slayer assignment."; }
-		return "Slayer assignment: " + record.name + " (" + record.remaining + " remaining)"
-			+ (record.locationRestricted ? ", assigned location: " + (record.location == null ? "unavailable" : record.location) : "") + ".";
-	}
-
 	static final class TaskRecord
 	{
 		final String name;

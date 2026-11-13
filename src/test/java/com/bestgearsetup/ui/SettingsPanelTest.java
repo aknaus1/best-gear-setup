@@ -25,6 +25,9 @@ import org.junit.Test;
 
 public class SettingsPanelTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	private final Map<String, Object> writes = new HashMap<>();
 	private final BestGearSetupPlugin plugin = new BestGearSetupPlugin()
 	{

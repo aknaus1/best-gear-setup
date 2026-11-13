@@ -34,6 +34,9 @@ import org.junit.Test;
 /** Rejected input and empty searches explain themselves; estimate-changing assumptions sit beside the results. */
 public class PanelFeedbackTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	private static BestGearSetupPlugin plugin()
 	{
 		return new BestGearSetupPlugin()

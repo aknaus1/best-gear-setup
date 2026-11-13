@@ -32,6 +32,9 @@ import org.junit.Test;
 
 public class MonsterSearchTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	private final List<MonsterSummary> searched = new ArrayList<>();
 	private final Map<String, Object> saved = new HashMap<>();
 

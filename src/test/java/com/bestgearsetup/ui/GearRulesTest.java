@@ -32,6 +32,9 @@ import org.junit.Test;
 
 public class GearRulesTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	private static final GameData DATA = load();
 
 	private final Map<Slot, SlotLock> locks = new EnumMap<>(Slot.class);

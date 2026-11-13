@@ -28,6 +28,9 @@ import org.junit.Test;
 
 public class ResultViewTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	@Test
 	public void runesRowListsExpectedCountsPerKill() throws Exception
 	{
@@ -38,8 +41,7 @@ public class ResultViewTest
 			JPanel box = view(200).statsBox(setup.getDps(), null, runes, false, false);
 			assertEquals("<html>Runes/kill: 56.7 death, 28.3 blood</html>", named(box, "runesPerKill").getText());
 			assertNull(named(box, "supportRunesPerKill"));
-			assertTrue(named(box, "runesPerKill").getToolTipText().contains("expected"));
-			assertTrue(named(box, "runesPerKill").getToolTipText().contains("averaged over their duration"));
+			assertTrue(named(box, "runesPerKill").getToolTipText().contains("Expected per kill"));
 		});
 	}
 
