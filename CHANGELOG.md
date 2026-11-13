@@ -13,7 +13,7 @@ is what the Plugin Hub shows.
   Defence, following the raid's 21 October hotfix. Ocellus's second phase and the other NPCs can still be
   drained to 0.
 - Refresh The Fractured Archive's NPCs from the Wiki after the 11 November update: the Archive Guardian has 55
-  light ranged defence when flying, 50 magic defence in both forms and an 80% fire weakness when grounded; Bork
+  light ranged defence and 130 magic defence when flying, 50 magic defence and an 80% fire weakness when grounded; Bork
   has 1,650 Hitpoints and the Smorks 650; Xarth has 2,450 Hitpoints and 60 stab defence. The undead binders are
   undead. Xarth, Ocellus, the Dagon'hai and the undead binders gain the Wiki's poison, venom, freeze and burn
   data, and the Dagon'hai, Xarth, Ocellus and the undead binders their max hits. Ezekiel's animated swords and the
@@ -42,8 +42,8 @@ is what the Plugin Hub shows.
   and Saradomin brews (beside super restores) mixed in from four free slots. The bank layout places the restores
   and food after the boosts and outlines them; up to three other owned foods are offered in the food's place.
   Turn it off with **Fill inventory with food**.
-- Against a monster whose attacks poison or envenom you, the trip brings a superantipoison or an anti-venom+. The
-  Wiki monster data gains this on its next refresh.
+- Against a monster whose attacks poison or envenom you (125 poison, 40 envenom, from the Wiki's monster data),
+  the trip brings a superantipoison or an anti-venom+.
 - Each setup shows the target's overhead protection prayer: one prayer, a switch between several, or none needed,
   from the Wiki's strategy pages and the monster's attack styles, with a melee setup's own advice where it stands
   in melee range. It is static advice per target. Prayer per kill counts that overhead, and none when the target needs none or
