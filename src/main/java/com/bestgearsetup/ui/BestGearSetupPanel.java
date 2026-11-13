@@ -61,6 +61,8 @@ import okhttp3.HttpUrl;
 
 public class BestGearSetupPanel extends PluginPanel
 {
+	/** The shown results' view, whose trip supplies follow supply-only settings. */
+	private ResultView resultView;
 	private static final int MAX_SUGGESTIONS = 10;
 	/** CSS width for wrapped labels; the RuneScape font renders wider than Swing's CSS px estimate. */
 	private static final int HTML_WIDTH = 160;
@@ -706,6 +708,13 @@ public class BestGearSetupPanel extends PluginPanel
 			.collect(Collectors.joining("<br>"));
 	}
 
+	/** Shows the current setup's supplies again after Kills per trip or food filling changed, without searching. */
+	public void refreshSupplies()
+	{
+		if (resultView != null)
+			resultView.refreshSupplies();
+	}
+
 	/** Replace the previous results; the new best setup takes over the bank layout in place. */
 	public void showResults(SearchResults found)
 	{
@@ -767,9 +776,10 @@ public class BestGearSetupPanel extends PluginPanel
 			resultsPanel.add(left(warnings));
 			resultsPanel.add(spacer(4));
 		}
+		resultView = null;
 		if (!found.isEmpty())
 		{
-			ResultView resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount());
+			resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount());
 			resultsPanel.add(left(resultView));
 		}
 		List<String> detailLines = new ArrayList<>();

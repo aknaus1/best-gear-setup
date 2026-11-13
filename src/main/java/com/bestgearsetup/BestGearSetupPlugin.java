@@ -799,14 +799,19 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			return;
 		}
+		// Kills per trip and food filling change only the trip's supplies, not the gear.
+		boolean suppliesOnly = "killsPerTrip".equals(event.getKey()) || "fillFood".equals(event.getKey());
 		SwingUtilities.invokeLater(() ->
 		{
 			if (panel != null)
 			{
 				panel.syncFromConfig();
+				if (suppliesOnly)
+					panel.refreshSupplies();
 			}
 		});
-		rerun();
+		if (!suppliesOnly)
+			rerun();
 	}
 
 	@Subscribe

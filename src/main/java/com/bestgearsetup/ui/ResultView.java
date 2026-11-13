@@ -166,6 +166,13 @@ class ResultView extends JPanel
 		}
 	}
 
+	/** Recomputes the shown setup's trip supplies after a supply-only setting changed; the setups stay. */
+	void refreshSupplies()
+	{
+		if (selected != null)
+			select(selectedType, selected);
+	}
+
 	private void select(AttackStyle.Type type, SetupResult setup)
 	{
 		selectedType = type;
