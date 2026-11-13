@@ -3,7 +3,7 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
-## Unreleased
+## 1.1.4
 
 - The Fractured Archive's bosses and Moia's undead binders now scale with **Raid party size**: a solo counts as
   a duo and a duo has 10% more than the listed hitpoints, as in the update posts, and three or more players
