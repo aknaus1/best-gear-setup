@@ -31,8 +31,10 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
   [Dude, Where's My Stuff?](https://runelite.net/plugin-hub/show/dude-wheres-my-stuff) enabled, gear in your STASH
   units, POH, deathbanks and other storage it tracks counts too.
 - **Potions, prayers, thralls and special attacks** are all counted, with the best spec weapon suggested.
-- **Bank gear layout and highlights** lay out the setup's gear, runes and potions in your bank, ready to
-  withdraw.
+- **Trip supplies** for your Kills per trip: combat time, prayer use, boost and prayer restore bottles, an
+  antipoison or antivenom when the target poisons, and food for the free inventory slots.
+- **Bank gear layout and highlights** lay out the setup's gear, runes, potions and trip supplies in your bank,
+  ready to withdraw.
 - **Encounter rules are enforced:** damage caps, immunities, dragonfire protection, raid scaling and
   required Slayer gear.
 

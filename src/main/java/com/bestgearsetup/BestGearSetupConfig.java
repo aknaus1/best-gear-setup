@@ -139,6 +139,13 @@ public interface BestGearSetupConfig extends Config
 		return SearchAssumptions.value(this, "inventoryHighlightColor", new Color(0x00, 0xFF, 0x80));
 	}
 
+	@ConfigItem(keyName = "fillFood", name = "Fill inventory with food",
+		description = "Fill free inventory slots with your best food", section = displaySection, position = 5)
+	default boolean fillFood()
+	{
+		return SearchAssumptions.value(this, "fillFood", true);
+	}
+
 	// ------------------------------------------------------------ search
 
 	@ConfigItem(

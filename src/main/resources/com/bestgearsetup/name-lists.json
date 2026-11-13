@@ -139,6 +139,11 @@
     "burst of strength": 3, "clarity of thought": 3, "sharp eye": 3, "mystic will": 3,
     "superhuman strength": 6, "improved reflexes": 6, "hawk eye": 6, "mystic lore": 6,
     "ultimate strength": 12, "incredible reflexes": 12, "eagle eye": 12, "mystic might": 12,
-    "chivalry": 24, "piety": 24, "rigour": 24, "deadeye": 24, "augury": 24, "mystic vigour": 24
-  }
+    "chivalry": 24, "piety": 24, "rigour": 24, "deadeye": 24, "augury": 24, "mystic vigour": 24, "zeal": 24
+  },
+  "_trip foods": "One-bite foods a trip fills its free inventory slots with, as [name, item id], best heal at 99 Hitpoints first. Anglerfish leads as it can heal above the maximum; a cooked karambwan (3144) is packed beside another food for combo eating.",
+  "trip foods": [
+    ["Anglerfish", 13441], ["Manta ray", 391], ["Dark crab", 11936], ["Tuna potato", 7060], ["Sea turtle", 397], ["Shark", 385],
+    ["Cooked karambwan", 3144], ["Monkfish", 7946], ["Potato with cheese", 6705], ["Swordfish", 373], ["Bass", 365], ["Lobster", 379]
+  ]
 }

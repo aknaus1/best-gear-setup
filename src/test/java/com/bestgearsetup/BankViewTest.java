@@ -441,6 +441,25 @@ public class BankViewTest
 		assertEquals(InputType.NONE.getType(), bank.mode);
 	}
 
+	@Test
+	public void tripSuppliesFollowTheBoostsAndFoodAlternativesShareItsCell()
+	{
+		Potion ranging = new Potion();
+		ranging.setId(2444);
+		ranging.setName("ranging potion");
+		List<TripSupplies.Supply> supplies = Arrays.asList(
+			new TripSupplies.Supply("Ranging Potion", Collections.singletonList(2444), 2),
+			new TripSupplies.Supply("Prayer potion", Collections.singletonList(2434), 3),
+			new TripSupplies.Supply("Manta ray", Arrays.asList(391, 385), 20));
+		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(setup(Slot.WEAPON, item(12926)),
+			Collections.singletonList(ranging), supplies);
+		// The boost keeps its one cell; the restores and food take the next boost cells.
+		assertEquals(20, (int) cells.get(2444));
+		assertEquals(21, (int) cells.get(2434));
+		assertEquals(22, (int) cells.get(391));
+		assertEquals("A spare food fills the main food's cell when it's missing", 22, (int) cells.get(385));
+	}
+
 	private static SetupResult setup(Slot slot, GearItem item)
 	{
 		Loadout loadout = new Loadout();

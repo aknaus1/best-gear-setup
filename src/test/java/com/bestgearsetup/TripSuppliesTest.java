@@ -13,9 +13,12 @@ import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.OffensivePrayer;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntPredicate;
 import net.runelite.api.gameval.ItemID;
 import org.junit.Test;
 
@@ -85,8 +88,53 @@ public class TripSuppliesTest
 		superCombat.setPercentageIncrease(15);
 		// 20 seconds a kill at a point a second: 10 kills drain 200, 101 beyond 99, 4 doses of prayer potion.
 		List<TripSupplies.Supply> supplies = TripSupplies.plan(setup(5, 0), results(100, PIETY),
-			Collections.singletonList(superCombat), 10, id -> false);
+			Collections.singletonList(superCombat), 10, false, id -> false);
 		assertEquals("1 Super Combat Potion, 1 Prayer potion", TripSupplies.summary(supplies));
+	}
+
+	@Test
+	public void foodFillsTheSlotsTheBottlesLeave()
+	{
+		// One restore bottle leaves 27 slots: sharks when no listed food is owned.
+		List<TripSupplies.Supply> supplies = TripSupplies.plan(setup(5, 0), results(100, PIETY),
+			Collections.emptyList(), 10, true, id -> false);
+		assertEquals("1 Prayer potion, 27 Shark", TripSupplies.summary(supplies));
+		// The best owned food leads, the next owned foods follow as its alternatives.
+		supplies = new ArrayList<>();
+		TripSupplies.addFood(supplies, 10, id -> id == ItemID.MANTARAY || id == ItemID.LOBSTER || id == ItemID.SHARK);
+		assertEquals("Manta ray", supplies.get(0).getName());
+		assertEquals(Arrays.asList(ItemID.MANTARAY, ItemID.SHARK, ItemID.LOBSTER), supplies.get(0).getIds());
+		assertEquals(10, supplies.get(0).getCount());
+	}
+
+	@Test
+	public void mixedFoodAddsOwnedKarambwansAndBrewsBesideSuperRestores()
+	{
+		IntPredicate owns = id -> id == ItemID.ANGLERFISH || id == ItemID.TBWT_COOKED_KARAMBWAN
+			|| id == ItemID._4DOSEPOTIONOFSARADOMIN;
+		List<TripSupplies.Supply> supplies = new ArrayList<>();
+		supplies.add(new TripSupplies.Supply(TripSupplies.SUPER_RESTORE, Collections.singletonList(ItemID._4DOSE2RESTORE), 3));
+		TripSupplies.addFood(supplies, 20, owns);
+		assertEquals("3 Super restore, 12 Anglerfish, 5 Cooked karambwan, 3 Saradomin brew", TripSupplies.summary(supplies));
+		// Without a super restore no brew is packed, and three free slots hold the main food alone.
+		List<TripSupplies.Supply> noRestore = new ArrayList<>();
+		TripSupplies.addFood(noRestore, 3, owns);
+		assertEquals("3 Anglerfish", TripSupplies.summary(noRestore));
+	}
+
+	@Test
+	public void aTargetThatPoisonsOrEnvenomsAddsACure()
+	{
+		SearchResults venom = results(100, PIETY);
+		venom.getMonster().setPoisons("venom");
+		List<TripSupplies.Supply> supplies = TripSupplies.plan(setup(5, 0), venom, Collections.emptyList(), 1, false, id -> false);
+		assertEquals("Anti-venom+", supplies.get(supplies.size() - 1).getName());
+		assertEquals(ItemID.ANTIVENOM_4, (int) supplies.get(supplies.size() - 1).getIds().get(0));
+		SearchResults poison = results(100, PIETY);
+		poison.getMonster().setPoisons("poison");
+		supplies = TripSupplies.plan(setup(5, 0), poison, Collections.emptyList(), 1, false, id -> false);
+		assertEquals("1 Superantipoison", TripSupplies.summary(supplies));
+		assertTrue(TripSupplies.plan(setup(5, 0), results(100, PIETY), Collections.emptyList(), 1, false, id -> false).isEmpty());
 	}
 
 	private static SetupResult setup(double dps, int prayerBonus)

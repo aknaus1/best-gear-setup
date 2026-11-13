@@ -132,6 +132,7 @@ class ResultView extends JPanel
 
 	private AttackStyle.Type selectedType;
 	private SetupResult selected;
+	private List<TripSupplies.Supply> supplies = Collections.emptyList();
 
 	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
 		SkillIconManager skillIcons, int ammoCount)
@@ -169,7 +170,9 @@ class ResultView extends JPanel
 	{
 		selectedType = type;
 		selected = setup;
-		plugin.setBankHighlightedSetup(setup, potionsFor(setup));
+		List<Potion> potions = potionsFor(setup);
+		supplies = plugin.tripSupplies(setup, results, potions);
+		plugin.setBankHighlightedSetup(setup, potions, supplies);
 		rebuildTabs();
 		rebuildBody();
 	}
@@ -272,7 +275,7 @@ class ResultView extends JPanel
 		boolean poweredStaff = selected.getCombatClass() == CombatClass.MAGIC && l.getSpell() == null;
 		JPanel stats = statsBox(d, thrallFor(selected), runes, plugin != null && plugin.isSunfireRunes(), poweredStaff);
 		if (plugin != null)
-			addTripLines(stats, selected, plugin.getKillsPerTrip(), plugin.tripSupplies(selected, results, potionsFor(selected)));
+			addTripLines(stats, selected, plugin.getKillsPerTrip(), supplies);
 		body.add(BestGearSetupPanel.left(stats));
 		if (selected.getSpecial() != null)
 		{
@@ -411,7 +414,7 @@ class ResultView extends JPanel
 			points.setToolTipText(BestGearSetupPanel.tip("Offensive prayer plus one protection prayer"));
 			box.add(points, row);
 		}
-		if (!supplies.isEmpty())
+		if (supplies != null && !supplies.isEmpty())
 		{
 			JLabel carried = stat("");
 			carried.setText(BestGearSetupPanel.html("Supplies: " + TripSupplies.summary(supplies), STAT_WRAP_WIDTH));

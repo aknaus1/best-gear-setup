@@ -1310,8 +1310,13 @@ public class BestGearSetupPlugin extends Plugin
 		setBankHighlightedSetup(setup, Collections.emptyList());
 	}
 
-	/** Publish the displayed setup's equipment, loaded ammunition, spell runes and boosts to the bank. */
 	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions)
+	{
+		setBankHighlightedSetup(setup, potions, Collections.emptyList());
+	}
+
+	/** Publish the displayed setup's equipment, loaded ammunition, spell runes, boosts and trip supplies to the bank. */
+	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions, List<TripSupplies.Supply> supplies)
 	{
 		Set<Integer> ids = new HashSet<>();
 		if (setup != null)
@@ -1346,11 +1351,12 @@ public class BestGearSetupPlugin extends Plugin
 					ids.addAll(BoostAccess.itemIds(potion));
 				}
 			}
+			supplies.forEach(supply -> ids.addAll(supply.getIds()));
 		}
 		bankHighlightIds = Collections.unmodifiableSet(ids);
 		if (bankView != null)
 		{
-			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions, this::bankItemIds);
+			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions, this::bankItemIds, supplies);
 			int life = lifecycle.get();
 			clientThread.invokeLater(() ->
 			{
@@ -1764,7 +1770,7 @@ public class BestGearSetupPlugin extends Plugin
 	/** A setup's trip supplies for the Kills per trip setting, from the items owned now. */
 	public List<TripSupplies.Supply> tripSupplies(SetupResult setup, SearchResults results, List<Potion> potions)
 	{
-		return TripSupplies.plan(setup, results, potions, config.killsPerTrip(), ownedItems::owns);
+		return TripSupplies.plan(setup, results, potions, config.killsPerTrip(), config.fillFood(), ownedItems::owns);
 	}
 
 	/** Updates one spell rule, moving it between the blocked and forced lists. */

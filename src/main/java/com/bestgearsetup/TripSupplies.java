@@ -3,23 +3,30 @@ package com.bestgearsetup;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.SpecialPlan;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.OffensivePrayer;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.Value;
 import net.runelite.api.gameval.ItemID;
 
 /**
  * What a trip to a target outside the raids carries besides its gear, for the Kills per trip setting: each boost's
- * bottles and the prayer restores its kills need. A kill lasts the target's hitpoints over the setup's DPS, as the TTK
+ * bottles, the prayer restores its kills need, an antipoison or antivenom against a target that poisons or envenoms,
+ * and (Fill inventory with food) food in the inventory slots left over. A kill lasts the target's hitpoints over the setup's DPS, as the TTK
  * line shows. Prayer is assumed to be the setup's offensive prayer and one protection prayer, kept on throughout.
  */
 public final class TripSupplies
@@ -30,6 +37,15 @@ public final class TripSupplies
 	/** Ticks a prayer point lasts per unit of drain effect before any prayer bonus. */
 	private static final int BASE_RESISTANCE = 60;
 	private static final Map<String, Integer> DRAIN_EFFECTS = NameLists.exact("prayer drain");
+	/** One-bite foods as [name, item id], best heal first. */
+	private static final JsonArray FOODS = NameLists.rows("trip foods");
+	static final int INVENTORY_SLOTS = 28;
+	/** Fewest free slots that get a mix of foods; fewer hold the main food alone. */
+	static final int MIX_SLOTS = 4;
+	/** Karambwans and brews each take at most one in this many free slots, so most of the mix stays one-bite food. */
+	static final int MIX_SHARE = 4;
+	/** Most other owned foods the bank layout offers in the main food's place. */
+	static final int ALTERNATIVES = 3;
 
 	private TripSupplies()
 	{
@@ -69,11 +85,12 @@ public final class TripSupplies
 	}
 
 	/**
-	 * The supplies {@code kills} kills need: each boost's bottles, then prayer restores. Empty for raid targets, whose
-	 * supplies come from the raid.
+	 * The supplies {@code kills} kills need: each boost's bottles, prayer restores, a bottle of cure against a target
+	 * that poisons, then with {@code food} food in the free slots. Empty for raid targets, whose supplies come from
+	 * the raid.
 	 */
 	public static List<Supply> plan(SetupResult setup, SearchResults results, List<Potion> potions, int kills,
-		IntPredicate owns)
+		boolean food, IntPredicate owns)
 	{
 		List<Supply> out = new ArrayList<>();
 		if (setup == null || results.getMonster() == null || RaidScaling.raid(results.getMonster()) != RaidScaling.Raid.NONE)
@@ -85,6 +102,14 @@ public final class TripSupplies
 				out.add(new Supply(GameData.titleCase(potion.getName()), new ArrayList<>(BoostAccess.itemIds(potion)),
 					boostBottles(potion, level(levels, potion.getSkill()), seconds)));
 		addRestores(out, prayerPerKill(setup, results) * kills, levels.getPrayer(), owns);
+		// Anti-venom+ also cures poison; a superantipoison is the usual bottle against poison alone.
+		String poisons = results.getMonster().getPoisons();
+		if ("venom".equals(poisons))
+			out.add(new Supply("Anti-venom+", doses(ItemID.ANTIVENOM_4, ItemID.ANTIVENOM4), 1));
+		else if ("poison".equals(poisons))
+			out.add(new Supply("Superantipoison", doses(ItemID._4DOSE2ANTIPOISON, ItemID.ANTIDOTE__4, ItemID.ANTIVENOM_4), 1));
+		if (food)
+			addFood(out, INVENTORY_SLOTS - usedSlots(setup, out), owns);
 		return out;
 	}
 
@@ -139,6 +164,62 @@ public final class TripSupplies
 		ids.addAll(sanfews);
 		ids.addAll(superRestore ? prayers : restores);
 		out.add(new Supply(superRestore ? SUPER_RESTORE : "Prayer potion", ids, (doses + 3) / 4));
+	}
+
+	private static List<Integer> doses(int... fourDoses)
+	{
+		List<Integer> ids = new ArrayList<>();
+		for (int fourDose : fourDoses)
+			ids.addAll(BoostAccess.doseIds(fourDose));
+		return ids;
+	}
+
+	/** Slots taken before food: a spec switch's items, a rune pouch and spell items beyond its three, and each bottle. */
+	static int usedSlots(SetupResult setup, List<Supply> supplies)
+	{
+		int used = supplies.stream().mapToInt(Supply::getCount).sum();
+		int spellItems = SpellRunes.required(setup).size();
+		if (spellItems > 0)
+			used += 1 + Math.max(0, spellItems - 3);
+		SpecialPlan special = setup.getSpecial();
+		if (special != null && special.isSwitch(setup.getLoadout()))
+			used += Stream.of(special.getWeapon(), special.getOffhand(), special.getAmmo()).filter(Objects::nonNull).count();
+		return used;
+	}
+
+	/**
+	 * Food for {@code free} slots: the best one-bite food the player owns (sharks if none), with up to
+	 * {@link #ALTERNATIVES} other owned foods the bank may show in its place. With {@link #MIX_SLOTS} or more free,
+	 * up to one in {@link #MIX_SHARE} slots each of owned cooked karambwans, eaten in the same tick, and owned
+	 * Saradomin brews, at most one per super restore bottle, which restores the stats a brew drains.
+	 */
+	static void addFood(List<Supply> out, int free, IntPredicate owns)
+	{
+		if (free <= 0)
+			return;
+		String main = "Shark";
+		List<Integer> ids = new ArrayList<>();
+		for (JsonElement row : FOODS)
+		{
+			int id = row.getAsJsonArray().get(1).getAsInt();
+			if (id == ItemID.TBWT_COOKED_KARAMBWAN || !owns.test(id) || ids.size() > ALTERNATIVES)
+				continue;
+			if (ids.isEmpty())
+				main = row.getAsJsonArray().get(0).getAsString();
+			ids.add(id);
+		}
+		if (ids.isEmpty())
+			ids.add(ItemID.SHARK);
+		boolean mix = free >= MIX_SLOTS;
+		int karambwans = mix && owns.test(ItemID.TBWT_COOKED_KARAMBWAN) ? free / MIX_SHARE : 0;
+		int restores = out.stream().filter(s -> s.getName().equals(SUPER_RESTORE)).mapToInt(Supply::getCount).sum();
+		List<Integer> brewIds = BoostAccess.doseIds(ItemID._4DOSEPOTIONOFSARADOMIN);
+		int brews = mix && brewIds.stream().anyMatch(owns::test) ? Math.min(free / MIX_SHARE, restores) : 0;
+		out.add(new Supply(main, ids, free - karambwans - brews));
+		if (karambwans > 0)
+			out.add(new Supply("Cooked karambwan", Collections.singletonList(ItemID.TBWT_COOKED_KARAMBWAN), karambwans));
+		if (brews > 0)
+			out.add(new Supply("Saradomin brew", brewIds, brews));
 	}
 
 	/** The supplies by count and name, e.g. "2 Super combat potion, 3 Super restore". */

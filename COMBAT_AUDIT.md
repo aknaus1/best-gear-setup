@@ -332,6 +332,12 @@ changes a search's ranking.
   `7 + level / 4` and a super restore or Sanfew serum `8 + level / 4` (Wiki), in four-dose bottles.
 - Boost bottles: a divine dose holds its boost for five minutes; an ordinary dose is drunk again once half its
   boost has drained, at one level a minute, the first after half a minute on average. A heart is carried once.
+- Zeal's drain effect is taken as 24, like Piety: the Wiki lists both at 40 points a minute without bonus.
+- Food fills the 28 slots less every bottle, a rune pouch (plus spell items beyond its three runes) and a spec
+  switch's weapon, off-hand and ammunition. The food list and its order (best heal at 99 Hitpoints) are in
+  `name-lists.json` ("trip foods").
+- A monster whose Wiki infobox says it is poisonous (`poisonous` field; "venom" when it envenoms) adds one bottle
+  of superantipoison or anti-venom+. Immunity length and doses per trip are not modelled.
 
 ## Remaining adjustments and limits
 
