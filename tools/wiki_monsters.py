@@ -46,13 +46,15 @@ TOA = {"akkha", "akkha's shadow", "ba-ba", "kephri", "zebak", "elidinis' warden"
 TOB = {"the maiden of sugadinti", "pestilent bloat", "nylocas ischyros", "nylocas toxobolos", "nylocas hagios",
        "nylocas vasilias", "nylocas prinkipas", "nylocas matomenos", "nylocas athanatos", "sotetseg", "xarpus",
        "verzik vitur", "blood spawn"}
-# The Fractured Archive (released 2026-10-20): its bosses from the raid page, since the Wiki's new monster pages
-# are not in Category:Bosses yet. The rest are adds fought beside a boss: the Smorks, the Dagon'hai, Dreadnoth's
-# jellies, the undead binders, Xarth's corpses and Ocellus's phase 3 void rifts, augmenters and siphons.
-FRACTURED_ARCHIVE_BOSSES = {"archive guardian", "ezekiel", "bork", "moia", "dreadnoth the jellied", "xarth", "ocellus"}
-FRACTURED_ARCHIVE = FRACTURED_ARCHIVE_BOSSES | {"the smorks", "dagon'hai elder", "dagon'hai monk", "jelly (dreadnoth)",
-                                                "undead binder", "corpse (xarth)", "void rift", "void augmenter",
-                                                "void siphon"}
+# The Fractured Archive (released 2026-10-20): its bosses from the raid page, so the boss tag that raid scaling uses
+# doesn't depend on Category:Bosses. The rest are adds fought beside a boss: Dreadnoth's jellies, the undead binders,
+# Xarth's corpses, Ezekiel's animated swords, the Archive Guardian's inert guardians and Ocellus's phase 3 void rifts,
+# augmenters and siphons.
+FRACTURED_ARCHIVE_BOSSES = {"archive guardian", "ezekiel", "bork", "the smorks", "moia", "dagon'hai elder",
+                            "dagon'hai monk", "dreadnoth the jellied", "xarth", "ocellus"}
+FRACTURED_ARCHIVE = FRACTURED_ARCHIVE_BOSSES | {"jelly (dreadnoth)", "undead binder", "corpse (xarth)", "void rift",
+                                                "void augmenter", "void siphon", "animated sword",
+                                                "inert guardian (wall)"}
 GAUNTLET = re.compile(r"(crystalline|corrupted) (hunllef|bat|bear|dark beast|dragon|rat|scorpion|spider|unicorn|wolf)$")
 # (page name pattern, version pattern or None, tag), from the Wiki encounter pages.
 CLASS_TAGS = [

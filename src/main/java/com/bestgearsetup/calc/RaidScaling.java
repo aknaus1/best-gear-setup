@@ -11,8 +11,8 @@ import lombok.Value;
  * Raid stat scaling, applied to the solo, unscaled raid records before health states and pre-fight drains.
  * Theatre of Blood and Tombs of Amascut follow their Wiki pages; the Chambers of Xeric values follow the
  * OSRS Wiki DPS calculator (lib/scaling at the audited revision), as the Wiki pages do not state them.
- * Chambers of Xeric scales levels and HP, Theatre of Blood scales HP, and Tombs of Amascut scales HP
- * and multiplies the target's defence roll by its raid level.
+ * Chambers of Xeric scales levels and HP, Theatre of Blood scales HP, Tombs of Amascut scales HP
+ * and multiplies the target's defence roll by its raid level, and The Fractured Archive scales boss HP.
  */
 public final class RaidScaling
 {
@@ -45,7 +45,7 @@ public final class RaidScaling
 
 	public enum Raid
 	{
-		NONE, COX, TOB, TOB_ENTRY, TOA
+		NONE, COX, TOB, TOB_ENTRY, TOA, TFA
 	}
 
 	public static Raid raid(Monster m)
@@ -53,6 +53,10 @@ public final class RaidScaling
 		if (m.hasAttribute("xerician"))
 		{
 			return Raid.COX;
+		}
+		if (m.hasAttribute("the fractured archive"))
+		{
+			return tfaScaled(m) ? Raid.TFA : Raid.NONE;
 		}
 		String name = m.getLowerName();
 		int id = m.getId();
@@ -84,6 +88,9 @@ public final class RaidScaling
 			case TOA:
 				toa(m, s);
 				break;
+			case TFA:
+				tfa(m, s);
+				break;
 			default:
 				break;
 		}
@@ -101,6 +108,35 @@ public final class RaidScaling
 
 	/** Entry mode hitpoints in fortieths for one to five players (game values; the Wiki gives no table). */
 	private static final int[] ENTRY_FORTIETHS = {0, 10, 19, 27, 34, 40};
+
+	// ------------------------------------------------------------------ The Fractured Archive
+
+	/**
+	 * The Fractured Archive's boss hitpoints. The raid scales for two to eight players and a solo raid uses duo
+	 * scaling ("Everything You Need To Know", 2026-10-06). The listed hitpoints are the solo/duo base, which the
+	 * 2026-11-11 update ("Quest Month: Week Two & TFA Changes") raised by 10% for solos and duos only. Three or more
+	 * players have base x (1.45 + 0.42 per player above three), in permille below, rounded to the nearest 10 (an
+	 * add's hitpoints to the nearest 1). That multiplier is fitted to the bosses' Wiki team-size tables, which no
+	 * post states; the tables list a solo at the base, but the posts say a solo uses duo scaling.
+	 */
+	private static void tfa(Monster m, Settings s)
+	{
+		int party = clamp(s.getPartySize(), 2, 8);
+		int permille = party == 2 ? 1100 : 1450 + 420 * (party - 3);
+		int step = m.hasAttribute("boss") ? 10 : 1;
+		m.setHitpoints((m.getHitpoints() * permille + 500 * step) / (1000 * step) * step);
+	}
+
+	/**
+	 * The Wiki says all of the raid's bosses scale, and Moia's page that her undead binders do. Ocellus's second
+	 * phase (the Blade) is left out: his page's team-size table covers his first phase and the remainder only.
+	 */
+	static boolean tfaScaled(Monster m)
+	{
+		String name = m.getLowerName();
+		return (m.hasAttribute("boss") || EncounterDamage.named(m, "undead binder"))
+			&& !name.equals("ocellus (phase 2)");
+	}
 
 	// ------------------------------------------------------------------ Tombs of Amascut
 
@@ -353,6 +389,9 @@ public final class RaidScaling
 					clamp(s.getToaRaidLevel(), 0, 600), clamp(s.getToaPathLevel(), 0, 6), clamp(s.getPartySize(), 1, 8),
 					base.getHitpoints(), scaled.getHitpoints(),
 					scaled.getToaRaidLevel() > 0 ? ", defence roll x" + (250 + scaled.getToaRaidLevel()) + "/250" : "");
+			case TFA:
+				return String.format("TFA HP scaling: party %d%s; HP %d -> %d.", clamp(s.getPartySize(), 1, 8),
+					s.getPartySize() < 2 ? " (a solo counts as 2)" : "", base.getHitpoints(), scaled.getHitpoints());
 			default:
 				if (CombatRules.toa(base))
 				{

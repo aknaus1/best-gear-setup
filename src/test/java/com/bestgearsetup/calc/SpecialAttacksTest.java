@@ -77,4 +77,34 @@ public class SpecialAttacksTest
 		// the cached monster is untouched
 		assertEquals(100, m.getMagicLevel());
 	}
+
+	@Test
+	public void fracturedArchiveBossesCanOnlyBeDrainedToSixtyPercent()
+	{
+		Monster bork = target(300, 90, "the fractured archive", "boss");
+		bork.setName("bork");
+		assertEquals(180, SpecialAttacks.builder().elderMaul(3).build().apply(bork).getDefenceLevel());
+		// A second pass (in-fight drains on a target already drained before the fight) keeps the original floor.
+		SpecialAttacks hammer = SpecialAttacks.builder().dragonWarhammer(1).build();
+		Monster drained = hammer.apply(bork);
+		assertEquals(210, drained.getDefenceLevel());
+		assertEquals(180, SpecialAttacks.builder().dragonWarhammer(3).build().apply(drained).getDefenceLevel());
+		assertEquals(180, SpecialAttacks.builder().vulnerability(true).arclight(9).build().apply(drained)
+			.getDefenceLevel());
+		assertEquals(180, SpecialAttacks.builder().bandosGodswordDamage(200).build().apply(bork).getDefenceLevel());
+		Monster ocellus = target(215, 350, "the fractured archive", "boss", "demon");
+		ocellus.setName("ocellus (phase 1)");
+		assertEquals(129, SpecialAttacks.builder().dragonWarhammer(4).build().apply(ocellus).getDefenceLevel());
+		// The Blade, the Dagon'hai and Dreadnoth have no cap.
+		for (String name : new String[]{"ocellus (phase 2)", "dagon'hai elder", "dreadnoth the jellied"})
+		{
+			Monster uncapped = target(200, 100, "the fractured archive", "boss");
+			uncapped.setName(name);
+			assertEquals(name, 98, SpecialAttacks.builder().dragonWarhammer(2).build().apply(uncapped).getDefenceLevel());
+		}
+		// The cap belongs to the raid's NPCs, not to anything else with the same name.
+		Monster other = target(300, 90);
+		other.setName("bork");
+		assertEquals(147, SpecialAttacks.builder().dragonWarhammer(2).build().apply(other).getDefenceLevel());
+	}
 }
