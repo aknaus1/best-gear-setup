@@ -48,7 +48,7 @@ public class DemonMagicTest
 		// An unlimited budget: charged and demonic weapons are untradeable but bought through their
 		// tradable components, so they must be candidates even when not owned.
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(Long.MAX_VALUE)
-			.depth(SearchDepth.NORMAL).resultsPerClass(40)
+			.resultsPerClass(40)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();
 		return new Optimizer(data, ctx, settings, id -> false, PRICE).optimize(CombatClass.MAGIC, () -> false);
 	}

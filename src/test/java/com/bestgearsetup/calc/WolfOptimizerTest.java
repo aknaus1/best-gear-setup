@@ -31,7 +31,7 @@ public class WolfOptimizerTest
 			29022, 29025, 7462, 13239, 11773));
 		OptimizerSettings settings = OptimizerSettings.builder()
 			.mode(SearchMode.OWNED_ONLY)
-			.depth(SearchDepth.BEST)
+			
 			.styles(Collections.singleton(AttackStyle.Type.CRUSH))
 			.spellbooks(Collections.singleton("standard"))
 			.build();

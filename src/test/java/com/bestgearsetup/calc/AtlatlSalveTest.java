@@ -23,7 +23,7 @@ public class AtlatlSalveTest
 		new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 68), true, false, null);
 	private static final OptimizerSettings SETTINGS = OptimizerSettings.builder()
 		.mode(SearchMode.OWNED_ONLY)
-		.depth(SearchDepth.BEST)
+		
 		.styles(Collections.singleton(AttackStyle.Type.ATLATL))
 		.spellbooks(Collections.singleton("standard"))
 		.build();

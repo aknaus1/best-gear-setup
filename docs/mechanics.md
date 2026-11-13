@@ -231,8 +231,8 @@ follows the raid you're in.
 These preferences are in RuneLite's configuration for the plugin (**Settings** in the side panel opens it):
 
 - **Search options**: one-handed or two-handed weapons only; optimise for DPS, accuracy, max hit or average
-  hit; search depth (fast, normal or best); **Kills per trip**, which changes only the trip's supplies, so the shown
-  setup updates without searching again.
+  hit; **Kills per trip**, which changes only the trip's supplies, so the shown setup updates without
+  searching again.
 - **Attack styles**: toggles for stab, slash, crush, ranged, magic and atlatl (the eclipse atlatl gets its
   own tab: ranged accuracy, Strength-based damage and Eclipse Moon burns).
 - **Equipment** and **Spellbooks**: Members, DMM, Beta and BH equipment, the spellbooks allowed for
@@ -471,7 +471,7 @@ quiver (+10 ranged accuracy and +1 ranged strength, but only when firing arrows 
 The calculator also handles per-hit rounding, elemental weaknesses, damaging enchanted bolt procs, Barrows
 and Moon set effects, conditional multi-hit weapons, health and buff snapshots, more weapon family
 bonuses, flat armour and boss phase exceptions. The optimizer keeps the equipment those effects depend on
-and seeds it into the search. Rewards from past Leagues are left out of normal searches.
+and searches it with every other choice. Rewards from past Leagues are left out of normal searches.
 
 ### Fight inputs and raid scaling
 

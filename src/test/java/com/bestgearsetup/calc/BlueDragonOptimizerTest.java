@@ -26,7 +26,7 @@ public class BlueDragonOptimizerTest
 	private static CombatContext ctx;
 	private static final OptimizerSettings SETTINGS = OptimizerSettings.builder()
 		.mode(SearchMode.OWNED_ONLY)
-		.depth(SearchDepth.BEST)
+		
 		.antifire(Antifire.REGULAR)
 		.protectMagic(false)
 		.spellbooks(Collections.singleton("standard"))
@@ -123,7 +123,8 @@ public class BlueDragonOptimizerTest
 		owned.addAll(Arrays.asList(11865, 12954, 29025));
 		OptimizerSettings settings = SETTINGS.toBuilder().antifire(Antifire.SUPER)
 			.styles(Collections.singleton(AttackStyle.Type.STAB)).build();
-		Loadout baseline = new Optimizer(data, ctx, settings.toBuilder().depth(SearchDepth.NORMAL).build(),
+		// The best setup with the cape and legs held at their stab plateau: either trade alone loses DPS.
+		Loadout baseline = new Optimizer(data, ctx, settings.toBuilder().locks(SlotLock.parse("CAPE:13121,LEGS:29283")).build(),
 			owned::contains, item -> 1_000).optimize(CombatClass.MELEE, () -> false).get(0).getLoadout();
 		double before = DpsCalculator.calculate(baseline, ctx).getDps();
 		for (Slot slot : Arrays.asList(Slot.CAPE, Slot.LEGS))
@@ -202,7 +203,7 @@ public class BlueDragonOptimizerTest
 		double allBurnHits = direct.getDps() + direct.getAccuracy() * 0.2 * 10 / 1.8;
 		assertEquals(5.19227, allBurnHits, 1e-5);
 		assertTrue(allBurnHits > result.getDps().getDps());
-		assertEquals(4.773570288705978, DpsCalculator.calculate(fullSet, ctx).getDps(), 1e-9);
+		assertEquals(4.773574853489611, DpsCalculator.calculate(fullSet, ctx).getDps(), 1e-9);
 		assertTrue(DpsCalculator.calculate(fullSet, ctx).getDps() < result.getDps().getDps());
 	}
 

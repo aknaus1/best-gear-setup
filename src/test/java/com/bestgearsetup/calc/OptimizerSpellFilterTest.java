@@ -37,7 +37,7 @@ public class OptimizerSpellFilterTest
 
 	private static OptimizerSettings.OptimizerSettingsBuilder settings()
 	{
-		return OptimizerSettings.builder().mode(SearchMode.UNLIMITED).depth(SearchDepth.NORMAL)
+		return OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.resultsPerClass(40).styles(EnumSet.of(AttackStyle.Type.MAGIC))
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus")));
 	}

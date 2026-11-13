@@ -162,7 +162,6 @@ public class SearchAssumptionsTest
 		GETTERS.put("styleAtlatl", BestGearSetupConfig::styleAtlatl);
 		GETTERS.put("weaponHands", BestGearSetupConfig::weaponHands);
 		GETTERS.put("calcMode", BestGearSetupConfig::calcMode);
-		GETTERS.put("searchDepth", BestGearSetupConfig::searchDepth);
 		GETTERS.put("attackXp", BestGearSetupConfig::attackXp);
 		GETTERS.put("strengthXp", BestGearSetupConfig::strengthXp);
 		GETTERS.put("defenceXp", BestGearSetupConfig::defenceXp);

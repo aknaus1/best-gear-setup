@@ -5,7 +5,6 @@ import com.bestgearsetup.calc.Antifire;
 import com.bestgearsetup.calc.DefenceFocus;
 import com.bestgearsetup.calc.DrainSpecs;
 import com.bestgearsetup.calc.FillMode;
-import com.bestgearsetup.calc.SearchDepth;
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.calc.SpecEnergy;
 import com.bestgearsetup.calc.WeaponHands;
@@ -564,18 +563,6 @@ public interface BestGearSetupConfig extends Config
 	default CalcMode calcMode()
 	{
 		return SearchAssumptions.value(this, "calcMode", CalcMode.DPS);
-	}
-
-	@ConfigItem(
-		keyName = "searchDepth",
-		name = "Search depth",
-		description = "Fast may miss the best; Best is slowest",
-		section = searchSection,
-		position = 1
-	)
-	default SearchDepth searchDepth()
-	{
-		return SearchAssumptions.value(this, "searchDepth", SearchDepth.NORMAL);
 	}
 
 	// ------------------------------------------------------------ experience

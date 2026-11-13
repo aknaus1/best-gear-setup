@@ -95,7 +95,7 @@ public class SpellPruningTest
 		CombatContext ctx = new CombatContext(monster, PlayerLevels.maxed(), false, false, TestData.piety())
 			.withFightOptions(aoeTargets, 0);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(Long.MAX_VALUE)
-			.depth(SearchDepth.NORMAL).preventManualCast(preventManualCast)
+			.preventManualCast(preventManualCast)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();
 		return new Optimizer(data, ctx, settings, id -> false, GearItem::getPrice).optimize(CombatClass.MAGIC, () -> false);
 	}
