@@ -1532,7 +1532,6 @@ public class BestGearSetupPlugin extends Plugin
 			.styles(styles)
 			.weaponHands(config.weaponHands())
 			.calcMode(config.calcMode())
-			.depth(config.searchDepth())
 			.attackXp(config.attackXp())
 			.strengthXp(config.strengthXp())
 			.defenceXp(config.defenceXp())

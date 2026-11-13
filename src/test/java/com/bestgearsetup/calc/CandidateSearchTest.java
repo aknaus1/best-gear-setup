@@ -35,7 +35,7 @@ public class CandidateSearchTest
 
 	private static OptimizerSettings.OptimizerSettingsBuilder settings()
 	{
-		return OptimizerSettings.builder().mode(SearchMode.UNLIMITED).depth(SearchDepth.BEST)
+		return OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.spellbooks(new HashSet<>());
 	}
 

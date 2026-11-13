@@ -1187,7 +1187,7 @@ public final class DpsCalculator
 	 */
 	static final class Bonuses
 	{
-		private static final java.util.Set<String> QUIVERS = new java.util.HashSet<>(java.util.Arrays.asList(
+		static final java.util.Set<String> QUIVERS = new java.util.HashSet<>(java.util.Arrays.asList(
 			"dizana's quiver", "blessed dizana's quiver", "dizana's max cape"));
 
 		int stab;

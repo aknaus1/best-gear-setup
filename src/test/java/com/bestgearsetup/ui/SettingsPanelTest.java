@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.ConfigItemsForTests;
-import com.bestgearsetup.calc.SearchDepth;
+import com.bestgearsetup.calc.CalcMode;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -73,8 +73,8 @@ public class SettingsPanelTest
 			bosses.doClick();
 			assertEquals(true, writes.get(BestGearSetupConfig.BOSSES_ONLY_KEY));
 
-			((JComboBox<?>) named(panel, "searchDepth")).setSelectedItem(SearchDepth.FAST);
-			assertEquals(SearchDepth.FAST, writes.get("searchDepth"));
+			((JComboBox<?>) named(panel, "calcMode")).setSelectedItem(CalcMode.MAX_HIT);
+			assertEquals(CalcMode.MAX_HIT, writes.get("calcMode"));
 
 			((JSpinner) named(panel, "ammoCount")).setValue(500);
 			assertEquals(500, writes.get("ammoCount"));

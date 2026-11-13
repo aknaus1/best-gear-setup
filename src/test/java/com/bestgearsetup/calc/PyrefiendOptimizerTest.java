@@ -24,7 +24,7 @@ public class PyrefiendOptimizerTest
 	private static CombatContext ctx;
 	private static final OptimizerSettings SETTINGS = OptimizerSettings.builder()
 		.mode(SearchMode.OWNED_ONLY)
-		.depth(SearchDepth.BEST)
+		
 		.spellbooks(Collections.singleton("standard"))
 		.excluded(new HashSet<>(Arrays.asList(11230, 12006, 12926)))
 		.build();

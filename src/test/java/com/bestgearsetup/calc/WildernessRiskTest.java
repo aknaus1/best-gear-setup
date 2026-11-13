@@ -90,15 +90,12 @@ public class WildernessRiskTest
 	}
 
 	@Test
-	public void zeroLimitAllowsOnlyCheapEquipmentAcrossSearchDepths()
+	public void zeroLimitAllowsOnlyCheapEquipment()
 	{
-		for (SearchDepth depth : SearchDepth.values())
-		{
-			Optimizer optimizer = optimizer(settings().maxExpensiveItems(0).depth(depth).build(), false);
-			SetupResult result = best(optimizer);
-			assertEquals(cheapHelm, result.getLoadout().get(Slot.HEAD));
-			assertEquals(0, optimizer.expensiveItemCount(result.getLoadout()));
-		}
+		Optimizer optimizer = optimizer(settings().maxExpensiveItems(0).build(), false);
+		SetupResult result = best(optimizer);
+		assertEquals(cheapHelm, result.getLoadout().get(Slot.HEAD));
+		assertEquals(0, optimizer.expensiveItemCount(result.getLoadout()));
 	}
 
 	@Test

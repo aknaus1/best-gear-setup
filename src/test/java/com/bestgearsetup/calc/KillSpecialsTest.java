@@ -113,6 +113,57 @@ public class KillSpecialsTest
 	}
 
 	@Test
+	public void aWornPieceDoingNothingLeavesRoomForTheSpecWeapon()
+	{
+		// An owned stab amulet changes nothing for the slash sword but is expensive: once it comes off, the claws carried
+		// for the spec are the one expensive item allowed.
+		GearItem amulet = item(201, "stab amulet", Slot.NECK);
+		amulet.setStabBonus(10);
+		amulet.setPrice(2_000_000);
+		owned.add(201);
+		Monster target = monster(100, 20);
+		target.setHitpoints(300);
+		GameData data = TestData.gameData(Arrays.asList(sword, claws, amulet), Collections.emptyList());
+		CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, piety());
+		SetupResult r = withWeapon(new Optimizer(data, ctx, unlimited().killSpecials(true).wildernessRiskLimited(true)
+			.expensiveItemThreshold(1_000_000).maxExpensiveItems(1).spellbooks(Collections.singleton("standard")).build(),
+			owned::contains, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false), sword);
+		assertNull(r.getLoadout().get(Slot.NECK));
+		assertNotNull(r.getSpecial());
+		assertEquals(claws, r.getSpecial().getWeapon());
+	}
+
+	@Test
+	public void onlyReturnedSetupsArePrunedAndTheirRankingHolds()
+	{
+		GearItem amulet = item(201, "stab amulet", Slot.NECK);
+		amulet.setStabBonus(10);
+		amulet.setPrice(2_000_000);
+		Monster target = monster(100, 20);
+		target.setHitpoints(300);
+		GameData data = TestData.gameData(Arrays.asList(sword, claws, helm, amulet), Collections.emptyList());
+		CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, piety());
+		List<List<SetupResult>> runs = new java.util.ArrayList<>();
+		for (int results : new int[]{1, 2})
+		{
+			runs.add(new Optimizer(data, ctx, unlimited().killSpecials(true).resultsPerClass(results)
+				.spellbooks(Collections.singleton("standard")).build(), owned::contains, GearItem::getPrice)
+				.optimize(CombatClass.MELEE, () -> false));
+		}
+		assertEquals(1, runs.get(0).size());
+		assertEquals(2, runs.get(1).size());
+		SetupResult first = runs.get(1).get(0);
+		assertEquals(runs.get(0).get(0).getLoadout(), first.getLoadout());
+		assertEquals(runs.get(0).get(0).getBuyCost(), first.getBuyCost());
+		assertTrue(first.getDps().getDps() >= runs.get(1).get(1).getDps().getDps());
+		for (SetupResult r : runs.get(1))
+		{
+			// The amulet's stab bonus changes no rate, so it is neither worn nor bought.
+			assertNull(r.getLoadout().get(Slot.NECK));
+		}
+	}
+
+	@Test
 	public void specWeaponIsBoughtWithinTheBudget()
 	{
 		SetupResult affordable = withWeapon(run(OptimizerSettings.builder().mode(SearchMode.BUDGET)

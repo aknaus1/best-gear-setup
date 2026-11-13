@@ -186,7 +186,7 @@ public class SlayerEquipmentTest
 		for (SearchMode mode : SearchMode.values())
 		{
 			OptimizerSettings settings = OptimizerSettings.builder().mode(mode).budget(10_000_000L)
-				.depth(SearchDepth.FAST).resultsPerClass(2).karuulmDungeon(true)
+				.resultsPerClass(2).karuulmDungeon(true)
 				.spellbooks(Collections.singleton("standard")).build();
 			for (boolean onTask : new boolean[]{false, true})
 			{
@@ -208,7 +208,7 @@ public class SlayerEquipmentTest
 			}
 		}
 		OptimizerSettings noBoots = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
-			.depth(SearchDepth.FAST).karuulmDungeon(true).spellbooks(Collections.singleton("standard")).build();
+			.karuulmDungeon(true).spellbooks(Collections.singleton("standard")).build();
 		CombatContext ctx = new CombatContext(wyrm, PlayerLevels.maxed(), false, true, TestData.piety());
 		assertTrue(new Optimizer(data, ctx, noBoots, id -> id == 4587 || id == 1704, PRICE)
 			.optimize(CombatClass.MELEE, () -> false).isEmpty());
@@ -236,7 +236,7 @@ public class SlayerEquipmentTest
 			for (int targets : new int[]{1, 9})
 			{
 				OptimizerSettings settings = OptimizerSettings.builder().mode(mode).budget(10_000_000L)
-					.depth(SearchDepth.FAST).resultsPerClass(3)
+					.resultsPerClass(3)
 					.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient"))).build();
 				CombatContext ctx = new CombatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety())
 					.withFightOptions(targets, 0);
@@ -258,7 +258,7 @@ public class SlayerEquipmentTest
 	@Test
 	public void searchesAgainstEachSlotRuleWearTheRequiredItem()
 	{
-		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED).depth(SearchDepth.FAST)
+		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.resultsPerClass(5).spellbooks(Collections.singleton("standard")).build();
 		for (String name : new String[]{"banshee", "aberrant spectre", "sourhog", "sourhog (a porcine of interest)",
 			"basilisk knight", "harpie bug swarm", "hydra"})
@@ -285,7 +285,7 @@ public class SlayerEquipmentTest
 	public void ownedOnlyWithoutProtectionFindsNothingAndOnTaskUsesASlayerHelmet()
 	{
 		Monster dustDevil = bundled("dust devil (smoke dungeon)");
-		OptimizerSettings owned = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY).depth(SearchDepth.FAST)
+		OptimizerSettings owned = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.spellbooks(Collections.singleton("standard")).build();
 		CombatContext offTask = new CombatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety());
 		Set<Integer> noMask = new HashSet<>(Arrays.asList(4587, 1704));
@@ -316,7 +316,7 @@ public class SlayerEquipmentTest
 			CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
 			for (SlotLock lock : new SlotLock[]{SlotLock.item(wrong.getId()), SlotLock.empty(), SlotLock.fill()})
 			{
-				OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED).depth(SearchDepth.FAST)
+				OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 					.spellbooks(Collections.singleton("standard")).locks(Collections.singletonMap(slot, lock)).build();
 				Optimizer optimizer = new Optimizer(data, ctx, settings, id -> false, PRICE);
 				assertTrue(target.getName() + " " + lock, optimizer.optimize(CombatClass.RANGED, () -> false).isEmpty());
@@ -324,7 +324,7 @@ public class SlayerEquipmentTest
 				assertTrue(status.get(0).isBlocking());
 				assertTrue(status.get(0).getProblem().contains("requires"));
 			}
-			OptimizerSettings good = OptimizerSettings.builder().mode(SearchMode.UNLIMITED).depth(SearchDepth.FAST)
+			OptimizerSettings good = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 				.spellbooks(Collections.singleton("standard"))
 				.locks(Collections.singletonMap(slot, SlotLock.item(right.getId()))).build();
 			Optimizer optimizer = new Optimizer(data, ctx, good, id -> false, PRICE);

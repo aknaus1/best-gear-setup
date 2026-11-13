@@ -5,6 +5,7 @@ import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
 import com.bestgearsetup.data.WikiMonsters;
 import java.io.FileWriter;
@@ -13,6 +14,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import net.runelite.http.api.RuneLiteAPI;
@@ -58,7 +60,7 @@ public class SingleSearchBench
 					{
 						if (index++ % parts != part)
 							continue;
-						OptimizerSettings s = OptimizerSettings.builder().mode(mode).budget(10_000_000).killSpecials(specs).depth(SearchDepth.BEST)
+						OptimizerSettings s = OptimizerSettings.builder().mode(mode).budget(10_000_000).killSpecials(specs)
 							.spellbooks(new HashSet<>(Arrays.asList("standard", "arceuus", "ancient"))).build();
 						long t0 = System.nanoTime();
 						List<SetupResult> list = new Optimizer(data, ctx, s, id -> false, SingleSearchBench::price)
@@ -83,6 +85,9 @@ public class SingleSearchBench
 	private static String describe(List<SetupResult> list)
 	{
 		return list.stream().map(s -> s.getLoadout().getWeapon().getName() + "=" + String.format(Locale.ROOT, "%.6f",
-			s.getDps().getDps()) + "/" + s.getBuyCost()).collect(Collectors.joining(";")).replace("\"", "'");
+			s.getDps().getDps()) + "/" + s.getBuyCost()).collect(Collectors.joining(";")).replace("\"", "'")
+			+ (list.isEmpty() || !Boolean.getBoolean("bgs.bench.gear") ? "" : " " + list.get(0).getLoadout().getStyle() + " "
+			+ list.get(0).getLoadout().getSpell() + " " + Arrays.stream(Slot.values()).map(slot -> list.get(0).getLoadout().get(slot))
+			.filter(Objects::nonNull).map(GearItem::getName).collect(Collectors.joining(", ")).replace("\"", "'"));
 	}
 }

@@ -71,7 +71,7 @@ public class ChaosDwarfOptimizerTest
 
 	private static OptimizerSettings settings()
 	{
-		return OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY).depth(SearchDepth.BEST)
+		return OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.styles(Collections.singleton(AttackStyle.Type.ATLATL)).spellbooks(Collections.emptySet())
 			.wildernessRiskLimited(true).maxExpensiveItems(4).expensiveItemThreshold(100_000).build();
 	}

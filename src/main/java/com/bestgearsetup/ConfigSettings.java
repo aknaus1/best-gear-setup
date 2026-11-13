@@ -78,7 +78,6 @@ public final class ConfigSettings
 		add("styleAtlatl", BestGearSetupConfig::styleAtlatl);
 		add("weaponHands", BestGearSetupConfig::weaponHands);
 		add("calcMode", BestGearSetupConfig::calcMode);
-		add("searchDepth", BestGearSetupConfig::searchDepth);
 		add("attackXp", BestGearSetupConfig::attackXp);
 		add("strengthXp", BestGearSetupConfig::strengthXp);
 		add("defenceXp", BestGearSetupConfig::defenceXp);
