@@ -33,8 +33,8 @@ is what the Plugin Hub shows.
   buying it. Fill empty slots still fills such slots with prayer or defence pieces.
 - Zeal is assumed once your account has unlocked it (+25% Attack and +28% Strength over Piety), and each broken
   Fractured Archive elemental fragment adds 2 to its element's spells.
-- All hover text is under 10 words, setting descriptions included: item tooltips keep the name, where it's
-  stored and what matters most, and drop the rest when it doesn't fit.
+- Hover text and setting descriptions are cut to under 10 words: item tooltips keep the name, where it's stored
+  and what matters most, and drop the rest when it doesn't fit. A few lock reasons and long names can run longer.
 
 ## 1.1.3 (2026-11-10)
 
