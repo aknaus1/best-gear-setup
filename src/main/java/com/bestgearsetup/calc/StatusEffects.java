@@ -302,12 +302,15 @@ public final class StatusEffects
 			poisonCumulative.add(0.0);
 		}
 
-		/** Ticks to kill with direct damage per tick plus damage over time. */
+		/**
+		 * Ticks to kill with direct damage per tick plus damage over time. The search starts from a power of two, so
+		 * every kill halves the same intervals and more damage never takes longer, as the gear search assumes.
+		 */
 		double killTime(double direct, int hp)
 		{
 			double low = 0;
-			double high = hp / direct;
-			for (int i = 0; i < 40 && high - low > 1e-3; i++)
+			double high = Math.pow(2, Math.ceil(Math.log(hp / direct) / Math.log(2)));
+			for (int i = 0; i < 100 && high - low > 1e-3; i++)
 			{
 				double mid = (low + high) / 2;
 				if (direct * mid + damage(mid) >= hp)

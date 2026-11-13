@@ -93,6 +93,26 @@ public class StatusEffectsTest
 		assertTrue(fight.damage(0) == 0);
 	}
 
+	/** More direct damage never takes longer to kill, so a stronger bonus never scores lower in the gear search. */
+	@Test
+	public void moreDamageNeverKillsSlower()
+	{
+		for (int hp : new int[]{20, 225, 1000})
+		{
+			for (StatusEffects.Sources s : Arrays.asList(sources(0, 0, 1, 0), sources(0.3, 20, 0, 0), sources(0.2, 10, 0.5, 0.3)))
+			{
+				StatusEffects.Fight fight = new StatusEffects.Fight(s, 4);
+				double last = Double.POSITIVE_INFINITY;
+				for (double direct = 0.05; direct < 20; direct *= 1.003)
+				{
+					double ticks = fight.killTime(direct, hp);
+					assertTrue(hp + " HP at " + direct + ": " + ticks + " > " + last, ticks <= last);
+					last = ticks;
+				}
+			}
+		}
+	}
+
 	@Test
 	public void bundledImmunitiesOverrideMissingMonsterFlags()
 	{

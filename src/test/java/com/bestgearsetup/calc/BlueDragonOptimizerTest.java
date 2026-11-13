@@ -202,7 +202,7 @@ public class BlueDragonOptimizerTest
 		double allBurnHits = direct.getDps() + direct.getAccuracy() * 0.2 * 10 / 1.8;
 		assertEquals(5.19227, allBurnHits, 1e-5);
 		assertTrue(allBurnHits > result.getDps().getDps());
-		assertEquals(4.773570288705978, DpsCalculator.calculate(fullSet, ctx).getDps(), 1e-9);
+		assertEquals(4.773574853489611, DpsCalculator.calculate(fullSet, ctx).getDps(), 1e-9);
 		assertTrue(DpsCalculator.calculate(fullSet, ctx).getDps() < result.getDps().getDps());
 	}
 
