@@ -40,7 +40,7 @@ public enum SupportSpell
 	static boolean thrall(Loadout loadout, CombatContext ctx)
 	{
 		boolean usable = loadout.getSpell() == null || "arceuus".equalsIgnoreCase(loadout.getSpell().getSpellbook());
-		return ctx.getThrall() != null && usable && Thrall.eligibleType(ctx.getMonster()) != null;
+		return ctx.getThrall() != null && usable && ctx.thrallTarget();
 	}
 
 	static boolean demonbane(Loadout loadout, CombatContext ctx)

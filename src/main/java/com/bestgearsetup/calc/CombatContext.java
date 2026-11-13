@@ -29,6 +29,9 @@ public class CombatContext
 	private final CombatModifiers modifiers;
 	/** Target stats at a given HP (after pre-fight drains), or null when they do not depend on HP. */
 	private final IntFunction<Monster> healthStates;
+	/** Whether a thrall can attack the target, worked out on first use: the same for every setup. */
+	@Getter(lombok.AccessLevel.NONE)
+	private Boolean thrallTarget;
 
 	public CombatContext(Monster monster, PlayerLevels levels, boolean onTask, int attack, int strength, int ranged,
 		int magic, Map<CombatClass, OffensivePrayer> prayers, boolean thrall)
@@ -84,6 +87,16 @@ public class CombatContext
 			return null;
 		}
 		return levels == null ? Thrall.GREATER : Thrall.forLevel(levels.getMagic());
+	}
+
+	/** Whether thralls can be resurrected for this fight and some thrall type can damage the target. */
+	boolean thrallTarget()
+	{
+		if (thrallTarget == null)
+		{
+			thrallTarget = Thrall.eligibleType(monster) != null;
+		}
+		return thrallTarget;
 	}
 
 	/** Grouped identical targets in multicombat; one target disables area damage. */
