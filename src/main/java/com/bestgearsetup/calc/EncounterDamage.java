@@ -312,6 +312,10 @@ final class EncounterDamage
 		{
 			return "CoX guardian: only melee attacks with a pickaxe can deal damage.";
 		}
+		if (CombatRules.voidFlare(monster))
+		{
+			return "Void flare: magic and standard ranged hits are always maximum.";
+		}
 		if (monster.hasAttribute("leafy"))
 		{
 			return "Requires leaf-bladed melee, broad ammunition, or Magic Dart.";

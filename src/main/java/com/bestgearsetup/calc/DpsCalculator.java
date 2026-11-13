@@ -157,7 +157,7 @@ public final class DpsCalculator
 				.withDetail("Bonus-based accuracy; guaranteed maximum damage");
 		}
 		else if (CombatRules.alwaysMax(ctx.getMonster(), WeaponRules.classOf(style))
-			|| CombatRules.araxyteMax(ctx.getMonster(), loadout))
+			|| CombatRules.flareMax(ctx.getMonster(), loadout) || CombatRules.araxyteMax(ctx.getMonster(), loadout))
 		{
 			r = result(r.getMaxHit(), r.getMaxHit(), 1, r.getAttackSpeedTicks()).withDetail("Guaranteed maximum damage");
 		}

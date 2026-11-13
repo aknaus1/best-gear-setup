@@ -21,6 +21,8 @@ is what the Plugin Hub shows.
 - Refresh the other Wiki monster data, which adds the Leech and Snelmlover500.
 - Treat Karil's crossbow as heavy ranged like every other crossbow, as the Wiki DPS calculator does: it rolls
   against heavy ranged defence and gets the unshielded Tormented Demon bonus.
+- Only magic and standard ranged hits (bows and salamanders) on Yama's void flares are guaranteed maximum, per
+  the Wiki. Crossbows, chinchompas, thrown weapons and melee roll normally.
 
 ## 1.1.3 (2026-11-10)
 
