@@ -37,6 +37,10 @@ public class TripSuppliesTest
 		assertEquals(10, TripSupplies.prayerPerKill(setup(5, 30), results(100, PIETY)), 1e-9);
 		// Without an offensive prayer only the protection prayer drains (12 of 36).
 		assertEquals(20 / 3.0, TripSupplies.prayerPerKill(setup, results(100, Collections.emptyMap())), 1e-9);
+		// A target whose advice needs no overhead drains only the offensive prayer (24 of 36).
+		SearchResults zalcano = results(100, PIETY);
+		zalcano.getMonster().setName("zalcano");
+		assertEquals(40 / 3.0, TripSupplies.prayerPerKill(setup, zalcano), 1e-9);
 	}
 
 	@Test

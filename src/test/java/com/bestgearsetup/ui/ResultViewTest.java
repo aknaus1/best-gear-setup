@@ -123,13 +123,24 @@ public class ResultViewTest
 			view(100).addTripLines(single, setup, 1, Collections.emptyList());
 			assertNull(named(single, "tripCombatTime"));
 			assertNull(named(single, "tripSupplies"));
+			ResultView vorkath = view(100, "vorkath (post-quest)");
+			JPanel advised = vorkath.statsBox(dps(5), null);
+			vorkath.addTripLines(advised, setup, 1, Collections.emptyList());
+			assertTrue(named(advised, "protectionPrayer").getText().contains("Overhead: Protect from Magic"));
 		});
 		assertEquals("1h 05m", ResultView.duration(3900));
 	}
 
 	private static ResultView view(int hp)
 	{
+		return view(hp, null);
+	}
+
+	private static ResultView view(int hp, String name)
+	{
 		Monster monster = new Monster();
+		if (name != null)
+			monster.setName(name);
 		monster.setHitpoints(hp);
 		SearchResults results = new SearchResults(monster, hp, Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyMap(), Collections.emptyMap(), false);

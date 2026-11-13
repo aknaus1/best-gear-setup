@@ -36,7 +36,7 @@ is what the Plugin Hub shows.
 - Hover text and setting descriptions are cut to under 10 words: item tooltips keep the name, where it's stored
   and what matters most, and drop the rest when it doesn't fit. A few lock reasons and long names can run longer.
 - Add **Kills per trip** (default 1). Each setup now shows its prayer points per kill (its offensive prayer and
-  one protection prayer), the trip's combat time from its TTK, and the boost and prayer restore bottles the trip
+  the target's overhead), the trip's combat time from its TTK, and the boost and prayer restore bottles the trip
   needs: super restores when you own them or Sanfew serums, otherwise prayer potions.
 - Fill the trip's free inventory slots with the best food you own (sharks if none), with owned cooked karambwans
   and Saradomin brews (beside super restores) mixed in from four free slots. The bank layout places the restores
@@ -44,6 +44,9 @@ is what the Plugin Hub shows.
   Turn it off with **Fill inventory with food**.
 - Against a monster whose attacks poison or envenom you, the trip brings a superantipoison or an anti-venom+. The
   Wiki monster data gains this on its next refresh.
+- Each setup shows the target's overhead protection prayer: one prayer, a switch between several, or none needed,
+  from the Wiki's strategy pages and the monster's attack styles, with a melee setup's own advice where it stands
+  in melee range. It is static advice per target. Prayer per kill now counts that overhead instead of always one.
 
 ## 1.1.3 (2026-11-10)
 

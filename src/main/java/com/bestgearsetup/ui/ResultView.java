@@ -11,6 +11,7 @@ import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.DpsResult;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.LockStatus;
+import com.bestgearsetup.calc.Overheads;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SpecialPlan;
 import com.bestgearsetup.calc.SupportSpell;
@@ -413,12 +414,26 @@ class ResultView extends JPanel
 			trip.setToolTipText(BestGearSetupPanel.tip("Kills per trip times TTK; no banking"));
 			box.add(trip, row);
 		}
+		Overheads.Advice advice = results.getMonster() == null ? null
+			: Overheads.recommend(results.getMonster(), setup.getCombatClass());
+		if (advice != null)
+		{
+			// Hover text stays under 10 words, so a longer note, or one a switch or no prayer needs, shows inline.
+			boolean shortNote = advice.getNote().trim().split("\\s+").length < 10;
+			boolean inline = advice.isSwitching() || advice.getPrayer() == null || !shortNote;
+			JLabel overhead = stat("");
+			overhead.setText(BestGearSetupPanel.html("Overhead: " + BestGearSetupPanel.escape(advice.summary())
+				+ (inline ? "<br>" + BestGearSetupPanel.escape(advice.getNote()) : ""), STAT_WRAP_WIDTH));
+			overhead.setName("protectionPrayer");
+			overhead.setToolTipText(BestGearSetupPanel.tip(shortNote ? advice.getNote() : "Static advice from the Wiki"));
+			box.add(overhead, row);
+		}
 		double prayer = TripSupplies.prayerPerKill(setup, results);
 		if (prayer > 0)
 		{
 			JLabel points = stat("Prayer/kill: ~" + fmt(prayer, 1) + " points");
 			points.setName("prayerPerKill");
-			points.setToolTipText(BestGearSetupPanel.tip("Offensive prayer plus one protection prayer"));
+			points.setToolTipText(BestGearSetupPanel.tip("Offensive prayer and the overhead above"));
 			box.add(points, row);
 		}
 		if (supplies != null && !supplies.isEmpty())

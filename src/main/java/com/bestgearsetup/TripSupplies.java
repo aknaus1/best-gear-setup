@@ -1,5 +1,6 @@
 package com.bestgearsetup;
 
+import com.bestgearsetup.calc.Overheads;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.SetupResult;
@@ -27,12 +28,13 @@ import net.runelite.api.gameval.ItemID;
  * What a trip to a target outside the raids carries besides its gear, for the Kills per trip setting: each boost's
  * bottles, the prayer restores its kills need, an antipoison or antivenom against a target that poisons or envenoms,
  * and (Fill inventory with food) food in the inventory slots left over. A kill lasts the target's hitpoints over the setup's DPS, as the TTK
- * line shows. Prayer is assumed to be the setup's offensive prayer and one protection prayer, kept on throughout.
+ * line shows. Prayer is the setup's offensive prayer and the target's recommended overhead ({@link Overheads}), kept on
+ * throughout; a target without advice is assumed to need one.
  */
 public final class TripSupplies
 {
 	static final String SUPER_RESTORE = "Super restore";
-	/** Drain effect of a protection prayer, assumed on beside the offensive prayer (Wiki: Prayer). */
+	/** Drain effect of a protection prayer, kept on beside the offensive prayer (Wiki: Prayer). */
 	static final int PROTECTION_DRAIN = 12;
 	/** Ticks a prayer point lasts per unit of drain effect before any prayer bonus. */
 	private static final int BASE_RESISTANCE = 60;
@@ -75,13 +77,26 @@ public final class TripSupplies
 	public static double prayerPerKill(SetupResult setup, SearchResults results)
 	{
 		OffensivePrayer offensive = results.getPrayers() == null ? null : results.getPrayers().get(setup.getCombatClass());
-		int drain = PROTECTION_DRAIN
+		int drain = (needsOverhead(setup, results) ? PROTECTION_DRAIN : 0)
 			+ (offensive == null ? 0 : DRAIN_EFFECTS.getOrDefault(offensive.getName().toLowerCase(Locale.ROOT), 0));
 		int bonus = 0;
 		for (Slot slot : Slot.values())
 			bonus += setup.getLoadout().get(slot) == null ? 0 : setup.getLoadout().get(slot).getPrayerBonus();
 		double seconds = killSeconds(setup, results);
 		return Double.isFinite(seconds) ? seconds * drain / ((2.0 * bonus + BASE_RESISTANCE) * 0.6) : 0;
+	}
+
+	/**
+	 * Whether a protection prayer drains during the kill: the target's advice names one the Prayer level allows, or the
+	 * target has no advice. A switching fight keeps one on at a time.
+	 */
+	static boolean needsOverhead(SetupResult setup, SearchResults results)
+	{
+		Overheads.Advice advice = Overheads.recommend(results.getMonster(), setup.getCombatClass());
+		if (advice == null)
+			return true;
+		PlayerLevels levels = results.getLevels() == null ? PlayerLevels.maxed() : results.getLevels();
+		return advice.getPrayer() != null && advice.getPrayer().getLevel() <= levels.getPrayer();
 	}
 
 	/**

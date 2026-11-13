@@ -326,8 +326,11 @@ changes a search's ranking.
 - Prayer drain follows the Wiki's Prayer page: each tick the active prayers' drain effects build toward a
   resistance of `2 × prayer bonus + 60`, and each time it is reached one point is lost. The drain effects of the
   offensive prayers are in `name-lists.json` ("prayer drain"). **Assumption:** the setup's offensive prayer and
-  one protection prayer (drain effect 12) are kept on throughout; overhead choice and prayer flicking are not
-  modelled.
+  the target's recommended overhead (drain effect 12) are kept on throughout. The overhead comes from
+  `encounter-prayers.json` (`Overheads`: checked Wiki strategy pages first, then each monster's Wiki attack
+  styles; a melee setup can have its own advice). No overhead drains when the advice needs none or the Prayer
+  level is below it; a switching fight counts one overhead at a time; a target without advice is assumed to need
+  one. Prayer flicking is not modelled. The advice is static per target, never a live switching cue.
 - Restores cover the points beyond the full Prayer level the trip starts with: a prayer potion dose restores
   `7 + level / 4` and a super restore or Sanfew serum `8 + level / 4` (Wiki), in four-dose bottles.
 - Boost bottles: a divine dose holds its boost for five minutes; an ordinary dose is drunk again once half its
