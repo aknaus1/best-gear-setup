@@ -85,6 +85,15 @@ This page covers what the plugin assumes and what it enforces. For installation 
   complete before the first login. They aren't added to setups autocasting a non-Arceuus spell or against
   thrall-immune targets. A setup that includes one shows the thrall's icon next to its prayer and potions
   and an **Incl. thrall** line under its DPS.
+- Each setup shows the target's **overhead** protection prayer from `encounter-prayers.json`: checked Wiki
+  strategy pages first, then the monster's Wiki attack styles, with a melee setup's own advice where it stands
+  in melee range. It's static per target (one prayer, the prayers a fight switches between, or none needed),
+  never a live cue.
+- **Trips**: with **Kills per trip** above 1 a setup shows the trip's combat time (kills x TTK, no banking).
+  Prayer per kill counts the setup's offensive prayer and the recommended overhead, at the Wiki's drain
+  rates and your worn prayer bonus; restores cover what the trip drains beyond your full Prayer. The trip
+  brings each boost's bottles, a cure against a target that poisons or envenoms, and with **Fill inventory
+  with food** food in the free slots. Raid targets have no trip lines: the raid hands out its supplies.
 - Demonbane spells assume Mark of Darkness is active (in the Combat boosts settings), and its icon appears
   next to the prayer and potions when a setup uses it. With it turned off, elemental weaknesses such as
   Yama's weakness to water can outrank demonbane spells.
@@ -220,7 +229,8 @@ follows the raid you're in.
 These preferences are in RuneLite's configuration for the plugin (**Settings** in the side panel opens it):
 
 - **Search options**: one-handed or two-handed weapons only; optimise for DPS, accuracy, max hit or average
-  hit; search depth (fast, normal or best).
+  hit; search depth (fast, normal or best); **Kills per trip** and **Fill inventory with food**, which change only
+  the trip's supplies, so the shown setup updates without searching again.
 - **Attack styles**: toggles for stab, slash, crush, ranged, magic and atlatl (the eclipse atlatl gets its
   own tab: ranged accuracy, Strength-based damage and Eclipse Moon burns).
 - **Equipment** and **Spellbooks**: Members, DMM, Beta and BH equipment, the spellbooks allowed for

@@ -62,13 +62,13 @@ import okhttp3.HttpUrl;
 public class BestGearSetupPanel extends PluginPanel
 {
 	/** The shown results' view, whose trip supplies follow supply-only settings. */
-	private ResultView resultView;
+	ResultView resultView;
 	private static final int MAX_SUGGESTIONS = 10;
 	/** CSS width for wrapped labels; the RuneScape font renders wider than Swing's CSS px estimate. */
 	private static final int HTML_WIDTH = 160;
 	private static final String WIKI_URL = "https://oldschool.runescape.wiki/";
 	private static final Color ERROR_COLOR = new Color(0xFF6B6B);
-	private static final Color WARNING_COLOR = new Color(0xFFD24D);
+	static final Color WARNING_COLOR = new Color(0xFFD24D);
 
 	private final BestGearSetupPlugin plugin;
 	private final BestGearSetupConfig config;
@@ -548,11 +548,13 @@ public class BestGearSetupPanel extends PluginPanel
 			retry.addActionListener(e ->
 			{
 				resultsPanel.removeAll();
+				resultView = null;
 				statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 				statusLabel.setText(html("Loading bundled Wiki data..."));
 				plugin.reloadGameData();
 			});
 			resultsPanel.removeAll();
+			resultView = null;
 			resultsPanel.add(left(retry));
 			resultsPanel.revalidate();
 		}
@@ -695,6 +697,7 @@ public class BestGearSetupPanel extends PluginPanel
 		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		statusLabel.setText(html(escape(message)));
 		resultsPanel.removeAll();
+		resultView = null;
 		resultsPanel.revalidate();
 		resultsPanel.repaint();
 	}

@@ -165,7 +165,7 @@ public final class DpsCalculator
 		{
 			r = r.withExpectedSpeed(Math.max(1, r.getExpectedSpeedTicks() - 1));
 		}
-		if (SupportSpell.thrall(loadout, ctx) && r.getDps() > 0)
+		if (r.getDps() > 0 && SupportSpell.thrall(loadout, ctx))
 		{
 			r = r.withExtraDps(ctx.getThrall().getDps());
 		}

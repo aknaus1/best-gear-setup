@@ -34,6 +34,7 @@ import net.runelite.api.gameval.ItemID;
 public final class TripSupplies
 {
 	static final String SUPER_RESTORE = "Super restore";
+	static final String SANFEW = "Sanfew serum";
 	/** Drain effect of a protection prayer, kept on beside the offensive prayer (Wiki: Prayer). */
 	static final int PROTECTION_DRAIN = 12;
 	/** Ticks a prayer point lasts per unit of drain effect before any prayer bonus. */
@@ -41,7 +42,7 @@ public final class TripSupplies
 	private static final Map<String, Integer> DRAIN_EFFECTS = NameLists.exact("prayer drain");
 	/** One-bite foods as [name, item id], best heal first. */
 	private static final JsonArray FOODS = NameLists.rows("trip foods");
-	static final int INVENTORY_SLOTS = 28;
+	public static final int INVENTORY_SLOTS = 28;
 	/** Fewest free slots that get a mix of foods; fewer hold the main food alone. */
 	static final int MIX_SLOTS = 4;
 	/** Karambwans and brews each take at most one in this many free slots, so most of the mix stays one-bite food. */
@@ -164,22 +165,24 @@ public final class TripSupplies
 
 	/**
 	 * Restore bottles for the {@code points} beyond the full {@code level} the trip starts with: super restores
-	 * ({@code 8 + level / 4} a dose) when the player owns them or Sanfew serums, otherwise prayer potions
-	 * ({@code 7 + level / 4}). The other restores follow as bank alternatives.
+	 * ({@code 8 + level / 4} a dose) when the player owns them, else Sanfew serums ({@code 4 + level × 3 / 10}) when
+	 * owned, otherwise prayer potions ({@code 7 + level / 4}) (Wiki). The other restores follow as bank alternatives.
 	 */
 	static void addRestores(List<Supply> out, double points, int level, IntPredicate owns)
 	{
 		List<Integer> restores = BoostAccess.doseIds(ItemID._4DOSE2RESTORE);
 		List<Integer> sanfews = BoostAccess.doseIds(ItemID.SANFEW_SALVE_4_DOSE);
 		List<Integer> prayers = BoostAccess.doseIds(ItemID._4DOSEPRAYERRESTORE);
-		boolean superRestore = restores.stream().anyMatch(owns::test) || sanfews.stream().anyMatch(owns::test);
-		int doses = (int) Math.ceil((points - level) / ((superRestore ? 8 : 7) + level / 4));
+		boolean superRestore = restores.stream().anyMatch(owns::test);
+		boolean sanfew = !superRestore && sanfews.stream().anyMatch(owns::test);
+		int perDose = superRestore ? 8 + level / 4 : sanfew ? 4 + level * 3 / 10 : 7 + level / 4;
+		int doses = (int) Math.ceil((points - level) / perDose);
 		if (doses <= 0)
 			return;
-		List<Integer> ids = new ArrayList<>(superRestore ? restores : prayers);
-		ids.addAll(sanfews);
-		ids.addAll(superRestore ? prayers : restores);
-		out.add(new Supply(superRestore ? SUPER_RESTORE : "Prayer potion", ids, (doses + 3) / 4));
+		List<Integer> ids = new ArrayList<>(superRestore ? restores : sanfew ? sanfews : prayers);
+		ids.addAll(superRestore ? sanfews : restores);
+		ids.addAll(superRestore || sanfew ? prayers : sanfews);
+		out.add(new Supply(superRestore ? SUPER_RESTORE : sanfew ? SANFEW : "Prayer potion", ids, (doses + 3) / 4));
 	}
 
 	private static List<Integer> doses(int... fourDoses)
@@ -191,7 +194,7 @@ public final class TripSupplies
 	}
 
 	/** Slots taken before food: a spec switch's items, a rune pouch and spell items beyond its three, and each bottle. */
-	static int usedSlots(SetupResult setup, List<Supply> supplies)
+	public static int usedSlots(SetupResult setup, List<Supply> supplies)
 	{
 		int used = supplies.stream().mapToInt(Supply::getCount).sum();
 		int spellItems = SpellRunes.required(setup).size();
@@ -199,7 +202,8 @@ public final class TripSupplies
 			used += 1 + Math.max(0, spellItems - 3);
 		SpecialPlan special = setup.getSpecial();
 		if (special != null && special.isSwitch(setup.getLoadout()))
-			used += Stream.of(special.getWeapon(), special.getOffhand(), special.getAmmo()).filter(Objects::nonNull).count();
+			used += Stream.of(special.getWeapon() == setup.getLoadout().getWeapon() ? null : special.getWeapon(),
+				special.getOffhand(), special.getAmmo()).filter(Objects::nonNull).count();
 		return used;
 	}
 
@@ -228,7 +232,7 @@ public final class TripSupplies
 			ids.add(ItemID.SHARK);
 		boolean mix = free >= MIX_SLOTS;
 		int karambwans = mix && owns.test(ItemID.TBWT_COOKED_KARAMBWAN) ? free / MIX_SHARE : 0;
-		int restores = out.stream().filter(s -> s.getName().equals(SUPER_RESTORE)).mapToInt(Supply::getCount).sum();
+		int restores = out.stream().filter(s -> s.getName().equals(SUPER_RESTORE) || s.getName().equals(SANFEW)).mapToInt(Supply::getCount).sum();
 		List<Integer> brewIds = BoostAccess.doseIds(ItemID._4DOSEPOTIONOFSARADOMIN);
 		int brews = mix && brewIds.stream().anyMatch(owns::test) ? Math.min(free / MIX_SHARE, restores) : 0;
 		out.add(new Supply(main, ids, free - karambwans - brews));

@@ -1,6 +1,7 @@
 package com.bestgearsetup.ui;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.RuneUse;
@@ -127,6 +128,23 @@ public class ResultViewTest
 			JPanel advised = vorkath.statsBox(dps(5), null);
 			vorkath.addTripLines(advised, setup, 1, Collections.emptyList());
 			assertTrue(named(advised, "protectionPrayer").getText().contains("Overhead: Protect from Magic"));
+			// Raid targets show their overhead but no trip lines.
+			Monster tekton = new Monster();
+			tekton.setName("tekton (normal)");
+			tekton.setHitpoints(100);
+			Monster.Attribute xerician = new Monster.Attribute();
+			xerician.setName("xerician");
+			tekton.setAttributes(Collections.singletonList(xerician));
+			ResultView raid = view(tekton);
+			JPanel raidBox = raid.statsBox(dps(5), null);
+			raid.addTripLines(raidBox, setup, 30, Collections.emptyList());
+			assertNull(named(raidBox, "tripCombatTime"));
+			assertNull(named(raidBox, "prayerPerKill"));
+			// More supplies than one inventory holds get a warning.
+			JPanel full = view(100, "vorkath (post-quest)").statsBox(dps(5), null);
+			view(100, "vorkath (post-quest)").addTripLines(full, setup, 30, Collections.singletonList(
+				new com.bestgearsetup.TripSupplies.Supply("Prayer potion", Collections.singletonList(2434), 29)));
+			assertNotNull(named(full, "tripOverflow"));
 		});
 		assertEquals("1h 05m", ResultView.duration(3900));
 	}
@@ -142,6 +160,12 @@ public class ResultViewTest
 		if (name != null)
 			monster.setName(name);
 		monster.setHitpoints(hp);
+		return view(monster);
+	}
+
+	private static ResultView view(Monster monster)
+	{
+		int hp = monster.getHitpoints();
 		SearchResults results = new SearchResults(monster, hp, Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyMap(), Collections.emptyMap(), false);
 		return new ResultView(results, null, null, null, null, 0);

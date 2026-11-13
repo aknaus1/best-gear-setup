@@ -332,10 +332,12 @@ changes a search's ranking.
   level is below it; a switching fight counts one overhead at a time; a target without advice (its attacks can't be
   read, or no prayer helps against them) drains none. Prayer flicking is not modelled. The advice is static per target, never a live switching cue.
 - Restores cover the points beyond the full Prayer level the trip starts with: a prayer potion dose restores
-  `7 + level / 4` and a super restore or Sanfew serum `8 + level / 4` (Wiki), in four-dose bottles.
+  `7 + level / 4`, a super restore `8 + level / 4` and a Sanfew serum `4 + ⌊level × 3 / 10⌋` (Wiki), in four-dose
+  bottles: super restores when owned, else Sanfew serums when owned, otherwise prayer potions.
 - Boost bottles: a divine dose holds its boost for five minutes; an ordinary dose is drunk again once half its
   boost has drained, at one level a minute, the first after half a minute on average. A heart is carried once.
-- Zeal's drain effect is taken as 24, like Piety: the Wiki lists both at 40 points a minute without bonus.
+- Drain effects follow the Wiki's Prayer table: Piety, Rigour, Augury and Zeal 24 (40 points a minute without
+  bonus); Chivalry (since 12 August 2026), Deadeye, Mystic Vigour and the protection prayers 12.
 - Food fills the 28 slots less every bottle, a rune pouch (plus spell items beyond its three runes) and a spec
   switch's weapon, off-hand and ammunition. The food list and its order (best heal at 99 Hitpoints) are in
   `name-lists.json` ("trip foods").

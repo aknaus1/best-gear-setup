@@ -27,7 +27,7 @@ is what the Plugin Hub shows.
   expensive-item limit alongside the worn gear.
 - Show the thrall that can damage the target: ghostly unless the target is immune to magic, then skeletal, then
   zombified, with no thrall where no style can hurt it or thralls can't be resurrected (Galvek, Robert the Strong,
-  Fragment of Seren, Nightmare Zone).
+  Vanstrom Klause, Fragment of Seren, Lowerniel Drakan, Nightmare Zone).
 - Leave a slot empty when its item makes no difference to the setup's rates or its special attack (a strength
   bonus short of the next max hit, a seeded set's leftover, a piece with only defence), instead of wearing or
   buying it. Fill empty slots still fills such slots with prayer or defence pieces.
@@ -46,7 +46,8 @@ is what the Plugin Hub shows.
   Wiki monster data gains this on its next refresh.
 - Each setup shows the target's overhead protection prayer: one prayer, a switch between several, or none needed,
   from the Wiki's strategy pages and the monster's attack styles, with a melee setup's own advice where it stands
-  in melee range. It is static advice per target. Prayer per kill now counts that overhead instead of always one.
+  in melee range. It is static advice per target. Prayer per kill counts that overhead, and none when the target needs none or
+  has no advice.
 
 ## 1.1.3 (2026-11-10)
 

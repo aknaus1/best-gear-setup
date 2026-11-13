@@ -7,6 +7,7 @@ import com.bestgearsetup.calc.DpsResult;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.SpecialPlan;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
@@ -45,6 +46,54 @@ public class TripSuppliesTest
 		SearchResults unknown = results(100, PIETY);
 		unknown.getMonster().setName("no such monster");
 		assertEquals(40 / 3.0, TripSupplies.prayerPerKill(setup, unknown), 1e-9);
+	}
+
+	@Test
+	public void drainEffectsFollowTheWikiPrayerTable()
+	{
+		// Deadeye drains 12, half of Rigour's 24; with Vorkath's overhead (12) a ranged kill drains 24 or 36.
+		SetupResult ranged = new SetupResult(CombatClass.RANGED, new Loadout(), setup(5, 0).getDps(), 0);
+		assertEquals(40 / 3.0, TripSupplies.prayerPerKill(ranged, results(100, Collections.singletonMap(CombatClass.RANGED,
+			new OffensivePrayer("Deadeye", 18, 18, 62, 1)))), 1e-9);
+		assertEquals(20, TripSupplies.prayerPerKill(ranged, results(100, Collections.singletonMap(CombatClass.RANGED,
+			new OffensivePrayer("Rigour", 20, 23, 74, 70)))), 1e-9);
+		// Below Protect from Magic's level 37 the overhead doesn't drain.
+		SearchResults low = results(100, Collections.emptyMap(), new PlayerLevels(99, 99, 99, 99, 99, 36, 99, 99));
+		assertEquals(0, TripSupplies.prayerPerKill(ranged, low), 1e-9);
+	}
+
+	@Test
+	public void sanfewSerumsRestoreTheirOwnAmount()
+	{
+		// Sanfew: 4 + 99 * 3 / 10 = 33 a dose, so 302 points need 10 doses; at level 40 it's 16, under a super's 18.
+		List<TripSupplies.Supply> sanfew = new java.util.ArrayList<>();
+		TripSupplies.addRestores(sanfew, 401, 99, id -> id == ItemID.SANFEW_SALVE_4_DOSE);
+		assertEquals(TripSupplies.SANFEW, sanfew.get(0).getName());
+		assertEquals(3, sanfew.get(0).getCount());
+		List<TripSupplies.Supply> low = new java.util.ArrayList<>();
+		TripSupplies.addRestores(low, 40 + 17 * 16, 40, id -> id == ItemID.SANFEW_SALVE_4_DOSE);
+		assertEquals(5, low.get(0).getCount());
+	}
+
+	@Test
+	public void aSpecKeepingTheWornWeaponCountsOnlyItsExtraItems()
+	{
+		GearItem sword = new GearItem();
+		sword.setId(1);
+		sword.setSlot(Slot.WEAPON);
+		GearItem shield = new GearItem();
+		shield.setId(2);
+		shield.setSlot(Slot.SHIELD);
+		Loadout worn = new Loadout();
+		worn.set(Slot.WEAPON, sword);
+		DpsResult dps = setup(5, 0).getDps();
+		// The same weapon with an added off-hand takes one slot; another weapon with it takes two.
+		SpecialPlan same = new SpecialPlan(sword, shield, null, null, null, null, null, dps, dps, null, 2, 0, 0);
+		SpecialPlan other = new SpecialPlan(new GearItem(), shield, null, null, null, null, null, dps, dps, null, 2, 0, 0);
+		assertEquals(1, TripSupplies.usedSlots(new SetupResult(CombatClass.MELEE, worn, dps, 0, 0,
+			Collections.emptySet(), Collections.emptySet(), same), Collections.emptyList()));
+		assertEquals(2, TripSupplies.usedSlots(new SetupResult(CombatClass.MELEE, worn, dps, 0, 0,
+			Collections.emptySet(), Collections.emptySet(), other), Collections.emptyList()));
 	}
 
 	@Test
@@ -157,12 +206,17 @@ public class TripSuppliesTest
 
 	private static SearchResults results(int hp, Map<CombatClass, OffensivePrayer> prayers)
 	{
+		return results(hp, prayers, PlayerLevels.maxed());
+	}
+
+	private static SearchResults results(int hp, Map<CombatClass, OffensivePrayer> prayers, PlayerLevels levels)
+	{
 		Monster monster = new Monster();
 		// Vorkath's advice is Protect from Magic for every setup.
 		monster.setName("vorkath (post-quest)");
 		monster.setHitpoints(hp);
 		return new SearchResults(monster, hp, Collections.<AttackStyle.Type, List<SetupResult>>emptyMap(),
 			Collections.emptyList(), prayers, Collections.emptyMap(), false, Collections.emptyList(), false, false,
-			Collections.emptyList(), null, null, 0, 99, 99, PlayerLevels.maxed());
+			Collections.emptyList(), null, null, 0, 99, 99, levels);
 	}
 }

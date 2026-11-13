@@ -12,6 +12,7 @@ import com.bestgearsetup.calc.DpsResult;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.Overheads;
+import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SpecialPlan;
 import com.bestgearsetup.calc.SupportSpell;
@@ -406,13 +407,15 @@ class ResultView extends JPanel
 		row.weightx = 1;
 		row.fill = GridBagConstraints.HORIZONTAL;
 		row.insets = new Insets(2, 0, 0, 0);
+		// Raid targets have no trip: the raid hands out its supplies. Their overhead advice still shows.
+		boolean trip = results.getMonster() == null || RaidScaling.raid(results.getMonster()) == RaidScaling.Raid.NONE;
 		double seconds = TripSupplies.killSeconds(setup, results) * kills;
-		if (kills > 1 && Double.isFinite(seconds))
+		if (trip && kills > 1 && Double.isFinite(seconds))
 		{
-			JLabel trip = stat("Trip combat: ~" + duration(seconds));
-			trip.setName("tripCombatTime");
-			trip.setToolTipText(BestGearSetupPanel.tip("Kills per trip times TTK; no banking"));
-			box.add(trip, row);
+			JLabel time = stat("Trip combat: ~" + duration(seconds));
+			time.setName("tripCombatTime");
+			time.setToolTipText(BestGearSetupPanel.tip("Kills per trip times TTK; no banking"));
+			box.add(time, row);
 		}
 		Overheads.Advice advice = results.getMonster() == null ? null
 			: Overheads.recommend(results.getMonster(), setup.getCombatClass());
@@ -428,7 +431,7 @@ class ResultView extends JPanel
 			overhead.setToolTipText(BestGearSetupPanel.tip(shortNote ? advice.getNote() : "Static advice from the Wiki"));
 			box.add(overhead, row);
 		}
-		double prayer = TripSupplies.prayerPerKill(setup, results);
+		double prayer = trip ? TripSupplies.prayerPerKill(setup, results) : 0;
 		if (prayer > 0)
 		{
 			JLabel points = stat("Prayer/kill: ~" + fmt(prayer, 1) + " points");
@@ -443,6 +446,13 @@ class ResultView extends JPanel
 			carried.setName("tripSupplies");
 			carried.setToolTipText(BestGearSetupPanel.tip("Bottles and food for one trip"));
 			box.add(carried, row);
+			if (TripSupplies.usedSlots(setup, supplies) > TripSupplies.INVENTORY_SLOTS)
+			{
+				JLabel full = stat("Doesn't fit one inventory: fewer kills per trip");
+				full.setName("tripOverflow");
+				full.setForeground(BestGearSetupPanel.WARNING_COLOR);
+				box.add(full, row);
+			}
 		}
 	}
 
