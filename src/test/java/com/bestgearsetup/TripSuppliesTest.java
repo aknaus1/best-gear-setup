@@ -41,6 +41,10 @@ public class TripSuppliesTest
 		SearchResults zalcano = results(100, PIETY);
 		zalcano.getMonster().setName("zalcano");
 		assertEquals(40 / 3.0, TripSupplies.prayerPerKill(setup, zalcano), 1e-9);
+		// So does a target without advice: its attacks can't be read, or no prayer helps against them.
+		SearchResults unknown = results(100, PIETY);
+		unknown.getMonster().setName("no such monster");
+		assertEquals(40 / 3.0, TripSupplies.prayerPerKill(setup, unknown), 1e-9);
 	}
 
 	@Test
@@ -154,7 +158,8 @@ public class TripSuppliesTest
 	private static SearchResults results(int hp, Map<CombatClass, OffensivePrayer> prayers)
 	{
 		Monster monster = new Monster();
-		monster.setName("test monster");
+		// Vorkath's advice is Protect from Magic for every setup.
+		monster.setName("vorkath (post-quest)");
 		monster.setHitpoints(hp);
 		return new SearchResults(monster, hp, Collections.<AttackStyle.Type, List<SetupResult>>emptyMap(),
 			Collections.emptyList(), prayers, Collections.emptyMap(), false, Collections.emptyList(), false, false,

@@ -29,7 +29,7 @@ import net.runelite.api.gameval.ItemID;
  * bottles, the prayer restores its kills need, an antipoison or antivenom against a target that poisons or envenoms,
  * and (Fill inventory with food) food in the inventory slots left over. A kill lasts the target's hitpoints over the setup's DPS, as the TTK
  * line shows. Prayer is the setup's offensive prayer and the target's recommended overhead ({@link Overheads}), kept on
- * throughout; a target without advice is assumed to need one.
+ * throughout; a target without advice needs none.
  */
 public final class TripSupplies
 {
@@ -87,14 +87,15 @@ public final class TripSupplies
 	}
 
 	/**
-	 * Whether a protection prayer drains during the kill: the target's advice names one the Prayer level allows, or the
-	 * target has no advice. A switching fight keeps one on at a time.
+	 * Whether a protection prayer drains during the kill: only when the target's advice names one the Prayer level
+	 * allows. A target that needs none, or that praying doesn't help against or has no advice, drains none. A switching
+	 * fight keeps one on at a time.
 	 */
 	static boolean needsOverhead(SetupResult setup, SearchResults results)
 	{
 		Overheads.Advice advice = Overheads.recommend(results.getMonster(), setup.getCombatClass());
 		if (advice == null)
-			return true;
+			return false;
 		PlayerLevels levels = results.getLevels() == null ? PlayerLevels.maxed() : results.getLevels();
 		return advice.getPrayer() != null && advice.getPrayer().getLevel() <= levels.getPrayer();
 	}
