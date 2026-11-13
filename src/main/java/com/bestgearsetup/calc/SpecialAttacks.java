@@ -131,6 +131,7 @@ public class SpecialAttacks
 		magic = Math.max(0, magic - bgs);
 
 		m.setDefenceLevel(def);
+		m.setDefenceFloor(floor);
 		m.setAttackLevel(Math.max(0, att));
 		m.setStrengthLevel(Math.max(0, str));
 		m.setMagicLevel(magic);

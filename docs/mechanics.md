@@ -466,9 +466,9 @@ Sun keris inside ToA, and Vardorvis's Defence and Strength) are integrated over 
 optimizer ranks them by that whole-fight DPS. Gauntlet gear is only available inside the Gauntlet, and named Warden
 variants take priority over conflicting source IDs.
 
-**Raid scaling** follows the Wiki calculator's scaling modules. Raid monsters are listed with solo,
-unscaled stats, so the plugin scales them for **Raid party size**, **ToA raid level**, **ToA path level**
-and **CoX Challenge Mode**.
+**Raid scaling** follows the Wiki calculator's scaling modules, and The Fractured Archive follows its Wiki
+pages and update posts. Raid monsters are listed with solo, unscaled stats, so the plugin scales them for
+**Raid party size**, **ToA raid level**, **ToA path level** and **CoX Challenge Mode**.
 
 - **CoX** scales levels and HP by party size and the highest combat and HP levels in the party (taken as
   your own), with exceptions for Olm, the guardians (Mining), Tekton, the crystals and solo encounters.
@@ -477,6 +477,11 @@ and **CoX Challenge Mode**.
 - **ToA** scales boss and path HP, and multiplies the boss's defence roll by (250 + raid level) / 250.
   Kephri's overlords keep an unscaled defence roll and puzzle-room NPCs keep their listed stats, as in the
   reference.
+- **The Fractured Archive** scales boss HP for two to eight players (a solo counts as two): a duo has 10% more
+  than the listed HP, and three or more players have the listed HP x (1.45 + 0.42 per player after the third),
+  rounded to 10. Moia's undead binders scale too (rounded to 1); Ocellus's second phase and the other adds don't.
+  The party size isn't read from the game, so set it in Fight. Defence drains can only take the Archive
+  Guardian, Bork, Ezekiel, Moia, Xarth and Ocellus (phases 1 and 3) to 60% of their Defence.
 
 ### Special attacks
 

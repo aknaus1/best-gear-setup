@@ -3,6 +3,23 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## 1.1.4
+
+- The Fractured Archive's bosses and Moia's undead binders now scale with **Raid party size**: a solo counts as
+  a duo and a duo has 10% more than the listed hitpoints, as in the update posts, and three or more players
+  have the listed hitpoints x (1.45 + 0.42 per player after the third), as on the Wiki's team-size tables. Set
+  the party size in Fight.
+- Defence drains can only take the Archive Guardian, Bork, Ezekiel, Moia, Xarth and Ocellus to 60% of their
+  Defence, following the raid's 21 October hotfix. Ocellus's second phase and the other NPCs can still be
+  drained to 0.
+- Refresh The Fractured Archive's NPCs from the Wiki after the 11 November update: the Archive Guardian has 55
+  light ranged defence when flying, 50 magic defence in both forms and an 80% fire weakness when grounded; Bork
+  has 1,650 Hitpoints and the Smorks 650; Xarth has 2,450 Hitpoints and 60 stab defence. The undead binders are
+  undead. Xarth, Ocellus, the Dagon'hai and the undead binders gain the Wiki's poison, venom, freeze and burn
+  data, and the Dagon'hai, Xarth, Ocellus and the undead binders their max hits. Ezekiel's animated swords and the
+  inert guardians are added as raid NPCs.
+- Refresh the other Wiki monster data, which adds the Leech and Snelmlover500.
+
 ## 1.1.3 (2026-11-10)
 
 - A slot locked to an item you don't own is now worn in *Owned items only* and *Inventory + equipped only*
