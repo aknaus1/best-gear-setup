@@ -35,6 +35,12 @@ is what the Plugin Hub shows.
   Fractured Archive elemental fragment adds 2 to its element's spells.
 - Hover text and setting descriptions are cut to under 10 words: item tooltips keep the name, where it's stored
   and what matters most, and drop the rest when it doesn't fit. A few lock reasons and long names can run longer.
+- Gear searches are exact: each weapon's setup is now the best combination of your allowed gear for its
+  ordinary attacks, where the old search could stop a few pieces short. Across 1,872 test searches (every boss,
+  each class, a 10m budget and best in slot) 280 found a better setup and none a worse one, in under half
+  the time. The **Search depth** setting is gone.
+- A setup killing faster with poison, venom or burns is never credited a slightly slower kill than a weaker one
+  (up to 0.07% DPS).
 
 ## 1.1.3 (2026-11-10)
 
