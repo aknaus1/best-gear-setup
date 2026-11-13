@@ -2,8 +2,10 @@ package com.bestgearsetup;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.data.OffensivePrayer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -53,5 +55,17 @@ public class PrayerUnlocksTest
 		assertEquals(Collections.emptySet(), PrayerUnlocks.parse(""));
 		assertEquals(Collections.singleton("augury"), PrayerUnlocks.parse("Augury, not a prayer"));
 		assertNull(PrayerUnlocks.parse(null));
+	}
+
+	@Test
+	public void zealAndTheElementalFragmentsAreAccountUnlocks()
+	{
+		List<OffensivePrayer> melee = new ArrayList<>(MELEE);
+		melee.add(new OffensivePrayer("zeal", 25, 28, 84, 1));
+		assertEquals("piety", best(melee, new TreeSet<>(Arrays.asList("chivalry", "piety"))));
+		assertEquals("zeal", best(melee, new TreeSet<>(Arrays.asList("piety", "zeal"))));
+		assertEquals("zeal", best(melee, null));
+		assertEquals(new TreeSet<>(Arrays.asList("fire", "zeal")), PrayerUnlocks.parse("zeal, fire"));
+		assertTrue(PrayerUnlocks.GATED.containsAll(Arrays.asList("air", "water", "earth", "fire", "zeal")));
 	}
 }

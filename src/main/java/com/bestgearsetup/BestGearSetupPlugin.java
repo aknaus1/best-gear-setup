@@ -1197,6 +1197,7 @@ public class BestGearSetupPlugin extends Plugin
 					.forinthrySurge(config.forinthrySurge())
 					.weaponPoison(config.weaponPoison()).charge(config.charge())
 					.markOfDarkness(config.markOfDarkness()).sunfireRunes(config.sunfireRunes())
+					.unlocks(prayerUnlocks == null ? PrayerUnlocks.GATED : prayerUnlocks)
 					.kandarinDiary(config.kandarinDiary()).soulreaperStacks(config.soulreaperStacks())
 					.miningLevel(config.miningLevel() == 0 ? mining : config.miningLevel()).build())
 				// HP-dependent target stats are re-derived in the same order for whole-fight averages.

@@ -851,6 +851,8 @@ public final class DpsCalculator
 		{
 			baseMax += 10;
 		}
+		if (ctx.getModifiers().getUnlocks().contains(element))
+			baseMax += 2;
 
 		OffensivePrayer prayer = ctx.getPrayer(CombatClass.MAGIC);
 		double pAcc = prayer == null ? 1 : 1 + prayer.getAccuracyPercent() / 100;

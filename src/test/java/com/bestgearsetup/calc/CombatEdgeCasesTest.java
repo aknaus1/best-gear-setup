@@ -183,6 +183,12 @@ public class CombatEdgeCasesTest
 		result = DpsCalculator.calculate(l, context(m));
 		assertEquals(19, result.getAverageHit(), EPS);
 		assertEquals(4, result.getExpectedSpeedTicks(), EPS);
+		// A broken fragment of burning fire adds 2 to fire spells' base max hit; water's doesn't.
+		int base = result.getMaxHit();
+		assertEquals(base + 2, DpsCalculator.calculate(l, context(m).withModifiers(CombatModifiers.builder()
+			.unlocks(java.util.Set.of("fire")).build())).getMaxHit());
+		assertEquals(base, DpsCalculator.calculate(l, context(m).withModifiers(CombatModifiers.builder()
+			.unlocks(java.util.Set.of("water")).build())).getMaxHit());
 	}
 
 	@Test

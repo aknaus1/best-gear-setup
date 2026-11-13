@@ -190,12 +190,15 @@ SPECIAL_SPELLS = {
     "Flames of Zamorak": r"zamorak staff|(?:toxic )?staff of the dead|thammaron's sceptre \(a\)|accursed sceptre \(a\)",
 }
 
-# Each prayer's page: (name, book, accuracy %, damage %, prayer level, defence level).
+# Each prayer's page: (name, book, accuracy %, damage %, prayer level, defence level). Zeal (The Fractured Archive)
+# replaces Piety; its 75 Attack and Strength requirement isn't modelled.
 PRAYERS = {
     "attack": [("clarity of thought", 5, 0, 7, 1), ("improved reflexes", 10, 0, 16, 1),
-               ("incredible reflexes", 15, 0, 34, 1), ("chivalry", 15, 0, 60, 65), ("piety", 20, 0, 70, 70)],
+               ("incredible reflexes", 15, 0, 34, 1), ("chivalry", 15, 0, 60, 65), ("piety", 20, 0, 70, 70),
+               ("zeal", 25, 0, 84, 1)],
     "strength": [("burst of strength", 5, 0, 4, 1), ("superhuman strength", 10, 0, 13, 1),
-                 ("ultimate strength", 15, 0, 31, 1), ("chivalry", 18, 0, 60, 65), ("piety", 23, 0, 70, 70)],
+                 ("ultimate strength", 15, 0, 31, 1), ("chivalry", 18, 0, 60, 65), ("piety", 23, 0, 70, 70),
+                 ("zeal", 28, 0, 84, 1)],
     "ranged": [("sharp eye", 5, 5, 8, 1), ("hawk eye", 10, 10, 26, 1), ("eagle eye", 15, 15, 44, 1),
                ("deadeye", 18, 18, 62, 1), ("rigour", 20, 23, 74, 70)],
     "magic": [("mystic will", 5, 0, 9, 1), ("mystic lore", 10, 1, 27, 1), ("mystic might", 15, 2, 45, 1),

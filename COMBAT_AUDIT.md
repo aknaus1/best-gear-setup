@@ -165,7 +165,7 @@ that the direct-damage formulas follow doesn't model poison or venom.
 | Tumeken's shadow | Multiply gear accuracy and magic damage by 3, or 4 in ToA. Cap the amplified equipment damage at 100%; prayer damage remains separate. DMM canonicalization also reaches this predicate. |
 | Smoke staff, Magic salve, task equipment and Virtus | Smoke's standard-spell bonus and Magic salve damage are additive with equipment damage; task damage applies afterward. Ancient spells receive Virtus's additional per-piece damage. |
 | Magic Dart | Level-dependent maximum; enhanced slayer staff on task uses its distinct formula. |
-| Chaos gauntlets, elemental amulets and Charge | Modify base spell damage only for eligible spells. Charge requires the matching god cape. These are explicit fight assumptions, not always-on bonuses. |
+| Chaos gauntlets, elemental amulets, elemental fragments and Charge | Modify base spell damage only for eligible spells. A broken Fractured Archive fragment adds 2 to its element's spells before magic damage and weakness (Wiki "Fragment of burning fire"), read from the account (`TFA_MOTE_*_UNLOCKED`). Charge requires the matching god cape. These are explicit fight assumptions, not always-on bonuses. |
 | Charged elemental tomes | Matching standard spells receive the damage bonus. Water's accuracy bonus also requires a charged tome. Empty/uncharged variants do not receive those effects. |
 | Sunfire | Eligible fire spells get a minimum floor(max/10) before tome damage. |
 | Demonbane and Purging staff | Mark of Darkness changes accuracy and applies per-roll damage, scaled by demon vulnerability; Purging doubles the supported Mark modifiers. |

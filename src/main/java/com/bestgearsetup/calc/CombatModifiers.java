@@ -28,6 +28,9 @@ public class CombatModifiers
 	int soulreaperStacks;
 	@Builder.Default
 	int miningLevel = 99;
+	/** Account unlocks ({@code PrayerUnlocks}): an element's name means its fragment was broken, +2 base max hit to its spells. */
+	@Builder.Default
+	java.util.Set<String> unlocks = java.util.Set.of();
 
 	int playerHp(PlayerLevels levels)
 	{

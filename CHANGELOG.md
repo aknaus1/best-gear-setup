@@ -31,6 +31,8 @@ is what the Plugin Hub shows.
 - Leave a slot empty when its item makes no difference to the setup's rates or its special attack (a strength
   bonus short of the next max hit, a seeded set's leftover, a piece with only defence), instead of wearing or
   buying it. Fill empty slots still fills such slots with prayer or defence pieces.
+- Zeal is assumed once your account has unlocked it (+25% Attack and +28% Strength over Piety), and each broken
+  Fractured Archive elemental fragment adds 2 to its element's spells.
 
 ## 1.1.3 (2026-11-10)
 

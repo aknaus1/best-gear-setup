@@ -65,9 +65,11 @@ This page covers what the plugin assumes and what it enforces. For installation 
 - The plugin uses your real combat levels and item requirements. Levels are remembered per account, so a
   logged-out search uses the levels it last saw in game (it only assumes 99s before the account's first
   login). By default it assumes the best prayer your levels and unlocks allow, plus potion boosts (you can
-  change this). Piety/Chivalry (Knight Waves), Rigour, Augury, Deadeye and Mystic Vigour are read from your
-  account while you're logged in and remembered the same way. Before the first login they're assumed
-  unlocked, like the 99s.
+  change this). Piety/Chivalry (Knight Waves), Rigour, Augury, Deadeye, Mystic Vigour and Zeal (the Horn of
+  Bran; it replaces Piety with +25% Attack and +28% Strength) are read from your account while you're logged in
+  and remembered the same way, as are the Fractured Archive's elemental fragments you've broken (+2 base max hit
+  to that element's spells). Before the first login they're all assumed unlocked, like the 99s. Zeal's 75 Attack
+  and Strength requirement isn't checked.
 - When the potion choice is *Best*, potion boosts follow the search mode. *Owned items only* uses only
   potions and hearts you own (any dose; a divine potion counts as the regular one), and *Inventory +
   equipped only* only those you're carrying. *Owned + budget* can buy
