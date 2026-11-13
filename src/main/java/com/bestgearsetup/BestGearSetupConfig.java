@@ -255,6 +255,14 @@ public interface BestGearSetupConfig extends Config
 		return SearchAssumptions.value(this, "ammoCount", 0);
 	}
 
+	@ConfigItem(keyName = "killsPerTrip", name = "Kills per trip",
+		description = "Kills one trip's supplies cover", section = searchSection, position = 5)
+	@Range(min = 1, max = 1000)
+	default int killsPerTrip()
+	{
+		return SearchAssumptions.value(this, "killsPerTrip", 1);
+	}
+
 	@ConfigItem(keyName = "currentHitpoints", name = "Your HP (0 = full)", hidden = true,
 		description = "HP for Dharok and ruby bolts; 0 is full", section = searchSection, position = 18)
 	@Range(max = 99)

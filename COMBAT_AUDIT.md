@@ -316,6 +316,23 @@ none of the bundled combat spells use.
 | Thrall immunity and type | `Thrall.eligibleType`: no thrall when the infobox `thrall_immune` field is Immune (generated `immune_thrall`: Vorkath and his spawn, Abyssal Sire, CoX guardians, Kurasks/Turoths, cave krakens, Sol Heredit and others; the Kraken boss is not immune since the 23 November 2023 fix) or in a fight where thralls can't be resurrected but the target isn't flagged (`thrall-restricted fights` in `name-lists.json`: Galvek, Robert the Strong, Vanstrom Klause, Fragment of Seren, Lowerniel Drakan and Nightmare Zone versions; [Thrall](https://oldschool.runescape.wiki/w/Thrall), Restrictions). Otherwise the first of ghostly (magic), skeletal (ranged) and zombified (melee) whose class can damage the target, from the same class-immunity rules as the player's attacks; the Thrall page prefers magic thralls "whenever there are no special type resistances". All three types share a tier's max hit, so only eligibility changes DPS. |
 | Defence-drain floors and absorption | Preserve full immunity for supported absorption targets, while respecting Akkha's distinct drain floor despite the API's broad tag. The Fractured Archive's Archive Guardian, Bork, Ezekiel, Moia, Xarth and Ocellus (not the Blade in phase 2) floor at 60% of their Defence (2026-10-21 hotfix, "Out Today" post); the Dagon'hai are uncapped after the 2026-11-11 fix. Restore known boss floor fallbacks when the API supplies zero. BGS drain stops at a positive floor; Ayak cannot push positive Magic defence below zero or raise existing negative defence. Arclight includes its +1. |
 
+## Trip supplies
+
+`TripSupplies` estimates what a trip to a target outside the raids carries for **Kills per trip**. It never
+changes a search's ranking.
+
+- A kill lasts the target's hitpoints over the setup's DPS, the panel's TTK, with no overkill, respawns or
+  banking. The trip's combat time is that times the kills.
+- Prayer drain follows the Wiki's Prayer page: each tick the active prayers' drain effects build toward a
+  resistance of `2 × prayer bonus + 60`, and each time it is reached one point is lost. The drain effects of the
+  offensive prayers are in `name-lists.json` ("prayer drain"). **Assumption:** the setup's offensive prayer and
+  one protection prayer (drain effect 12) are kept on throughout; overhead choice and prayer flicking are not
+  modelled.
+- Restores cover the points beyond the full Prayer level the trip starts with: a prayer potion dose restores
+  `7 + level / 4` and a super restore or Sanfew serum `8 + level / 4` (Wiki), in four-dose bottles.
+- Boost bottles: a divine dose holds its boost for five minutes; an ordinary dose is drunk again once half its
+  boost has drained, at one level a minute, the first after half a minute on average. A heart is carried once.
+
 ## Remaining adjustments and limits
 
 These limits can noticeably change results:

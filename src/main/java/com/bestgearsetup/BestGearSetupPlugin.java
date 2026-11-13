@@ -1279,7 +1279,7 @@ public class BestGearSetupPlugin extends Plugin
 				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
 				rememberedLevels, warnings,
 				Thrall.eligibleType(monster) == null ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
-				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic());
+				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels);
 			SwingUtilities.invokeLater(() ->
 			{
 				if (panel != null && generation == searchGeneration.get())
@@ -1754,6 +1754,17 @@ public class BestGearSetupPlugin extends Plugin
 	public boolean isSunfireRunes()
 	{
 		return config != null && config.sunfireRunes();
+	}
+
+	public int getKillsPerTrip()
+	{
+		return config.killsPerTrip();
+	}
+
+	/** A setup's trip supplies for the Kills per trip setting, from the items owned now. */
+	public List<TripSupplies.Supply> tripSupplies(SetupResult setup, SearchResults results, List<Potion> potions)
+	{
+		return TripSupplies.plan(setup, results, potions, config.killsPerTrip(), ownedItems::owns);
 	}
 
 	/** Updates one spell rule, moving it between the blocked and forced lists. */

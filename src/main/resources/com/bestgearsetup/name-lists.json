@@ -133,5 +133,12 @@
   "league equipment": [
     "the dogsword (*)", "drygore blowpipe (*)", "amulet of the monarchs (*)", "emperor ring (*)", "devil's element (*)", "nature's reprisal (*)",
     "gloves of the damned (*)", "crystal blessing (*)", "sunlight spear (*)", "sunlit bracers (*)", "thunder khopesh (*)", "thousand-dragon ward (*)"
-  ]
+  ],
+  "prayer drain": {
+    "_about": "Drain effect per tick of each offensive prayer (Wiki: Prayer, 'Drain effect'); the trip supplies add one protection prayer (12) to it.",
+    "burst of strength": 3, "clarity of thought": 3, "sharp eye": 3, "mystic will": 3,
+    "superhuman strength": 6, "improved reflexes": 6, "hawk eye": 6, "mystic lore": 6,
+    "ultimate strength": 12, "incredible reflexes": 12, "eagle eye": 12, "mystic might": 12,
+    "chivalry": 24, "piety": 24, "rigour": 24, "deadeye": 24, "augury": 24, "mystic vigour": 24
+  }
 }

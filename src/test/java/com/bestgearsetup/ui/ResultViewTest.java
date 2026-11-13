@@ -104,6 +104,29 @@ public class ResultViewTest
 		});
 	}
 
+	@Test
+	public void tripLinesShowCombatTimePrayerAndSupplies() throws Exception
+	{
+		Loadout loadout = new Loadout();
+		SetupResult setup = new SetupResult(CombatClass.MELEE, loadout, dps(5), 0);
+		java.util.List<com.bestgearsetup.TripSupplies.Supply> supplies = Collections.singletonList(
+			new com.bestgearsetup.TripSupplies.Supply("Prayer potion", Collections.singletonList(2434), 3));
+		SwingUtilities.invokeAndWait(() ->
+		{
+			JPanel box = view(100).statsBox(dps(5), null);
+			view(100).addTripLines(box, setup, 30, supplies);
+			// 30 kills of 100 HP at 5 DPS.
+			assertEquals("<html>Trip combat: ~10m 00s</html>", named(box, "tripCombatTime").getText());
+			assertTrue(named(box, "prayerPerKill").getText().contains("Prayer/kill: ~6.7 points"));
+			assertTrue(named(box, "tripSupplies").getText().contains("Supplies: 3 Prayer potion"));
+			JPanel single = view(100).statsBox(dps(5), null);
+			view(100).addTripLines(single, setup, 1, Collections.emptyList());
+			assertNull(named(single, "tripCombatTime"));
+			assertNull(named(single, "tripSupplies"));
+		});
+		assertEquals("1h 05m", ResultView.duration(3900));
+	}
+
 	private static ResultView view(int hp)
 	{
 		Monster monster = new Monster();

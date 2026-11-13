@@ -5,6 +5,7 @@ import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.RuneUse;
 import com.bestgearsetup.SearchResults;
+import com.bestgearsetup.TripSupplies;
 import com.bestgearsetup.calc.AttackReach;
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.DpsResult;
@@ -269,8 +270,10 @@ class ResultView extends JPanel
 		RuneUse runes = RuneUse.of(selected, results.getMonster().getHitpoints(),
 			results.getBaseMagic(), results.getBoostedMagic());
 		boolean poweredStaff = selected.getCombatClass() == CombatClass.MAGIC && l.getSpell() == null;
-		body.add(BestGearSetupPanel.left(statsBox(d, thrallFor(selected), runes,
-			plugin != null && plugin.isSunfireRunes(), poweredStaff)));
+		JPanel stats = statsBox(d, thrallFor(selected), runes, plugin != null && plugin.isSunfireRunes(), poweredStaff);
+		if (plugin != null)
+			addTripLines(stats, selected, plugin.getKillsPerTrip(), plugin.tripSupplies(selected, results, potionsFor(selected)));
+		body.add(BestGearSetupPanel.left(stats));
 		if (selected.getSpecial() != null)
 		{
 			body.add(spacer(4));
@@ -382,6 +385,48 @@ class ResultView extends JPanel
 			box.add(support, row);
 		}
 		return box;
+	}
+
+	/** A trip's combat time, prayer use per kill and supplies (Kills per trip), below the setup's stats. */
+	void addTripLines(JPanel box, SetupResult setup, int kills, List<TripSupplies.Supply> supplies)
+	{
+		GridBagConstraints row = new GridBagConstraints();
+		row.gridx = 0;
+		row.weightx = 1;
+		row.fill = GridBagConstraints.HORIZONTAL;
+		row.insets = new Insets(2, 0, 0, 0);
+		double seconds = TripSupplies.killSeconds(setup, results) * kills;
+		if (kills > 1 && Double.isFinite(seconds))
+		{
+			JLabel trip = stat("Trip combat: ~" + duration(seconds));
+			trip.setName("tripCombatTime");
+			trip.setToolTipText(BestGearSetupPanel.tip("Kills per trip times TTK; no banking"));
+			box.add(trip, row);
+		}
+		double prayer = TripSupplies.prayerPerKill(setup, results);
+		if (prayer > 0)
+		{
+			JLabel points = stat("Prayer/kill: ~" + fmt(prayer, 1) + " points");
+			points.setName("prayerPerKill");
+			points.setToolTipText(BestGearSetupPanel.tip("Offensive prayer plus one protection prayer"));
+			box.add(points, row);
+		}
+		if (!supplies.isEmpty())
+		{
+			JLabel carried = stat("");
+			carried.setText(BestGearSetupPanel.html("Supplies: " + TripSupplies.summary(supplies), STAT_WRAP_WIDTH));
+			carried.setName("tripSupplies");
+			carried.setToolTipText(BestGearSetupPanel.tip("Bottles and food for one trip"));
+			box.add(carried, row);
+		}
+	}
+
+	/** Seconds as "3m 05s", or "1h 02m" from an hour. */
+	static String duration(double seconds)
+	{
+		long total = Math.round(seconds);
+		return total < 3600 ? total / 60 + "m " + String.format("%02d", total % 60) + "s"
+			: total / 3600 + "h " + String.format("%02d", total / 60 % 60) + "m";
 	}
 
 	private static String runeEntries(Map<Integer, Double> counts, boolean sunfire)

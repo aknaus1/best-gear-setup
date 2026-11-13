@@ -40,6 +40,7 @@ public final class ConfigSettings
 		add("preventManualCast", BestGearSetupConfig::preventManualCast);
 		add("membersItems", BestGearSetupConfig::membersItems);
 		add("ammoCount", BestGearSetupConfig::ammoCount);
+		add("killsPerTrip", BestGearSetupConfig::killsPerTrip);
 		add("currentHitpoints", BestGearSetupConfig::currentHitpoints);
 		add("wilderness", BestGearSetupConfig::wilderness);
 		add("limitWildernessRisk", BestGearSetupConfig::limitWildernessRisk);

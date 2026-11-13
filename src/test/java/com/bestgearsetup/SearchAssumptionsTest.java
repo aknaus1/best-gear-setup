@@ -121,6 +121,7 @@ public class SearchAssumptionsTest
 		GETTERS.put("arceuusSpellbook", BestGearSetupConfig::arceuusSpellbook);
 		GETTERS.put("membersItems", BestGearSetupConfig::membersItems);
 		GETTERS.put("ammoCount", BestGearSetupConfig::ammoCount);
+		GETTERS.put("killsPerTrip", BestGearSetupConfig::killsPerTrip);
 		GETTERS.put("currentHitpoints", BestGearSetupConfig::currentHitpoints);
 		GETTERS.put("wilderness", BestGearSetupConfig::wilderness);
 		GETTERS.put("limitWildernessRisk", BestGearSetupConfig::limitWildernessRisk);
