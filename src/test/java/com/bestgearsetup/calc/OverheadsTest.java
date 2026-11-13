@@ -8,7 +8,15 @@ import com.bestgearsetup.calc.Overheads.Advice;
 import com.bestgearsetup.calc.Overheads.Overhead;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.Monster;
+import com.bestgearsetup.data.GameDataLoader;
+import com.bestgearsetup.data.NameLists;
+import com.google.gson.JsonElement;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
 public class OverheadsTest
@@ -70,5 +78,22 @@ public class OverheadsTest
 					advice.getAsJsonArray("prayers").forEach(p -> Overhead.valueOf(p.getAsString()));
 			}
 		}
+	}
+
+	@Test
+	public void everyRuleNamesABundledMonster() throws java.io.IOException
+	{
+		Set<String> monsters = new GameDataLoader(RuneLiteAPI.GSON).loadGameData().getMonsters().stream()
+			.map(m -> m.getName().toLowerCase(java.util.Locale.ROOT)).collect(Collectors.toSet());
+		List<String> stale = new ArrayList<>();
+		for (JsonElement rule : NameLists.load("/com/bestgearsetup/encounter-prayers.json").getAsJsonArray("rules"))
+			for (JsonElement element : rule.getAsJsonObject().getAsJsonArray("names"))
+			{
+				String name = element.getAsString();
+				String start = name.startsWith("prefix:") ? name.substring(7) : null;
+				if (monsters.stream().noneMatch(m -> start != null ? m.startsWith(start) : m.equals(name) || m.startsWith(name + " (")))
+					stale.add(name);
+			}
+		assertTrue("Rule names matching no monster: " + stale, stale.isEmpty());
 	}
 }

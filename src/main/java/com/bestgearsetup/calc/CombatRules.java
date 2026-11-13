@@ -245,7 +245,7 @@ final class CombatRules
 	}
 
 	/**
-	 * Standard ranged weapons: bows, and salamanders' ranged attack (Wiki: Ranged weapons). Crossbows, including
+	 * Standard ranged weapons: bows (the eclipse atlatl is one), and salamanders' ranged attack (Wiki: Ranged). Crossbows, including
 	 * Karil's, and chinchompas are heavy; thrown weapons are light.
 	 */
 	static boolean standardRanged(GearItem weapon)

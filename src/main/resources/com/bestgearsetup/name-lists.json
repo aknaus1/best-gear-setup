@@ -142,6 +142,11 @@
     "chivalry": 12, "deadeye": 12, "mystic vigour": 12,
     "piety": 24, "rigour": 24, "augury": 24, "zeal": 24
   },
+  "boost doses": {
+    "_about": "Doses one item of a non-potion boost holds, for the trip supplies; every other boost is a four-dose bottle. Butterfly jars and beers are drunk once, a wild pie eaten in two halves.",
+    "wild pie": 2, "black warlock": 1, "ruby harvest": 1, "sapphire glacialis": 1, "lizardkicker": 1,
+    "wizard's mind bomb": 1, "mature wizard's mind bomb": 1
+  },
   "_trip foods": "One-bite foods a trip fills its free inventory slots with, as [name, item id], best heal at 99 Hitpoints first. Anglerfish leads as it can heal above the maximum; a cooked karambwan (3144) is packed beside another food for combo eating.",
   "trip foods": [
     ["Anglerfish", 13441], ["Manta ray", 391], ["Dark crab", 11936], ["Tuna potato", 7060], ["Sea turtle", 397], ["Shark", 385],

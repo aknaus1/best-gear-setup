@@ -5,7 +5,9 @@ import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SpecialPlan;
+import com.bestgearsetup.calc.StatusEffects;
 import com.bestgearsetup.data.GameData;
+import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.OffensivePrayer;
 import com.bestgearsetup.data.Potion;
@@ -40,6 +42,8 @@ public final class TripSupplies
 	/** Ticks a prayer point lasts per unit of drain effect before any prayer bonus. */
 	private static final int BASE_RESISTANCE = 60;
 	private static final Map<String, Integer> DRAIN_EFFECTS = NameLists.exact("prayer drain");
+	/** Doses per item of boosts that aren't four-dose bottles. */
+	private static final Map<String, Integer> BOOST_DOSES = NameLists.exact("boost doses");
 	/** One-bite foods as [name, item id], best heal first. */
 	private static final JsonArray FOODS = NameLists.rows("trip foods");
 	public static final int INVENTORY_SLOTS = 28;
@@ -114,13 +118,15 @@ public final class TripSupplies
 			return out;
 		PlayerLevels levels = results.getLevels() == null ? PlayerLevels.maxed() : results.getLevels();
 		double seconds = killSeconds(setup, results) * kills;
+		boolean nmz = results.getMonster().getLowerName().contains("(nightmare zone");
 		for (Potion potion : potions)
-			if (!potion.isRaidSupply())
+			if (!potion.isRaidSupply() && (nmz || !potion.getAttributes().contains("nmz")))
 				out.add(new Supply(GameData.titleCase(potion.getName()), new ArrayList<>(BoostAccess.itemIds(potion)),
 					boostBottles(potion, level(levels, potion.getSkill()), seconds)));
 		addRestores(out, prayerPerKill(setup, results) * kills, levels.getPrayer(), owns);
-		// Anti-venom+ also cures poison; a superantipoison is the usual bottle against poison alone.
-		String poisons = results.getMonster().getPoisons();
+		// Anti-venom+ also cures poison; a superantipoison is the usual bottle against poison alone. A serpentine helm
+		// makes the wearer immune to both.
+		String poisons = StatusEffects.serpentineHelm(setup.getLoadout()) ? null : results.getMonster().getPoisons();
 		if ("venom".equals(poisons))
 			out.add(new Supply("Anti-venom+", doses(ItemID.ANTIVENOM_4, ItemID.ANTIVENOM4), 1));
 		else if ("poison".equals(poisons))
@@ -131,9 +137,10 @@ public final class TripSupplies
 	}
 
 	/**
-	 * Bottles of a boost for {@code seconds} of combat. A divine dose holds its boost for five minutes; an ordinary one
-	 * is drunk again once half its boost has drained, a level a minute, the first after half a minute on average. A
-	 * heart is carried once.
+	 * Items of a boost for {@code seconds} of combat. A dose is drunk again once half its boost has drained, a level a
+	 * minute, the first after half a minute on average; a divine dose counts as an ordinary one. Each item holds four
+	 * doses unless {@code name-lists.json} ("boost doses") says otherwise: two for a wild pie, one for a butterfly jar. A heart is
+	 * carried once.
 	 */
 	static int boostBottles(Potion potion, int level, double seconds)
 	{
@@ -141,9 +148,9 @@ public final class TripSupplies
 		int boost = potion.boost(level) - level;
 		if (name.contains("heart") || boost <= 0 || !Double.isFinite(seconds))
 			return 1;
-		double doseSeconds = name.startsWith("divine") ? 300 : (boost / 2 + 0.5) * 60;
-		int doses = Math.max(1, (int) Math.ceil(seconds / doseSeconds));
-		return (doses + 3) / 4;
+		int doses = Math.max(1, (int) Math.ceil(seconds / ((boost / 2 + 0.5) * 60)));
+		int perItem = BOOST_DOSES.getOrDefault(name, 4);
+		return (doses + perItem - 1) / perItem;
 	}
 
 	private static int level(PlayerLevels levels, String skill)
@@ -193,7 +200,7 @@ public final class TripSupplies
 		return ids;
 	}
 
-	/** Slots taken before food: a spec switch's items, a rune pouch and spell items beyond its three, and each bottle. */
+	/** Slots taken before food: a spec switch's items and a shield a two-handed spec weapon takes off, a rune pouch and spell items beyond its three, and each bottle. */
 	public static int usedSlots(SetupResult setup, List<Supply> supplies)
 	{
 		int used = supplies.stream().mapToInt(Supply::getCount).sum();
@@ -201,10 +208,15 @@ public final class TripSupplies
 		if (spellItems > 0)
 			used += 1 + Math.max(0, spellItems - 3);
 		SpecialPlan special = setup.getSpecial();
-		if (special != null && special.isSwitch(setup.getLoadout()))
-			used += Stream.of(special.getWeapon() == setup.getLoadout().getWeapon() ? null : special.getWeapon(),
+		if (special == null || !special.isSwitch(setup.getLoadout()))
+			return used;
+		// A two-handed spec weapon takes the worn shield off into the inventory.
+		GearItem weapon = special.getWeapon();
+		if (weapon != null && weapon.isTwoHanded() && special.getOffhand() == null && setup.getLoadout().get(Slot.SHIELD) != null
+			&& weapon != setup.getLoadout().getWeapon())
+			used++;
+		return used + (int) Stream.of(special.getWeapon() == setup.getLoadout().getWeapon() ? null : special.getWeapon(),
 				special.getOffhand(), special.getAmmo()).filter(Objects::nonNull).count();
-		return used;
 	}
 
 	/**

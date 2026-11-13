@@ -58,7 +58,8 @@ public final class StatusEffects
 		}
 	}
 
-	static boolean serpentineHelm(Loadout l)
+	/** Whether a charged serpentine helm, or its recolour, is worn: immune to poison and venom (Wiki). */
+	public static boolean serpentineHelm(Loadout l)
 	{
 		String head = EncounterDamage.lower(l.get(Slot.HEAD));
 		return VENOM_HELMS.matches(head) && !head.contains("uncharged");

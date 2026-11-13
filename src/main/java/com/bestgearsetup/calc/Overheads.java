@@ -15,8 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
 /**
- * The overhead protection prayer against a monster, looked up by name in {@code encounter-prayers.json}: checked Wiki
- * strategies, then every other monster's Wiki attack styles. A melee setup can have its own entry, as it stands in
+ * The overhead protection prayer against a monster, looked up by name in {@code encounter-prayers.json}: game-mode
+ * versions (Deadman, PvM Arena, Echo) by their own Wiki attack styles, then checked Wiki strategies, then every other
+ * monster's Wiki attack styles. A melee setup can have its own entry, as it stands in
  * melee range. Static reference per target; monsters whose attacks can't be read get no advice.
  */
 public final class Overheads

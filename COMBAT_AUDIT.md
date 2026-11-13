@@ -327,22 +327,24 @@ changes a search's ranking.
   resistance of `2 × prayer bonus + 60`, and each time it is reached one point is lost. The drain effects of the
   offensive prayers are in `name-lists.json` ("prayer drain"). **Assumption:** the setup's offensive prayer and
   the target's recommended overhead (drain effect 12) are kept on throughout. The overhead comes from
-  `encounter-prayers.json` (`Overheads`: checked Wiki strategy pages first, then each monster's Wiki attack
-  styles; a melee setup can have its own advice). No overhead drains when the advice needs none or the Prayer
+  `encounter-prayers.json` (`Overheads`: game-mode versions (Deadman, PvM Arena, Echo) first, then checked Wiki strategy pages, then
+  each monster's Wiki attack styles; a melee setup can have its own advice). No overhead drains when the advice needs none or the Prayer
   level is below it; a switching fight counts one overhead at a time; a target without advice (its attacks can't be
   read, or no prayer helps against them) drains none. Prayer flicking is not modelled. The advice is static per target, never a live switching cue.
 - Restores cover the points beyond the full Prayer level the trip starts with: a prayer potion dose restores
   `7 + level / 4`, a super restore `8 + level / 4` and a Sanfew serum `4 + ⌊level × 3 / 10⌋` (Wiki), in four-dose
   bottles: super restores when owned, else Sanfew serums when owned, otherwise prayer potions.
-- Boost bottles: a divine dose holds its boost for five minutes; an ordinary dose is drunk again once half its
-  boost has drained, at one level a minute, the first after half a minute on average. A heart is carried once.
+- Boost items: a dose is drunk again once half its boost has drained, at one level a minute, the first after half
+  a minute on average; a divine dose is counted as an ordinary one. An item holds its dose family's doses (four a
+  potion, two a wild pie, one a butterfly jar or beer). A heart is carried once. Nightmare Zone potions are only
+  packed against Nightmare Zone targets.
 - Drain effects follow the Wiki's Prayer table: Piety, Rigour, Augury and Zeal 24 (40 points a minute without
   bonus); Chivalry (since 12 August 2026), Deadeye, Mystic Vigour and the protection prayers 12.
 - Food fills the 28 slots less every bottle, a rune pouch (plus spell items beyond its three runes) and a spec
-  switch's weapon, off-hand and ammunition. The food list and its order (best heal at 99 Hitpoints) are in
+  switch's weapon, off-hand and ammunition, plus the worn shield a two-handed spec weapon takes off. The food list and its order (best heal at 99 Hitpoints) are in
   `name-lists.json` ("trip foods").
 - A monster whose Wiki infobox says it is poisonous (`poisonous` field; "venom" when it envenoms) adds one bottle
-  of superantipoison or anti-venom+. Immunity length and doses per trip are not modelled.
+  of superantipoison or anti-venom+, none while a charged serpentine helm (or recolour) is worn. Immunity length and doses per trip are not modelled.
 
 ## Remaining adjustments and limits
 

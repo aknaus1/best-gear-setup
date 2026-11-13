@@ -94,6 +94,15 @@ public class TripSuppliesTest
 			Collections.emptySet(), Collections.emptySet(), same), Collections.emptyList()));
 		assertEquals(2, TripSupplies.usedSlots(new SetupResult(CombatClass.MELEE, worn, dps, 0, 0,
 			Collections.emptySet(), Collections.emptySet(), other), Collections.emptyList()));
+		// A two-handed spec weapon also takes the worn shield off into the inventory.
+		GearItem claws = new GearItem();
+		claws.setId(3);
+		claws.setSlot(Slot.WEAPON);
+		claws.setTwoHanded(true);
+		worn.set(Slot.SHIELD, shield);
+		SpecialPlan twoHanded = new SpecialPlan(claws, null, null, null, null, null, null, dps, dps, null, 2, 0, 0);
+		assertEquals(2, TripSupplies.usedSlots(new SetupResult(CombatClass.MELEE, worn, dps, 0, 0,
+			Collections.emptySet(), Collections.emptySet(), twoHanded), Collections.emptyList()));
 	}
 
 	@Test
@@ -120,18 +129,36 @@ public class TripSuppliesTest
 	public void boostBottlesLastTheTrip()
 	{
 		Potion superCombat = new Potion();
+		superCombat.setId(ItemID._4DOSE2COMBAT);
 		superCombat.setName("Super combat potion");
 		superCombat.setBaseIncrease(5);
 		superCombat.setPercentageIncrease(15);
 		// +19 at 99: re-sipped once 10 levels have drained, every 9.5 minutes, so an hour is 7 doses in 2 bottles.
 		assertEquals(2, TripSupplies.boostBottles(superCombat, 99, 3600));
 		assertEquals(1, TripSupplies.boostBottles(superCombat, 99, 60));
-		Potion divine = new Potion();
-		divine.setName("Divine super combat potion");
-		divine.setBaseIncrease(5);
-		divine.setPercentageIncrease(15);
-		// Five minutes a dose: 12 doses in 3 bottles.
-		assertEquals(3, TripSupplies.boostBottles(divine, 99, 3600));
+		// A wild pie holds two bites (+4 Ranged at 10, a bite every 2.5 minutes): 24 bites in 12 pies.
+		Potion pie = new Potion();
+		pie.setId(7208);
+		pie.setName("wild pie");
+		pie.setBaseIncrease(4);
+		assertEquals(12, TripSupplies.boostBottles(pie, 10, 3600));
+	}
+
+	@Test
+	public void nightmareZonePotionsStayInTheirZone()
+	{
+		Potion nmz = new Potion();
+		nmz.setId(11722);
+		nmz.setName("super ranging");
+		nmz.setSkill("ranged");
+		nmz.setBaseIncrease(5);
+		nmz.setPercentageIncrease(15);
+		nmz.setAttributes(Collections.singletonList("nmz"));
+		List<Potion> potions = Collections.singletonList(nmz);
+		assertTrue(TripSupplies.plan(setup(5, 0), results(100, PIETY), potions, 1, false, id -> false).isEmpty());
+		SearchResults zone = results(100, PIETY);
+		zone.getMonster().setName("count draynor (nightmare zone)");
+		assertEquals("1 Super Ranging", TripSupplies.summary(TripSupplies.plan(setup(5, 0), zone, potions, 1, false, id -> false)));
 	}
 
 	@Test
@@ -192,6 +219,13 @@ public class TripSuppliesTest
 		supplies = TripSupplies.plan(setup(5, 0), poison, Collections.emptyList(), 1, false, id -> false);
 		assertEquals("1 Superantipoison", TripSupplies.summary(supplies));
 		assertTrue(TripSupplies.plan(setup(5, 0), results(100, PIETY), Collections.emptyList(), 1, false, id -> false).isEmpty());
+		// A serpentine helm makes the wearer immune to both.
+		SetupResult helmed = setup(5, 0);
+		GearItem helm = new GearItem();
+		helm.setName("Serpentine helm");
+		helm.setSlot(Slot.HEAD);
+		helmed.getLoadout().set(Slot.HEAD, helm);
+		assertTrue(TripSupplies.plan(helmed, venom, Collections.emptyList(), 1, false, id -> false).isEmpty());
 	}
 
 	private static SetupResult setup(double dps, int prayerBonus)
