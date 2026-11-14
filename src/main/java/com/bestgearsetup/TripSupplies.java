@@ -8,8 +8,10 @@ import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SpecialPlan;
 import com.bestgearsetup.calc.StatusEffects;
+import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.OffensivePrayer;
 import com.bestgearsetup.data.Potion;
@@ -53,6 +55,8 @@ public final class TripSupplies
 	static final int MIX_SLOTS = 4;
 	/** Karambwans and brews each take at most one in this many free slots, so most of the mix stays one-bite food. */
 	static final int MIX_SHARE = 4;
+	/** A max hit from which karambwans are mixed in for combo eating: one hit can outdo a shark's 20 healing. */
+	static final int COMBO_MAX_HIT = 20;
 	/** Most other owned foods the bank layout offers in the main food's place. */
 	static final int ALTERNATIVES = 3;
 
@@ -142,9 +146,27 @@ public final class TripSupplies
 			out.add(new Supply("Anti-venom+", doses(ItemID.ANTIVENOM_4, ItemID.ANTIVENOM4), 1));
 		else if ("poison".equals(poisons))
 			out.add(new Supply("Superantipoison", doses(ItemID._4DOSE2ANTIPOISON, ItemID.ANTIDOTE__4, ItemID.ANTIVENOM_4), 1));
-		if (food)
-			addFood(out, INVENTORY_SLOTS - usedSlots(setup, out), owns);
+		if (food && !harmless(results.getMonster(), setup.getCombatClass()))
+			addFood(out, INVENTORY_SLOTS - usedSlots(setup, out), owns, maxHit(results.getMonster()) >= COMBO_MAX_HIT);
 		return out;
+	}
+
+	/** The highest max hit of the target's attacks besides dragonfire, which fire protection blocks; -1 without data. */
+	static int maxHit(Monster monster)
+	{
+		Map<String, Monster.MonsterAttack> attacks = monster.getAttackStyles();
+		return attacks == null ? -1 : attacks.entrySet().stream().filter(a -> !a.getKey().equals("dragonfire"))
+			.mapToInt(a -> a.getValue().getMaxHit()).max().orElse(-1);
+	}
+
+	/**
+	 * Whether the target can't hurt you, so the trip needs no food: its advice says it doesn't attack, or it isn't a
+	 * boss and every attack hits 0. A boss hitting 0 or a target without max hits has missing data, so it gets food.
+	 */
+	static boolean harmless(Monster monster, CombatClass cls)
+	{
+		Overheads.Advice advice = Overheads.recommend(monster, cls);
+		return advice != null && advice.getNote().startsWith("It doesn't attack") || !monster.isBoss() && maxHit(monster) == 0;
 	}
 
 	/**
@@ -239,10 +261,11 @@ public final class TripSupplies
 	/**
 	 * Food for {@code free} slots: the best one-bite food the player owns (sharks if none), with up to
 	 * {@link #ALTERNATIVES} other owned foods the bank may show in its place. With {@link #MIX_SLOTS} or more free,
-	 * up to one in {@link #MIX_SHARE} slots each of owned cooked karambwans, eaten in the same tick, and owned
-	 * Saradomin brews, at most one per super restore bottle, which restores the stats a brew drains.
+	 * up to one in {@link #MIX_SHARE} slots each of owned cooked karambwans, eaten in the same tick ({@code combo}: only
+	 * against a target hitting {@link #COMBO_MAX_HIT} or more), and owned Saradomin brews, at most one per super restore
+	 * bottle, which restores the stats a brew drains.
 	 */
-	static void addFood(List<Supply> out, int free, IntPredicate owns)
+	static void addFood(List<Supply> out, int free, IntPredicate owns, boolean combo)
 	{
 		if (free <= 0)
 			return;
@@ -260,7 +283,7 @@ public final class TripSupplies
 		if (ids.isEmpty())
 			ids.add(ItemID.SHARK);
 		boolean mix = free >= MIX_SLOTS;
-		int karambwans = mix && owns.test(ItemID.TBWT_COOKED_KARAMBWAN) ? free / MIX_SHARE : 0;
+		int karambwans = mix && combo && owns.test(ItemID.TBWT_COOKED_KARAMBWAN) ? free / MIX_SHARE : 0;
 		int restores = out.stream().filter(s -> s.getName().equals(SUPER_RESTORE) || s.getName().equals(SANFEW)).mapToInt(Supply::getCount).sum();
 		List<Integer> brewIds = BoostAccess.doseIds(ItemID._4DOSEPOTIONOFSARADOMIN);
 		int brews = mix && brewIds.stream().anyMatch(owns::test) ? Math.min(free / MIX_SHARE, restores) : 0;

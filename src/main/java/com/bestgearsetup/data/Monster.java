@@ -71,6 +71,7 @@ public class Monster
 
 	private int size = 1;
 	private boolean task;
+	private boolean boss;
 	private List<Attribute> attributes;
 	/** The monster's own attacks, keyed by name ("slash", "magic", "dragonfire"...). */
 	private Map<String, MonsterAttack> attackStyles;
@@ -133,6 +134,7 @@ public class Monster
 		m.demonbaneVulnerability = demonbaneVulnerability;
 		m.size = size;
 		m.task = task;
+		m.boss = boss;
 		m.attributes = attributes;
 		m.attackStyles = attackStyles;
 		m.attributeAnswers = attributeAnswers;

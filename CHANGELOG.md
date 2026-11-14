@@ -40,11 +40,12 @@ is what the Plugin Hub shows.
   prayer restore bottles the trip needs: super restores when you own them or Sanfew serums, otherwise prayer
   potions. Nightmare Zone potions are only packed for Nightmare Zone targets, and a wild pie or butterfly jar
   counts its own bites or sips.
-- Fill the trip's free inventory slots with the best food you own (sharks if none), with owned cooked karambwans
-  and Saradomin brews (beside super restores) mixed in from four free slots. The bank layout places the restores
-  and food after the boosts and outlines them; up to three other owned foods are offered in the food's place.
-  A two-handed spec weapon leaves a slot for the shield it takes off.
-  Turn it off with **Fill inventory with food**.
+- Fill the trip's free inventory slots with the best food you own (sharks if none), with owned Saradomin brews
+  (beside super restores) mixed in from four free slots, and owned cooked karambwans against targets hitting 20 or
+  more (dragonfire aside). No food against a target that can't hurt you: one that doesn't attack, or a non-boss
+  whose attacks all hit 0. The bank layout places the restores and food after the boosts and outlines them; up to
+  three other owned foods are offered in the food's place. A two-handed spec weapon leaves a slot for the shield
+  it takes off. Turn it off with **Fill inventory with food**.
 - The bank layout shows the inventory as you'd pack it, in a 4×7 grid beside the equipment: the spec switch, rune
   pouch, each boost and restore bottle, then food in every slot left. Repeated items fill the bank's unused slots,
   fainter, and withdraw from the real stack when clicked; a full bank shows each item once. The pouch's runes sit

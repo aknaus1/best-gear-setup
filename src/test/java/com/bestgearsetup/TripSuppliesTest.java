@@ -186,7 +186,7 @@ public class TripSuppliesTest
 		assertEquals("1 Prayer potion, 27 Shark", TripSupplies.summary(supplies));
 		// The best owned food leads, the next owned foods follow as its alternatives.
 		supplies = new ArrayList<>();
-		TripSupplies.addFood(supplies, 10, id -> id == ItemID.MANTARAY || id == ItemID.LOBSTER || id == ItemID.SHARK);
+		TripSupplies.addFood(supplies, 10, id -> id == ItemID.MANTARAY || id == ItemID.LOBSTER || id == ItemID.SHARK, true);
 		assertEquals("Manta ray", supplies.get(0).getName());
 		assertEquals(Arrays.asList(ItemID.MANTARAY, ItemID.SHARK, ItemID.LOBSTER), supplies.get(0).getIds());
 		assertEquals(10, supplies.get(0).getCount());
@@ -199,12 +199,48 @@ public class TripSuppliesTest
 			|| id == ItemID._4DOSEPOTIONOFSARADOMIN;
 		List<TripSupplies.Supply> supplies = new ArrayList<>();
 		supplies.add(new TripSupplies.Supply(TripSupplies.SUPER_RESTORE, Collections.singletonList(ItemID._4DOSE2RESTORE), 3));
-		TripSupplies.addFood(supplies, 20, owns);
+		TripSupplies.addFood(supplies, 20, owns, true);
 		assertEquals("3 Super restore, 12 Anglerfish, 5 Cooked karambwan, 3 Saradomin brew", TripSupplies.summary(supplies));
 		// Without a super restore no brew is packed, and three free slots hold the main food alone.
 		List<TripSupplies.Supply> noRestore = new ArrayList<>();
-		TripSupplies.addFood(noRestore, 3, owns);
+		TripSupplies.addFood(noRestore, 3, owns, true);
 		assertEquals("3 Anglerfish", TripSupplies.summary(noRestore));
+	}
+
+	@Test
+	public void foodOnlyAgainstTargetsThatHurtAndKarambwansOnlyAgainstHardHitters()
+	{
+		IntPredicate owns = id -> id == ItemID.SHARK || id == ItemID.TBWT_COOKED_KARAMBWAN;
+		assertEquals("A non-boss hitting 0 needs no food", "", food("test monster", false, 0, "crush", owns));
+		assertEquals("A boss hitting 0 has missing data", "28 Shark", food("test monster", true, 0, "crush", owns));
+		assertEquals("28 Shark", food("test monster", false, 19, "crush", owns));
+		assertEquals("21 Shark, 7 Cooked karambwan", food("test monster", false, 20, "crush", owns));
+		// Fire protection blocks dragonfire, so a 50 breath alone isn't a hard hit.
+		assertEquals("28 Shark", food("test monster", false, 50, "dragonfire", owns));
+		// A target whose advice says it doesn't attack needs none, whatever its data says.
+		assertEquals("", food("portal (pest control) (purple, intermediate/veteran (shielded))", false, 30, "crush", owns));
+	}
+
+	private static String food(String name, boolean boss, int maxHit, String attack, IntPredicate owns)
+	{
+		SearchResults results = results(100, PIETY);
+		Monster monster = results.getMonster();
+		monster.setName(name);
+		monster.setBoss(boss);
+		Monster.MonsterAttack hit = new Monster.MonsterAttack();
+		hit.setMaxHit(maxHit);
+		Map<String, Monster.MonsterAttack> attacks = new java.util.HashMap<>();
+		attacks.put(attack, hit);
+		if ("dragonfire".equals(attack))
+		{
+			// A dragon also claws, for 5 here.
+			Monster.MonsterAttack claw = new Monster.MonsterAttack();
+			claw.setMaxHit(5);
+			attacks.put("slash", claw);
+		}
+		monster.setAttackStyles(attacks);
+		return TripSupplies.summary(TripSupplies.plan(setup(5, 0), results, Collections.emptyList(), 1, true, owns,
+			Antifire.NONE));
 	}
 
 	@Test
