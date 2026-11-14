@@ -1,6 +1,7 @@
 package com.bestgearsetup;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.calc.Antifire;
 import com.bestgearsetup.calc.AttackStyle;
@@ -221,24 +222,74 @@ public class TripSuppliesTest
 		assertEquals("", food("portal (pest control) (purple, intermediate/veteran (shielded))", false, 30, "crush", owns));
 	}
 
-	private static String food(String name, boolean boss, int maxHit, String attack, IntPredicate owns)
+	@Test
+	public void noFoodWhenProtectionBlocksEveryAttackOfAnOrdinaryTarget()
+	{
+		IntPredicate owns = id -> id == ItemID.SHARK;
+		// A melee-only chicken's advice is Protect from Melee, which blocks all of an ordinary monster's damage.
+		assertFalse(packsFood("chicken (normal)", false, CombatClass.MELEE, Antifire.NONE, owns, "crush", 19));
+		// Magical melee is blocked by Protect from Melee too (Wiki: Magical melee).
+		assertFalse(packsFood("banshee", false, CombatClass.MELEE, Antifire.NONE, owns, "magical melee", 8));
+		// A boss can hit through prayer, a typeless hit ignores it, and a magic attack beside it isn't blocked.
+		assertTrue(packsFood("chicken (normal)", true, CombatClass.MELEE, Antifire.NONE, owns, "crush", 19));
+		assertTrue(packsFood("chicken (normal)", false, CombatClass.MELEE, Antifire.NONE, owns, "typeless", 19));
+		assertTrue(packsFood("chicken (normal)", false, CombatClass.MELEE, Antifire.NONE, owns, "crush", 19, "magic", 5));
+		// Without the Prayer level for the overhead, the hits get through.
+		SearchResults low = target("chicken (normal)", false, "crush", 19);
+		SearchResults lowPrayer = new SearchResults(low.getMonster(), 100, Collections.emptyMap(), Collections.emptyList(),
+			PIETY, Collections.emptyMap(), false, Collections.emptyList(), false, false, Collections.emptyList(), null, null,
+			0, 99, 99, PlayerLevels.builder().prayer(42).build());
+		assertTrue(TripSupplies.summary(TripSupplies.plan(setup(5, 0), lowPrayer, Collections.emptyList(), 1, true, owns,
+			Antifire.NONE)).contains("Shark"));
+	}
+
+	@Test
+	public void aMetalDragonFoughtFromRangeNeedsNoFoodBehindASuperAntifire()
+	{
+		IntPredicate owns = id -> id == ItemID.SHARK;
+		String steel = "steel dragon (level 246)";
+		// At range its claws never reach; a super antifire takes its breath to 0 (Wiki: Dragonfire).
+		assertFalse(packsFood(steel, false, CombatClass.RANGED, Antifire.SUPER, owns, "slash", 22, "dragonfire", 50));
+		// An antifire alone lets 35 through without a shield.
+		assertTrue(packsFood(steel, false, CombatClass.RANGED, Antifire.REGULAR, owns, "slash", 22, "dragonfire", 50));
+		// Up close, Protect from Melee blocks the claws.
+		assertFalse(packsFood(steel, false, CombatClass.MELEE, Antifire.SUPER, owns, "slash", 22, "dragonfire", 50));
+	}
+
+	/** Whether a trip against {@code name}, with these attacks as name and max hit pairs, packs food. */
+	private static boolean packsFood(String name, boolean boss, CombatClass cls, Antifire antifire, IntPredicate owns,
+		Object... attacks)
+	{
+		SearchResults results = target(name, boss, attacks);
+		SetupResult melee = setup(5, 0);
+		SetupResult setup = new SetupResult(cls, melee.getLoadout(), melee.getDps(), 0);
+		return TripSupplies.plan(setup, results, Collections.emptyList(), 1, true, owns, antifire).stream()
+			.anyMatch(s -> s.getName().equals("Shark"));
+	}
+
+	private static SearchResults target(String name, boolean boss, Object... attacks)
 	{
 		SearchResults results = results(100, PIETY);
 		Monster monster = results.getMonster();
 		monster.setName(name);
 		monster.setBoss(boss);
-		Monster.MonsterAttack hit = new Monster.MonsterAttack();
-		hit.setMaxHit(maxHit);
-		Map<String, Monster.MonsterAttack> attacks = new java.util.HashMap<>();
-		attacks.put(attack, hit);
-		if ("dragonfire".equals(attack))
+		Map<String, Monster.MonsterAttack> styles = new java.util.HashMap<>();
+		for (int i = 0; i < attacks.length; i += 2)
 		{
-			// A dragon also claws, for 5 here.
-			Monster.MonsterAttack claw = new Monster.MonsterAttack();
-			claw.setMaxHit(5);
-			attacks.put("slash", claw);
+			Monster.MonsterAttack hit = new Monster.MonsterAttack();
+			hit.setMaxHit((int) attacks[i + 1]);
+			hit.setTypeless("typeless".equals(attacks[i]));
+			styles.put((String) attacks[i], hit);
 		}
-		monster.setAttackStyles(attacks);
+		monster.setAttackStyles(styles);
+		return results;
+	}
+
+	private static String food(String name, boolean boss, int maxHit, String attack, IntPredicate owns)
+	{
+		// A dragon also claws, for 5 here.
+		SearchResults results = "dragonfire".equals(attack) ? target(name, boss, attack, maxHit, "slash", 5)
+			: target(name, boss, attack, maxHit);
 		return TripSupplies.summary(TripSupplies.plan(setup(5, 0), results, Collections.emptyList(), 1, true, owns,
 			Antifire.NONE));
 	}

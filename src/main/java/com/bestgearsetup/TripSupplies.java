@@ -19,11 +19,14 @@ import com.bestgearsetup.data.Slot;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -57,6 +60,9 @@ public final class TripSupplies
 	static final int MIX_SHARE = 4;
 	/** A max hit from which karambwans are mixed in for combo eating: one hit can outdo a shark's 20 healing. */
 	static final int COMBO_MAX_HIT = 20;
+	/** Attack styles a protection from melee blocks, magical and ranged melee included (Wiki). */
+	private static final Set<String> MELEE_STYLES = new HashSet<>(Arrays.asList("crush", "slash", "stab", "melee",
+		"magical melee", "ranged melee"));
 	/** Most other owned foods the bank layout offers in the main food's place. */
 	static final int ALTERNATIVES = 3;
 
@@ -146,7 +152,7 @@ public final class TripSupplies
 			out.add(new Supply("Anti-venom+", doses(ItemID.ANTIVENOM_4, ItemID.ANTIVENOM4), 1));
 		else if ("poison".equals(poisons))
 			out.add(new Supply("Superantipoison", doses(ItemID._4DOSE2ANTIPOISON, ItemID.ANTIDOTE__4, ItemID.ANTIVENOM_4), 1));
-		if (food && !harmless(results.getMonster(), setup.getCombatClass()))
+		if (food && needsFood(results.getMonster(), setup, antifire, levels))
 			addFood(out, INVENTORY_SLOTS - usedSlots(setup, out), owns, maxHit(results.getMonster()) >= COMBO_MAX_HIT);
 		return out;
 	}
@@ -160,13 +166,37 @@ public final class TripSupplies
 	}
 
 	/**
-	 * Whether the target can't hurt you, so the trip needs no food: its advice says it doesn't attack, or it isn't a
-	 * boss and every attack hits 0. A boss hitting 0 or a target without max hits has missing data, so it gets food.
+	 * Whether the trip needs food: false when the target can't hurt you through your protection. That's a target whose
+	 * advice says it doesn't attack, or an ordinary target (not a boss) each of whose attacks hits 0 or is blocked: a
+	 * melee, magic or ranged attack by the one overhead its advice keeps up (it blocks all of an ordinary monster's
+	 * damage, Wiki: Protect from Melee; magical and ranged melee count as melee, magical ranged as ranged), dragonfire by
+	 * full fire protection ({@link DragonfireProtection#blocksBreath}), and a metal dragon's melee by standing at range.
+	 * A boss, a typeless or unknown attack, a switching fight or missing data keeps the food.
 	 */
-	static boolean harmless(Monster monster, CombatClass cls)
+	static boolean needsFood(Monster monster, SetupResult setup, Antifire antifire, PlayerLevels levels)
 	{
-		Overheads.Advice advice = Overheads.recommend(monster, cls);
-		return advice != null && advice.getNote().startsWith("It doesn't attack") || !monster.isBoss() && maxHit(monster) == 0;
+		Overheads.Advice advice = Overheads.recommend(monster, setup.getCombatClass());
+		if (advice != null && advice.getNote().startsWith("It doesn't attack"))
+			return false;
+		Map<String, Monster.MonsterAttack> attacks = monster.getAttackStyles();
+		if (monster.isBoss() || attacks == null || attacks.isEmpty())
+			return true;
+		Overheads.Overhead prayer = advice == null || advice.isSwitching() || advice.getPrayer() == null
+			|| advice.getPrayer().getLevel() > levels.getPrayer() ? null : advice.getPrayer();
+		boolean distant = setup.getCombatClass() != CombatClass.MELEE && DragonfireProtection.keepsDistance(monster);
+		for (Map.Entry<String, Monster.MonsterAttack> attack : attacks.entrySet())
+		{
+			String style = attack.getKey();
+			Overheads.Overhead blocker = MELEE_STYLES.contains(style) ? Overheads.Overhead.MELEE
+				: style.equals("magic") ? Overheads.Overhead.MAGIC
+				: style.equals("ranged") || style.equals("magical ranged") ? Overheads.Overhead.MISSILES : null;
+			boolean blocked = attack.getValue().getMaxHit() <= 0 || !attack.getValue().isTypeless()
+				&& (style.equals("dragonfire") ? DragonfireProtection.blocksBreath(monster, setup.getLoadout(), antifire,
+					prayer == Overheads.Overhead.MAGIC) : blocker == Overheads.Overhead.MELEE && distant || blocker != null && blocker == prayer);
+			if (!blocked)
+				return true;
+		}
+		return false;
 	}
 
 	/**
