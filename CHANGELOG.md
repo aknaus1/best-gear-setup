@@ -51,10 +51,15 @@ is what the Plugin Hub shows.
   under the inventory.
 - Against a monster whose attacks poison or envenom you (125 poison, 40 envenom, from the Wiki's monster data),
   the trip brings a superantipoison or an anti-venom+, unless a serpentine helm makes you immune.
+- Against a dragon, the trip brings the **Antifire potion** its fire protection relies on, a bottle per four
+  doses (an antifire lasts 6 minutes, a super antifire 3), and the bank layout packs it with the boosts; the
+  extended potion is offered in its place. Wyverns' icy breath ignores antifire, so none is packed for them.
+- **Antifire potion** now defaults to Antifire instead of Super antifire.
 - Each setup shows the target's overhead protection prayer: one prayer, a switch between several, or none needed,
   from the Wiki's strategy pages and the monster's attack styles, with a melee setup's own advice where it stands
   in melee range. It is static advice per target. Prayer per kill counts that overhead, and none when the target needs none or
-  has no advice.
+  has no advice. Bronze, iron and steel dragons need none for ranged and magic setups: they stay out of melee
+  range and breathe from a distance, which Protect from Magic doesn't block.
 - Gear searches are exact: each weapon's setup is now the best combination of your allowed gear for its
   ordinary attacks, where the old search could stop a few pieces short. Across 1,872 test searches (every boss,
   each class, a 10m budget and best in slot) 280 found a better setup and none a worse one, in under half

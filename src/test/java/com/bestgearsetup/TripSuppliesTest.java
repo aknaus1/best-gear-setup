@@ -2,6 +2,7 @@ package com.bestgearsetup;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import com.bestgearsetup.calc.Antifire;
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.DpsResult;
 import com.bestgearsetup.calc.Loadout;
@@ -155,10 +156,10 @@ public class TripSuppliesTest
 		nmz.setPercentageIncrease(15);
 		nmz.setAttributes(Collections.singletonList("nmz"));
 		List<Potion> potions = Collections.singletonList(nmz);
-		assertTrue(TripSupplies.plan(setup(5, 0), results(100, PIETY), potions, 1, false, id -> false).isEmpty());
+		assertTrue(TripSupplies.plan(setup(5, 0), results(100, PIETY), potions, 1, false, id -> false, Antifire.NONE).isEmpty());
 		SearchResults zone = results(100, PIETY);
 		zone.getMonster().setName("count draynor (nightmare zone)");
-		assertEquals("1 Super Ranging", TripSupplies.summary(TripSupplies.plan(setup(5, 0), zone, potions, 1, false, id -> false)));
+		assertEquals("1 Super Ranging", TripSupplies.summary(TripSupplies.plan(setup(5, 0), zone, potions, 1, false, id -> false, Antifire.NONE)));
 	}
 
 	@Test
@@ -172,7 +173,7 @@ public class TripSuppliesTest
 		superCombat.setPercentageIncrease(15);
 		// 20 seconds a kill at a point a second: 10 kills drain 200, 101 beyond 99, 4 doses of prayer potion.
 		List<TripSupplies.Supply> supplies = TripSupplies.plan(setup(5, 0), results(100, PIETY),
-			Collections.singletonList(superCombat), 10, false, id -> false);
+			Collections.singletonList(superCombat), 10, false, id -> false, Antifire.NONE);
 		assertEquals("1 Super Combat Potion, 1 Prayer potion", TripSupplies.summary(supplies));
 	}
 
@@ -181,7 +182,7 @@ public class TripSuppliesTest
 	{
 		// One restore bottle leaves 27 slots: sharks when no listed food is owned.
 		List<TripSupplies.Supply> supplies = TripSupplies.plan(setup(5, 0), results(100, PIETY),
-			Collections.emptyList(), 10, true, id -> false);
+			Collections.emptyList(), 10, true, id -> false, Antifire.NONE);
 		assertEquals("1 Prayer potion, 27 Shark", TripSupplies.summary(supplies));
 		// The best owned food leads, the next owned foods follow as its alternatives.
 		supplies = new ArrayList<>();
@@ -207,25 +208,51 @@ public class TripSuppliesTest
 	}
 
 	@Test
+	public void aDragonAddsTheAntifireItsBreathNeedsForTheTrip()
+	{
+		// Vorkath at 5 DPS: 20 seconds a kill. A dose of antifire lasts 6 minutes, of super antifire 3.
+		assertEquals(1, antifire(1, Antifire.REGULAR).getCount());
+		assertEquals(ItemID._4DOSE1ANTIDRAGON, (int) antifire(1, Antifire.REGULAR).getIds().get(0));
+		assertTrue("The extended potion is an alternative",
+			antifire(1, Antifire.REGULAR).getIds().contains(ItemID._4DOSE2ANTIDRAGON));
+		// 100 kills, 2,000 seconds: 6 doses of antifire in 2 bottles, 12 of super antifire in 3.
+		assertEquals(2, antifire(100, Antifire.REGULAR).getCount());
+		assertEquals(3, antifire(100, Antifire.SUPER).getCount());
+		assertEquals(ItemID._4DOSE3ANTIDRAGON, (int) antifire(100, Antifire.SUPER).getIds().get(0));
+		assertEquals(null, antifire(1, Antifire.NONE));
+		// A wyvern's icy breath ignores antifire.
+		SearchResults wyvern = results(100, PIETY);
+		wyvern.getMonster().setName("skeletal wyvern");
+		assertTrue(TripSupplies.plan(setup(5, 0), wyvern, Collections.emptyList(), 1, false, id -> false, Antifire.REGULAR)
+			.stream().noneMatch(s -> s.getName().contains("ntifire")));
+	}
+
+	private static TripSupplies.Supply antifire(int kills, Antifire potion)
+	{
+		return TripSupplies.plan(setup(5, 0), results(100, PIETY), Collections.emptyList(), kills, false, id -> false, potion)
+			.stream().filter(s -> s.getName().contains("ntifire")).findFirst().orElse(null);
+	}
+
+	@Test
 	public void aTargetThatPoisonsOrEnvenomsAddsACure()
 	{
 		SearchResults venom = results(100, PIETY);
 		venom.getMonster().setPoisons("venom");
-		List<TripSupplies.Supply> supplies = TripSupplies.plan(setup(5, 0), venom, Collections.emptyList(), 1, false, id -> false);
+		List<TripSupplies.Supply> supplies = TripSupplies.plan(setup(5, 0), venom, Collections.emptyList(), 1, false, id -> false, Antifire.NONE);
 		assertEquals("Anti-venom+", supplies.get(supplies.size() - 1).getName());
 		assertEquals(ItemID.ANTIVENOM_4, (int) supplies.get(supplies.size() - 1).getIds().get(0));
 		SearchResults poison = results(100, PIETY);
 		poison.getMonster().setPoisons("poison");
-		supplies = TripSupplies.plan(setup(5, 0), poison, Collections.emptyList(), 1, false, id -> false);
+		supplies = TripSupplies.plan(setup(5, 0), poison, Collections.emptyList(), 1, false, id -> false, Antifire.NONE);
 		assertEquals("1 Superantipoison", TripSupplies.summary(supplies));
-		assertTrue(TripSupplies.plan(setup(5, 0), results(100, PIETY), Collections.emptyList(), 1, false, id -> false).isEmpty());
+		assertTrue(TripSupplies.plan(setup(5, 0), results(100, PIETY), Collections.emptyList(), 1, false, id -> false, Antifire.NONE).isEmpty());
 		// A serpentine helm makes the wearer immune to both.
 		SetupResult helmed = setup(5, 0);
 		GearItem helm = new GearItem();
 		helm.setName("Serpentine helm");
 		helm.setSlot(Slot.HEAD);
 		helmed.getLoadout().set(Slot.HEAD, helm);
-		assertTrue(TripSupplies.plan(helmed, venom, Collections.emptyList(), 1, false, id -> false).isEmpty());
+		assertTrue(TripSupplies.plan(helmed, venom, Collections.emptyList(), 1, false, id -> false, Antifire.NONE).isEmpty());
 	}
 
 	private static SetupResult setup(double dps, int prayerBonus)

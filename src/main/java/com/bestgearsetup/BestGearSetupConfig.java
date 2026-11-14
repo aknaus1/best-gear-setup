@@ -459,7 +459,7 @@ public interface BestGearSetupConfig extends Config
 		description = "Active antifire potion (extended versions give the same protection)", section = dragonfireSection, position = 1)
 	default Antifire antifire()
 	{
-		return SearchAssumptions.value(this, "antifire", Antifire.SUPER);
+		return SearchAssumptions.value(this, "antifire", Antifire.REGULAR);
 	}
 
 	@ConfigItem(keyName = "protectMagic", name = "Protect from Magic",

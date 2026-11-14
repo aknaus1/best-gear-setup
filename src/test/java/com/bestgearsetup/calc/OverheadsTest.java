@@ -40,6 +40,20 @@ public class OverheadsTest
 	}
 
 	@Test
+	public void metalDragonsNeedNoOverheadAtRangeButMeleeUpClose()
+	{
+		// Metal dragons stay out of melee range and breathe from a distance; Protect from Magic doesn't block it.
+		for (CombatClass cls : new CombatClass[]{CombatClass.RANGED, CombatClass.MAGIC})
+		{
+			Advice ranged = Overheads.recommend(named("steel dragon (level 246)"), cls);
+			assertNull(ranged.getPrayer());
+			assertEquals("None needed", ranged.summary());
+		}
+		assertEquals(Overhead.MELEE, Overheads.recommend(named("steel dragon (level 246)"), CombatClass.MELEE).getPrayer());
+		assertNull(Overheads.recommend(named("bronze dragon (catacombs of kourend)"), CombatClass.MAGIC).getPrayer());
+	}
+
+	@Test
 	public void targetsWithoutAnOverheadAndSwitchingFights()
 	{
 		Advice none = Overheads.recommend(named("zalcano"), CombatClass.MELEE);

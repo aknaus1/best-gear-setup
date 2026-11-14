@@ -49,6 +49,12 @@ public final class DragonfireProtection
 			|| n.startsWith("elvarg"));
 	}
 
+	/** Whether an antifire potion protects against this encounter's breath; wyverns' icy breath ignores it. */
+	public static boolean takesPotion(Monster monster)
+	{
+		return applies(monster) && !wyvern(monster);
+	}
+
 	/** Meets normal protection requirements; boss chip damage and avoidable specials may remain. */
 	public static boolean allowed(Monster monster, Loadout loadout, OptimizerSettings settings, PlayerLevels levels)
 	{

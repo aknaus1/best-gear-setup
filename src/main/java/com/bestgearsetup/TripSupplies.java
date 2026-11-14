@@ -1,5 +1,7 @@
 package com.bestgearsetup;
 
+import com.bestgearsetup.calc.Antifire;
+import com.bestgearsetup.calc.DragonfireProtection;
 import com.bestgearsetup.calc.Overheads;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.RaidScaling;
@@ -106,12 +108,13 @@ public final class TripSupplies
 	}
 
 	/**
-	 * The supplies {@code kills} kills need: each boost's bottles, prayer restores, a bottle of cure against a target
+	 * The supplies {@code kills} kills need: each boost's bottles, the {@code antifire} a dragon's breath needs
+	 * ({@link Antifire#NONE} when fire protection isn't required), prayer restores, a bottle of cure against a target
 	 * that poisons, then with {@code food} food in the free slots. Empty for raid targets, whose supplies come from
 	 * the raid.
 	 */
 	public static List<Supply> plan(SetupResult setup, SearchResults results, List<Potion> potions, int kills,
-		boolean food, IntPredicate owns)
+		boolean food, IntPredicate owns, Antifire antifire)
 	{
 		List<Supply> out = new ArrayList<>();
 		if (setup == null || results.getMonster() == null || RaidScaling.raid(results.getMonster()) != RaidScaling.Raid.NONE)
@@ -123,6 +126,14 @@ public final class TripSupplies
 			if (!potion.isRaidSupply() && (nmz || !potion.getAttributes().contains("nmz")))
 				out.add(new Supply(GameData.titleCase(potion.getName()), new ArrayList<>(BoostAccess.itemIds(potion)),
 					boostBottles(potion, level(levels, potion.getSkill()), seconds)));
+		// A dose of antifire lasts 6 minutes, of super antifire 3 (Wiki); the extended potion is its alternative.
+		if (antifire != Antifire.NONE && DragonfireProtection.takesPotion(results.getMonster()))
+		{
+			boolean superPotion = antifire == Antifire.SUPER;
+			int doses = Double.isFinite(seconds) ? Math.max(1, (int) Math.ceil(seconds / (superPotion ? 180 : 360))) : 1;
+			out.add(new Supply(antifire.toString(), superPotion ? doses(ItemID._4DOSE3ANTIDRAGON, ItemID._4DOSE4ANTIDRAGON)
+				: doses(ItemID._4DOSE1ANTIDRAGON, ItemID._4DOSE2ANTIDRAGON), (doses + 3) / 4));
+		}
 		addRestores(out, prayerPerKill(setup, results) * kills, levels.getPrayer(), owns);
 		// Anti-venom+ also cures poison; a superantipoison is the usual bottle against poison alone. A serpentine helm
 		// makes the wearer immune to both.

@@ -1,5 +1,6 @@
 package com.bestgearsetup;
 
+import com.bestgearsetup.calc.Antifire;
 import com.bestgearsetup.calc.AttackReach;
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.CombatContext;
@@ -1774,7 +1775,8 @@ public class BestGearSetupPlugin extends Plugin
 	/** A setup's trip supplies for the Kills per trip setting, from the items owned now. */
 	public List<TripSupplies.Supply> tripSupplies(SetupResult setup, SearchResults results, List<Potion> potions)
 	{
-		return TripSupplies.plan(setup, results, potions, config.killsPerTrip(), config.fillFood(), ownedItems::owns);
+		return TripSupplies.plan(setup, results, potions, config.killsPerTrip(), config.fillFood(), ownedItems::owns,
+			config.requireFireProtection() ? config.antifire() : Antifire.NONE);
 	}
 
 	/** Updates one spell rule, moving it between the blocked and forced lists. */
