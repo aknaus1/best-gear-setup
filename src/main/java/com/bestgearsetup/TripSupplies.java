@@ -210,13 +210,19 @@ public final class TripSupplies
 		SpecialPlan special = setup.getSpecial();
 		if (special == null || !special.isSwitch(setup.getLoadout()))
 			return used;
-		// A two-handed spec weapon takes the worn shield off into the inventory.
-		GearItem weapon = special.getWeapon();
-		if (weapon != null && weapon.isTwoHanded() && special.getOffhand() == null && setup.getLoadout().get(Slot.SHIELD) != null
-			&& weapon != setup.getLoadout().getWeapon())
+		if (takesShieldOff(setup))
 			used++;
 		return used + (int) Stream.of(special.getWeapon() == setup.getLoadout().getWeapon() ? null : special.getWeapon(),
 				special.getOffhand(), special.getAmmo()).filter(Objects::nonNull).count();
+	}
+
+	/** Whether a two-handed spec weapon switch takes the worn shield off into the inventory. */
+	static boolean takesShieldOff(SetupResult setup)
+	{
+		SpecialPlan special = setup.getSpecial();
+		GearItem weapon = special == null ? null : special.getWeapon();
+		return weapon != null && special.isSwitch(setup.getLoadout()) && weapon.isTwoHanded() && special.getOffhand() == null
+			&& setup.getLoadout().get(Slot.SHIELD) != null && weapon != setup.getLoadout().getWeapon();
 	}
 
 	/**

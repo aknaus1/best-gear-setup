@@ -44,6 +44,10 @@ is what the Plugin Hub shows.
   and food after the boosts and outlines them; up to three other owned foods are offered in the food's place.
   A two-handed spec weapon leaves a slot for the shield it takes off.
   Turn it off with **Fill inventory with food**.
+- The bank layout shows the inventory as you'd pack it, in a 4×7 grid beside the equipment: the spec switch, rune
+  pouch, each boost and restore bottle, then food in every slot left. Repeated items fill the bank's unused slots,
+  fainter, and withdraw from the real stack when clicked; a full bank shows each item once. The pouch's runes sit
+  under the inventory.
 - Against a monster whose attacks poison or envenom you (125 poison, 40 envenom, from the Wiki's monster data),
   the trip brings a superantipoison or an anti-venom+, unless a serpentine helm makes you immune.
 - Each setup shows the target's overhead protection prayer: one prayer, a switch between several, or none needed,

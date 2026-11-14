@@ -242,42 +242,44 @@ public class SpellRunesTest
 	}
 
 	@Test
-	public void bankLayoutWrapsSpellItemsOntoTheSecondRow()
+	public void bankLayoutPutsThreeSpellItemsInThePouchRowAndTheRestInTheInventory()
 	{
 		Loadout loadout = loadout("dark demonbane", "magic staff", null);
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MAGIC, loadout, null,
 			0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.MARK_OF_DARKNESS, SupportSpell.THRALL)));
-		assertEquals(Integer.valueOf(12), cells.get(ItemID.BLOODRUNE));
-		assertEquals(Integer.valueOf(13), cells.get(ItemID.BOOK_OF_THE_DEAD));
-		// Aether replaces soul and cosmic; it sits with the first of those (soul).
-		assertEquals(Integer.valueOf(6), cells.get(ItemID.AETHERRUNE));
+		// The pouch takes the first inventory slot; the items past its three follow it.
+		assertEquals(Integer.valueOf(5), cells.get(ItemID.BLOODRUNE));
+		assertEquals(Integer.valueOf(6), cells.get(ItemID.BOOK_OF_THE_DEAD));
+		// Aether replaces soul and cosmic; it sits with the first of those (soul), in the pouch row.
+		assertEquals(Integer.valueOf(61), cells.get(ItemID.AETHERRUNE));
 		Map<Integer, Integer> thrall = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
 			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.THRALL)));
 		assertEquals(thrall.get(ItemID.COSMICRUNE), thrall.get(ItemID.AETHERRUNE));
 	}
 
 	@Test
-	public void bankLayoutPlacesRunesBesideTheHeadSlotAfterEquipment()
+	public void bankLayoutPutsThePouchInTheInventoryAndItsRunesUnderIt()
 	{
 		Loadout loadout = loadout("fire surge", "staff of earth", null);
 		loadout.set(Slot.HEAD, gear(ItemID.WRATHRUNE, "test helm"));
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(
 			new SetupResult(CombatClass.MAGIC, loadout, null, 0));
-		// Equipment keeps its silhouette cell; a rune pouch, then the runes, follow on the top row in spellbook order.
+		// Equipment keeps its silhouette cell; a rune pouch takes the first inventory slot and its runes sit in the
+		// row under the inventory, in spellbook order.
 		assertEquals(Integer.valueOf(1), cells.get(ItemID.WRATHRUNE));
 		assertEquals(Integer.valueOf(4), cells.get(ItemID.DIVINE_RUNE_POUCH));
 		assertEquals(Integer.valueOf(4), cells.get(ItemID.BH_RUNE_POUCH));
-		assertEquals(Integer.valueOf(5), cells.get(ItemID.AIRRUNE));
+		assertEquals(Integer.valueOf(60), cells.get(ItemID.AIRRUNE));
 		// A combination rune sits with the first rune it replaces.
-		assertEquals(Integer.valueOf(5), cells.get(ItemID.SMOKERUNE));
-		assertEquals(Integer.valueOf(6), cells.get(ItemID.FIRERUNE));
-		assertEquals(Integer.valueOf(6), cells.get(ItemID.SUNFIRERUNE));
-		assertEquals(Integer.valueOf(6), cells.get(ItemID.LAVARUNE));
+		assertEquals(Integer.valueOf(60), cells.get(ItemID.SMOKERUNE));
+		assertEquals(Integer.valueOf(61), cells.get(ItemID.FIRERUNE));
+		assertEquals(Integer.valueOf(61), cells.get(ItemID.SUNFIRERUNE));
+		assertEquals(Integer.valueOf(61), cells.get(ItemID.LAVARUNE));
 		assertFalse(cells.containsKey(ItemID.EARTHRUNE));
 	}
 
 	@Test
-	public void bankLayoutPlacesBoostsBelowTheSpellRunesWithEveryDose()
+	public void bankLayoutPacksBoostsIntoTheInventoryWithEveryDose()
 	{
 		Potion combat = new Potion();
 		combat.setId(ItemID._4DOSE2COMBAT);
@@ -285,10 +287,10 @@ public class SpellRunesTest
 		heart.setId(ItemID.SATURATED_HEART);
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
 			loadout(null, "abyssal whip", null), null, 0), Arrays.asList(combat, heart));
-		assertEquals(Integer.valueOf(20), cells.get(ItemID._4DOSE2COMBAT));
-		assertEquals(Integer.valueOf(20), cells.get(ItemID._2DOSE2COMBAT));
-		assertEquals(Integer.valueOf(20), cells.get(ItemID._3DOSEDIVINECOMBAT));
-		assertEquals(Integer.valueOf(21), cells.get(ItemID.SATURATED_HEART));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID._4DOSE2COMBAT));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID._2DOSE2COMBAT));
+		assertEquals(Integer.valueOf(4), cells.get(ItemID._3DOSEDIVINECOMBAT));
+		assertEquals(Integer.valueOf(5), cells.get(ItemID.SATURATED_HEART));
 		Potion attack = new Potion();
 		attack.setId(ItemID._4DOSE2ATTACK);
 		Potion strength = new Potion();
@@ -296,9 +298,9 @@ public class SpellRunesTest
 		Map<Integer, Integer> split = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
 			loadout(null, "abyssal whip", null), null, 0), Arrays.asList(attack, strength));
 		// A super combat covers both and sits with the first; each keeps its own cell.
-		assertEquals(Integer.valueOf(20), split.get(ItemID._4DOSE2ATTACK));
-		assertEquals(Integer.valueOf(20), split.get(ItemID._3DOSE2COMBAT));
-		assertEquals(Integer.valueOf(21), split.get(ItemID._4DOSE2STRENGTH));
+		assertEquals(Integer.valueOf(4), split.get(ItemID._4DOSE2ATTACK));
+		assertEquals(Integer.valueOf(4), split.get(ItemID._3DOSE2COMBAT));
+		assertEquals(Integer.valueOf(5), split.get(ItemID._4DOSE2STRENGTH));
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
 		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout(null, "abyssal whip", null), null, 0),
 			Collections.singletonList(combat));

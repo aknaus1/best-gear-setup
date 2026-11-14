@@ -10,6 +10,8 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 import com.bestgearsetup.calc.Loadout;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
+import net.runelite.api.ItemContainer;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.ScriptEvent;
 import net.runelite.api.ScriptID;
@@ -39,6 +42,7 @@ import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.gameval.VarClientID;
@@ -167,7 +171,7 @@ public class BankViewTest
 		assertTrue(bank.view.show());
 		assertEquals(51, bank.items[0].value("OriginalX"));
 		assertEquals(51, bank.items[1].value("OriginalX"));
-		assertEquals(180, bank.items[1].value("OriginalY"));
+		assertEquals(288, bank.items[1].value("OriginalY"));
 	}
 
 	@Test
@@ -178,7 +182,7 @@ public class BankViewTest
 		bank.view.setSelection(setup(Slot.WEAPON, item(12924, 12926)));
 		assertTrue(bank.view.show());
 		assertEquals(72, bank.items[1].value("OriginalY"));
-		assertEquals(180, bank.items[0].value("OriginalY"));
+		assertEquals(288, bank.items[0].value("OriginalY"));
 		assertFalse(bank.items[0].widget.isSelfHidden());
 	}
 
@@ -196,19 +200,22 @@ public class BankViewTest
 		attack.setId(ItemID._4DOSE2ATTACK);
 		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0), Collections.singletonList(attack));
 		assertTrue(bank.view.show());
-		// Own cells: weapon, air and mind runes right of the head (after the pouch cell), super attack below them.
+		// Own cells: the weapon; air and mind runes in the pouch row under the inventory, whose first slot the
+		// (missing) pouch takes; the super attack in the second inventory slot.
 		assertEquals(72, bank.items[0].value("OriginalY"));
-		assertEquals(0, bank.items[4].value("OriginalY"));
-		assertEquals(291, bank.items[4].value("OriginalX"));
-		assertEquals(72, bank.items[7].value("OriginalY"));
-		assertEquals(243, bank.items[7].value("OriginalX"));
-		// Extras: the gear variant, then the mist rune and the super combat each on a row of their own.
-		assertEquals(180, bank.items[1].value("OriginalY"));
-		assertEquals(216, bank.items[5].value("OriginalY"));
+		assertEquals(252, bank.items[4].value("OriginalY"));
+		assertEquals(243, bank.items[4].value("OriginalX"));
+		assertEquals(252, bank.items[6].value("OriginalY"));
+		assertEquals(291, bank.items[6].value("OriginalX"));
+		assertEquals(0, bank.items[7].value("OriginalY"));
+		assertEquals(291, bank.items[7].value("OriginalX"));
+		// Extras under the pouch row: the gear variant, then the mist rune and the super combat each on a row of their own.
+		assertEquals(288, bank.items[1].value("OriginalY"));
+		assertEquals(324, bank.items[5].value("OriginalY"));
 		assertEquals(51, bank.items[5].value("OriginalX"));
-		assertEquals(252, bank.items[8].value("OriginalY"));
+		assertEquals(360, bank.items[8].value("OriginalY"));
 		assertEquals(51, bank.items[8].value("OriginalX"));
-		assertEquals(288, bank.container.value("ScrollHeight"));
+		assertEquals(396, bank.container.value("ScrollHeight"));
 	}
 
 	@Test
@@ -226,10 +233,10 @@ public class BankViewTest
 		assertTrue(bank.view.show());
 		// The placeholder counts as owning air runes, so it keeps the air cell and the mist rune is an extra.
 		assertFalse(bank.items[4].widget.isSelfHidden());
-		assertEquals(0, bank.items[4].value("OriginalY"));
-		assertEquals(291, bank.items[4].value("OriginalX"));
-		assertEquals(180, bank.items[5].value("OriginalY"));
-		// The rune pouch takes the first spell cell, ahead of the runes.
+		assertEquals(252, bank.items[4].value("OriginalY"));
+		assertEquals(243, bank.items[4].value("OriginalX"));
+		assertEquals(288, bank.items[5].value("OriginalY"));
+		// The rune pouch takes the first inventory slot.
 		assertFalse(bank.items[7].widget.isSelfHidden());
 		assertEquals(0, bank.items[7].value("OriginalY"));
 		assertEquals(243, bank.items[7].value("OriginalX"));
@@ -248,15 +255,15 @@ public class BankViewTest
 		bank.view.setSelection(setup(Slot.WEAPON, item(12926, 12924)), Collections.singletonList(attack));
 		assertTrue(bank.view.show());
 		// The highest dose of the potion itself fills its cell ahead of the stand-in super combat.
-		assertEquals(72, bank.items[4].value("OriginalY"));
+		assertEquals(0, bank.items[4].value("OriginalY"));
 		assertEquals(243, bank.items[4].value("OriginalX"));
 		// Gear extra, then the remaining super attack, then both super combats together on the next row.
-		assertEquals(180, bank.items[1].value("OriginalY"));
-		assertEquals(216, bank.items[6].value("OriginalY"));
+		assertEquals(288, bank.items[1].value("OriginalY"));
+		assertEquals(324, bank.items[6].value("OriginalY"));
 		assertEquals(51, bank.items[6].value("OriginalX"));
-		assertEquals(252, bank.items[5].value("OriginalY"));
+		assertEquals(360, bank.items[5].value("OriginalY"));
 		assertEquals(51, bank.items[5].value("OriginalX"));
-		assertEquals(252, bank.items[7].value("OriginalY"));
+		assertEquals(360, bank.items[7].value("OriginalY"));
 		assertEquals(99, bank.items[7].value("OriginalX"));
 	}
 
@@ -268,8 +275,8 @@ public class BankViewTest
 		assertTrue(bank.view.show());
 		assertTrue(bank.heading.widget.isSelfHidden());
 		assertEquals(72, bank.items[0].value("OriginalY"));
-		assertEquals(180, bank.items[1].value("OriginalY"));
-		assertEquals(216, bank.container.value("ScrollHeight"));
+		assertEquals(288, bank.items[1].value("OriginalY"));
+		assertEquals(324, bank.container.value("ScrollHeight"));
 		assertFalse(bank.items[0].widget.isSelfHidden());
 		assertFalse(bank.items[1].widget.isSelfHidden());
 		assertTrue(bank.items[2].widget.isSelfHidden());
@@ -312,12 +319,12 @@ public class BankViewTest
 		assertTrue(bank.view.show());
 		assertEquals(51, bank.items[0].value("OriginalX"));
 		assertEquals(72, bank.items[0].value("OriginalY"));
-		assertEquals(180, bank.items[1].value("OriginalY"));
+		assertEquals(288, bank.items[1].value("OriginalY"));
 		assertEquals(0, bank.items[0].value("Index"));
 		assertEquals(12926, bank.items[0].value("ItemId"));
 		assertEquals(Integer.MAX_VALUE, bank.items[0].value("DragDeadZone"));
 		assertEquals(Integer.MAX_VALUE, bank.items[0].value("DragDeadTime"));
-		assertEquals(216, bank.container.value("ScrollHeight"));
+		assertEquals(324, bank.container.value("ScrollHeight"));
 		bank.view.clear();
 		for (WidgetState item : bank.items)
 		{
@@ -442,7 +449,7 @@ public class BankViewTest
 	}
 
 	@Test
-	public void tripSuppliesFollowTheBoostsAndFoodAlternativesShareItsCell()
+	public void tripSuppliesFillTheInventoryInOrderAndFoodAlternativesShareItsCell()
 	{
 		Potion ranging = new Potion();
 		ranging.setId(2444);
@@ -453,11 +460,57 @@ public class BankViewTest
 			new TripSupplies.Supply("Manta ray", Arrays.asList(391, 385), 20));
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(setup(Slot.WEAPON, item(12926)),
 			Collections.singletonList(ranging), supplies);
-		// The boost keeps its one cell; the restores and food take the next boost cells.
-		assertEquals(20, (int) cells.get(2444));
-		assertEquals(21, (int) cells.get(2434));
-		assertEquals(22, (int) cells.get(391));
-		assertEquals("A spare food fills the main food's cell when it's missing", 22, (int) cells.get(385));
+		// Two ranging bottles take slots 0 and 1, three restores slots 2 to 4, food slot 5 onwards; each kind's
+		// first slot is its cell.
+		assertEquals(4, (int) cells.get(2444));
+		assertEquals(6, (int) cells.get(2434));
+		assertEquals(13, (int) cells.get(391));
+		assertEquals("A spare food fills the main food's cell when it's missing", 13, (int) cells.get(385));
+	}
+
+	@Test
+	public void repeatedFoodFillsSpareSlotsWhoseClicksWithdrawFromTheRealStack() throws Exception
+	{
+		Fixture bank = new Fixture(ItemID.SHARK);
+		bank.items[4].widget.setName("Shark");
+		bank.items[4].widget.setAction(0, "Withdraw-1");
+		bank.items[4].widget.setAction(1, "Examine");
+		bank.view.setSelection(setup(Slot.WEAPON, item(12926)), Collections.emptyList(), BestGearSetupBankView::itemIds,
+			Collections.singletonList(new TripSupplies.Supply("Shark", Collections.singletonList(ItemID.SHARK), 3)));
+		assertTrue(bank.view.show());
+		// The real stack takes the first inventory slot; two spare bank slots repeat it in the next two, fainter.
+		assertEquals(243, bank.items[4].value("OriginalX"));
+		assertEquals(0, bank.items[4].value("OriginalY"));
+		for (int i = 0; i < 2; i++)
+		{
+			Widget copy = bank.spares[i].widget;
+			assertFalse(copy.isSelfHidden());
+			assertEquals(ItemID.SHARK, copy.getItemId());
+			assertEquals(291 + 48 * i, copy.getOriginalX());
+			assertEquals(0, copy.getOriginalY());
+			assertTrue(copy.getOpacity() > 0);
+			assertEquals(Arrays.asList("Withdraw-1", "Examine"), Arrays.asList(copy.getActions()));
+		}
+		assertTrue(bank.spares[2].widget.isSelfHidden());
+		// No widgets are created; the game builds a copy's menu and its click goes to the real stack's slot.
+		assertEquals(bank.items.length + Fixture.SPARE_SLOTS + 1, bank.container.widget.getChildren().length);
+		MenuEntry withdraw = mock(MenuEntry.class);
+		when(withdraw.getOption()).thenReturn("Withdraw-1");
+		when(withdraw.getParam0()).thenReturn(bank.spares[1].value("Index"));
+		when(withdraw.getParam1()).thenReturn(InterfaceID.Bankmain.ITEMS);
+		bank.view.onMenuOptionClicked(new MenuOptionClicked(withdraw));
+		verify(withdraw).setParam0(4);
+		// Clearing the view empties the copies, and a later click on that slot is left alone.
+		bank.view.clear();
+		assertTrue(bank.spares[0].widget.isSelfHidden());
+		assertEquals(-1, bank.spares[0].widget.getItemId());
+		assertEquals(0, bank.spares[0].widget.getActions().length);
+		MenuEntry later = mock(MenuEntry.class);
+		when(later.getOption()).thenReturn("Withdraw-1");
+		when(later.getParam0()).thenReturn(bank.spares[1].value("Index"));
+		when(later.getParam1()).thenReturn(InterfaceID.Bankmain.ITEMS);
+		bank.view.onMenuOptionClicked(new MenuOptionClicked(later));
+		verify(later, never()).setParam0(anyInt());
 	}
 
 	private static SetupResult setup(Slot slot, GearItem item)
@@ -485,7 +538,10 @@ public class BankViewTest
 	/** Minimal game-script fixture: native tab/search mode, filtering, and rebuilt bank widgets. */
 	private static class Fixture
 	{
+		/** Unused item slots the game builds after the real stacks, before the tab headings. */
+		static final int SPARE_SLOTS = 3;
 		private final WidgetState[] items;
+		private final WidgetState[] spares = new WidgetState[SPARE_SLOTS];
 		private final WidgetState container = new WidgetState(-1, 0, -1);
 		private WidgetState universe = new WidgetState(-1, 0, -1);
 		private final WidgetState heading = new WidgetState(-1, 0, 1410);
@@ -514,18 +570,28 @@ public class BankViewTest
 			{
 				items[4 + i] = new WidgetState(extraItems[i], 1, 4 + i);
 			}
-			Widget[] children = new Widget[items.length + 1];
+			Widget[] children = new Widget[items.length + SPARE_SLOTS + 1];
 			for (int i = 0; i < items.length; i++)
 			{
 				children[i] = items[i].widget;
 			}
-			children[items.length] = heading.widget;
+			for (int i = 0; i < SPARE_SLOTS; i++)
+			{
+				spares[i] = new WidgetState(-1, 0, items.length + i);
+				spares[i].values.put("SelfHidden", true);
+				children[items.length + i] = spares[i].widget;
+			}
+			children[children.length - 1] = heading.widget;
+			heading.values.put("OriginalHeight", 20);
 			container.values.put("Width", 460);
 			container.values.put("Height", 140);
 			container.values.put("ScrollHeight", 36);
 			container.values.put("Children", children);
 			container.values.put("OnInvTransmitListener", new Object[]{ScriptID.BANKMAIN_BUILD});
 			client = mock(Client.class);
+			ItemContainer bankItems = mock(ItemContainer.class);
+			when(bankItems.size()).thenReturn(items.length);
+			when(client.getItemContainer(InventoryID.BANK)).thenReturn(bankItems);
 			when(client.getWidget(anyInt())).thenAnswer(i -> !open ? null
 				: i.<Integer>getArgument(0) == InterfaceID.Bankmain.UNIVERSE ? universe.widget : container.widget);
 			when(client.getVarcIntValue(anyInt())).thenAnswer(i ->
@@ -656,6 +722,8 @@ public class BankViewTest
 			values.put("ItemId", id);
 			values.put("ItemQuantity", quantity);
 			values.put("Index", index);
+			values.put("OriginalWidth", 36);
+			values.put("OriginalHeight", 32);
 			values.put("DragDeadZone", 5);
 			values.put("DragDeadTime", 5);
 			// A property bag: setters store under the property name, getters read it back (setHidden is SelfHidden).
@@ -666,6 +734,12 @@ public class BankViewTest
 			when(widget.getOnOpListener()).thenAnswer(i -> values.get("OnOpListener"));
 			when(widget.getItemId()).thenAnswer(i -> intValue("ItemId"));
 			when(widget.getItemQuantity()).thenAnswer(i -> intValue("ItemQuantity"));
+			when(widget.getIndex()).thenAnswer(i -> intValue("Index"));
+			when(widget.getActions()).thenAnswer(i -> actions());
+			when(widget.getItemQuantityMode()).thenAnswer(i -> intValue("ItemQuantityMode"));
+			when(widget.getOriginalWidth()).thenAnswer(i -> intValue("OriginalWidth"));
+			when(widget.getOriginalHeight()).thenAnswer(i -> intValue("OriginalHeight"));
+			when(widget.getOpacity()).thenAnswer(i -> intValue("Opacity"));
 			when(widget.getDragDeadTime()).thenAnswer(i -> intValue("DragDeadTime"));
 			when(widget.getDragDeadZone()).thenAnswer(i -> intValue("DragDeadZone"));
 			when(widget.getHeight()).thenAnswer(i -> intValue("Height"));
@@ -685,6 +759,10 @@ public class BankViewTest
 			when(widget.setOriginalY(anyInt())).thenAnswer(store("OriginalY"));
 			when(widget.setOriginalWidth(anyInt())).thenAnswer(store("OriginalWidth"));
 			when(widget.setOriginalHeight(anyInt())).thenAnswer(store("OriginalHeight"));
+			when(widget.setItemId(anyInt())).thenAnswer(store("ItemId"));
+			when(widget.setItemQuantity(anyInt())).thenAnswer(store("ItemQuantity"));
+			when(widget.setItemQuantityMode(anyInt())).thenAnswer(store("ItemQuantityMode"));
+			when(widget.setOpacity(anyInt())).thenAnswer(store("Opacity"));
 			when(widget.setScrollHeight(anyInt())).thenAnswer(store("ScrollHeight"));
 			when(widget.setScrollY(anyInt())).thenAnswer(store("ScrollY"));
 			when(widget.setSpriteId(anyInt())).thenAnswer(store("SpriteId"));
@@ -717,6 +795,18 @@ public class BankViewTest
 		{
 			Object value = values.get(property);
 			return value == null ? 0 : (int) value;
+		}
+
+		private String[] actions()
+		{
+			int count = values.keySet().stream().filter(key -> key.startsWith("Action"))
+				.mapToInt(key -> Integer.parseInt(key.substring("Action".length()))).max().orElse(-1) + 1;
+			String[] actions = new String[count];
+			for (int i = 0; i < count; i++)
+			{
+				actions[i] = (String) values.get("Action" + i);
+			}
+			return actions;
 		}
 
 		private boolean flag(String property)

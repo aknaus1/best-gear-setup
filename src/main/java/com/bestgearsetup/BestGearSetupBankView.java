@@ -14,6 +14,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,6 +23,7 @@ import java.util.function.Function;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
+import net.runelite.api.ItemContainer;
 import net.runelite.api.ScriptID;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.ScriptCallbackEvent;
@@ -28,6 +31,7 @@ import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.vars.InputType;
@@ -37,6 +41,7 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.ItemVariationMapping;
 import net.runelite.client.plugins.bank.BankSearch;
+import net.runelite.client.plugins.banktags.BankTagsPlugin;
 
 /** Temporary equipment tab; never changes the bank's item slots or opens a search input. */
 @Singleton
@@ -44,16 +49,15 @@ class BestGearSetupBankView
 {
 	// Equipment silhouette on the bank's eight-column grid, matching the sidebar.
 	private static final int[] CELLS = {1, 8, 9, 10, 16, 17, 18, 25, 32, 33, 34};
-	// Right of the silhouette: spell runes (and a thrall's Book of the dead), then potions and hearts.
-	private static final int[] SPELL_CELLS = {4, 5, 6, 7, 12, 13, 14, 15};
-	private static final int[] BOOST_CELLS = {20, 21, 22, 23, 28, 29, 30, 31};
-	// Below the runes and boosts: a spec weapon and off-hand to switch to, then its own ammunition or a spec
-	// blowpipe's darts (never both).
-	private static final int SPEC_WEAPON_CELL = 36;
-	private static final int SPEC_OFFHAND_CELL = 37;
-	private static final int SPEC_AMMO_CELL = 38;
+	// Ammunition loaded into a weapon (a blowpipe's darts), then a spec weapon's, below the silhouette.
+	private static final int LOADED_CELL = 40;
+	// The carried inventory fills the 4×7 grid right of the silhouette; a rune pouch's runes sit under it.
+	private static final int POUCH_ROW = 7 * 8 + 4;
+	private static final int POUCH_RUNES = 3;
 	// Extra matches go below the layout, each group starting its own row: gear, then spell items, then boosts.
-	private static final int EXTRA_ROWS_START = 40;
+	private static final int EXTRA_ROWS_START = 8 * 8;
+	/** A repeated entry's opacity, fainter than the stack it repeats. */
+	private static final int COPY_OPACITY = 100;
 	private static final int GEAR = 0;
 	private static final int SPELL = 1;
 	private static final int BOOST = 2;
@@ -64,6 +68,8 @@ class BestGearSetupBankView
 	private final EventBus eventBus;
 	private volatile Layout selection = Layout.EMPTY;
 	private final Map<Widget, int[]> dragSettings = new IdentityHashMap<>();
+	/** Spare bank slots showing a repeated entry, with the real stack each repeats. */
+	private final Map<Widget, Widget> copies = new IdentityHashMap<>();
 	private boolean active;
 
 	@Inject
@@ -130,50 +136,66 @@ class BestGearSetupBankView
 			{
 				addItem(layout, itemIds, loadout.get(slot), CELLS[slot.ordinal()]);
 			}
-			addItem(layout, itemIds, loadout.getLoadedAmmo(), loadout.get(Slot.AMMO) == null ? 10 : 40);
+			addItem(layout, itemIds, loadout.getLoadedAmmo(), loadout.get(Slot.AMMO) == null ? 10 : LOADED_CELL);
+			// The inventory is packed in the slots TripSupplies.usedSlots counts: the spec switch, the rune pouch
+			// and runes beyond its three, each bottle, then food.
+			int slot = 0;
 			SpecialPlan special = setup.getSpecial();
 			if (special != null && special.isSwitch(loadout))
 			{
-				addItem(layout, itemIds, special.getWeapon(), SPEC_WEAPON_CELL);
-				addItem(layout, itemIds, special.getOffhand(), SPEC_OFFHAND_CELL);
-				addItem(layout, itemIds, special.getAmmo(), SPEC_AMMO_CELL);
-				addItem(layout, itemIds, special.getLoadedAmmo(), SPEC_AMMO_CELL);
+				if (special.getWeapon() != loadout.getWeapon())
+					slot = carry(layout, itemIds, special.getWeapon(), slot);
+				slot = carry(layout, itemIds, special.getOffhand(), slot);
+				slot = carry(layout, itemIds, special.getAmmo(), slot);
+				addItem(layout, itemIds, special.getLoadedAmmo(), LOADED_CELL + 1);
+				// The worn shield a two-handed spec weapon takes off needs a slot, left empty at the bank.
+				if (TripSupplies.takesShieldOff(setup))
+					slot++;
 			}
 			List<Integer> spellItems = SpellRunes.required(setup);
 			if (!spellItems.isEmpty())
-			{
-				// The runes may be in a pouch, which takes the first spell cell ahead of them.
-				layout.add(SpellRunes.POUCHES, SPELL_CELLS[0], SPELL);
-			}
+				slot = layout.carry(SpellRunes.POUCHES, slot, 1, SPELL);
 			for (int i = 0; i < spellItems.size(); i++)
 			{
 				List<Integer> ids = new ArrayList<>();
 				ids.add(spellItems.get(i));
 				ids.addAll(SpellRunes.substitutes(spellItems.get(i)));
-				layout.add(ids, reservedCell(SPELL_CELLS, i + 1), SPELL);
+				if (i < POUCH_RUNES)
+					layout.add(ids, POUCH_ROW + i, SPELL);
+				else
+					slot = layout.carry(ids, slot, 1, SPELL);
 			}
-			int cell = 0;
 			for (Potion potion : potions)
 			{
 				// Raid supplies are handed out inside the raid, never withdrawn.
 				if (!potion.isRaidSupply())
 				{
-					// Each dose of the potion, then its divine version and potions giving the same boost.
-					layout.add(BoostAccess.itemIds(potion), reservedCell(BOOST_CELLS, cell++), BOOST);
+					// Each dose of the potion, then its divine version and potions giving the same boost; as many
+					// bottles as the trip needs (one without a trip).
+					List<Integer> ids = new ArrayList<>(BoostAccess.itemIds(potion));
+					int count = supplies.stream().filter(s -> s.getIds().get(0).equals(ids.get(0)))
+						.mapToInt(TripSupplies.Supply::getCount).findFirst().orElse(1);
+					slot = layout.carry(ids, slot, count, BOOST);
 				}
 			}
 			// A food's other owned foods only fill its cell when it's missing, otherwise they join the boost rows.
 			for (TripSupplies.Supply supply : supplies)
 				if (!layout.cells.containsKey(supply.getIds().get(0)))
-					layout.add(supply.getIds(), reservedCell(BOOST_CELLS, cell++), BOOST);
+					slot = layout.carry(supply.getIds(), slot, supply.getCount(), BOOST);
 		}
 		return layout;
 	}
 
-	private static int reservedCell(int[] reserved, int index)
+	/** The bank cell of inventory slot {@code slot} (4 columns right of the silhouette); past 28, the extra rows. */
+	static int inventoryCell(int slot)
 	{
-		// Any beyond the reserved cells join the extra rows below the silhouette.
-		return index < reserved.length ? reserved[index] : EXTRA_ROWS_START + index;
+		return slot < TripSupplies.INVENTORY_SLOTS ? slot / 4 * 8 + 4 + slot % 4
+			: EXTRA_ROWS_START + slot - TripSupplies.INVENTORY_SLOTS;
+	}
+
+	private static int carry(Layout layout, Function<GearItem, List<Integer>> itemIds, GearItem item, int slot)
+	{
+		return item == null ? slot : layout.carry(itemIds.apply(item), slot, 1, GEAR);
 	}
 
 	private static void addItem(Layout layout, Function<GearItem, List<Integer>> itemIds, GearItem item, int cell)
@@ -205,6 +227,18 @@ class BestGearSetupBankView
 		/** Insertion order: a cell's own item, then its alternatives (doses by type, substitutes) in order. */
 		private final Map<Integer, Integer> ranks = new HashMap<>();
 		private final Set<Integer> primary = new HashSet<>();
+		/** Inventory cells repeating another cell's item (a trip's second bottle, the rest of its food), in order. */
+		private final Map<Integer, Integer> repeats = new LinkedHashMap<>();
+
+		/** {@code count} of an item from inventory slot {@code slot}, its copies only within the 28; the next slot. */
+		private int carry(List<Integer> ids, int slot, int count, int group)
+		{
+			int cell = inventoryCell(slot);
+			add(ids, cell, group);
+			for (int i = 1; i < count && slot + i < TripSupplies.INVENTORY_SLOTS; i++)
+				repeats.put(inventoryCell(slot + i), cell);
+			return slot + count;
+		}
 
 		/** The first id is the cell's own item; the rest (variants, doses, substitutes) only fill it in its absence. */
 		private void add(Collection<Integer> ids, int cell, int group)
@@ -418,6 +452,7 @@ class BestGearSetupBankView
 			.thenComparingInt(w -> layout.ranks.get(matches.get(w)))
 			.thenComparingInt(Widget::getOriginalY).thenComparingInt(Widget::getOriginalX));
 		List<List<Widget>> extras = Arrays.asList(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+		Map<Integer, Widget> placed = new HashMap<>();
 		int lastCell = 34;
 		for (Widget item : ordered)
 		{
@@ -426,6 +461,7 @@ class BestGearSetupBankView
 			if (occupied.add(cell))
 			{
 				place(item, cell);
+				placed.put(cell, item);
 				lastCell = Math.max(lastCell, cell);
 			}
 			else if (isPlaceholder(item))
@@ -457,10 +493,55 @@ class BestGearSetupBankView
 			}
 			next = (next + 7) / 8 * 8;
 		}
+		// Like Bank Tags layouts, an item carried more than once is repeated in the bank's unused slots after its
+		// real stacks: the game builds their menus, and a click is pointed at the real stack. A full bank has none.
+		Iterator<Widget> spares = spareSlots(bank).iterator();
+		for (Map.Entry<Integer, Integer> repeat : layout.repeats.entrySet())
+		{
+			Widget source = placed.get(repeat.getValue());
+			if (source != null && !isPlaceholder(source) && spares.hasNext())
+			{
+				copy(spares.next(), source, repeat.getKey());
+				lastCell = Math.max(lastCell, repeat.getKey());
+			}
+		}
 		bank.setScrollHeight(lastCell < 0 ? 0 : (lastCell / 8 + 1) * 36);
 		bank.setScrollY(Math.max(0, Math.min(bank.getScrollY(), bank.getScrollHeight() - bank.getHeight())));
 		client.setVarcIntValue(VarClientID.BANK_SCROLLPOS, bank.getScrollY());
 		return bank.getScrollHeight();
+	}
+
+	/** The bank's unused item slots, after its real stacks and before the tab headings. */
+	private List<Widget> spareSlots(Widget bank)
+	{
+		ItemContainer items = client.getItemContainer(InventoryID.BANK);
+		Widget[] children = bank.getChildren();
+		List<Widget> spares = new ArrayList<>();
+		for (int i = items == null ? children.length : items.size(); i < children.length; i++)
+		{
+			if (children[i] == null || children[i].getOriginalHeight() != BankTagsPlugin.BANK_ITEM_HEIGHT)
+				break;
+			spares.add(children[i]);
+		}
+		return spares;
+	}
+
+	private void copy(Widget copy, Widget source, int cell)
+	{
+		copy.setOriginalWidth(source.getOriginalWidth());
+		copy.setItemId(source.getItemId());
+		copy.setItemQuantity(source.getItemQuantity());
+		copy.setItemQuantityMode(source.getItemQuantityMode());
+		copy.setName(source.getName());
+		copy.setOpacity(COPY_OPACITY);
+		copy.clearActions();
+		String[] actions = source.getActions();
+		for (int i = actions == null ? -1 : actions.length - 1; i >= 0; i--)
+			if (actions[i] != null)
+				copy.setAction(i, actions[i]);
+		copies.put(copy, source);
+		place(copy, cell);
+		copy.setHidden(false);
 	}
 
 	private static boolean isPlaceholder(Widget item)
@@ -482,6 +563,7 @@ class BestGearSetupBankView
 		item.setDragDeadTime(Integer.MAX_VALUE);
 	}
 
+	/** Restores dragging and empties the spare slots showing repeated entries. */
 	private void restoreDragging()
 	{
 		for (Map.Entry<Widget, int[]> entry : dragSettings.entrySet())
@@ -490,11 +572,31 @@ class BestGearSetupBankView
 			entry.getKey().setDragDeadTime(entry.getValue()[1]);
 		}
 		dragSettings.clear();
+		for (Widget copy : copies.keySet())
+		{
+			copy.setHidden(true);
+			copy.setItemId(-1);
+			copy.setItemQuantity(0);
+			copy.clearActions();
+		}
+		copies.clear();
 	}
 
 	@Subscribe(priority = 1)
 	public void onMenuOptionClicked(MenuOptionClicked event)
 	{
+		// A repeated entry's game-built op names its spare slot; point it at the real stack, as Bank Tags does.
+		if (isActive() && event.getParam1() == InterfaceID.Bankmain.ITEMS)
+		{
+			for (Map.Entry<Widget, Widget> copy : copies.entrySet())
+			{
+				if (copy.getKey().getIndex() == event.getParam0())
+				{
+					event.getMenuEntry().setParam0(copy.getValue().getIndex());
+					return;
+				}
+			}
+		}
 		String option = event.getMenuOption();
 		if (option.startsWith("View tab") || option.startsWith("View tag tab")
 			|| option.equals("View all items") || option.startsWith("Potion store"))
