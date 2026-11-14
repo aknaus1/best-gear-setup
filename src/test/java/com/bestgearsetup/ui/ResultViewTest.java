@@ -128,6 +128,12 @@ public class ResultViewTest
 			JPanel advised = vorkath.statsBox(dps(5), null);
 			vorkath.addTripLines(advised, setup, 1, Collections.emptyList());
 			assertTrue(named(advised, "protectionPrayer").getText().contains("Overhead: Protect from Magic"));
+			// A note opening with the summary continues it rather than repeating "None needed" on a second line.
+			ResultView dragon = view(100, "steel dragon (level 246 (task only))");
+			JPanel ranged = dragon.statsBox(dps(5), null);
+			dragon.addTripLines(ranged, new SetupResult(CombatClass.MAGIC, loadout, dps(5), 0), 1, Collections.emptyList());
+			assertTrue(named(ranged, "protectionPrayer").getText(),
+				named(ranged, "protectionPrayer").getText().contains("Overhead: None needed at range: "));
 			// Raid targets show their overhead but no trip lines.
 			Monster tekton = new Monster();
 			tekton.setName("tekton (normal)");
@@ -227,14 +233,14 @@ public class ResultViewTest
 				{
 					if (component instanceof JLabel && ((JLabel) component).getText().contains("TTK:"))
 					{
-						assertEquals("<html>TTK: ~" + (starting / 2.0) + "s</html>", ((JLabel) component).getText());
+						assertEquals("<html>TTK: ~" + starting / 2 + "s</html>", ((JLabel) component).getText());
 						found = true;
 					}
 				}
 				assertTrue(found);
 				assertTrue("No thrall line unless the setup includes one", label(box, "Incl. thrall") == null);
 				JPanel withThrall = view.statsBox(new DpsResult(2, 10, 0.5, 4, 4.8, null), Thrall.SUPERIOR);
-				assertEquals("<html>Incl. thrall: +0.417</html>", label(withThrall, "Incl. thrall").getText());
+				assertEquals("<html>Incl. thrall: +0.42</html>", label(withThrall, "Incl. thrall").getText());
 				assertTrue(label(withThrall, "Incl. thrall").getToolTipText().startsWith("Superior ghostly thrall"));
 			});
 		}

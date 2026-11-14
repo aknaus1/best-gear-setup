@@ -552,6 +552,6 @@ public class GameData
 			sb.append(upper ? Character.toUpperCase(c) : c);
 			upper = c == ' ' || c == '(' || c == '-';
 		}
-		return sb.toString();
+		return sb.toString().replace(" Of ", " of ").replace(" The ", " the ").replace(" And ", " and ");
 	}
 }

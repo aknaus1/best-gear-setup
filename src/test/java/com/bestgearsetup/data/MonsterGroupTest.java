@@ -48,7 +48,8 @@ public class MonsterGroupTest
 		List<MonsterGroup> found = data.searchMonsterGroups("mokh", 10, false);
 		assertEquals(1, found.size());
 		MonsterGroup doom = found.get(0);
-		assertEquals("Doom Of Mokhaiotl", doom.getDisplayName());
+		assertEquals("Doom of Mokhaiotl", doom.getDisplayName());
+		assertEquals("Amulet of the Damned", GameData.titleCase("amulet of the damned"));
 		assertEquals("doom of mokhaiotl (delve 1)", doom.getPrimary().getName());
 		assertEquals(Arrays.asList("Delve 1", "Delve 1, NPC 14708", "Delve 2", "Delve 10"),
 			doom.getVariants().stream().map(doom::versionLabel).collect(Collectors.toList()));
