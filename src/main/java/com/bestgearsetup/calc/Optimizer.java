@@ -271,8 +271,15 @@ public class Optimizer
 				return Collections.emptyList();
 			// They wear the cheapest gear as good as the one found ({@link #cheapest}).
 			Exact origin = originOf.get(results.get(i));
+			SetupResult kept = results.get(i);
+			for (Exact e : origin == null ? Collections.<Exact>emptyList() : origin.ties)
+			{
+				cheapest(e);
+				SetupResult r = finish(e.loadout.copy(), cls);
+				kept = faster(r, kept) ? r : kept;
+			}
 			SetupResult r = origin == null || !cheapest(origin) ? null : finish(origin.loadout.copy(), cls);
-			results.set(i, pruned(faster(r, results.get(i)) ? r : results.get(i), cls));
+			results.set(i, pruned(faster(r, kept) ? r : kept, cls));
 		}
 		results = results.subList(0, finished);
 		results.sort(rank);
@@ -425,8 +432,13 @@ public class Optimizer
 		List<Found> kept = new ArrayList<>();
 		kept.add(new Found(best.loadout, best.score, best.cost));
 		best.tried.sort(Comparator.comparingDouble((Exact e) -> -e.score));
+		Exact winner = best.tried.stream().filter(e -> e.loadout == best.loadout).findFirst().orElse(null);
 		for (Exact e : best.tried)
 		{
+			// Without a budget each branch kept only its strongest totals, so branches tied with the best are tried
+			// again once they wear their cheapest gear: effect gear adding nothing mustn't win on a dearer plain fill.
+			if (winner != null && e != winner && Math.abs(e.score - best.score) <= EPS)
+				winner.ties.add(e);
 			if (e.loadout == best.loadout)
 				origins.put(e.loadout, e);
 			else if (kept.size() <= ALTERNATIVES && e.score > 0 && e.score >= best.score * (1 - ALTERNATIVE_SHARE))
@@ -529,6 +541,10 @@ public class Optimizer
 		List<Option> options;
 		/** Each option group's and effect gear's own best. */
 		final List<Exact> tried = new ArrayList<>();
+		/** Whether {@link #cheapest} has searched it. */
+		boolean cheapened;
+		/** Other branches scoring the same, finished beside it. */
+		final List<Exact> ties = new ArrayList<>();
 	}
 
 	/**
@@ -884,12 +900,13 @@ public class Optimizer
 	 * Without a budget the search keeps only the strongest totals, which can drop a cheaper loadout scoring the same
 	 * (strength short of the next max hit, say). This searches the found setup's plain slots again keeping every
 	 * cheaper trade, but only loadouts whose best completion still reaches its score, and wears the cheapest. True when
-	 * it found one.
+	 * it found one; each search runs once.
 	 */
 	private boolean cheapest(Exact e)
 	{
-		if (settings.getMode() == SearchMode.BUDGET || e.plain.isEmpty())
+		if (settings.getMode() == SearchMode.BUDGET || e.plain == null || e.plain.isEmpty() || e.cheapened)
 			return false;
+		e.cheapened = true;
 		Loadout found = e.loadout;
 		Loadout l = e.frame.copy();
 		l.setStyle(found.getStyle());
@@ -979,10 +996,14 @@ public class Optimizer
 		double floor)
 	{
 		boolean bounded = !Double.isNaN(floor);
-		// The slots still to fill hold their best bonuses.
+		// The slots still to fill hold their best bonuses, keeping the effect of a slot's effect gear: its items are
+		// one kind of effect gear, where a plain slot can also be left empty.
 		Loadout top = l.copy();
 		for (Slot slot : plainSlots)
-			top.set(slot, boundItem(slot, null, pools.get(slot), totals));
+		{
+			List<GearItem> pool = pools.get(slot);
+			top.set(slot, boundItem(slot, pool.contains(null) ? null : pool.get(0), pool, totals));
+		}
 		// A lead starts from the weapon's and fixed gear's bonuses, so its sign is the worn total's.
 		double[] start = new double[totals.length];
 		DpsCalculator.Bonuses worn = DpsCalculator.Bonuses.of(l);
