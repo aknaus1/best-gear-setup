@@ -49,6 +49,36 @@ public final class DragonfireProtection
 			|| n.startsWith("elvarg"));
 	}
 
+	/** Whether an antifire potion protects against this encounter's breath; wyverns' icy breath ignores it. */
+	public static boolean takesPotion(Monster monster)
+	{
+		return applies(monster) && !wyvern(monster);
+	}
+
+	/** Whether a metal dragon: it stays out of melee range and breathes from a distance (Wiki: Steel dragon). */
+	public static boolean keepsDistance(Monster monster)
+	{
+		return METAL_DRAGON.matcher(name(monster)).matches();
+	}
+
+	/**
+	 * Whether the breath does no damage at all (Wiki: Dragonfire's damage tables): a super antifire, or an antifire
+	 * with a fire shield or, against all but metal dragons, with Protect from Magic. An antifire alone lets 35 through.
+	 */
+	public static boolean blocksBreath(Monster monster, Loadout loadout, Antifire antifire, boolean protectMagic)
+	{
+		return takesPotion(monster) && (antifire == Antifire.SUPER
+			|| antifire == Antifire.REGULAR && (fireShield(loadout) || protectMagic && !metal(monster)));
+	}
+
+	/** The worn shield, when it is a dragonfire shield (not elemental or mind) a one-handed weapon leaves on. */
+	private static boolean fireShield(Loadout loadout)
+	{
+		GearItem item = loadout.getWeapon() == null || loadout.getWeapon().isTwoHanded() ? null : loadout.get(Slot.SHIELD);
+		return isProtectiveShield(item) && !item.getLowerCombatName().equals("elemental shield")
+			&& !item.getLowerCombatName().equals("mind shield");
+	}
+
 	/** Meets normal protection requirements; boss chip damage and avoidable specials may remain. */
 	public static boolean allowed(Monster monster, Loadout loadout, OptimizerSettings settings, PlayerLevels levels)
 	{

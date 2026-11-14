@@ -35,21 +35,35 @@ is what the Plugin Hub shows.
   Fractured Archive elemental fragment adds 2 to its element's spells.
 - Hover text and setting descriptions are cut to under 10 words: item tooltips keep the name, where it's stored
   and what matters most, and drop the rest when it doesn't fit. A few lock reasons and long names can run longer.
-- Add **Kills per trip** (default 1). Each setup now shows its prayer points per kill (its offensive prayer and
-  the target's overhead), the trip's combat time from its TTK, and the boost and prayer restore bottles the trip
-  needs: super restores when you own them or Sanfew serums, otherwise prayer potions. Nightmare Zone potions are
-  only packed for Nightmare Zone targets, and a wild pie or butterfly jar counts its own bites or sips.
-- Fill the trip's free inventory slots with the best food you own (sharks if none), with owned cooked karambwans
-  and Saradomin brews (beside super restores) mixed in from four free slots. The bank layout places the restores
-  and food after the boosts and outlines them; up to three other owned foods are offered in the food's place.
-  A two-handed spec weapon leaves a slot for the shield it takes off.
-  Turn it off with **Fill inventory with food**.
+- Add **Kills per trip** (default 1) under Fight assumptions. Each setup now shows its prayer points per kill
+  (its offensive prayer and the target's overhead), the trip's combat time from its TTK, and the boost and
+  prayer restore bottles the trip needs: super restores when you own them or Sanfew serums, otherwise prayer
+  potions. Nightmare Zone potions are only packed for Nightmare Zone targets, and a wild pie or butterfly jar
+  counts its own bites or sips.
+- Fill the trip's free inventory slots with the best food you own (sharks if none), with owned Saradomin brews
+  (beside super restores) mixed in from four free slots, and owned cooked karambwans against targets hitting 20 or
+  more (dragonfire aside). No food against a target that can't hurt you: one that doesn't attack, or a non-boss
+  each of whose attacks hits 0 or is fully blocked, by the overhead its advice keeps up (magical and ranged melee
+  count as melee), by fire protection that takes dragonfire to 0 (a super antifire, or an antifire with a fire
+  shield or, but for metal dragons, Protect from Magic), or, for a metal dragon fought from range, by distance.
+  The bank layout places the restores and food after the boosts and outlines them; up to three other owned foods
+  are offered in the food's place. A two-handed spec weapon leaves a slot for the shield it takes off. Turn it off
+  with **Fill inventory with food**.
+- The bank layout shows the inventory as you'd pack it, in a 4×7 grid beside the equipment: the spec switch, rune
+  pouch, each boost and restore bottle, then food in every slot left. Repeated items fill the bank's unused slots,
+  fainter, and withdraw from the real stack when clicked; a full bank shows each item once. The pouch's runes sit
+  under the inventory.
 - Against a monster whose attacks poison or envenom you (125 poison, 40 envenom, from the Wiki's monster data),
   the trip brings a superantipoison or an anti-venom+, unless a serpentine helm makes you immune.
+- Against a dragon, the trip brings the **Antifire potion** its fire protection relies on, a bottle per four
+  doses (an antifire lasts 6 minutes, a super antifire 3), and the bank layout packs it with the boosts; the
+  extended potion is offered in its place. Wyverns' icy breath ignores antifire, so none is packed for them.
+- **Antifire potion** now defaults to Antifire instead of Super antifire.
 - Each setup shows the target's overhead protection prayer: one prayer, a switch between several, or none needed,
   from the Wiki's strategy pages and the monster's attack styles, with a melee setup's own advice where it stands
   in melee range. It is static advice per target. Prayer per kill counts that overhead, and none when the target needs none or
-  has no advice.
+  has no advice. Bronze, iron and steel dragons need none for ranged and magic setups: they stay out of melee
+  range and breathe from a distance, which Protect from Magic doesn't block.
 - Gear searches are exact: each weapon's setup is now the best combination of your allowed gear for its
   ordinary attacks, where the old search could stop a few pieces short. Across 1,872 test searches (every boss,
   each class, a 10m budget and best in slot) 280 found a better setup and none a worse one, in under half

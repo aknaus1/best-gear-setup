@@ -261,7 +261,7 @@ public interface BestGearSetupConfig extends Config
 		return SearchAssumptions.value(this, "ammoCount", 0);
 	}
 
-	@ConfigItem(keyName = "killsPerTrip", name = "Kills per trip",
+	@ConfigItem(keyName = "killsPerTrip", name = "Kills per trip", hidden = true,
 		description = "Kills one trip's supplies cover", section = searchSection, position = 5)
 	@Range(min = 1, max = 1000)
 	default int killsPerTrip()
@@ -459,7 +459,7 @@ public interface BestGearSetupConfig extends Config
 		description = "Active antifire potion (extended versions give the same protection)", section = dragonfireSection, position = 1)
 	default Antifire antifire()
 	{
-		return SearchAssumptions.value(this, "antifire", Antifire.SUPER);
+		return SearchAssumptions.value(this, "antifire", Antifire.REGULAR);
 	}
 
 	@ConfigItem(keyName = "protectMagic", name = "Protect from Magic",

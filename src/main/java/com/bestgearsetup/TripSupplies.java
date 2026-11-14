@@ -1,13 +1,17 @@
 package com.bestgearsetup;
 
+import com.bestgearsetup.calc.Antifire;
+import com.bestgearsetup.calc.DragonfireProtection;
 import com.bestgearsetup.calc.Overheads;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SpecialPlan;
 import com.bestgearsetup.calc.StatusEffects;
+import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.OffensivePrayer;
 import com.bestgearsetup.data.Potion;
@@ -15,11 +19,14 @@ import com.bestgearsetup.data.Slot;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -51,6 +58,11 @@ public final class TripSupplies
 	static final int MIX_SLOTS = 4;
 	/** Karambwans and brews each take at most one in this many free slots, so most of the mix stays one-bite food. */
 	static final int MIX_SHARE = 4;
+	/** A max hit from which karambwans are mixed in for combo eating: one hit can outdo a shark's 20 healing. */
+	static final int COMBO_MAX_HIT = 20;
+	/** Attack styles a protection from melee blocks, magical and ranged melee included (Wiki). */
+	private static final Set<String> MELEE_STYLES = new HashSet<>(Arrays.asList("crush", "slash", "stab", "melee",
+		"magical melee", "ranged melee"));
 	/** Most other owned foods the bank layout offers in the main food's place. */
 	static final int ALTERNATIVES = 3;
 
@@ -106,12 +118,13 @@ public final class TripSupplies
 	}
 
 	/**
-	 * The supplies {@code kills} kills need: each boost's bottles, prayer restores, a bottle of cure against a target
+	 * The supplies {@code kills} kills need: each boost's bottles, the {@code antifire} a dragon's breath needs
+	 * ({@link Antifire#NONE} when fire protection isn't required), prayer restores, a bottle of cure against a target
 	 * that poisons, then with {@code food} food in the free slots. Empty for raid targets, whose supplies come from
 	 * the raid.
 	 */
 	public static List<Supply> plan(SetupResult setup, SearchResults results, List<Potion> potions, int kills,
-		boolean food, IntPredicate owns)
+		boolean food, IntPredicate owns, Antifire antifire)
 	{
 		List<Supply> out = new ArrayList<>();
 		if (setup == null || results.getMonster() == null || RaidScaling.raid(results.getMonster()) != RaidScaling.Raid.NONE)
@@ -123,6 +136,14 @@ public final class TripSupplies
 			if (!potion.isRaidSupply() && (nmz || !potion.getAttributes().contains("nmz")))
 				out.add(new Supply(GameData.titleCase(potion.getName()), new ArrayList<>(BoostAccess.itemIds(potion)),
 					boostBottles(potion, level(levels, potion.getSkill()), seconds)));
+		// A dose of antifire lasts 6 minutes, of super antifire 3 (Wiki); the extended potion is its alternative.
+		if (antifire != Antifire.NONE && DragonfireProtection.takesPotion(results.getMonster()))
+		{
+			boolean superPotion = antifire == Antifire.SUPER;
+			int doses = Double.isFinite(seconds) ? Math.max(1, (int) Math.ceil(seconds / (superPotion ? 180 : 360))) : 1;
+			out.add(new Supply(antifire.toString(), superPotion ? doses(ItemID._4DOSE3ANTIDRAGON, ItemID._4DOSE4ANTIDRAGON)
+				: doses(ItemID._4DOSE1ANTIDRAGON, ItemID._4DOSE2ANTIDRAGON), (doses + 3) / 4));
+		}
 		addRestores(out, prayerPerKill(setup, results) * kills, levels.getPrayer(), owns);
 		// Anti-venom+ also cures poison; a superantipoison is the usual bottle against poison alone. A serpentine helm
 		// makes the wearer immune to both.
@@ -131,9 +152,51 @@ public final class TripSupplies
 			out.add(new Supply("Anti-venom+", doses(ItemID.ANTIVENOM_4, ItemID.ANTIVENOM4), 1));
 		else if ("poison".equals(poisons))
 			out.add(new Supply("Superantipoison", doses(ItemID._4DOSE2ANTIPOISON, ItemID.ANTIDOTE__4, ItemID.ANTIVENOM_4), 1));
-		if (food)
-			addFood(out, INVENTORY_SLOTS - usedSlots(setup, out), owns);
+		if (food && needsFood(results.getMonster(), setup, antifire, levels))
+			addFood(out, INVENTORY_SLOTS - usedSlots(setup, out), owns, maxHit(results.getMonster()) >= COMBO_MAX_HIT);
 		return out;
+	}
+
+	/** The highest max hit of the target's attacks besides dragonfire, which fire protection blocks; -1 without data. */
+	static int maxHit(Monster monster)
+	{
+		Map<String, Monster.MonsterAttack> attacks = monster.getAttackStyles();
+		return attacks == null ? -1 : attacks.entrySet().stream().filter(a -> !a.getKey().equals("dragonfire"))
+			.mapToInt(a -> a.getValue().getMaxHit()).max().orElse(-1);
+	}
+
+	/**
+	 * Whether the trip needs food: false when the target can't hurt you through your protection. That's a target whose
+	 * advice says it doesn't attack, or an ordinary target (not a boss) each of whose attacks hits 0 or is blocked: a
+	 * melee, magic or ranged attack by the one overhead its advice keeps up (it blocks all of an ordinary monster's
+	 * damage, Wiki: Protect from Melee; magical and ranged melee count as melee, magical ranged as ranged), dragonfire by
+	 * full fire protection ({@link DragonfireProtection#blocksBreath}), and a metal dragon's melee by standing at range.
+	 * A boss, a typeless or unknown attack, a switching fight or missing data keeps the food.
+	 */
+	static boolean needsFood(Monster monster, SetupResult setup, Antifire antifire, PlayerLevels levels)
+	{
+		Overheads.Advice advice = Overheads.recommend(monster, setup.getCombatClass());
+		if (advice != null && advice.getNote().startsWith("It doesn't attack"))
+			return false;
+		Map<String, Monster.MonsterAttack> attacks = monster.getAttackStyles();
+		if (monster.isBoss() || attacks == null || attacks.isEmpty())
+			return true;
+		Overheads.Overhead prayer = advice == null || advice.isSwitching() || advice.getPrayer() == null
+			|| advice.getPrayer().getLevel() > levels.getPrayer() ? null : advice.getPrayer();
+		boolean distant = setup.getCombatClass() != CombatClass.MELEE && DragonfireProtection.keepsDistance(monster);
+		for (Map.Entry<String, Monster.MonsterAttack> attack : attacks.entrySet())
+		{
+			String style = attack.getKey();
+			Overheads.Overhead blocker = MELEE_STYLES.contains(style) ? Overheads.Overhead.MELEE
+				: style.equals("magic") ? Overheads.Overhead.MAGIC
+				: style.equals("ranged") || style.equals("magical ranged") ? Overheads.Overhead.MISSILES : null;
+			boolean blocked = attack.getValue().getMaxHit() <= 0 || !attack.getValue().isTypeless()
+				&& (style.equals("dragonfire") ? DragonfireProtection.blocksBreath(monster, setup.getLoadout(), antifire,
+					prayer == Overheads.Overhead.MAGIC) : blocker == Overheads.Overhead.MELEE && distant || blocker != null && blocker == prayer);
+			if (!blocked)
+				return true;
+		}
+		return false;
 	}
 
 	/**
@@ -210,22 +273,29 @@ public final class TripSupplies
 		SpecialPlan special = setup.getSpecial();
 		if (special == null || !special.isSwitch(setup.getLoadout()))
 			return used;
-		// A two-handed spec weapon takes the worn shield off into the inventory.
-		GearItem weapon = special.getWeapon();
-		if (weapon != null && weapon.isTwoHanded() && special.getOffhand() == null && setup.getLoadout().get(Slot.SHIELD) != null
-			&& weapon != setup.getLoadout().getWeapon())
+		if (takesShieldOff(setup))
 			used++;
 		return used + (int) Stream.of(special.getWeapon() == setup.getLoadout().getWeapon() ? null : special.getWeapon(),
 				special.getOffhand(), special.getAmmo()).filter(Objects::nonNull).count();
 	}
 
+	/** Whether a two-handed spec weapon switch takes the worn shield off into the inventory. */
+	static boolean takesShieldOff(SetupResult setup)
+	{
+		SpecialPlan special = setup.getSpecial();
+		GearItem weapon = special == null ? null : special.getWeapon();
+		return weapon != null && special.isSwitch(setup.getLoadout()) && weapon.isTwoHanded() && special.getOffhand() == null
+			&& setup.getLoadout().get(Slot.SHIELD) != null && weapon != setup.getLoadout().getWeapon();
+	}
+
 	/**
 	 * Food for {@code free} slots: the best one-bite food the player owns (sharks if none), with up to
 	 * {@link #ALTERNATIVES} other owned foods the bank may show in its place. With {@link #MIX_SLOTS} or more free,
-	 * up to one in {@link #MIX_SHARE} slots each of owned cooked karambwans, eaten in the same tick, and owned
-	 * Saradomin brews, at most one per super restore bottle, which restores the stats a brew drains.
+	 * up to one in {@link #MIX_SHARE} slots each of owned cooked karambwans, eaten in the same tick ({@code combo}: only
+	 * against a target hitting {@link #COMBO_MAX_HIT} or more), and owned Saradomin brews, at most one per super restore
+	 * bottle, which restores the stats a brew drains.
 	 */
-	static void addFood(List<Supply> out, int free, IntPredicate owns)
+	static void addFood(List<Supply> out, int free, IntPredicate owns, boolean combo)
 	{
 		if (free <= 0)
 			return;
@@ -243,7 +313,7 @@ public final class TripSupplies
 		if (ids.isEmpty())
 			ids.add(ItemID.SHARK);
 		boolean mix = free >= MIX_SLOTS;
-		int karambwans = mix && owns.test(ItemID.TBWT_COOKED_KARAMBWAN) ? free / MIX_SHARE : 0;
+		int karambwans = mix && combo && owns.test(ItemID.TBWT_COOKED_KARAMBWAN) ? free / MIX_SHARE : 0;
 		int restores = out.stream().filter(s -> s.getName().equals(SUPER_RESTORE) || s.getName().equals(SANFEW)).mapToInt(Supply::getCount).sum();
 		List<Integer> brewIds = BoostAccess.doseIds(ItemID._4DOSEPOTIONOFSARADOMIN);
 		int brews = mix && brewIds.stream().anyMatch(owns::test) ? Math.min(free / MIX_SHARE, restores) : 0;
