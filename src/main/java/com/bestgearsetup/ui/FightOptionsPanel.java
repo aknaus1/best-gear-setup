@@ -45,7 +45,7 @@ class FightOptionsPanel extends JPanel
 		settingRows = new SettingRows(plugin, config, items, SPINNER_COLUMNS, this::updateVisibility);
 		SidebarSection conditions = accordion.create("fightConditions", "Fight conditions");
 		addRows(conditions, "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
-			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks");
+			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "killsPerTrip");
 		wildernessTip = control("wilderness").getToolTipText();
 		conditions.showAsEditor();
 		add(BestGearSetupPanel.left(conditions));

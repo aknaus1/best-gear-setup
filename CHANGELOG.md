@@ -35,10 +35,11 @@ is what the Plugin Hub shows.
   Fractured Archive elemental fragment adds 2 to its element's spells.
 - Hover text and setting descriptions are cut to under 10 words: item tooltips keep the name, where it's stored
   and what matters most, and drop the rest when it doesn't fit. A few lock reasons and long names can run longer.
-- Add **Kills per trip** (default 1). Each setup now shows its prayer points per kill (its offensive prayer and
-  the target's overhead), the trip's combat time from its TTK, and the boost and prayer restore bottles the trip
-  needs: super restores when you own them or Sanfew serums, otherwise prayer potions. Nightmare Zone potions are
-  only packed for Nightmare Zone targets, and a wild pie or butterfly jar counts its own bites or sips.
+- Add **Kills per trip** (default 1) under Fight assumptions. Each setup now shows its prayer points per kill
+  (its offensive prayer and the target's overhead), the trip's combat time from its TTK, and the boost and
+  prayer restore bottles the trip needs: super restores when you own them or Sanfew serums, otherwise prayer
+  potions. Nightmare Zone potions are only packed for Nightmare Zone targets, and a wild pie or butterfly jar
+  counts its own bites or sips.
 - Fill the trip's free inventory slots with the best food you own (sharks if none), with owned cooked karambwans
   and Saradomin brews (beside super restores) mixed in from four free slots. The bank layout places the restores
   and food after the boosts and outlines them; up to three other owned foods are offered in the food's place.

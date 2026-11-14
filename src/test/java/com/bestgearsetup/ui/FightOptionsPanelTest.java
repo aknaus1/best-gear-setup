@@ -206,6 +206,8 @@ public class FightOptionsPanelTest
 			FightOptionsPanel panel = new FightOptionsPanel(plugin, config, com.bestgearsetup.ConfigItemsForTests.items());
 			assertEquals(3, ((JSpinner) control(panel, "soulreaperStacks")).getValue());
 			assertTrue(writes.isEmpty());
+			// Kills per trip is a fight assumption, with the fight's conditions.
+			assertEquals(1, ((JSpinner) control(panel, "killsPerTrip")).getValue());
 			assertTrue(control(panel, "ammoCount") == null);
 			assertTrue(control(panel, "antifire") == null);
 			assertTrue(control(panel, "targetDistance") == null);
