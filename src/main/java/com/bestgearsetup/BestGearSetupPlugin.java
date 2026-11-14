@@ -21,6 +21,7 @@ import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.calc.SpecialAttacks;
 import com.bestgearsetup.calc.SpellFilter;
 import com.bestgearsetup.calc.SpellRule;
+import com.bestgearsetup.calc.Thrall;
 import com.bestgearsetup.calc.WeaponRules;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.CombatClass;
@@ -798,14 +799,19 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			return;
 		}
+		// Kills per trip and food filling change only the trip's supplies, not the gear.
+		boolean suppliesOnly = "killsPerTrip".equals(event.getKey()) || "fillFood".equals(event.getKey());
 		SwingUtilities.invokeLater(() ->
 		{
 			if (panel != null)
 			{
 				panel.syncFromConfig();
+				if (suppliesOnly)
+					panel.refreshSupplies();
 			}
 		});
-		rerun();
+		if (!suppliesOnly)
+			rerun();
 	}
 
 	@Subscribe
@@ -965,16 +971,12 @@ public class BestGearSetupPlugin extends Plugin
 				npc == null ? null : npc.getWorldLocation(), taskLocation);
 			boolean onTask = config.taskMode().resolve(matched, false);
 			detected.put("onSlayerTask", onTask);
-			String taskNote = config.taskMode() == AutoState.AUTO
-				? "Slayer task: " + (matched == null ? "unknown; task bonus not assumed. Use Fight to override." : onTask ? "matched to this target." : "this target is off task.")
-				: "Slayer task: " + config.taskMode() + " (planning override).";
-			taskNote += " " + AccountFacts.describe(assignment);
-			if (matched == null && assignment != null && assignment.locationRestricted)
-			{ taskNote += " The assigned location could not be verified for this search."; }
-			if (npc != null && assignment != null && assignment.locationRestricted)
-			{ taskNote += " Checked the target's region " + taskLocation.getRegionID() + ", floor " + taskLocation.getPlane() + "."; }
-			else if (Boolean.TRUE.equals(matched) && assignment.locationRestricted)
-			{ taskNote += " Assumes you fight it at the assigned location; right-click the monster there to check."; }
+			// The task summary's hover text: one short line.
+			String taskNote = config.taskMode() != AutoState.AUTO ? "Slayer task " + config.taskMode() + " (Fight override)."
+				: matched == null ? "Slayer task unknown; task bonus not assumed."
+				: !onTask ? "This target is off task."
+				: npc == null && assignment.locationRestricted ? "On task, assuming the assigned location."
+				: "Slayer task matched to this target.";
 			if (WildernessTargets.only(summary.getName()))
 			{
 				detected.put("wilderness", true);
@@ -1196,6 +1198,7 @@ public class BestGearSetupPlugin extends Plugin
 					.forinthrySurge(config.forinthrySurge())
 					.weaponPoison(config.weaponPoison()).charge(config.charge())
 					.markOfDarkness(config.markOfDarkness()).sunfireRunes(config.sunfireRunes())
+					.unlocks(prayerUnlocks == null ? PrayerUnlocks.GATED : prayerUnlocks)
 					.kandarinDiary(config.kandarinDiary()).soulreaperStacks(config.soulreaperStacks())
 					.miningLevel(config.miningLevel() == 0 ? mining : config.miningLevel()).build())
 				// HP-dependent target stats are re-derived in the same order for whole-fight averages.
@@ -1280,8 +1283,8 @@ public class BestGearSetupPlugin extends Plugin
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
 				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
 				rememberedLevels, warnings,
-				monster.isImmuneThrall() ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
-				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic());
+				Thrall.eligibleType(monster) == null ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
+				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels);
 			SwingUtilities.invokeLater(() ->
 			{
 				if (panel != null && generation == searchGeneration.get())
@@ -1312,8 +1315,13 @@ public class BestGearSetupPlugin extends Plugin
 		setBankHighlightedSetup(setup, Collections.emptyList());
 	}
 
-	/** Publish the displayed setup's equipment, loaded ammunition, spell runes and boosts to the bank. */
 	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions)
+	{
+		setBankHighlightedSetup(setup, potions, Collections.emptyList());
+	}
+
+	/** Publish the displayed setup's equipment, loaded ammunition, spell runes, boosts and trip supplies to the bank. */
+	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions, List<TripSupplies.Supply> supplies)
 	{
 		Set<Integer> ids = new HashSet<>();
 		if (setup != null)
@@ -1348,11 +1356,12 @@ public class BestGearSetupPlugin extends Plugin
 					ids.addAll(BoostAccess.itemIds(potion));
 				}
 			}
+			supplies.forEach(supply -> ids.addAll(supply.getIds()));
 		}
 		bankHighlightIds = Collections.unmodifiableSet(ids);
 		if (bankView != null)
 		{
-			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions, this::bankItemIds);
+			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions, this::bankItemIds, supplies);
 			int life = lifecycle.get();
 			clientThread.invokeLater(() ->
 			{
@@ -1534,7 +1543,6 @@ public class BestGearSetupPlugin extends Plugin
 			.styles(styles)
 			.weaponHands(config.weaponHands())
 			.calcMode(config.calcMode())
-			.depth(config.searchDepth())
 			.attackXp(config.attackXp())
 			.strengthXp(config.strengthXp())
 			.defenceXp(config.defenceXp())
@@ -1645,7 +1653,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		if (settings.isWildernessRiskLimited())
 		{
-			notes.add("Wilderness limit: at most " + settings.getMaxExpensiveItems() + " equipped items worth "
+			notes.add("Wilderness limit: at most " + settings.getMaxExpensiveItems() + " equipped or spec items worth "
 				+ Budget.format(settings.getExpensiveItemThreshold()) + " GP or more each.");
 			if (Budget.parse(config.expensiveItemThreshold()) < 0)
 			{
@@ -1706,9 +1714,20 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			notes.add(reachNote);
 		}
-		if (base.isImmuneThrall() && ctx.getThrall() != null)
+		Thrall.Type thrallType = Thrall.eligibleType(base);
+		if (Thrall.immune(base) && ctx.getThrall() != null)
 		{
-			notes.add("Thralls: this target is immune, so none are added.");
+			notes.add(base.isImmuneThrall() ? "Thralls: this target is immune, so none are added."
+				: "Thralls: none added, because they can't be resurrected in this fight.");
+		}
+		else if (thrallType == null && ctx.getThrall() != null)
+		{
+			notes.add("Thralls: none added, because no thrall's combat style can damage this target.");
+		}
+		else if (thrallType != null && thrallType != Thrall.Type.GHOSTLY && ctx.getThrall() != null)
+		{
+			notes.add("Thralls: a " + thrallType.getLabel() + " thrall is assumed, because this target is immune to "
+				+ (thrallType == Thrall.Type.SKELETAL ? "magic." : "magic and ranged."));
 		}
 		else if (ctx.getThrall() == null && ctx.isThrall())
 		{
@@ -1745,6 +1764,17 @@ public class BestGearSetupPlugin extends Plugin
 	public boolean isSunfireRunes()
 	{
 		return config != null && config.sunfireRunes();
+	}
+
+	public int getKillsPerTrip()
+	{
+		return config.killsPerTrip();
+	}
+
+	/** A setup's trip supplies for the Kills per trip setting, from the items owned now. */
+	public List<TripSupplies.Supply> tripSupplies(SetupResult setup, SearchResults results, List<Potion> potions)
+	{
+		return TripSupplies.plan(setup, results, potions, config.killsPerTrip(), config.fillFood(), ownedItems::owns);
 	}
 
 	/** Updates one spell rule, moving it between the blocked and forced lists. */

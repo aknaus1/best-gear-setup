@@ -41,6 +41,9 @@ import org.junit.Test;
 /** The Gear view's rule searches keep their text after a pick, so several matches can be added in a row. */
 public class StickyGearSearchTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	private static final GameData DATA = load();
 	private static final GearItem BERSERKER = DATA.searchItems("berserker ring", 2, Slot.RING).get(0);
 	private static final GearItem BERSERKER_I = DATA.searchItems("berserker ring", 2, Slot.RING).get(1);
@@ -439,7 +442,7 @@ public class StickyGearSearchTest
 		{
 			ConstraintsPanel panel = new ConstraintsPanel(plugin);
 			field(panel, "lockSearch").setText("lightbearer");
-			assertEquals("Lock ring slot to Lightbearer",
+			assertEquals("Lock to Lightbearer",
 				button(container(panel, "lockSuggestions"), "Lightbearer").getToolTipText());
 		});
 	}
@@ -453,12 +456,12 @@ public class StickyGearSearchTest
 			ConstraintsPanel panel = new ConstraintsPanel(plugin);
 			Container suggestions = container(panel, "lockSuggestions");
 			field(panel, "lockSearch").setText("lightbearer");
-			assertEquals("Replace ring lock (Berserker Ring) with Lightbearer",
+			assertEquals("Replaces lock: Berserker Ring",
 				button(suggestions, "Lightbearer").getToolTipText());
 
 			panel.startLockSearch(Slot.RING);
 			field(panel, "lockSearch").setText("lightbearer");
-			assertEquals("Replace ring lock (Berserker Ring) with Lightbearer",
+			assertEquals("Replaces lock: Berserker Ring",
 				button(suggestions, "Lightbearer").getToolTipText());
 		});
 	}
@@ -471,7 +474,7 @@ public class StickyGearSearchTest
 		{
 			ConstraintsPanel panel = new ConstraintsPanel(plugin);
 			field(panel, "lockSearch").setText("lightbearer");
-			assertEquals("Replace ring lock (Keep empty) with Lightbearer",
+			assertEquals("Replaces lock: Keep empty",
 				button(container(panel, "lockSuggestions"), "Lightbearer").getToolTipText());
 		});
 	}
@@ -484,7 +487,7 @@ public class StickyGearSearchTest
 		{
 			ConstraintsPanel panel = new ConstraintsPanel(plugin);
 			field(panel, "lockSearch").setText("lightbearer");
-			assertEquals("Replace ring lock (Always fill) with Lightbearer",
+			assertEquals("Replaces lock: Always fill",
 				button(container(panel, "lockSuggestions"), "Lightbearer").getToolTipText());
 		});
 	}

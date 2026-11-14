@@ -324,7 +324,7 @@ public class OwnedItems
 		}
 		if (!Collections.disjoint(ids, manual))
 		{
-			names.add("Marked as owned by hand");
+			names.add("Marked by hand");
 		}
 		return names;
 	}

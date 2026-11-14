@@ -89,7 +89,14 @@ class BestGearSetupBankView
 	/** As {@link #setSelection(SetupResult, List)}, with each item's ids in the order they may take its cell. */
 	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds)
 	{
-		selection = layoutFor(setup, potions, itemIds);
+		setSelection(setup, potions, itemIds, Collections.emptyList());
+	}
+
+	/** With a trip's restores, cure and food after the boosts; its boost bottles already have their boost's cell. */
+	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
+		List<TripSupplies.Supply> supplies)
+	{
+		selection = layoutFor(setup, potions, itemIds, supplies);
 	}
 
 	static Map<Integer, Integer> cellsFor(SetupResult setup)
@@ -99,10 +106,21 @@ class BestGearSetupBankView
 
 	static Map<Integer, Integer> cellsFor(SetupResult setup, List<Potion> potions)
 	{
-		return Collections.unmodifiableMap(layoutFor(setup, potions, BestGearSetupBankView::itemIds).cells);
+		return cellsFor(setup, potions, Collections.emptyList());
+	}
+
+	static Map<Integer, Integer> cellsFor(SetupResult setup, List<Potion> potions, List<TripSupplies.Supply> supplies)
+	{
+		return Collections.unmodifiableMap(layoutFor(setup, potions, BestGearSetupBankView::itemIds, supplies).cells);
 	}
 
 	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds)
+	{
+		return layoutFor(setup, potions, itemIds, Collections.emptyList());
+	}
+
+	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
+		List<TripSupplies.Supply> supplies)
 	{
 		Layout layout = new Layout();
 		if (setup != null)
@@ -144,6 +162,10 @@ class BestGearSetupBankView
 					layout.add(BoostAccess.itemIds(potion), reservedCell(BOOST_CELLS, cell++), BOOST);
 				}
 			}
+			// A food's other owned foods only fill its cell when it's missing, otherwise they join the boost rows.
+			for (TripSupplies.Supply supply : supplies)
+				if (!layout.cells.containsKey(supply.getIds().get(0)))
+					layout.add(supply.getIds(), reservedCell(BOOST_CELLS, cell++), BOOST);
 		}
 		return layout;
 	}

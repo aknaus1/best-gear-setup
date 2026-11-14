@@ -34,6 +34,9 @@ import org.junit.Test;
 /** Rejected input and empty searches explain themselves; estimate-changing assumptions sit beside the results. */
 public class PanelFeedbackTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	private static BestGearSetupPlugin plugin()
 	{
 		return new BestGearSetupPlugin()
@@ -229,6 +232,13 @@ public class PanelFeedbackTest
 			assertNotNull("Previous results stay until the new ones arrive", named(panel, "assumptionWarnings"));
 			assertTrue("The bank layout isn't dropped while searching", highlights.isEmpty());
 			assertTrue(panel.statusLabel.getText().contains("Searching setups for"));
+			// Clearing forgets the shown view, so a supplies-only setting change can't bring its bank layout back.
+			panel.resultView = new ResultView(new SearchResults(new Monster(), 100, Collections.emptyMap(),
+				Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false), null, null, null, null, 0);
+			panel.clearResults("Account changed");
+			highlights.clear();
+			panel.refreshSupplies();
+			assertTrue(panel.resultView == null && highlights.isEmpty());
 		});
 	}
 

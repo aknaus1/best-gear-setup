@@ -55,7 +55,7 @@ class FightOptionsPanel extends JPanel
 		add(BestGearSetupPanel.left(raidSection));
 		// Collapsed by default: most searches start from the target's full stats.
 		preparationSection = accordion.create("preparation", "Pre-fight preparation");
-		preparationSection.setToolTipText("Successful specials and defence reductions landed before the fight starts");
+		preparationSection.setToolTipText("Specs and defence drains landed before the fight");
 		addRows(preparationSection, "autoSpecs");
 		addRows(preparationSection, PREPARATION);
 		add(BestGearSetupPanel.left(preparationSection));
@@ -139,7 +139,7 @@ class FightOptionsPanel extends JPanel
 		boolean wildernessOnly = WildernessTargets.only(target.getName());
 		JCheckBox wilderness = (JCheckBox) control("wilderness");
 		wilderness.setEnabled(!wildernessOnly);
-		wilderness.setToolTipText(wildernessOnly ? "Always on: this target only appears in the Wilderness." : wildernessTip);
+		wilderness.setToolTipText(wildernessOnly ? "Always on: this target is only in the Wilderness." : wildernessTip);
 		if (wildernessOnly)
 		{
 			wilderness.setSelected(true);

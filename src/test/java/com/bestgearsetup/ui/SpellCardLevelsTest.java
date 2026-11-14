@@ -26,6 +26,9 @@ import org.junit.Test;
 
 public class SpellCardLevelsTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	private SpellFilter filter = SpellFilter.NONE;
 	private List<Spell> spells = Arrays.asList(
 		spell("wind strike", "standard", 1),

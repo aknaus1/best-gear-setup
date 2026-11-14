@@ -157,7 +157,7 @@ public final class DpsCalculator
 				.withDetail("Bonus-based accuracy; guaranteed maximum damage");
 		}
 		else if (CombatRules.alwaysMax(ctx.getMonster(), WeaponRules.classOf(style))
-			|| CombatRules.araxyteMax(ctx.getMonster(), loadout))
+			|| CombatRules.flareMax(ctx.getMonster(), loadout) || CombatRules.araxyteMax(ctx.getMonster(), loadout))
 		{
 			r = result(r.getMaxHit(), r.getMaxHit(), 1, r.getAttackSpeedTicks()).withDetail("Guaranteed maximum damage");
 		}
@@ -165,7 +165,7 @@ public final class DpsCalculator
 		{
 			r = r.withExpectedSpeed(Math.max(1, r.getExpectedSpeedTicks() - 1));
 		}
-		if (SupportSpell.thrall(loadout, ctx) && r.getDps() > 0)
+		if (r.getDps() > 0 && SupportSpell.thrall(loadout, ctx))
 		{
 			r = r.withExtraDps(ctx.getThrall().getDps());
 		}
@@ -681,7 +681,7 @@ public final class DpsCalculator
 		{
 			defBonus = (m.getDefLightOrStandard() + m.getDefRanged() + m.getDefHeavyOrStandard()) / 3;
 		}
-		else if (sub.equals("crossbow") && !wName.startsWith("karil's crossbow"))
+		else if (sub.equals("crossbow"))
 		{
 			defBonus = m.getDefHeavyOrStandard();
 		}
@@ -851,6 +851,8 @@ public final class DpsCalculator
 		{
 			baseMax += 10;
 		}
+		if (ctx.getModifiers().getUnlocks().contains(element))
+			baseMax += 2;
 
 		OffensivePrayer prayer = ctx.getPrayer(CombatClass.MAGIC);
 		double pAcc = prayer == null ? 1 : 1 + prayer.getAccuracyPercent() / 100;
@@ -1185,7 +1187,7 @@ public final class DpsCalculator
 	 */
 	static final class Bonuses
 	{
-		private static final java.util.Set<String> QUIVERS = new java.util.HashSet<>(java.util.Arrays.asList(
+		static final java.util.Set<String> QUIVERS = new java.util.HashSet<>(java.util.Arrays.asList(
 			"dizana's quiver", "blessed dizana's quiver", "dizana's max cape"));
 
 		int stab;

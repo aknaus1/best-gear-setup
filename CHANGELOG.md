@@ -13,12 +13,49 @@ is what the Plugin Hub shows.
   Defence, following the raid's 21 October hotfix. Ocellus's second phase and the other NPCs can still be
   drained to 0.
 - Refresh The Fractured Archive's NPCs from the Wiki after the 11 November update: the Archive Guardian has 55
-  light ranged defence when flying, 50 magic defence in both forms and an 80% fire weakness when grounded; Bork
+  light ranged defence and 130 magic defence when flying, 50 magic defence and an 80% fire weakness when grounded; Bork
   has 1,650 Hitpoints and the Smorks 650; Xarth has 2,450 Hitpoints and 60 stab defence. The undead binders are
   undead. Xarth, Ocellus, the Dagon'hai and the undead binders gain the Wiki's poison, venom, freeze and burn
   data, and the Dagon'hai, Xarth, Ocellus and the undead binders their max hits. Ezekiel's animated swords and the
   inert guardians are added as raid NPCs.
 - Refresh the other Wiki monster data, which adds the Leech and Snelmlover500.
+- Treat Karil's crossbow as heavy ranged like every other crossbow, as the Wiki DPS calculator does: it rolls
+  against heavy ranged defence and gets the unshielded Tormented Demon bonus.
+- Only magic and standard ranged hits (bows and salamanders) on Yama's void flares are guaranteed maximum, per
+  the Wiki. Crossbows, chinchompas, thrown weapons and melee roll normally.
+- Count a special attack weapon, and an off-hand or ammunition held only for its spec, in the Wilderness
+  expensive-item limit alongside the worn gear.
+- Show the thrall that can damage the target: ghostly unless the target is immune to magic, then skeletal, then
+  zombified, with no thrall where no style can hurt it or thralls can't be resurrected (Galvek, Robert the Strong,
+  Vanstrom Klause, Fragment of Seren, Lowerniel Drakan, Nightmare Zone).
+- Leave a slot empty when its item makes no difference to the setup's rates or its special attack (a strength
+  bonus short of the next max hit, a seeded set's leftover, a piece with only defence), instead of wearing or
+  buying it. Fill empty slots still fills such slots with prayer or defence pieces.
+- Zeal is assumed once your account has unlocked it (+25% Attack and +28% Strength over Piety), and each broken
+  Fractured Archive elemental fragment adds 2 to its element's spells.
+- Hover text and setting descriptions are cut to under 10 words: item tooltips keep the name, where it's stored
+  and what matters most, and drop the rest when it doesn't fit. A few lock reasons and long names can run longer.
+- Add **Kills per trip** (default 1). Each setup now shows its prayer points per kill (its offensive prayer and
+  the target's overhead), the trip's combat time from its TTK, and the boost and prayer restore bottles the trip
+  needs: super restores when you own them or Sanfew serums, otherwise prayer potions. Nightmare Zone potions are
+  only packed for Nightmare Zone targets, and a wild pie or butterfly jar counts its own bites or sips.
+- Fill the trip's free inventory slots with the best food you own (sharks if none), with owned cooked karambwans
+  and Saradomin brews (beside super restores) mixed in from four free slots. The bank layout places the restores
+  and food after the boosts and outlines them; up to three other owned foods are offered in the food's place.
+  A two-handed spec weapon leaves a slot for the shield it takes off.
+  Turn it off with **Fill inventory with food**.
+- Against a monster whose attacks poison or envenom you (125 poison, 40 envenom, from the Wiki's monster data),
+  the trip brings a superantipoison or an anti-venom+, unless a serpentine helm makes you immune.
+- Each setup shows the target's overhead protection prayer: one prayer, a switch between several, or none needed,
+  from the Wiki's strategy pages and the monster's attack styles, with a melee setup's own advice where it stands
+  in melee range. It is static advice per target. Prayer per kill counts that overhead, and none when the target needs none or
+  has no advice.
+- Gear searches are exact: each weapon's setup is now the best combination of your allowed gear for its
+  ordinary attacks, where the old search could stop a few pieces short. Across 1,872 test searches (every boss,
+  each class, a 10m budget and best in slot) 280 found a better setup and none a worse one, in under half
+  the time. The **Search depth** setting is gone.
+- A setup killing faster with poison, venom or burns is never credited a slightly slower kill than a weaker one
+  (up to 0.07% DPS).
 
 ## 1.1.3 (2026-11-10)
 

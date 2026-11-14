@@ -121,7 +121,7 @@ class SidebarSection extends JPanel
 			open ? ColorScheme.BRAND_ORANGE : ColorScheme.LIGHT_GRAY_COLOR));
 		toggle.setFont(Controls.plain(open ? FontManager.getRunescapeBoldFont() : FontManager.getRunescapeFont()));
 		String hint = (open ? "Collapse " : "Expand ") + title;
-		toggle.setToolTipText(description == null ? hint : "<html>" + hint + "<br>" + BestGearSetupPanel.escape(description) + "</html>");
+		toggle.setToolTipText(description == null ? hint : description);
 		toggle.getAccessibleContext().setAccessibleDescription(open ? "Expanded" : "Collapsed");
 	}
 

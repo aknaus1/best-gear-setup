@@ -51,20 +51,20 @@ public class LockStatus
 		{
 			case EMPTY:
 				return new LockStatus(slot, lock, null, null, slot == Slot.AMMO
-					? "Weapons that fire arrows, bolts or other ammunition are excluded." : null);
+					? "Weapons firing ammunition are excluded." : null);
 			case FILL:
-				return new LockStatus(slot, lock, null, null, "Always filled with the best defence or prayer item."
-					+ (slot == Slot.SHIELD ? " Two-handed weapons are excluded." : ""));
+				return new LockStatus(slot, lock, null, null, slot == Slot.SHIELD
+					? "Best defence or prayer item; no two-handed weapons." : "Always filled with the best defence or prayer item.");
 			default:
 				break;
 		}
 		GearItem item = locked;
 		String blocked = slot == Slot.WEAPON ? "No setup can be found while this lock is set."
-			: slot == Slot.AMMO ? "The ammo slot is left empty, so weapons that fire ammunition are excluded."
+			: slot == Slot.AMMO ? "Ammo slot empty: weapons firing ammunition are excluded."
 			: "The " + slotName + " slot is left empty.";
 		if (item == null)
 		{
-			return new LockStatus(slot, lock, null, "this item is not in the bundled data", blocked);
+			return new LockStatus(slot, lock, null, "it's not in the bundled data", blocked);
 		}
 		String problem = slot == Slot.WEAPON ? optimizer.weaponLockReason(item) : optimizer.unusableReason(item);
 		if (problem != null)
@@ -80,7 +80,7 @@ public class LockStatus
 				return new LockStatus(slot, lock, item, null, "Two-handed weapons are excluded.");
 			case AMMO:
 				return new LockStatus(slot, lock, item, null,
-					"Weapons that fire ammunition are searched only if they can fire " + name + ".");
+					"Ammo weapons must fire " + name + ".");
 			default:
 				return new LockStatus(slot, lock, item, null, null);
 		}

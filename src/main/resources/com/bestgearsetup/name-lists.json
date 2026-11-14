@@ -73,6 +73,7 @@
   ],
 
   "karuulm monsters": ["hydra (*)", "colossal hydra (*)", "alchemical hydra (*)", "drake (*)", "guardian drake (*)", "sulphur lizard (*)"],
+  "thrall-restricted fights": ["galvek (*)", "robert the strong (*)", "vanstrom klause (*)", "fragment of seren (*)", "lowerniel drakan (*)", "* (nightmare zone)*"],
   "wyrms": ["wyrm (*)", "shadow wyrm (*)"],
   "slayer equipment": [
     {"slot": "HEAD", "items": "a facemask or slayer helmet",
@@ -112,6 +113,21 @@
   ],
   "magic-only gear": ["virtus *", "tome of *", "elemental amulet*", "amulet of air*", "amulet of water*", "amulet of earth*",
     "amulet of fire*", "chaos gauntlets*", "confliction gauntlets*", "brimstone ring*"],
+  "optimizer sets": [
+    {"_about": "Sets whose effect needs every piece: the gear search wears each whole (or treats its pieces as plain gear) with the class's weapons matching 'weapon' (any when absent). Each piece is a slot and the names it may wear, matched as the calculator matches them (the name, or the name and a space); a way to wear a set with a stronger effect (elite void) is a set of its own.",
+      "class": "MELEE", "pieces": [["HEAD", "void melee helm"], ["HANDS", "void knight gloves"], ["BODY", "void knight top", "elite void top"], ["LEGS", "void knight robe", "elite void robe"]]},
+    {"class": "RANGED", "pieces": [["HEAD", "void ranger helm"], ["HANDS", "void knight gloves"], ["BODY", "void knight top", "elite void top"], ["LEGS", "void knight robe", "elite void robe"]]},
+    {"class": "MAGIC", "pieces": [["HEAD", "void mage helm"], ["HANDS", "void knight gloves"], ["BODY", "void knight top", "elite void top"], ["LEGS", "void knight robe", "elite void robe"]]},
+    {"class": "RANGED", "pieces": [["HEAD", "void ranger helm"], ["HANDS", "void knight gloves"], ["BODY", "elite void top"], ["LEGS", "elite void robe"]]},
+    {"class": "MAGIC", "pieces": [["HEAD", "void mage helm"], ["HANDS", "void knight gloves"], ["BODY", "elite void top"], ["LEGS", "elite void robe"]]},
+    {"class": "MELEE", "weapon": ["toktz-*", "tzhaar-ket-*"], "pieces": [["HEAD", "obsidian helmet"], ["BODY", "obsidian platebody"], ["LEGS", "obsidian platelegs"]]},
+    {"class": "MELEE", "weapon": ["dharok's greataxe*"], "pieces": [["HEAD", "dharok's helm"], ["BODY", "dharok's platebody"], ["LEGS", "dharok's platelegs"]]},
+    {"class": "MELEE", "weapon": ["verac's flail*"], "pieces": [["HEAD", "verac's helm"], ["BODY", "verac's brassard"], ["LEGS", "verac's plateskirt"]]},
+    {"class": "MELEE", "weapon": ["dual macuahuitl*"], "pieces": [["HEAD", "blood moon helm"], ["BODY", "blood moon chestplate"], ["LEGS", "blood moon tassets"]]},
+    {"class": "RANGED", "weapon": ["karil's crossbow*"], "pieces": [["HEAD", "karil's coif"], ["BODY", "karil's leathertop"], ["LEGS", "karil's leatherskirt"], ["NECK", "amulet of the damned"]]},
+    {"class": "RANGED", "weapon": ["eclipse atlatl*"], "pieces": [["HEAD", "eclipse moon helm"], ["BODY", "eclipse moon chestplate"], ["LEGS", "eclipse moon tassets"]]},
+    {"class": "MAGIC", "weapon": ["ahrim's staff*"], "pieces": [["HEAD", "ahrim's hood"], ["BODY", "ahrim's robetop"], ["LEGS", "ahrim's robeskirt"], ["NECK", "amulet of the damned"]]}
+  ],
   "pvp repair fees": {
     "_about": "Coins to repair an item after an unprotected PvP death, by its catalogue name; decorative armour costs 5,000.",
     "fire cape": 150000, "fire max cape": 150000, "fighter torso": 150000, "infernal cape": 225000,
@@ -132,5 +148,23 @@
   "league equipment": [
     "the dogsword (*)", "drygore blowpipe (*)", "amulet of the monarchs (*)", "emperor ring (*)", "devil's element (*)", "nature's reprisal (*)",
     "gloves of the damned (*)", "crystal blessing (*)", "sunlight spear (*)", "sunlit bracers (*)", "thunder khopesh (*)", "thousand-dragon ward (*)"
+  ],
+  "prayer drain": {
+    "_about": "Drain effect per tick of each offensive prayer (Wiki: Prayer, 'Drain effect'); the trip supplies add one protection prayer (12) to it.",
+    "burst of strength": 3, "clarity of thought": 3, "sharp eye": 3, "mystic will": 3,
+    "superhuman strength": 6, "improved reflexes": 6, "hawk eye": 6, "mystic lore": 6,
+    "ultimate strength": 12, "incredible reflexes": 12, "eagle eye": 12, "mystic might": 12,
+    "chivalry": 12, "deadeye": 12, "mystic vigour": 12,
+    "piety": 24, "rigour": 24, "augury": 24, "zeal": 24
+  },
+  "boost doses": {
+    "_about": "Doses one item of a non-potion boost holds, for the trip supplies; every other boost is a four-dose bottle. Butterfly jars and beers are drunk once, a wild pie eaten in two halves.",
+    "wild pie": 2, "black warlock": 1, "ruby harvest": 1, "sapphire glacialis": 1, "lizardkicker": 1,
+    "wizard's mind bomb": 1, "mature wizard's mind bomb": 1
+  },
+  "_trip foods": "One-bite foods a trip fills its free inventory slots with, as [name, item id], best heal at 99 Hitpoints first. Anglerfish leads as it can heal above the maximum; a cooked karambwan (3144) is packed beside another food for combo eating.",
+  "trip foods": [
+    ["Anglerfish", 13441], ["Manta ray", 391], ["Dark crab", 11936], ["Tuna potato", 7060], ["Sea turtle", 397], ["Shark", 385],
+    ["Cooked karambwan", 3144], ["Monkfish", 7946], ["Potato with cheese", 6705], ["Swordfish", 373], ["Bass", 365], ["Lobster", 379]
   ]
 }

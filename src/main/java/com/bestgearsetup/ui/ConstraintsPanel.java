@@ -115,7 +115,7 @@ class ConstraintsPanel extends JPanel
 		body.add(slotRow);
 		lockSearch.setName("lockSearch");
 		addSearch(body, lockSearch, lockSuggestions, "lockSuggestions", "Search items to lock...",
-			"Search an item to lock its slot to", this::updateLockSuggestions);
+			"Find an item to lock its slot to", this::updateLockSuggestions);
 
 		excludedSection = card(accordion, "exclusions", "Excluded items");
 		body = excludedSection.getContent();
@@ -124,17 +124,17 @@ class ConstraintsPanel extends JPanel
 		body.add(caption("Exclude an item"));
 		excludeSearch.setName("excludeSearch");
 		addSearch(body, excludeSearch, excludeSuggestions, "excludeSuggestions", "Search items to exclude...",
-			"Search an item the search should never use", this::updateExcludeSuggestions);
+			"Find an item the search should never use", this::updateExcludeSuggestions);
 
 		forcedSpellsSection = card(accordion, "forcedSpells", "Allowed spells");
-		forcedSpellsSection.setToolTip("Only these spells are cast. Powered staves and salamanders are still used.");
+		forcedSpellsSection.setToolTip("Only these spells; powered staves and salamanders still work");
 		body = forcedSpellsSection.getContent();
 		body.add(hint("Only these spells are cast. Powered staves and salamanders are still used."));
 		body.add(transparent(forcedSpellsList));
 		body.add(caption("Allow a spell"));
 		forcedSpellsSearch.setName("forcedSpellsSearch");
 		addSearch(body, forcedSpellsSearch, forcedSpellsSuggestions, "forcedSpellsSuggestions",
-			"Search spells to allow...", "Search a spell to always cast", this::updateForcedSpellSuggestions);
+			"Search spells to allow...", "Find a spell to always cast", this::updateForcedSpellSuggestions);
 
 		blockedSpellsSection = card(accordion, "blockedSpells", "Excluded spells");
 		body = blockedSpellsSection.getContent();
@@ -143,7 +143,7 @@ class ConstraintsPanel extends JPanel
 		body.add(caption("Exclude a spell"));
 		blockedSpellsSearch.setName("blockedSpellsSearch");
 		addSearch(body, blockedSpellsSearch, blockedSpellsSuggestions, "blockedSpellsSuggestions",
-			"Search spells to exclude...", "Search a spell the search should never cast", this::updateBlockedSpellSuggestions);
+			"Search spells to exclude...", "Find a spell the search should never cast", this::updateBlockedSpellSuggestions);
 
 		ownedSection = card(accordion, "extraOwnedItems", "Extra owned items");
 		body = ownedSection.getContent();
@@ -152,7 +152,7 @@ class ConstraintsPanel extends JPanel
 		body.add(caption("Mark an item as owned"));
 		ownedSearch.setName("ownedSearch");
 		addSearch(body, ownedSearch, ownedSuggestions, "ownedSuggestions", "Search items you own...",
-			"Search an item to mark as owned", this::updateOwnedSuggestions);
+			"Find an item to mark as owned", this::updateOwnedSuggestions);
 
 		JLabel more = new JLabel(BestGearSetupPanel.html("Persistent preferences (equipment, styles, experience and fill slots) are in "
 			+ "<b>Settings</b>."));
@@ -268,7 +268,7 @@ class ConstraintsPanel extends JPanel
 			GearItem item = data == null ? null : data.findItem(id);
 			String name = item == null ? "Item " + id : GameData.titleCase(item.getName());
 			ownedList.add(ruleRow(itemIcon(id), name, item == null ? null : item.getSlot().getDisplayName(),
-				"No longer mark " + name + " as owned", () -> plugin.setManualOwned(id, false)));
+				"Unmark " + name, () -> plugin.setManualOwned(id, false)));
 		}
 		finishList(ownedList, manual.size(), "None marked.", null, null);
 		ownedSection.setSummary(manual.size());
@@ -369,11 +369,9 @@ class ConstraintsPanel extends JPanel
 			{
 				String name = GameData.titleCase(item.getName());
 				String slotName = item.getSlot().getDisplayName();
-				String slotText = slotName.toLowerCase(Locale.ROOT);
 				SlotLock current = locks.get(item.getSlot());
-				String tooltip = current == null
-					? "Lock " + slotText + " slot to " + name
-					: "Replace " + slotText + " lock (" + lockLabel(data, item.getSlot(), current) + ") with " + name;
+				// The button names the item and slot; the tooltip names the lock it would replace.
+				String tooltip = current == null ? "Lock to " + name : "Replaces lock: " + lockLabel(data, item.getSlot(), current);
 				lockSuggestions.add(itemButton(item, only == null ? name + " (" + slotName + ")" : name, tooltip, () ->
 				{
 					plugin.lockItem(item);

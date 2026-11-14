@@ -224,6 +224,36 @@ final class CombatRules
 		return m.getId() == 7584 || m.getId() == 7585 || EncounterDamage.named(m, "ice demon") ? 115 : 100;
 	}
 
+	/** Yama's void flares (ids shared by the fire and shadow flares, matched by name for older data). */
+	static boolean voidFlare(Monster m)
+	{
+		return m.getId() == 14179 || EncounterDamage.named(m, "void flare");
+	}
+
+	/**
+	 * Void flares always take a maximum hit from magic and from standard ranged weapons (Wiki); melee and light or
+	 * heavy ranged attacks roll normally.
+	 */
+	static boolean flareMax(Monster m, Loadout loadout)
+	{
+		if (!voidFlare(m))
+		{
+			return false;
+		}
+		CombatClass cls = WeaponRules.classOf(loadout.getStyle());
+		return cls == CombatClass.MAGIC || cls == CombatClass.RANGED && standardRanged(loadout.getWeapon());
+	}
+
+	/**
+	 * Standard ranged weapons: bows (the eclipse atlatl is one), and salamanders' ranged attack (Wiki: Ranged). Crossbows, including
+	 * Karil's, and chinchompas are heavy; thrown weapons are light.
+	 */
+	static boolean standardRanged(GearItem weapon)
+	{
+		String sub = weapon.getSubcategory();
+		return sub.equals("bow") || sub.equals("salamander");
+	}
+
 	static int demonBonus(Monster m, int percent)
 	{
 		return percent * demonVulnerability(m) / 100;
@@ -232,7 +262,7 @@ final class CombatRules
 	static boolean alwaysMax(Monster m, CombatClass cls)
 	{
 		int id = m.getId();
-		if (id == 14179 || id == 14180)
+		if (id == 14180)
 		{
 			return true;
 		}
@@ -296,6 +326,6 @@ final class CombatRules
 		return l.getStyle().getType() == AttackStyle.Type.CRUSH
 			|| l.getStyle().getType() == AttackStyle.Type.MAGIC && l.getSpell() != null
 			|| l.getStyle().getType() == AttackStyle.Type.RANGED && (category.equals("chinchompa")
-			|| category.equals("crossbow") && !EncounterDamage.lower(l.getWeapon()).startsWith("karil's crossbow"));
+			|| category.equals("crossbow"));
 	}
 }

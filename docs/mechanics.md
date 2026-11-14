@@ -65,9 +65,11 @@ This page covers what the plugin assumes and what it enforces. For installation 
 - The plugin uses your real combat levels and item requirements. Levels are remembered per account, so a
   logged-out search uses the levels it last saw in game (it only assumes 99s before the account's first
   login). By default it assumes the best prayer your levels and unlocks allow, plus potion boosts (you can
-  change this). Piety/Chivalry (Knight Waves), Rigour, Augury, Deadeye and Mystic Vigour are read from your
-  account while you're logged in and remembered the same way. Before the first login they're assumed
-  unlocked, like the 99s.
+  change this). Piety/Chivalry (Knight Waves), Rigour, Augury, Deadeye, Mystic Vigour and Zeal (the Horn of
+  Bran; it replaces Piety with +25% Attack and +28% Strength) are read from your account while you're logged in
+  and remembered the same way, as are the Fractured Archive's elemental fragments you've broken (+2 base max hit
+  to that element's spells). Before the first login they're all assumed unlocked, like the 99s. Zeal's 75 Attack
+  and Strength requirement isn't checked.
 - When the potion choice is *Best*, potion boosts follow the search mode. *Owned items only* uses only
   potions and hearts you own (any dose; a divine potion counts as the regular one), and *Inventory +
   equipped only* only those you're carrying. *Owned + budget* can buy
@@ -83,6 +85,17 @@ This page covers what the plugin assumes and what it enforces. For installation 
   complete before the first login. They aren't added to setups autocasting a non-Arceuus spell or against
   thrall-immune targets. A setup that includes one shows the thrall's icon next to its prayer and potions
   and an **Incl. thrall** line under its DPS.
+- Each setup shows the target's **overhead** protection prayer from `encounter-prayers.json`: game-mode
+  versions (Deadman, PvM Arena, Echo) by their own Wiki attack styles, then checked Wiki strategy pages, then
+  the monster's Wiki attack styles, with a melee setup's own advice where it stands
+  in melee range. It's static per target (one prayer, the prayers a fight switches between, or none needed),
+  never a live cue.
+- **Trips**: with **Kills per trip** above 1 a setup shows the trip's combat time (kills x TTK, no banking).
+  Prayer per kill counts the setup's offensive prayer and the recommended overhead, at the Wiki's drain
+  rates and your worn prayer bonus; restores cover what the trip drains beyond your full Prayer. The trip
+  brings each boost's bottles (Nightmare Zone potions only there), a cure against a target that poisons or
+  envenoms unless a serpentine helm makes you immune, and with **Fill inventory
+  with food** food in the free slots. Raid targets have no trip lines: the raid hands out its supplies.
 - Demonbane spells assume Mark of Darkness is active (in the Combat boosts settings), and its icon appears
   next to the prayer and potions when a setup uses it. With it turned off, elemental weaknesses such as
   Yama's weakness to water can outrank demonbane spells.
@@ -218,7 +231,8 @@ follows the raid you're in.
 These preferences are in RuneLite's configuration for the plugin (**Settings** in the side panel opens it):
 
 - **Search options**: one-handed or two-handed weapons only; optimise for DPS, accuracy, max hit or average
-  hit; search depth (fast, normal or best).
+  hit; **Kills per trip**, which changes only the trip's supplies, so the shown setup updates without
+  searching again.
 - **Attack styles**: toggles for stab, slash, crush, ranged, magic and atlatl (the eclipse atlatl gets its
   own tab: ranged accuracy, Strength-based damage and Eclipse Moon burns).
 - **Equipment** and **Spellbooks**: Members, DMM, Beta and BH equipment, the spellbooks allowed for
@@ -239,9 +253,12 @@ These preferences are in RuneLite's configuration for the plugin (**Settings** i
 - **Experience filters**: rule out styles that give Attack, Strength or Defence XP (for pures). Turn off the
   other two to train one melee skill only; controlled gives all three, so it needs all three on.
 - **Fill empty slots**: fill slots that don't add damage with prayer or defence items (by defence type, or
-  weighted by the target's own attacks), optionally giving up a little DPS to do so.
+  weighted by the target's own attacks), optionally giving up a little DPS to do so. With it off, a slot is left
+  empty when its item changes neither the setup's rates nor its special attacks' hits (a strength bonus short of
+  the next max hit, say); the weapon, its ammunition, locked slots and lightbearer behind a spec plan always stay.
 - **Display & interaction**: the **Right-click option** that adds **Best setup** to the menu of attackable
-  NPCs (on by default), and the bank and inventory highlights with their colours.
+  NPCs (on by default), the bank and inventory highlights with their colours, and **Fill inventory with food**,
+  which like Kills per trip updates the shown supplies without searching again.
 
 ## Encounter rules
 
@@ -454,7 +471,7 @@ quiver (+10 ranged accuracy and +1 ranged strength, but only when firing arrows 
 The calculator also handles per-hit rounding, elemental weaknesses, damaging enchanted bolt procs, Barrows
 and Moon set effects, conditional multi-hit weapons, health and buff snapshots, more weapon family
 bonuses, flat armour and boss phase exceptions. The optimizer keeps the equipment those effects depend on
-and seeds it into the search. Rewards from past Leagues are left out of normal searches.
+and searches it with every other choice. Rewards from past Leagues are left out of normal searches.
 
 ### Fight inputs and raid scaling
 

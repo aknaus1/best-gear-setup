@@ -36,7 +36,7 @@ FIELDS = ["page_name", "id", "name", "version_anchor", "default_version", "comba
           "range_defence_bonus", "light_range_defence_bonus", "standard_range_defence_bonus",
           "heavy_range_defence_bonus", "flat_armour", "size", "attribute", "elemental_weakness",
           "elemental_weakness_percent", "attack_speed", "attack_style", "max_hit", "slayer_category",
-          "thrall_immune"]
+          "thrall_immune", "poisonous"]
 
 ATTRIBUTE_NAMES = {"vampyre1": "vampyre (t1)", "vampyre2": "vampyre (t2)", "vampyre3": "vampyre (t3)"}
 TOA = {"akkha", "akkha's shadow", "ba-ba", "kephri", "zebak", "elidinis' warden", "tumeken's warden",
@@ -173,6 +173,17 @@ def tags(page, version, attributes, bosses):
     return sorted(set(out))
 
 
+def poisons(value):
+    """What the infobox's poisonous field says the monster inflicts on the player: "venom" for "Yes ([[venom]])",
+    "poison" for "Yes", "Yes (8)" or a bare poison max hit, None for "No", blank or anything else."""
+    text = " ".join(as_list(value)).strip().lower()
+    if "venom" in text:
+        return "venom"
+    if text.startswith("yes") or number(text) > 0:
+        return "poison"
+    return None
+
+
 def build(row, ids, name, bosses, extra_tags=()):
     page = row["page_name"]
     standard = number(row.get("standard_range_defence_bonus"), None)
@@ -180,6 +191,7 @@ def build(row, ids, name, bosses, extra_tags=()):
         standard = number(row.get("range_defence_bonus"))
     weakness = (row.get("elemental_weakness") or "").strip().lower() or None
     attributes = tags(page, row.get("version_anchor"), as_list(row.get("attribute")), bosses) + list(extra_tags)
+    inflicts = poisons(row.get("poisonous"))
     return {
         "id": ids[0], "ids": ids, "name": name, "level_cb": number(row.get("combat_level")),
         "level_hp": number(row.get("hitpoints")), "level_attack": number(row.get("attack_level")),
@@ -201,6 +213,8 @@ def build(row, ids, name, bosses, extra_tags=()):
         "attackStyles": attack_styles(row),
         # Bucket BOOLEAN fields are present (empty string) when true and absent when false.
         "default_version": row.get("default_version") is not None,
+        # Only monsters that poison or envenom the player carry the field, keeping the snapshot small.
+        **({"poisons": inflicts} if inflicts else {}),
     }
 
 

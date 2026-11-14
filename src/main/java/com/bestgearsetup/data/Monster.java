@@ -35,6 +35,8 @@ public class Monster
 	private boolean immunePoison;
 	@SerializedName("immune_venom")
 	private boolean immuneVenom;
+	/** "poison" or "venom" when the monster's attacks poison or envenom the player (Wiki infobox); null otherwise. */
+	private String poisons;
 	@SerializedName("level_magic")
 	private int magicLevel;
 	@SerializedName("level_ranged")

@@ -23,6 +23,9 @@ import org.junit.Test;
 
 public class FightOptionsPanelTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	@Test
 	public void wildernessRiskControlsShowTogetherAndSaveTheirValues() throws Exception
 	{

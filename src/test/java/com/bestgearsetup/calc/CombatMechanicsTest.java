@@ -183,6 +183,19 @@ public class CombatMechanicsTest
 	}
 
 	@Test
+	public void karilsCrossbowRollsAgainstHeavyRangedDefence()
+	{
+		Monster m = monster(100, 20);
+		m.setDefHeavy(500);
+		Loadout karil = loadout("karil's crossbow", "crossbow", "rapid,ranged,rapid");
+		Loadout rune = loadout("rune crossbow", "crossbow", "rapid,ranged,rapid");
+		double heavy = DpsCalculator.calculate(rune, context(m)).getAccuracy();
+		assertEquals(heavy, DpsCalculator.calculate(karil, context(m)).getAccuracy(), EPS);
+		m.setDefHeavy(0);
+		assertTrue(DpsCalculator.calculate(karil, context(m)).getAccuracy() > heavy);
+	}
+
+	@Test
 	public void barrowsDamnedProcsRequireCompleteSetsAndNecklace()
 	{
 		Loadout karil = loadout("karil's crossbow", "crossbow", "rapid,ranged,rapid");

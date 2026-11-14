@@ -2,6 +2,7 @@ package com.bestgearsetup;
 
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.data.Potion;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -97,6 +98,14 @@ final class BoostAccess
 		{
 			addFamily(ids, divine);
 		}
+	}
+
+	/** Every dose of a potion, the 4-dose first and then the others highest first. */
+	static List<Integer> doseIds(int fourDose)
+	{
+		Set<Integer> ids = new LinkedHashSet<>();
+		addFamily(ids, fourDose);
+		return new ArrayList<>(ids);
 	}
 
 	/** The 4-dose id, then the other doses highest first: their ids rise as the dose falls, (3) to (1). */

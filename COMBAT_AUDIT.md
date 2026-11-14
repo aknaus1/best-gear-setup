@@ -68,7 +68,7 @@ scythe's three hits, or treating two linked hits as if they were independent.
 | Case | How it's calculated |
 | --- | --- |
 | Ordinary melee weapons, tools, shields, decorative weapons and unarmed styles | Use actual style, speed, accuracy/strength stats and requirements. Bulwark's block stance is not an attack. Non-offensive items can contribute defence/prayer through the existing fill rules. |
-| Void and elite void | Effective-level bonuses remain before roll calculation. Elite ranged strength and elite Magic damage use their respective branches. A complete set is seeded in optimization. |
+| Void and elite void | Effective-level bonuses remain before roll calculation. Elite ranged strength and elite Magic damage use their respective branches. The optimizer wears a set whole or treats its pieces as plain gear. |
 | Slayer helmets/black masks, salve variants and avarice | Preserve exclusions and style-specific eligibility. Atlatl and Hunter's spear damage accept melee task/salve eligibility while accuracy still requires ranged eligibility. Avarice applies to revenants: 24/20 melee/ranged and +20% Magic, or 27/20 and +35% with the optional Forinthry Surge. |
 | Obsidian and berserker necklace | Armour adds one tenth of the **base** max, after applicable task/salve effects. Necklace multiplies each rolled melee hit by 6/5; it does not simply create a larger uniform roll. |
 | Inquisitor | Crush bonus weights are helm 1, body 2, legs 2, each over 200; so partial sets get a partial bonus. Full set is 2.5%. |
@@ -87,7 +87,7 @@ scythe's three hits, or treating two linked hits as if they were independent.
 | Dharok | Complete set transforms every rolled hit by `(10000 + (baseHP-currentHP)*baseHP)/10000`. Uses an explicit health snapshot; defaults to full HP. |
 | Verac | Complete set mixes ordinary damage with a 25% guaranteed-accuracy 1..max+1 roll, followed by NPC mitigation. This also adjusts reported accuracy. |
 | Hunter's spear | Like the eclipse atlatl, damage uses visible Strength, melee strength bonus and the melee slayer/salve branches; accuracy stays ranged. Candidate pruning keeps melee-strength items for ranged searches when the spear is usable. It stays on the Ranged tab. |
-| Ahrim/Karil with amulet of the damned | Ahrim has a 25% per-hit 13/10 damage branch. Karil has a 25% secondary splat at half the first rolled damage. Sets and necklace are seeded together. |
+| Ahrim/Karil with amulet of the damned | Ahrim has a 25% per-hit 13/10 damage branch. Karil has a 25% secondary splat at half the first rolled damage. The optimizer wears each set with its necklace whole. |
 | Guthan, defensive Barrows passives, resource-saving gear and healing jewellery | Their healing, stat restoration, resource saving or defensive benefits don't directly add sustained damage, so they get no made-up DPS multiplier. Benefits to rotations or downtime are outside this model. |
 | Bulwark | Defence-derived strength is included, and defensive equipment stats participate in candidate ranking for that weapon. |
 | Colossal blade, leaf-bladed battleaxe, barronite mace, granite hammer | Size bonus capped at +10, leafy damage modifier, and distinct golem bonuses apply in the correct family contexts. |
@@ -109,16 +109,34 @@ scythe's three hits, or treating two linked hits as if they were independent.
 | Locks on unowned items | In *Owned items only* and *Inventory + equipped only*, an item locked into its slot is worn even when it isn't held, and keeps its purchase price in the result's cost. *Owned + budget* still requires a locked item to be owned or affordable. No DPS formula changes. |
 
 The optimizer keeps equipment with special effects that ordinary stat pruning would throw away, and
-seeds sets that work together. Stat pruning only drops an item when another is at least as good in
-every damage bonus, no dearer and no riskier under the expensive-item cap. A special item is kept for
-a weapon only when its effect could apply with that weapon, class and target (Dharok's armour with the
-greataxe, a slayer helmet on task, a salve amulet against undead; unrecognised effects count as applying);
-elsewhere it is judged on its bonuses like any other item. No DPS formula changes. Each equipment change is
-judged with its best allowed stance or spell, since some only win together. The initial weapon
-shortlist also keeps the relevant set weapons, Twinflame and the Bulwark. It's still a bounded local
-search, so it can't prove that a combination is the best possible one under every budget: compared
-with an exhaustive search over 6,000 generated small banks, Best depth ends below the optimum in
-about 0.1% of them (by at most 1.9% DPS), each needing three or four equipment changes at once.
+wears sets that work together whole (`optimizer sets` in `name-lists.json`). Stat pruning only drops an item
+when another is at least as good in every damage bonus, no dearer and no riskier under the expensive-item cap
+(against Huey's tail and the araxytes, where a lower other attack bonus can be worth more, also no higher in
+any other attack bonus). Each weapon is then solved exactly (`Optimizer.exactWeapon`): every way to fill the
+effect slots (one kind of effect item per slot, or plain gear) and every whole set is tried, and the plain
+slots are filled by a dynamic programme over the bonus totals the stance or spell reads (attack bonus,
+strength, the bulwark's defences, and the attack bonus's lead over the others where the target compares
+them), cost under a budget and expensive items, scoring each surviving total with its best allowed stance or
+spell, since some only win together. A special item is effect gear only when its effect could apply with that
+weapon, option, ammunition and target (Dharok's armour with the greataxe, a slayer helmet on task, a salve
+amulet against undead, imbued for Ranged and Magic, inquisitor's on crush, virtus on Ancients, a tome or
+elemental amulet with its element; unrecognised effects count as applying); elsewhere it is judged on its
+bonuses like any other item. A branch is skipped only when an upper bound (the gear's best bonuses scored as
+if the effect always applied) can't come within 3% of the best found. Without a budget, cost only breaks
+ties: each found setup then swaps in, slot by slot, the cheapest item keeping its score. No DPS formula
+changes. The kill's specials are added after the search; the ten best weapons also finish up to three
+alternatives within 3% of their best, the best gear's other stances or spells and the trades their special
+favours, so a setup that is only best with its specials can still be missed. Once a setup is found, each
+worn piece is taken off again if its ordinary rates, calc-mode figure and the hits of the kill's spec
+weapons are unchanged (relative 1e-6) without it, so strength short of the next max-hit floor isn't worn or
+bought; the weapon, fired ammunition, locks, fill-mode pieces and lightbearer behind a spec plan are exempt.
+This follows from the game's floored max-hit and attack-roll formulas (Wiki: Maximum melee hit, Successful
+hit), not the reference calculator. Compared with an exhaustive search (`OptimizerOracleTest`), the ordinary
+attacks' best matches the optimum in all 6,000 generated small banks and in 6,000 banks against the
+bonus-lead targets (Huey's tail, acidic araxyte). Over 1,872 benchmark single searches (`SingleSearchBench`: every catalogue boss, each class,
+a 10m budget and best in slot, with the kill's specials) it found a better setup than the local search it replaced
+in 280 and none worse, in 354 s instead of 845 s. The exact search needs the score never to fall as a bonus
+rises, so the kill time with damage over time halves the same intervals for every setup (see below).
 
 ## Special attacks ("Only special attacks")
 
@@ -146,7 +164,7 @@ that the direct-damage formulas follow doesn't model poison or venom.
 | Poison sources | Weapon poison option (20/25/30 severity) on poisonable daggers, spears, hastae, metal darts/knives/javelins/arrows/bolts; abyssal tentacle (20, 1/4); swamp lizard melee (30, 1/4 assumed); emerald bolts (e) 55% × Kandarin diary, 25 or 27 with the Zaryte; smoke rush/burst 10, blitz/barrage 20, ×1.1 with any ancient sceptre. Neither catalogue lists poisoned copies separately (the Wiki snapshot folds them into the base item), so the option stands in for them. |
 | Venom | 6, 8, ... 20 per 30 ticks, never wearing off; venom replaces poison on the shared timer (any earlier poison is ignored). Toxic blowpipe, trident of the swamp, toxic staff of the dead 25% (100% with serpentine helm against NPCs); noxious halberd 33%/50%; serpentine helm alone 1/6 with unpoisoned melee, 1/2 with poisoned weapons, nothing with unpoisoned ranged/magic per the Wiki; emerald bolts do not count as poisoned. Venom-immune but poison-susceptible targets take severity-26 poison instead. |
 | Burns | 1 damage per stack every 4 ticks for 10 hits (scorching bow special: 5), at most 5 stacks with extras discarded (expected via a Poisson cap on active stacks). Burns are ranged damage: ranged-immune targets take none and ranged reductions apply. Severity immunity: weak, normal (Cerberus, red Hydra) and strong (Zuk, Moons, Mad Angel, Gemstone Crab...) from the Wiki data plus the reference's Tekton/Dusk/crystal/cyclops list. Eclipse set burns are strong (20% of successful atlatl hits); burning claws and scorching bow special burns are normal, Arkan blade strong. The scorching bow special fails against non-demons, so it is not scored there. |
-| Kill integration | Attacks at 0, speed, 2 × speed...; first application per source is geometric; poison/venom hits follow the target's own 30-tick timer with a uniformly random phase, burns a 4-tick timer. Kill time T solves direct damage per tick × T + expected damage over time by T = target HP (bisection); the reported DPS is HP / T. Targets with unknown or infinite HP use the steady-state rate. Only the primary target is poisoned; AoE secondaries are not credited. |
+| Kill integration | Attacks at 0, speed, 2 × speed...; first application per source is geometric; poison/venom hits follow the target's own 30-tick timer with a uniformly random phase, burns a 4-tick timer. Kill time T solves direct damage per tick × T + expected damage over time by T = target HP (bisection to 1e-3 ticks from a power of two, so every setup halves the same intervals and more damage never gives a longer kill); the reported DPS is HP / T. Targets with unknown or infinite HP use the steady-state rate. Only the primary target is poisoned; AoE secondaries are not credited. |
 | Immunities | Monster `immune_poison`/`immune_venom` flags are unreliable (Akkha, Alchemical Hydra and the Dagannoth Kings would read as susceptible), so a bundled Wiki snapshot (3,255 variants, 4,137 NPC ids) is consulted by NPC id, then base name, combined with the monster's own flags. |
 | Ice ancient sceptre | +10% attack roll for ice spells against freezable, unfrozen targets. A landed cast freezes for 8/17/26/35 ticks (with the sceptre's +10%), reduced by partial freeze resistance, then 5 immune ticks; the casts in that window get no bonus, and later casts get it until one lands. Mean accuracy = share × bonus + (1 - share) × normal, share = (1/bonus) / (1/bonus + casts in window). Freezability: Wiki freeze resistance below 100%; without data, non-bosses only. |
 
@@ -160,7 +178,7 @@ that the direct-damage formulas follow doesn't model poison or venom.
 | Tumeken's shadow | Multiply gear accuracy and magic damage by 3, or 4 in ToA. Cap the amplified equipment damage at 100%; prayer damage remains separate. DMM canonicalization also reaches this predicate. |
 | Smoke staff, Magic salve, task equipment and Virtus | Smoke's standard-spell bonus and Magic salve damage are additive with equipment damage; task damage applies afterward. Ancient spells receive Virtus's additional per-piece damage. |
 | Magic Dart | Level-dependent maximum; enhanced slayer staff on task uses its distinct formula. |
-| Chaos gauntlets, elemental amulets and Charge | Modify base spell damage only for eligible spells. Charge requires the matching god cape. These are explicit fight assumptions, not always-on bonuses. |
+| Chaos gauntlets, elemental amulets, elemental fragments and Charge | Modify base spell damage only for eligible spells. A broken Fractured Archive fragment adds 2 to its element's spells before magic damage and weakness (Wiki "Fragment of burning fire"), read from the account (`TFA_MOTE_*_UNLOCKED`). Charge requires the matching god cape. These are explicit fight assumptions, not always-on bonuses. |
 | Charged elemental tomes | Matching standard spells receive the damage bonus. Water's accuracy bonus also requires a charged tome. Empty/uncharged variants do not receive those effects. |
 | Sunfire | Eligible fire spells get a minimum floor(max/10) before tome damage. |
 | Demonbane and Purging staff | Mark of Darkness changes accuracy and applies per-roll damage, scaled by demon vulnerability; Purging doubles the supported Mark modifiers. |
@@ -307,8 +325,39 @@ none of the bundled combat spells use.
 | Acidic/Mirrorback araxytes | Supported weapon and highest-accuracy-bonus conditions receive guaranteed maximum damage; other attacks retain ordinary scoring. |
 | Respiratory system | Ordinary supported attacks have a raised minimum; demonbane attacks have their one-hit-kill branch with ordinary accuracy. |
 | Scurrius rat adds and other one-hit targets | Use the target's HP as damage, and the supported rat-weapon one-tick interval. |
-| Baboon/Fremennik style weaknesses, Void flare and Judge | Supported class-specific guaranteed maximum damage is distinct from ordinary accuracy bonuses. |
+| Baboon/Fremennik style weaknesses, Void flare and Judge | Supported class-specific guaranteed maximum damage is distinct from ordinary accuracy bonuses. The Judge always takes maximum hits; void flares only from magic and standard ranged weapons (bows and salamanders), while melee, crossbows (including Karil's, listed as heavy on the Wiki), chinchompas and thrown weapons roll normally ([Void Flare](https://oldschool.runescape.wiki/w/Void_Flare): "guaranteed a maximum hit when attacking them with magic or Standard Ranged weapons"; [Ranged weapons](https://oldschool.runescape.wiki/w/Ranged_weapons) for the light/standard/heavy classes). Karil's crossbow also rolls against heavy ranged defence and gets the unshielded Tormented Demon bonus like other crossbows, as in the Wiki DPS calculator (`getRangedDamageType`: every crossbow is heavy); the older standard-ranged exception had no source. |
+| Thrall immunity and type | `Thrall.eligibleType`: no thrall when the infobox `thrall_immune` field is Immune (generated `immune_thrall`: Vorkath and his spawn, Abyssal Sire, CoX guardians, Kurasks/Turoths, cave krakens, Sol Heredit and others; the Kraken boss is not immune since the 23 November 2023 fix) or in a fight where thralls can't be resurrected but the target isn't flagged (`thrall-restricted fights` in `name-lists.json`: Galvek, Robert the Strong, Vanstrom Klause, Fragment of Seren, Lowerniel Drakan and Nightmare Zone versions; [Thrall](https://oldschool.runescape.wiki/w/Thrall), Restrictions). Otherwise the first of ghostly (magic), skeletal (ranged) and zombified (melee) whose class can damage the target, from the same class-immunity rules as the player's attacks; the Thrall page prefers magic thralls "whenever there are no special type resistances". All three types share a tier's max hit, so only eligibility changes DPS. |
 | Defence-drain floors and absorption | Preserve full immunity for supported absorption targets, while respecting Akkha's distinct drain floor despite the API's broad tag. The Fractured Archive's Archive Guardian, Bork, Ezekiel, Moia, Xarth and Ocellus (not the Blade in phase 2) floor at 60% of their Defence (2026-10-21 hotfix, "Out Today" post); the Dagon'hai are uncapped after the 2026-11-11 fix. Restore known boss floor fallbacks when the API supplies zero. BGS drain stops at a positive floor; Ayak cannot push positive Magic defence below zero or raise existing negative defence. Arclight includes its +1. |
+
+## Trip supplies
+
+`TripSupplies` estimates what a trip to a target outside the raids carries for **Kills per trip**. It never
+changes a search's ranking.
+
+- A kill lasts the target's hitpoints over the setup's DPS, the panel's TTK, with no overkill, respawns or
+  banking. The trip's combat time is that times the kills.
+- Prayer drain follows the Wiki's Prayer page: each tick the active prayers' drain effects build toward a
+  resistance of `2 × prayer bonus + 60`, and each time it is reached one point is lost. The drain effects of the
+  offensive prayers are in `name-lists.json` ("prayer drain"). **Assumption:** the setup's offensive prayer and
+  the target's recommended overhead (drain effect 12) are kept on throughout. The overhead comes from
+  `encounter-prayers.json` (`Overheads`: game-mode versions (Deadman, PvM Arena, Echo) first, then checked Wiki strategy pages, then
+  each monster's Wiki attack styles; a melee setup can have its own advice). No overhead drains when the advice needs none or the Prayer
+  level is below it; a switching fight counts one overhead at a time; a target without advice (its attacks can't be
+  read, or no prayer helps against them) drains none. Prayer flicking is not modelled. The advice is static per target, never a live switching cue.
+- Restores cover the points beyond the full Prayer level the trip starts with: a prayer potion dose restores
+  `7 + level / 4`, a super restore `8 + level / 4` and a Sanfew serum `4 + ⌊level × 3 / 10⌋` (Wiki), in four-dose
+  bottles: super restores when owned, else Sanfew serums when owned, otherwise prayer potions.
+- Boost items: a dose is drunk again once half its boost has drained, at one level a minute, the first after half
+  a minute on average; a divine dose is counted as an ordinary one. An item holds its dose family's doses (four a
+  potion, two a wild pie, one a butterfly jar or beer). A heart is carried once. Nightmare Zone potions are only
+  packed against Nightmare Zone targets.
+- Drain effects follow the Wiki's Prayer table: Piety, Rigour, Augury and Zeal 24 (40 points a minute without
+  bonus); Chivalry (since 12 August 2026), Deadeye, Mystic Vigour and the protection prayers 12.
+- Food fills the 28 slots less every bottle, a rune pouch (plus spell items beyond its three runes) and a spec
+  switch's weapon, off-hand and ammunition, plus the worn shield a two-handed spec weapon takes off. The food list and its order (best heal at 99 Hitpoints) are in
+  `name-lists.json` ("trip foods").
+- A monster whose Wiki infobox says it is poisonous (`poisonous` field; "venom" when it envenoms) adds one bottle
+  of superantipoison or anti-venom+, none while a charged serpentine helm (or recolour) is worn. Immunity length and doses per trip are not modelled.
 
 ## Remaining adjustments and limits
 

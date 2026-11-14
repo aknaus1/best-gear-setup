@@ -32,6 +32,9 @@ import org.junit.Test;
 
 public class SidebarLayoutTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	@Test
 	public void expandedOptionsAndEquipmentStayInsideNarrowSidebar() throws Exception
 	{

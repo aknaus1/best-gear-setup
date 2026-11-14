@@ -39,8 +39,6 @@ public class OptimizerSettings
 	WeaponHands weaponHands = WeaponHands.ANY;
 	@Builder.Default
 	CalcMode calcMode = CalcMode.DPS;
-	@Builder.Default
-	SearchDepth depth = SearchDepth.NORMAL;
 
 	/** Experience filter: styles granting a disallowed experience type are never used. */
 	@Builder.Default

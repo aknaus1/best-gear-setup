@@ -1,6 +1,7 @@
 package com.bestgearsetup.ui;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.RuneUse;
@@ -28,6 +29,9 @@ import org.junit.Test;
 
 public class ResultViewTest
 {
+	@org.junit.Before public void trackTips() { HoverTextLengthTest.trackTips(); }
+	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
+
 	@Test
 	public void runesRowListsExpectedCountsPerKill() throws Exception
 	{
@@ -38,8 +42,7 @@ public class ResultViewTest
 			JPanel box = view(200).statsBox(setup.getDps(), null, runes, false, false);
 			assertEquals("<html>Runes/kill: 56.7 death, 28.3 blood</html>", named(box, "runesPerKill").getText());
 			assertNull(named(box, "supportRunesPerKill"));
-			assertTrue(named(box, "runesPerKill").getToolTipText().contains("expected"));
-			assertTrue(named(box, "runesPerKill").getToolTipText().contains("averaged over their duration"));
+			assertTrue(named(box, "runesPerKill").getToolTipText().contains("Expected per kill"));
 		});
 	}
 
@@ -102,10 +105,67 @@ public class ResultViewTest
 		});
 	}
 
+	@Test
+	public void tripLinesShowCombatTimePrayerAndSupplies() throws Exception
+	{
+		Loadout loadout = new Loadout();
+		SetupResult setup = new SetupResult(CombatClass.MELEE, loadout, dps(5), 0);
+		java.util.List<com.bestgearsetup.TripSupplies.Supply> supplies = Collections.singletonList(
+			new com.bestgearsetup.TripSupplies.Supply("Prayer potion", Collections.singletonList(2434), 3));
+		SwingUtilities.invokeAndWait(() ->
+		{
+			JPanel box = view(100, "vorkath (post-quest)").statsBox(dps(5), null);
+			view(100, "vorkath (post-quest)").addTripLines(box, setup, 30, supplies);
+			// 30 kills of 100 HP at 5 DPS.
+			assertEquals("<html>Trip combat: ~10m 00s</html>", named(box, "tripCombatTime").getText());
+			assertTrue(named(box, "prayerPerKill").getText().contains("Prayer/kill: ~6.7 points"));
+			assertTrue(named(box, "tripSupplies").getText().contains("Supplies: 3 Prayer potion"));
+			JPanel single = view(100).statsBox(dps(5), null);
+			view(100).addTripLines(single, setup, 1, Collections.emptyList());
+			assertNull(named(single, "tripCombatTime"));
+			assertNull(named(single, "tripSupplies"));
+			ResultView vorkath = view(100, "vorkath (post-quest)");
+			JPanel advised = vorkath.statsBox(dps(5), null);
+			vorkath.addTripLines(advised, setup, 1, Collections.emptyList());
+			assertTrue(named(advised, "protectionPrayer").getText().contains("Overhead: Protect from Magic"));
+			// Raid targets show their overhead but no trip lines.
+			Monster tekton = new Monster();
+			tekton.setName("tekton (normal)");
+			tekton.setHitpoints(100);
+			Monster.Attribute xerician = new Monster.Attribute();
+			xerician.setName("xerician");
+			tekton.setAttributes(Collections.singletonList(xerician));
+			ResultView raid = view(tekton);
+			JPanel raidBox = raid.statsBox(dps(5), null);
+			raid.addTripLines(raidBox, setup, 30, Collections.emptyList());
+			assertNull(named(raidBox, "tripCombatTime"));
+			assertNull(named(raidBox, "prayerPerKill"));
+			// More supplies than one inventory holds get a warning.
+			JPanel full = view(100, "vorkath (post-quest)").statsBox(dps(5), null);
+			view(100, "vorkath (post-quest)").addTripLines(full, setup, 30, Collections.singletonList(
+				new com.bestgearsetup.TripSupplies.Supply("Prayer potion", Collections.singletonList(2434), 29)));
+			assertNotNull(named(full, "tripOverflow"));
+		});
+		assertEquals("1h 05m", ResultView.duration(3900));
+	}
+
 	private static ResultView view(int hp)
 	{
+		return view(hp, null);
+	}
+
+	private static ResultView view(int hp, String name)
+	{
 		Monster monster = new Monster();
+		if (name != null)
+			monster.setName(name);
 		monster.setHitpoints(hp);
+		return view(monster);
+	}
+
+	private static ResultView view(Monster monster)
+	{
+		int hp = monster.getHitpoints();
 		SearchResults results = new SearchResults(monster, hp, Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyMap(), Collections.emptyMap(), false);
 		return new ResultView(results, null, null, null, null, 0);
@@ -175,6 +235,7 @@ public class ResultViewTest
 				assertTrue("No thrall line unless the setup includes one", label(box, "Incl. thrall") == null);
 				JPanel withThrall = view.statsBox(new DpsResult(2, 10, 0.5, 4, 4.8, null), Thrall.SUPERIOR);
 				assertEquals("<html>Incl. thrall: +0.417</html>", label(withThrall, "Incl. thrall").getText());
+				assertTrue(label(withThrall, "Incl. thrall").getToolTipText().startsWith("Superior ghostly thrall"));
 			});
 		}
 	}

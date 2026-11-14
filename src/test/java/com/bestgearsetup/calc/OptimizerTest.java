@@ -73,13 +73,19 @@ public class OptimizerTest
 	private List<SetupResult> run(SearchMode mode, long budget, Set<Integer> owned,
 		ToLongFunction<GearItem> prices, GearItem... items)
 	{
-		GameData data = TestData.gameData(Arrays.asList(items), Collections.emptyList());
-		CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = OptimizerSettings.builder()
 			.mode(mode)
 			.budget(budget)
 			.spellbooks(new HashSet<>(Collections.singletonList("standard")))
 			.build();
+		return run(settings, owned, prices, items);
+	}
+
+	private List<SetupResult> run(OptimizerSettings settings, Set<Integer> owned, ToLongFunction<GearItem> prices,
+		GearItem... items)
+	{
+		GameData data = TestData.gameData(Arrays.asList(items), Collections.emptyList());
+		CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		return new Optimizer(data, ctx, settings, owned::contains, prices).optimize(CombatClass.MELEE, () -> false);
 	}
 
@@ -165,6 +171,43 @@ public class OptimizerTest
 		Set<Integer> owned = new HashSet<>(Collections.singletonList(100));
 		SetupResult r = run(SearchMode.UNLIMITED, 0, owned, sword, uselessRing).get(0);
 		assertNull(r.getLoadout().get(Slot.RING));
+	}
+
+	@Test
+	public void piecesThatChangeNoRateAreTakenOff()
+	{
+		// At 79 strength, +1 falls short of the next max hit in every stance, with or without void, so the cape is
+		// worn for nothing; +1 slash moves the attack roll, and the void pieces' own zero bonuses hide a set effect.
+		sword.setMeleeStr(79);
+		GearItem plateauCape = item(500, "plateau cape", Slot.CAPE);
+		plateauCape.setMeleeStr(1);
+		GearItem accurateRing = item(501, "accurate ring", Slot.RING);
+		accurateRing.setSlashBonus(1);
+		Set<Integer> owned = new HashSet<>(Arrays.asList(100, 500, 501, 11665, 8839, 8840, 8842));
+		SetupResult r = run(SearchMode.OWNED_ONLY, 0, owned,
+			sword, plateauCape, accurateRing, voidHelm, voidTop, voidRobe, voidGloves).get(0);
+		assertNull(r.getLoadout().get(Slot.CAPE));
+		assertEquals(accurateRing, r.getLoadout().get(Slot.RING));
+		assertEquals(voidHelm, r.getLoadout().get(Slot.HEAD));
+		assertEquals(voidTop, r.getLoadout().get(Slot.BODY));
+		assertEquals(voidRobe, r.getLoadout().get(Slot.LEGS));
+		assertEquals(voidGloves, r.getLoadout().get(Slot.HANDS));
+	}
+
+	@Test
+	public void fillModesKeepPiecesWithTheBonusTheyAskFor()
+	{
+		sword.setMeleeStr(79);
+		GearItem plateauCape = item(500, "plateau cape", Slot.CAPE);
+		plateauCape.setMeleeStr(1);
+		plateauCape.setStabDef(5);
+		Set<Integer> owned = new HashSet<>(Arrays.asList(100, 500));
+		OptimizerSettings.OptimizerSettingsBuilder settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
+			.spellbooks(new HashSet<>(Collections.singletonList("standard")));
+		assertNull(run(settings.fillMode(FillMode.NONE).build(), owned, GearItem::getPrice, sword, plateauCape)
+			.get(0).getLoadout().get(Slot.CAPE));
+		assertEquals(plateauCape, run(settings.fillMode(FillMode.DEFENCE).defenceFocus(DefenceFocus.STAB).build(), owned,
+			GearItem::getPrice, sword, plateauCape).get(0).getLoadout().get(Slot.CAPE));
 	}
 
 	@Test

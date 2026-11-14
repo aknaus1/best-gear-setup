@@ -75,7 +75,7 @@ class SettingsPanel extends JPanel
 		JButton runeLite = new JButton("Open in RuneLite settings");
 		runeLite.setName("openRuneLiteSettings");
 		Controls.ghost(runeLite);
-		runeLite.setToolTipText("The same settings on RuneLite's configuration page, with reset to defaults");
+		runeLite.setToolTipText("Same settings on RuneLite's config page, with reset");
 		runeLite.addActionListener(e -> plugin.openConfiguration());
 		JPanel link = BestGearSetupPanel.left(runeLite);
 		link.setBorder(new EmptyBorder(6, 0, 0, 0));

@@ -5,11 +5,14 @@ import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.RuneUse;
 import com.bestgearsetup.SearchResults;
+import com.bestgearsetup.TripSupplies;
 import com.bestgearsetup.calc.AttackReach;
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.DpsResult;
 import com.bestgearsetup.calc.Loadout;
 import com.bestgearsetup.calc.LockStatus;
+import com.bestgearsetup.calc.Overheads;
+import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.SpecialPlan;
 import com.bestgearsetup.calc.SupportSpell;
@@ -75,13 +78,14 @@ class ResultView extends JPanel
 	private static final Color YELLOW = new Color(0xFF, 0xD2, 0x4D);
 
 	private static final Map<String, Integer> PRAYER_SPRITES = new HashMap<>();
-	private static final Map<Thrall, Integer> THRALL_SPRITES = new EnumMap<>(Thrall.class);
+	/** One named spell sprite per thrall type; the tooltip names the tier. */
+	private static final Map<Thrall.Type, Integer> THRALL_SPRITES = new EnumMap<>(Thrall.Type.class);
 
 	static
 	{
-		THRALL_SPRITES.put(Thrall.LESSER, SpriteID.MagicNecroOn.RESURRECT_LESSER_GHOST);
-		THRALL_SPRITES.put(Thrall.SUPERIOR, SpriteID.MagicNecroOn.RESURRECT_SUPERIOR_SKELETON);
-		THRALL_SPRITES.put(Thrall.GREATER, SpriteID.MagicNecroOn.RESURRECT_GREATER_ZOMBIE);
+		THRALL_SPRITES.put(Thrall.Type.GHOSTLY, SpriteID.MagicNecroOn.RESURRECT_LESSER_GHOST);
+		THRALL_SPRITES.put(Thrall.Type.SKELETAL, SpriteID.MagicNecroOn.RESURRECT_SUPERIOR_SKELETON);
+		THRALL_SPRITES.put(Thrall.Type.ZOMBIFIED, SpriteID.MagicNecroOn.RESURRECT_GREATER_ZOMBIE);
 		PRAYER_SPRITES.put("piety", SpriteID.Prayeron.PIETY);
 		PRAYER_SPRITES.put("chivalry", SpriteID.Prayeron.CHIVALRY);
 		PRAYER_SPRITES.put("ultimate strength", SpriteID.Prayeron.ULTIMATE_STRENGTH);
@@ -130,6 +134,7 @@ class ResultView extends JPanel
 
 	private AttackStyle.Type selectedType;
 	private SetupResult selected;
+	private List<TripSupplies.Supply> supplies = Collections.emptyList();
 
 	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
 		SkillIconManager skillIcons, int ammoCount)
@@ -163,11 +168,20 @@ class ResultView extends JPanel
 		}
 	}
 
+	/** Recomputes the shown setup's trip supplies after a supply-only setting changed; the setups stay. */
+	void refreshSupplies()
+	{
+		if (selected != null)
+			select(selectedType, selected);
+	}
+
 	private void select(AttackStyle.Type type, SetupResult setup)
 	{
 		selectedType = type;
 		selected = setup;
-		plugin.setBankHighlightedSetup(setup, potionsFor(setup));
+		List<Potion> potions = potionsFor(setup);
+		supplies = plugin.tripSupplies(setup, results, potions);
+		plugin.setBankHighlightedSetup(setup, potions, supplies);
 		rebuildTabs();
 		rebuildBody();
 	}
@@ -268,8 +282,10 @@ class ResultView extends JPanel
 		RuneUse runes = RuneUse.of(selected, results.getMonster().getHitpoints(),
 			results.getBaseMagic(), results.getBoostedMagic());
 		boolean poweredStaff = selected.getCombatClass() == CombatClass.MAGIC && l.getSpell() == null;
-		body.add(BestGearSetupPanel.left(statsBox(d, thrallFor(selected), runes,
-			plugin != null && plugin.isSunfireRunes(), poweredStaff)));
+		JPanel stats = statsBox(d, thrallFor(selected), runes, plugin != null && plugin.isSunfireRunes(), poweredStaff);
+		if (plugin != null)
+			addTripLines(stats, selected, plugin.getKillsPerTrip(), supplies);
+		body.add(BestGearSetupPanel.left(stats));
 		if (selected.getSpecial() != null)
 		{
 			body.add(spacer(4));
@@ -333,7 +349,8 @@ class ResultView extends JPanel
 		{
 			JLabel thrallLabel = stat("Incl. thrall: +" + fmt(thrall.getDps(), 3));
 			thrallLabel.setName("thrallDps");
-			thrallLabel.setToolTipText(thrall + " (max hit " + thrall.getMaxHit() + ", always hits, every 2.4s)");
+			thrallLabel.setToolTipText(thrall.displayName(thrallType()) + ": max " + thrall.getMaxHit()
+				+ ", always hits");
 			box.add(thrallLabel, row);
 		}
 		String maxText = (area ? "Primary max: " : "Max hit: ") + max;
@@ -348,7 +365,7 @@ class ResultView extends JPanel
 		box.add(stat((area ? "Avg attack: " : "Avg hit: ") + fmt(d.getAverageHit(), 2)), row);
 		box.add(stat("Speed: " + fmt(d.getExpectedSpeedTicks() * 0.6, 2) + "s"), row);
 		JLabel ttkLabel = stat("TTK: ~" + fmt(ttk, 1) + "s");
-		ttkLabel.setToolTipText("Approximate: selected enemy hitpoints / damage to that enemy (no overkill)");
+		ttkLabel.setToolTipText("Enemy hitpoints / DPS, ignoring overkill");
 		box.add(ttkLabel, row);
 		if (area)
 		{
@@ -357,34 +374,94 @@ class ResultView extends JPanel
 		}
 		double kph = results.getMonster().getHitpoints() > 0 ? d.getDps() * 3600 / results.getMonster().getHitpoints() : 0;
 		JLabel kills = stat("Est. KPH: " + fmt(kph, 1));
-		kills.setToolTipText("Damage-based estimate: total DPS / enemy HP. Assumes continuous combat; excludes overkill, "
-			+ "respawns, travel, banking, eating and boss phases.");
+		kills.setToolTipText("DPS / enemy HP; continuous combat, no downtime");
 		box.add(kills, row);
-		String runeTip = "Rune use is an expected value per kill; support spells are averaged over their duration "
-			+ "without the Master Combat Achievements reward. Staff and tome supply is removed; "
-			+ "combination runes are shown as base runes.";
 		if (runes != null && !runes.getAttack().isEmpty())
 		{
 			JLabel attack = stat("Runes/kill: " + runeEntries(runes.getAttack(), sunfire));
 			attack.setName("runesPerKill");
-			attack.setToolTipText(runeTip);
+			attack.setToolTipText("Expected per kill, minus staff and tome supply");
 			box.add(attack, row);
 		}
 		else if (poweredStaff)
 		{
 			JLabel charges = stat("Runes/kill: uses charges, not counted");
 			charges.setName("runesPerKill");
-			charges.setToolTipText(runeTip);
 			box.add(charges, row);
 		}
 		if (runes != null && !runes.getSupport().isEmpty())
 		{
 			JLabel support = stat("Support/kill: " + runeEntries(runes.getSupport(), sunfire));
 			support.setName("supportRunesPerKill");
-			support.setToolTipText(runeTip);
+			support.setToolTipText("Averaged over duration, without the Master Combat Achievements reward");
 			box.add(support, row);
 		}
 		return box;
+	}
+
+	/** A trip's combat time, prayer use per kill and supplies (Kills per trip), below the setup's stats. */
+	void addTripLines(JPanel box, SetupResult setup, int kills, List<TripSupplies.Supply> supplies)
+	{
+		GridBagConstraints row = new GridBagConstraints();
+		row.gridx = 0;
+		row.weightx = 1;
+		row.fill = GridBagConstraints.HORIZONTAL;
+		row.insets = new Insets(2, 0, 0, 0);
+		// Raid targets have no trip: the raid hands out its supplies. Their overhead advice still shows.
+		boolean trip = results.getMonster() == null || RaidScaling.raid(results.getMonster()) == RaidScaling.Raid.NONE;
+		double seconds = TripSupplies.killSeconds(setup, results) * kills;
+		if (trip && kills > 1 && Double.isFinite(seconds))
+		{
+			JLabel time = stat("Trip combat: ~" + duration(seconds));
+			time.setName("tripCombatTime");
+			time.setToolTipText(BestGearSetupPanel.tip("Kills per trip times TTK; no banking"));
+			box.add(time, row);
+		}
+		Overheads.Advice advice = results.getMonster() == null ? null
+			: Overheads.recommend(results.getMonster(), setup.getCombatClass());
+		if (advice != null)
+		{
+			// Hover text stays under 10 words, so a longer note, or one a switch or no prayer needs, shows inline.
+			boolean shortNote = advice.getNote().trim().split("\\s+").length < 10;
+			boolean inline = advice.isSwitching() || advice.getPrayer() == null || !shortNote;
+			JLabel overhead = stat("");
+			overhead.setText(BestGearSetupPanel.html("Overhead: " + BestGearSetupPanel.escape(advice.summary())
+				+ (inline ? "<br>" + BestGearSetupPanel.escape(advice.getNote()) : ""), STAT_WRAP_WIDTH));
+			overhead.setName("protectionPrayer");
+			overhead.setToolTipText(BestGearSetupPanel.tip(shortNote ? advice.getNote() : "Static advice from the Wiki"));
+			box.add(overhead, row);
+		}
+		double prayer = trip ? TripSupplies.prayerPerKill(setup, results) : 0;
+		if (prayer > 0)
+		{
+			JLabel points = stat("Prayer/kill: ~" + fmt(prayer, 1) + " points");
+			points.setName("prayerPerKill");
+			points.setToolTipText(BestGearSetupPanel.tip("Offensive prayer and the overhead above"));
+			box.add(points, row);
+		}
+		if (supplies != null && !supplies.isEmpty())
+		{
+			JLabel carried = stat("");
+			carried.setText(BestGearSetupPanel.html("Supplies: " + TripSupplies.summary(supplies), STAT_WRAP_WIDTH));
+			carried.setName("tripSupplies");
+			carried.setToolTipText(BestGearSetupPanel.tip("Bottles and food for one trip"));
+			box.add(carried, row);
+			if (TripSupplies.usedSlots(setup, supplies) > TripSupplies.INVENTORY_SLOTS)
+			{
+				JLabel full = stat("Doesn't fit one inventory: fewer kills per trip");
+				full.setName("tripOverflow");
+				full.setForeground(BestGearSetupPanel.WARNING_COLOR);
+				box.add(full, row);
+			}
+		}
+	}
+
+	/** Seconds as "3m 05s", or "1h 02m" from an hour. */
+	static String duration(double seconds)
+	{
+		long total = Math.round(seconds);
+		return total < 3600 ? total / 60 + "m " + String.format("%02d", total % 60) + "s"
+			: total / 3600 + "h " + String.format("%02d", total / 60 % 60) + "m";
 	}
 
 	private static String runeEntries(Map<Integer, Double> counts, boolean sunfire)
@@ -425,35 +502,17 @@ class ResultView extends JPanel
 		{
 			box.add(icons, BorderLayout.WEST);
 		}
-		GearItem ring = worn.get(Slot.RING);
-		boolean lightbearer = ring != null && ring.getId() == ItemID.LIGHTBEARER;
 		String uses = newWeapon ? "switch" : plan.getOffhand() != null ? "add off-hand" : "same weapon";
-		DpsResult drained = plan.getDrained();
 		DpsResult spec = plan.getSpec();
-		// The spec's detail opens with its own description, already shown by name and energy.
-		String detail = spec.getMaxHitDetail() == null ? "" : spec.getMaxHitDetail();
-		String described = plan.getSpecial().describe();
-		detail = detail.startsWith(described) ? detail.substring(described.length()).replaceFirst("^; ", "") : detail;
 		JLabel label = new JLabel("<html><font color='#FF9F40'>" + BestGearSetupPanel.escape(
 			GameData.titleCase(plan.getSpecial().getName())) + "</font> spec (" + plan.getSpecial().getEnergy() + "%)"
 			+ "<br>~" + fmt(plan.getSpecsPerKill(), 1) + " per kill, " + uses
 			+ "<br>Max " + spec.getMaxHit() + ", " + fmt(spec.getAccuracy() * 100, 1) + "% acc</html>");
 		label.setFont(FontManager.getRunescapeSmallFont());
 		label.setForeground(Color.WHITE);
-		box.setToolTipText("<html>Special attacks are used whenever energy allows and are counted in DPS, TTK and KPH."
-			+ "<br>Without specs: " + fmt(plan.getOrdinary().getDps(), 3) + " DPS. One spec averages "
-			+ fmt(spec.getAverageHit(), 2) + " damage every " + fmt(spec.getExpectedSpeedTicks() * 0.6, 1) + "s."
-			+ (detail.isEmpty() ? "" : "<br>Max hit: " + BestGearSetupPanel.escape(detail))
-			+ (drained == null ? "" : "<br>Opens each kill for its drain: one landed spec raises ordinary DPS from "
-			+ fmt(plan.getOrdinary().getDps(), 3) + " to " + fmt(drained.getDps(), 3) + ".")
-			+ (newWeapon ? "<br>Switch from " + BestGearSetupPanel.escape(GameData.titleCase(worn.getWeapon().getName()))
-			+ " to " + BestGearSetupPanel.escape(GameData.titleCase(plan.getWeapon().getName())) : "")
-			+ (plan.getOffhand() == null ? "" : (newWeapon ? " with " : "<br>Equip ")
-			+ BestGearSetupPanel.escape(GameData.titleCase(plan.getOffhand().getName())) + " in the off-hand")
-			+ (plan.getAmmo() == null ? "" : (newWeapon || plan.getOffhand() != null ? ", firing " : "<br>Equip ")
-			+ BestGearSetupPanel.escape(GameData.titleCase(plan.getAmmo().getName())))
-			+ (plan.isSwitch(worn) ? "; the rest of the setup stays on." : "")
-			+ (lightbearer ? "<br>Lightbearer doubles energy regeneration." : "") + "</html>");
+		// The label already shows energy, specs per kill, max hit and accuracy; the icons show the switch.
+		box.setToolTipText("Without specs: " + fmt(plan.getOrdinary().getDps(), 3) + " DPS"
+			+ (newWeapon ? "; switch weapons for it" : ""));
 		box.add(label, BorderLayout.CENTER);
 		return box;
 	}
@@ -503,10 +562,8 @@ class ResultView extends JPanel
 			+ "</html>", JLabel.CENTER);
 		label.setFont(FontManager.getRunescapeSmallFont());
 		label.setForeground(Color.WHITE);
-		label.setToolTipText("Acquisition cost including tradable components - items you own = GP needed"
-			+ " (weapon charges and ongoing upkeep excluded)"
-			+ (ammoCount > 0 ? " (ammo x" + ammoCount + ")" : " (ammo not counted)")
-			+ (unpriced == 0 ? "" : ". Unpriced items have no current Grand Exchange price; totals exclude them"));
+		label.setToolTipText("Cost minus owned = to buy; " + (unpriced > 0 ? "unpriced left out"
+			: ammoCount > 0 ? "ammo x" + ammoCount + " included" : "ammo not counted"));
 		box.add(label, BorderLayout.CENTER);
 		return box;
 	}
@@ -596,8 +653,9 @@ class ResultView extends JPanel
 		Thrall thrall = thrallFor(selected);
 		if (thrall != null)
 		{
-			SpriteIcon thrallIcon = new SpriteIcon(THRALL_SPRITES.get(thrall),
-				thrall + " (+" + fmt(thrall.getDps(), 3) + " DPS included)");
+			Thrall.Type type = thrallType();
+			SpriteIcon thrallIcon = new SpriteIcon(THRALL_SPRITES.get(type),
+				thrall.displayName(type) + " (+" + fmt(thrall.getDps(), 3) + " DPS included)");
 			thrallIcon.setName("thrallIcon");
 			boosts.add(thrallIcon);
 		}
@@ -631,7 +689,6 @@ class ResultView extends JPanel
 		return potions;
 	}
 
-	/** Mark of Darkness only affects demonbane spells cast at demons. */
 	/** The thrall this setup's DPS includes, or null. */
 	private Thrall thrallFor(SetupResult setup)
 	{
@@ -639,6 +696,14 @@ class ResultView extends JPanel
 			? results.getThrall() : null;
 	}
 
+	/** The thrall type that can damage this target, magic first; ghostly when none is known. */
+	private Thrall.Type thrallType()
+	{
+		Thrall.Type type = Thrall.eligibleType(results.getMonster());
+		return type == null ? Thrall.Type.GHOSTLY : type;
+	}
+
+	/** Mark of Darkness only affects demonbane spells cast at demons. */
 	private boolean usesMarkOfDarkness(Loadout l)
 	{
 		return results.isMarkOfDarkness() && l.getSpell() != null
@@ -668,8 +733,8 @@ class ResultView extends JPanel
 		row.add(right, BorderLayout.EAST);
 		row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		SpecialPlan plan = r.getSpecial();
-		row.setToolTipText(plan == null ? "Show this setup" : "Show this setup (specs with "
-			+ GameData.titleCase(plan.getWeapon().getName()) + ")");
+		row.setToolTipText(plan == null ? "Show this setup" : "Show setup; specs with "
+			+ GameData.titleCase(plan.getWeapon().getName()));
 		row.addMouseListener(new MouseAdapter()
 		{
 			@Override

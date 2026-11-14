@@ -31,28 +31,21 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Compares the Best-depth search with an independent exhaustive search over small generated banks drawn from the
+ * Compares the search with an independent exhaustive search over small generated banks drawn from the
  * real catalogue: every eligible weapon, allowed stance / spell, compatible ammunition and combination of the other
  * slots. Ownership, budgets, the expensive-item cap, locks, exclusions, experience filters and ammunition quantities
  * are re-implemented here from their documented rules rather than taken from the optimizer. Each bank is searched in
  * two item orders.
  *
- * <p>Legality, the oracle's completeness and the candidate pruning are exact checks. The search itself is a bounded
- * local search, so a few banks whose optimum needs three or four equipment changes at once still end below it; those
- * are listed and bounded rather than forbidden (see {@link #MAX_MISS_RATE}). Set BGS_ORACLE_CASES and
- * BGS_ORACLE_FROM to run another range of generated banks, and BGS_ORACLE_VERBOSE to print every bank.
+ * <p>Legality, the oracle's completeness, the candidate pruning and the optimum itself are exact checks: the search is
+ * exact, so every bank must reach the exhaustive optimum, including banks against targets that compare the attack
+ * bonuses with each other. Set BGS_ORACLE_CASES and BGS_ORACLE_FROM to run another range of generated banks, and
+ * BGS_ORACLE_VERBOSE to print every bank.
  */
 public class OptimizerOracleTest
 {
 	/** Absolute: the accuracy and max-hit metrics weight their primary value by 1e6, leaving DPS as the tie-break. */
 	private static final double EPS = 1e-7;
-	/**
-	 * Share of banks allowed to end at a local optimum below the exhaustive one, and the largest DPS shortfall. On
-	 * banks 1-6,000 the search that picked the stance / spell apart from the gear (with single-stat pruning) missed
-	 * 60 (1.0%), some by over 5%; this one misses 7 (0.12%), by at most 1.85%.
-	 */
-	private static final double MAX_MISS_RATE = 0.005;
-	private static final double MAX_MISS_GAP = 0.025;
 	private static final Slot[] ARMOUR = {
 		Slot.HEAD, Slot.CAPE, Slot.NECK, Slot.BODY, Slot.LEGS, Slot.HANDS, Slot.FEET, Slot.RING, Slot.SHIELD,
 	};
@@ -122,7 +115,19 @@ public class OptimizerOracleTest
 	}
 
 	@Test
-	public void bestDepthMatchesExhaustiveSearch()
+	public void searchMatchesExhaustiveSearch()
+	{
+		check(MONSTERS);
+	}
+
+	/** Targets whose damage compares the attack bonuses with each other, so a higher bonus can score lower. */
+	@Test
+	public void searchMatchesExhaustiveSearchOnBonusLeads()
+	{
+		check(new String[]{"the hueycoatl (tail)", "acidic araxyte"});
+	}
+
+	private void check(String[] targets)
 	{
 		// Optional: ./gradlew test -Dbgs.oracle.cases=N -Dbgs.oracle.from=SEED -Dbgs.oracle.verbose=true
 		int cases = Integer.getInteger("bgs.oracle.cases", 1500);
@@ -135,7 +140,7 @@ public class OptimizerOracleTest
 		long evaluations = 0;
 		for (int seed = first; seed < first + cases; seed++)
 		{
-			Case c = generate(seed);
+			Case c = generate(seed, targets);
 			Oracle oracle = new Oracle(c);
 			Oracle.Best best = oracle.search();
 			evaluations += oracle.evaluations;
@@ -210,9 +215,7 @@ public class OptimizerOracleTest
 		misses.forEach(System.out::println);
 		assertTrue(String.join("\n", errors), errors.isEmpty());
 		assertTrue(missedBanks.size() + " of " + cases + " banks ended below the exhaustive optimum:\n"
-			+ String.join("\n", misses), missedBanks.size() <= MAX_MISS_RATE * cases);
-		assertTrue(String.format(Locale.ROOT, "a search ended %.2f%% below the optimum DPS:%n", 100 * worstGap)
-			+ String.join("\n", misses), worstGap <= MAX_MISS_GAP);
+			+ String.join("\n", misses), missedBanks.isEmpty());
 	}
 
 	private static double dps(Loadout l, Case c)
@@ -277,14 +280,14 @@ public class OptimizerOracleTest
 		}
 	}
 
-	private static Case generate(int seed)
+	private static Case generate(int seed, String[] targets)
 	{
 		Random r = new Random(seed);
 		Case c = new Case();
 		c.tab = TABS[(seed - 1) % TABS.length];
 		c.cls = c.tab == AttackStyle.Type.MAGIC ? CombatClass.MAGIC
 			: c.tab == AttackStyle.Type.RANGED || c.tab == AttackStyle.Type.ATLATL ? CombatClass.RANGED : CombatClass.MELEE;
-		c.monster = MONSTERS[r.nextInt(MONSTERS.length)];
+		c.monster = targets[r.nextInt(targets.length)];
 		Monster monster = monsters.monster(c.monster);
 		c.levels = new PlayerLevels(level(r), level(r), level(r), level(r), level(r), level(r), level(r), level(r));
 		boolean wilderness = c.monster.equals("chaos dwarf") || r.nextInt(4) == 0;
@@ -385,7 +388,7 @@ public class OptimizerOracleTest
 		}
 
 		// The oracle enumerates autocast spells only; ManualCastTest covers casting by hand.
-		OptimizerSettings.OptimizerSettingsBuilder s = OptimizerSettings.builder().depth(SearchDepth.BEST)
+		OptimizerSettings.OptimizerSettingsBuilder s = OptimizerSettings.builder()
 			.styles(EnumSet.of(c.tab)).spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus")))
 			.resultsPerClass(1).preventManualCast(true);
 		switch (r.nextInt(4))

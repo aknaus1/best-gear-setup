@@ -85,16 +85,13 @@ public class AtlatlAmmoRecoveryTest
 	}
 
 	@Test
-	public void zeroDamageDeviceSurvivesPruningAndEverySearchDepth()
+	public void zeroDamageDeviceSurvivesPruning()
 	{
 		assertTrue(optimizer(settings().build(), id -> true).candidates(CombatClass.RANGED).get(Slot.CAPE).contains(accumulator));
-		for (SearchDepth depth : SearchDepth.values())
-		{
-			List<SetupResult> results = run(settings().depth(depth));
-			assertEquals(depth.toString(), 1, results.size());
-			assertEquals(accumulator, results.get(0).getLoadout().get(Slot.CAPE));
-			assertTrue(results.get(0).getDps().getDps() > 0);
-		}
+		List<SetupResult> results = run(settings());
+		assertEquals(1, results.size());
+		assertEquals(accumulator, results.get(0).getLoadout().get(Slot.CAPE));
+		assertTrue(results.get(0).getDps().getDps() > 0);
 	}
 
 	@Test
@@ -205,15 +202,12 @@ public class AtlatlAmmoRecoveryTest
 			data = TestData.gameData(Arrays.asList(ranged, darts, fireCape, accumulator), Collections.emptyList());
 			OptimizerSettings.OptimizerSettingsBuilder rangedSettings = settings().styles(EnumSet.of(AttackStyle.Type.RANGED));
 			assertEquals(kind[0], fireCape, run(rangedSettings.requireAtlatlAmmoRecovery(false)).get(0).getLoadout().get(Slot.CAPE));
-			for (SearchDepth depth : SearchDepth.values())
+			for (FillMode fill : FillMode.values())
 			{
-				for (FillMode fill : FillMode.values())
-				{
-					List<SetupResult> results = run(rangedSettings.requireAtlatlAmmoRecovery(true).depth(depth)
-						.fillMode(fill).fillMarginPercent(100));
-					assertFalse(kind[0], results.isEmpty());
-					assertTrue(kind[0], results.stream().allMatch(s -> s.getLoadout().get(Slot.CAPE) == accumulator));
-				}
+				List<SetupResult> results = run(rangedSettings.requireAtlatlAmmoRecovery(true)
+					.fillMode(fill).fillMarginPercent(100));
+				assertFalse(kind[0], results.isEmpty());
+				assertTrue(kind[0], results.stream().allMatch(s -> s.getLoadout().get(Slot.CAPE) == accumulator));
 			}
 			Optimizer excluded = optimizer(rangedSettings.excluded(Collections.singleton(accumulator.getId())).build(), id -> true);
 			// With the only recovery cape excluded, the requirement lapses rather than removing the weapon.

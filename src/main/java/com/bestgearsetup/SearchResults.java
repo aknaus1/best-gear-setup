@@ -2,6 +2,7 @@ package com.bestgearsetup;
 
 import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.LockStatus;
+import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.SetupResult;
 import com.bestgearsetup.calc.Thrall;
 import com.bestgearsetup.data.CombatClass;
@@ -50,6 +51,8 @@ public class SearchResults
 	int baseMagic;
 	/** Boosted Magic level used to time thralls. */
 	int boostedMagic;
+	/** Base levels searched with, which time a trip's boost and prayer restore doses; null when not known. */
+	PlayerLevels levels;
 
 	public SearchResults(Monster monster, int startingHitpoints, Map<AttackStyle.Type, List<SetupResult>> byType,
 		List<String> notes, Map<CombatClass, OffensivePrayer> prayers, Map<CombatClass, List<Potion>> potions,
@@ -73,7 +76,7 @@ public class SearchResults
 		Thrall thrall, String raidScaling, int baseDefence)
 	{
 		this(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks, markOfDarkness,
-			rememberedLevels, warnings, thrall, raidScaling, baseDefence, 99, 99);
+			rememberedLevels, warnings, thrall, raidScaling, baseDefence, 99, 99, null);
 	}
 
 	/** Whether a lock could not be honoured. */

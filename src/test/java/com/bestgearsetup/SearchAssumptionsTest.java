@@ -113,6 +113,7 @@ public class SearchAssumptionsTest
 		GETTERS.put("bankHighlightColor", BestGearSetupConfig::bankHighlightColor);
 		GETTERS.put("highlightInventoryGear", BestGearSetupConfig::highlightInventoryGear);
 		GETTERS.put("inventoryHighlightColor", BestGearSetupConfig::inventoryHighlightColor);
+		GETTERS.put("fillFood", BestGearSetupConfig::fillFood);
 		GETTERS.put("mode", BestGearSetupConfig::mode);
 		GETTERS.put("budget", BestGearSetupConfig::budget);
 		GETTERS.put("bossesOnly", BestGearSetupConfig::bossesOnly);
@@ -121,6 +122,7 @@ public class SearchAssumptionsTest
 		GETTERS.put("arceuusSpellbook", BestGearSetupConfig::arceuusSpellbook);
 		GETTERS.put("membersItems", BestGearSetupConfig::membersItems);
 		GETTERS.put("ammoCount", BestGearSetupConfig::ammoCount);
+		GETTERS.put("killsPerTrip", BestGearSetupConfig::killsPerTrip);
 		GETTERS.put("currentHitpoints", BestGearSetupConfig::currentHitpoints);
 		GETTERS.put("wilderness", BestGearSetupConfig::wilderness);
 		GETTERS.put("limitWildernessRisk", BestGearSetupConfig::limitWildernessRisk);
@@ -160,7 +162,6 @@ public class SearchAssumptionsTest
 		GETTERS.put("styleAtlatl", BestGearSetupConfig::styleAtlatl);
 		GETTERS.put("weaponHands", BestGearSetupConfig::weaponHands);
 		GETTERS.put("calcMode", BestGearSetupConfig::calcMode);
-		GETTERS.put("searchDepth", BestGearSetupConfig::searchDepth);
 		GETTERS.put("attackXp", BestGearSetupConfig::attackXp);
 		GETTERS.put("strengthXp", BestGearSetupConfig::strengthXp);
 		GETTERS.put("defenceXp", BestGearSetupConfig::defenceXp);

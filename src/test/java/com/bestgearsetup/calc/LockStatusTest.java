@@ -126,7 +126,7 @@ public class LockStatusTest
 	public void missingItemIsReported()
 	{
 		LockStatus status = check(SearchMode.UNLIMITED, locks(Slot.BODY, SlotLock.item(999))).get(0);
-		assertEquals("this item is not in the bundled data", status.getProblem());
+		assertEquals("it's not in the bundled data", status.getProblem());
 		assertNull(status.getItem());
 	}
 }

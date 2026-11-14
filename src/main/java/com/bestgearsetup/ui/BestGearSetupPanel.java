@@ -61,12 +61,14 @@ import okhttp3.HttpUrl;
 
 public class BestGearSetupPanel extends PluginPanel
 {
+	/** The shown results' view, whose trip supplies follow supply-only settings. */
+	ResultView resultView;
 	private static final int MAX_SUGGESTIONS = 10;
 	/** CSS width for wrapped labels; the RuneScape font renders wider than Swing's CSS px estimate. */
 	private static final int HTML_WIDTH = 160;
 	private static final String WIKI_URL = "https://oldschool.runescape.wiki/";
 	private static final Color ERROR_COLOR = new Color(0xFF6B6B);
-	private static final Color WARNING_COLOR = new Color(0xFFD24D);
+	static final Color WARNING_COLOR = new Color(0xFFD24D);
 
 	private final BestGearSetupPlugin plugin;
 	private final BestGearSetupConfig config;
@@ -143,7 +145,7 @@ public class BestGearSetupPanel extends PluginPanel
 		titleRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		titleRow.add(title, BorderLayout.CENTER);
 		Controls.badge(filterBadge);
-		filterBadge.setToolTipText("Bosses-only filter is active. Click to search all monsters.");
+		filterBadge.setToolTipText("Bosses only; click to search all monsters");
 		filterBadge.addActionListener(e -> allButton.doClick());
 		titleRow.add(filterBadge, BorderLayout.EAST);
 		content.add(left(titleRow));
@@ -271,7 +273,7 @@ public class BestGearSetupPanel extends PluginPanel
 		phaseLabel.setLabelFor(phaseBox);
 		phaseBox.setFocusable(false);
 		Controls.field(phaseBox);
-		phaseBox.setToolTipText("Select a temporary boss state. Only the named boss is affected.");
+		phaseBox.setToolTipText("Temporary state of the named boss");
 		phaseBox.addActionListener(e ->
 		{
 			if (!syncing && phaseBox.getSelectedItem() != null)
@@ -292,7 +294,7 @@ public class BestGearSetupPanel extends PluginPanel
 		targetRow.add(monsterLabel, BorderLayout.CENTER);
 		wikiButton.setEnabled(false);
 		wikiButton.setFocusable(false);
-		wikiButton.setToolTipText("Select a monster to open its OSRS Wiki page");
+		wikiButton.setToolTipText("Select a monster to open its Wiki page");
 		wikiButton.addActionListener(e ->
 		{
 			if (selected != null)
@@ -375,7 +377,7 @@ public class BestGearSetupPanel extends PluginPanel
 		clearSearchButton.setName("clearSearch");
 		Controls.secondary(clearSearchButton);
 		clearSearchButton.setFocusable(false);
-		clearSearchButton.setToolTipText("Clear the target, results, highlights and bank gear layout");
+		clearSearchButton.setToolTipText("Clear target, results, highlights and bank layout");
 		clearSearchButton.addActionListener(e -> plugin.clearGearSearch());
 		JPanel searchActions = new JPanel(new BorderLayout(4, 0));
 		searchActions.setOpaque(false);
@@ -392,7 +394,7 @@ public class BestGearSetupPanel extends PluginPanel
 		gearButton.addActionListener(e -> { editorOrigin = gearButton; openEditor("gear"); });
 		JButton settingsButton = new JButton("Settings");
 		settingsButton.setName("settingsButton");
-		settingsButton.setToolTipText("Search preferences, attack styles, equipment, boosts and highlights");
+		settingsButton.setToolTipText("Search, styles, equipment, boosts and highlights");
 		settingsButton.addActionListener(e -> { editorOrigin = settingsButton; openEditor("settings"); });
 		for (JButton action : new JButton[]{fightButton, gearButton, settingsButton})
 		{
@@ -546,11 +548,13 @@ public class BestGearSetupPanel extends PluginPanel
 			retry.addActionListener(e ->
 			{
 				resultsPanel.removeAll();
+				resultView = null;
 				statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 				statusLabel.setText(html("Loading bundled Wiki data..."));
 				plugin.reloadGameData();
 			});
 			resultsPanel.removeAll();
+			resultView = null;
 			resultsPanel.add(left(retry));
 			resultsPanel.revalidate();
 		}
@@ -592,7 +596,7 @@ public class BestGearSetupPanel extends PluginPanel
 		showVersions(group, monster);
 		selected = monster;
 		wikiButton.setEnabled(true);
-		wikiButton.setToolTipText("Open the OSRS Wiki page for " + monster.getDisplayName());
+		wikiButton.setToolTipText("Wiki page: " + monster.getDisplayName());
 		fightOptions.setTarget(monster);
 		suggestions.removeAll();
 		Controls.outlineList(suggestions);
@@ -601,7 +605,7 @@ public class BestGearSetupPanel extends PluginPanel
 		monsterLabel.setText("<html><div style='width:120px'><b>" + escape(monster.getDisplayName())
 			+ "</b> (lvl " + monster.getCombatLevel() + ")</div></html>");
 		monsterLabel.setToolTipText(String.join(", ", monster.getAttributes()));
-		showAssumptions("Task: " + config.taskMode(), "Auto matches the selected monster to your Slayer assignment. Overrides are in Fight.");
+		showAssumptions("Task: " + config.taskMode(), "Slayer task is matched automatically; override in Fight.");
 		findButton.setEnabled(true);
 		if (run)
 		{
@@ -693,6 +697,7 @@ public class BestGearSetupPanel extends PluginPanel
 		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		statusLabel.setText(html(escape(message)));
 		resultsPanel.removeAll();
+		resultView = null;
 		resultsPanel.revalidate();
 		resultsPanel.repaint();
 	}
@@ -704,6 +709,13 @@ public class BestGearSetupPanel extends PluginPanel
 			.map(lock -> escape(lock.getSlot().getDisplayName()) + " lock can't be used: " + escape(lock.getProblem())
 				+ ". Remove it under Gear.")
 			.collect(Collectors.joining("<br>"));
+	}
+
+	/** Shows the current setup's supplies again after Kills per trip or food filling changed, without searching. */
+	public void refreshSupplies()
+	{
+		if (resultView != null)
+			resultView.refreshSupplies();
 	}
 
 	/** Replace the previous results; the new best setup takes over the bank layout in place. */
@@ -767,9 +779,10 @@ public class BestGearSetupPanel extends PluginPanel
 			resultsPanel.add(left(warnings));
 			resultsPanel.add(spacer(4));
 		}
+		resultView = null;
 		if (!found.isEmpty())
 		{
-			ResultView resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount());
+			resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount());
 			resultsPanel.add(left(resultView));
 		}
 		List<String> detailLines = new ArrayList<>();
@@ -860,8 +873,8 @@ public class BestGearSetupPanel extends PluginPanel
 			constraints.refresh();
 			int rules = plugin.getLocks().size() + plugin.getExcluded().size();
 			gearButton.setText("Gear" + (rules == 0 ? "" : " (" + rules + ")"));
-			gearButton.setToolTipText("Gear rules: " + rules + " locks or exclusions; also manage extra owned items");
-			searchField.setToolTipText(config.bossesOnly() ? "Searching bosses only. Change the filter in Settings." : "Search all monsters");
+			gearButton.setToolTipText(rules + " locks or exclusions; spells and owned items");
+			searchField.setToolTipText(config.bossesOnly() ? "Searching bosses only" : "Search all monsters");
 		}
 		finally
 		{
@@ -956,7 +969,7 @@ public class BestGearSetupPanel extends PluginPanel
 		int versions = group.getVariants().size();
 		if (versions > 1)
 		{
-			row.setToolTipText(versions + " versions; pick one below the search after selecting");
+			row.setToolTipText(versions + " versions; pick one after selecting");
 		}
 		level.setFont(FontManager.getRunescapeSmallFont());
 		level.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
@@ -1060,6 +1073,38 @@ public class BestGearSetupPanel extends PluginPanel
 	static String escape(String s)
 	{
 		return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+	}
+
+	/** Hover text stays under 10 words in total. */
+	static final int TIP_WORDS = 9;
+
+	/**
+	 * A tooltip of HTML lines, most important first: the first always shows and later lines are left out once the
+	 * total would pass {@link #TIP_WORDS}. Null or empty lines are skipped; null when nothing is left.
+	 */
+	static String tip(String... lines)
+	{
+		List<String> kept = new ArrayList<>();
+		int words = 0;
+		for (String line : lines)
+		{
+			if (line == null || line.isEmpty()) continue;
+			int count = words(line);
+			if (!kept.isEmpty() && words + count > TIP_WORDS) continue;
+			kept.add(line);
+			words += count;
+		}
+		if (kept.isEmpty()) return null;
+		return kept.size() == 1 && !kept.get(0).contains("<") ? kept.get(0) : "<html>" + String.join("<br>", kept) + "</html>";
+	}
+
+	/** Words in hover text: tags are spaces; a word has a letter or digit. */
+	static int words(String text)
+	{
+		int count = 0;
+		for (String word : text.replaceAll("<[^>]*>|&[a-z]+;", " ").trim().split("\\s+"))
+			if (word.chars().anyMatch(Character::isLetterOrDigit)) count++;
+		return count;
 	}
 
 	/** A small crossed-swords icon for the sidebar. */

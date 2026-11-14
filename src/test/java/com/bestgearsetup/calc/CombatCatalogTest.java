@@ -105,7 +105,7 @@ public class CombatCatalogTest
 	private static OptimizerSettings budget(long gp, int results)
 	{
 		return OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(gp)
-			.depth(SearchDepth.FAST).resultsPerClass(results)
+			.resultsPerClass(results)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();
 	}
 

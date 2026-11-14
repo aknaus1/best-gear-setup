@@ -168,6 +168,10 @@ public class CombatEdgeCasesTest
 		result = DpsCalculator.calculate(l, context(m));
 		assertEquals(22.5, result.getAverageHit(), EPS);
 		assertEquals(4, result.getExpectedSpeedTicks(), EPS);
+		// Karil's crossbow is a crossbow, so heavy ranged like the others.
+		l = loadout("karil's crossbow", "crossbow", "accurate,ranged,accurate");
+		double karilSpeed = DpsCalculator.calculate(l, context(monster(100, 50, "demon"))).getExpectedSpeedTicks();
+		assertEquals(karilSpeed - 1, DpsCalculator.calculate(l, context(m)).getExpectedSpeedTicks(), EPS);
 		l = loadout("trident of the seas", "powered staff", "accurate,magic,accurate");
 		assertEquals(5, DpsCalculator.calculate(l, context(m)).getExpectedSpeedTicks(), EPS);
 		l = loadout("staff of fire", "staff", "spell,magic,magic");
@@ -179,6 +183,12 @@ public class CombatEdgeCasesTest
 		result = DpsCalculator.calculate(l, context(m));
 		assertEquals(19, result.getAverageHit(), EPS);
 		assertEquals(4, result.getExpectedSpeedTicks(), EPS);
+		// A broken fragment of burning fire adds 2 to fire spells' base max hit; water's doesn't.
+		int base = result.getMaxHit();
+		assertEquals(base + 2, DpsCalculator.calculate(l, context(m).withModifiers(CombatModifiers.builder()
+			.unlocks(java.util.Set.of("fire")).build())).getMaxHit());
+		assertEquals(base, DpsCalculator.calculate(l, context(m).withModifiers(CombatModifiers.builder()
+			.unlocks(java.util.Set.of("water")).build())).getMaxHit());
 	}
 
 	@Test

@@ -31,6 +31,7 @@ public final class ConfigSettings
 		add("bankHighlightColor", BestGearSetupConfig::bankHighlightColor);
 		add("highlightInventoryGear", BestGearSetupConfig::highlightInventoryGear);
 		add("inventoryHighlightColor", BestGearSetupConfig::inventoryHighlightColor);
+		add("fillFood", BestGearSetupConfig::fillFood);
 		add("mode", BestGearSetupConfig::mode);
 		add("budget", BestGearSetupConfig::budget);
 		add("bossesOnly", BestGearSetupConfig::bossesOnly);
@@ -40,6 +41,7 @@ public final class ConfigSettings
 		add("preventManualCast", BestGearSetupConfig::preventManualCast);
 		add("membersItems", BestGearSetupConfig::membersItems);
 		add("ammoCount", BestGearSetupConfig::ammoCount);
+		add("killsPerTrip", BestGearSetupConfig::killsPerTrip);
 		add("currentHitpoints", BestGearSetupConfig::currentHitpoints);
 		add("wilderness", BestGearSetupConfig::wilderness);
 		add("limitWildernessRisk", BestGearSetupConfig::limitWildernessRisk);
@@ -78,7 +80,6 @@ public final class ConfigSettings
 		add("styleAtlatl", BestGearSetupConfig::styleAtlatl);
 		add("weaponHands", BestGearSetupConfig::weaponHands);
 		add("calcMode", BestGearSetupConfig::calcMode);
-		add("searchDepth", BestGearSetupConfig::searchDepth);
 		add("attackXp", BestGearSetupConfig::attackXp);
 		add("strengthXp", BestGearSetupConfig::strengthXp);
 		add("defenceXp", BestGearSetupConfig::defenceXp);
