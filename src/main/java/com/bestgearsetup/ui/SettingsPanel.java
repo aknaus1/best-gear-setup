@@ -72,9 +72,13 @@ class SettingsPanel extends JPanel
 			first.setExpanded(true);
 		}
 
+		// Underlined with a hand cursor, so the quiet text reads as a link before it is hovered.
 		JButton runeLite = new JButton("Open in RuneLite settings");
 		runeLite.setName("openRuneLiteSettings");
 		Controls.ghost(runeLite);
+		runeLite.setFont(runeLite.getFont().deriveFont(java.util.Collections.singletonMap(
+			java.awt.font.TextAttribute.UNDERLINE, java.awt.font.TextAttribute.UNDERLINE_ON)));
+		runeLite.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
 		runeLite.setToolTipText("Same settings on RuneLite's config page, with reset");
 		runeLite.addActionListener(e -> plugin.openConfiguration());
 		JPanel link = BestGearSetupPanel.left(runeLite);
