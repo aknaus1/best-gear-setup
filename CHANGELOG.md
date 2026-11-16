@@ -78,6 +78,8 @@ is what the Plugin Hub shows.
 - The *Open in RuneLite settings* link is underlined and shows a hand cursor.
 - Add Excluded prayers under Boosts: offensive prayers listed there are never assumed, and the next best one is
   used instead. A name that isn't an offensive prayer is named in the search notes.
+- The picked attack style tab stays selected when a Fight, Gear or Settings change recalculates the results; a new
+  target or Find best setup opens on the best style again.
 
 ## 1.1.3 (2026-11-10)
 

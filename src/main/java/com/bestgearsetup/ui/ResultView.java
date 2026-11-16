@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
@@ -133,11 +134,15 @@ class ResultView extends JPanel
 
 	private AttackStyle.Type selectedType;
 	private SetupResult selected;
+	/** Told the style tab the player clicks, so the panel can reopen it on the next recalculation. */
+	private final Consumer<AttackStyle.Type> onPick;
 	private List<TripSupplies.Supply> supplies = Collections.emptyList();
 
+	/** @param kept the style tab to open on when these results have one; otherwise the best style */
 	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
-		SkillIconManager skillIcons, int ammoCount)
+		SkillIconManager skillIcons, int ammoCount, AttackStyle.Type kept, Consumer<AttackStyle.Type> onPick)
 	{
+		this.onPick = onPick;
 		this.results = results;
 		this.plugin = plugin;
 		this.itemManager = itemManager;
@@ -159,10 +164,10 @@ class ResultView extends JPanel
 		tabOrder.addAll(results.getByType().keySet());
 		tabOrder.sort(Comparator.comparingDouble((AttackStyle.Type t) -> -results.getByType().get(t).get(0).getDps().getDps()));
 
-		// Every recalculation opens on the best (first) style.
+		// A recalculation keeps the picked style; new results open on the best (first) one.
 		if (!tabOrder.isEmpty())
 		{
-			AttackStyle.Type initial = tabOrder.get(0);
+			AttackStyle.Type initial = tabOrder.contains(kept) ? kept : tabOrder.get(0);
 			select(initial, results.getByType().get(initial).get(0));
 		}
 	}
@@ -232,6 +237,7 @@ class ResultView extends JPanel
 				@Override
 				public void mouseClicked(MouseEvent e)
 				{
+					onPick.accept(type);
 					select(type, best);
 				}
 			});
