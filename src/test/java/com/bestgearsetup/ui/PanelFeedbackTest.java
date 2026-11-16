@@ -3,6 +3,7 @@ package com.bestgearsetup.ui;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
@@ -234,7 +235,7 @@ public class PanelFeedbackTest
 			assertTrue(panel.statusLabel.getText().contains("Searching setups for"));
 			// Clearing forgets the shown view, so a supplies-only setting change can't bring its bank layout back.
 			panel.resultView = new ResultView(new SearchResults(new Monster(), 100, Collections.emptyMap(),
-				Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false), null, null, null, null, 0);
+				Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false), null, null, null, null, 0, null, style -> { });
 			panel.clearResults("Account changed");
 			highlights.clear();
 			panel.refreshSupplies();
@@ -242,6 +243,32 @@ public class PanelFeedbackTest
 		});
 	}
 
+
+	@Test
+	public void anotherTargetOrFindBestSetupForgetsThePickedStyle() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			BestGearSetupPanel panel = new BestGearSetupPanel(plugin(), new BestGearSetupConfig()
+			{
+			}, null, null, null);
+			com.bestgearsetup.data.MonsterSummary vorkath = new com.bestgearsetup.data.MonsterSummary();
+			vorkath.setName("Vorkath");
+			vorkath.setId(1);
+			panel.selectMonster(vorkath, false);
+			panel.pickedStyle = com.bestgearsetup.calc.AttackStyle.Type.STAB;
+			panel.selectMonster(vorkath, false);
+			assertEquals("The same target keeps it", com.bestgearsetup.calc.AttackStyle.Type.STAB, panel.pickedStyle);
+			com.bestgearsetup.data.MonsterSummary zulrah = new com.bestgearsetup.data.MonsterSummary();
+			zulrah.setName("Zulrah");
+			zulrah.setId(2);
+			panel.selectMonster(zulrah, false);
+			assertNull(panel.pickedStyle);
+			panel.pickedStyle = com.bestgearsetup.calc.AttackStyle.Type.STAB;
+			panel.findButton.doClick();
+			assertNull(panel.pickedStyle);
+		});
+	}
 
 	private static Component named(Container container, String name)
 	{

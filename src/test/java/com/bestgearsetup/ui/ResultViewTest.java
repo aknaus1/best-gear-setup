@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.RuneUse;
 import com.bestgearsetup.SearchResults;
+import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.CombatContext;
 import com.bestgearsetup.calc.CombatModifiers;
 import com.bestgearsetup.calc.DpsResult;
@@ -184,7 +185,7 @@ public class ResultViewTest
 		int hp = monster.getHitpoints();
 		SearchResults results = new SearchResults(monster, hp, Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyMap(), Collections.emptyMap(), false);
-		return new ResultView(results, null, null, null, null, 0);
+		return new ResultView(results, null, null, null, null, 0, null, style -> { });
 	}
 
 	private static SetupResult setup(String spellName, String weapon, double dps, java.util.Set<SupportSpell> support)
@@ -236,7 +237,7 @@ public class ResultViewTest
 				Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false);
 			SwingUtilities.invokeAndWait(() ->
 			{
-				ResultView view = new ResultView(results, null, null, null, null, 0);
+				ResultView view = new ResultView(results, null, null, null, null, 0, null, style -> { });
 				JPanel box = view.statsBox(new DpsResult(2, 10, 0.5, 4, 4.8, null), null);
 				boolean found = false;
 				for (Component component : box.getComponents())
@@ -290,5 +291,81 @@ public class ResultViewTest
 			}
 		}
 		return null;
+	}
+
+	@Test
+	public void aRecalculationOpensOnThePickedStyle() throws Exception
+	{
+		com.bestgearsetup.BestGearSetupPlugin plugin = org.mockito.Mockito.mock(com.bestgearsetup.BestGearSetupPlugin.class);
+		org.mockito.Mockito.when(plugin.getOwnedItems()).thenReturn(org.mockito.Mockito.mock(com.bestgearsetup.OwnedItems.class));
+		net.runelite.client.game.ItemManager images = org.mockito.Mockito.mock(net.runelite.client.game.ItemManager.class);
+		org.mockito.Mockito.when(images.getImage(org.mockito.ArgumentMatchers.anyInt()))
+			.thenReturn(org.mockito.Mockito.mock(net.runelite.client.util.AsyncBufferedImage.class));
+		java.util.List<AttackStyle.Type> picked = new java.util.ArrayList<>();
+		SwingUtilities.invokeAndWait(() ->
+		{
+			SearchResults results = styles();
+			ResultView view = new ResultView(results, plugin, images, null, null, 0, null, picked::add);
+			assertEquals(best(results, AttackStyle.Type.CRUSH), highlighted(plugin));
+			Component stab = all(view).stream().filter(c -> c instanceof javax.swing.JComponent
+				&& String.valueOf(((javax.swing.JComponent) c).getToolTipText()).startsWith("Stab:")).findFirst().get();
+			stab.dispatchEvent(new java.awt.event.MouseEvent(stab, java.awt.event.MouseEvent.MOUSE_CLICKED, 0, 0, 1, 1, 1, false));
+			assertEquals(Collections.singletonList(AttackStyle.Type.STAB), picked);
+			assertEquals(best(results, AttackStyle.Type.STAB), highlighted(plugin));
+
+			SearchResults recalculated = styles();
+			new ResultView(recalculated, plugin, images, null, null, 0, AttackStyle.Type.STAB, picked::add);
+			assertEquals(best(recalculated, AttackStyle.Type.STAB), highlighted(plugin));
+			new ResultView(recalculated, plugin, images, null, null, 0, AttackStyle.Type.MAGIC, picked::add);
+			assertEquals("A kept style these results lack opens on the best one", best(recalculated, AttackStyle.Type.CRUSH),
+				highlighted(plugin));
+		});
+	}
+
+	/** Crush beats stab; each call builds new setups. */
+	private static SearchResults styles()
+	{
+		java.util.Map<AttackStyle.Type, java.util.List<SetupResult>> byType = new java.util.EnumMap<>(AttackStyle.Type.class);
+		byType.put(AttackStyle.Type.CRUSH, Collections.singletonList(styleSetup("mace", 5)));
+		byType.put(AttackStyle.Type.STAB, Collections.singletonList(styleSetup("spear", 3)));
+		return new SearchResults(new Monster(), 100, byType, Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false);
+	}
+
+	private static SetupResult styleSetup(String weaponName, double dps)
+	{
+		GearItem weapon = new GearItem();
+		weapon.setId(100);
+		weapon.setName(weaponName);
+		weapon.setSlot(Slot.WEAPON);
+		Loadout loadout = new Loadout();
+		loadout.set(Slot.WEAPON, weapon);
+		loadout.setStyle(AttackStyle.parse("pound,crush,aggressive"));
+		return new SetupResult(CombatClass.MELEE, loadout, new DpsResult(dps, 0, 1, 4, 12, null), 0);
+	}
+
+	private static SetupResult best(SearchResults results, AttackStyle.Type type)
+	{
+		return results.getByType().get(type).get(0);
+	}
+
+	/** The setup last laid out in the bank; SetupResult is a value class, so this captures rather than counts calls. */
+	private static SetupResult highlighted(com.bestgearsetup.BestGearSetupPlugin plugin)
+	{
+		org.mockito.ArgumentCaptor<SetupResult> setup = org.mockito.ArgumentCaptor.forClass(SetupResult.class);
+		org.mockito.Mockito.verify(plugin, org.mockito.Mockito.atLeastOnce())
+			.setBankHighlightedSetup(setup.capture(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+		org.mockito.Mockito.clearInvocations(plugin);
+		return setup.getValue();
+	}
+
+	private static java.util.List<Component> all(java.awt.Container root)
+	{
+		java.util.List<Component> found = new java.util.ArrayList<>();
+		for (Component child : root.getComponents())
+		{
+			found.add(child);
+			if (child instanceof java.awt.Container) { found.addAll(all((java.awt.Container) child)); }
+		}
+		return found;
 	}
 }

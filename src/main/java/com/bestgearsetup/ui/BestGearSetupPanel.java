@@ -3,6 +3,7 @@ package com.bestgearsetup.ui;
 import com.bestgearsetup.Budget;
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
+import com.bestgearsetup.calc.AttackStyle;
 import com.bestgearsetup.calc.EncounterPhases;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.SearchMode;
@@ -63,6 +64,8 @@ public class BestGearSetupPanel extends PluginPanel
 {
 	/** The shown results' view, whose trip supplies follow supply-only settings. */
 	ResultView resultView;
+	/** The style tab picked for the current target, kept across recalculations; null opens on the best style. */
+	AttackStyle.Type pickedStyle;
 	private static final int MAX_SUGGESTIONS = 10;
 	/** CSS width for wrapped labels; the RuneScape font renders wider than Swing's CSS px estimate. */
 	private static final int HTML_WIDTH = 160;
@@ -371,6 +374,7 @@ public class BestGearSetupPanel extends PluginPanel
 			if (modeBox.getSelectedItem() == SearchMode.BUDGET) { commitBudget(); }
 			if (selected != null)
 			{
+				pickedStyle = null;
 				plugin.findBestSetup(selected);
 			}
 		});
@@ -594,6 +598,7 @@ public class BestGearSetupPanel extends PluginPanel
 	{
 		searchField.setText(group == null ? monster.getDisplayName() : group.getDisplayName());
 		showVersions(group, monster);
+		if (!monster.equals(selected)) { pickedStyle = null; }
 		selected = monster;
 		wikiButton.setEnabled(true);
 		wikiButton.setToolTipText("Wiki page: " + monster.getDisplayName());
@@ -782,7 +787,8 @@ public class BestGearSetupPanel extends PluginPanel
 		resultView = null;
 		if (!found.isEmpty())
 		{
-			resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount());
+			resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount(), pickedStyle,
+				style -> pickedStyle = style);
 			resultsPanel.add(left(resultView));
 		}
 		List<String> detailLines = new ArrayList<>();
