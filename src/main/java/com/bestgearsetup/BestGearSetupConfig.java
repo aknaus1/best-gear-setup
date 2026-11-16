@@ -307,7 +307,7 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(keyName = "charge", name = "Assume Charge",
-		description = "Boost god spells when wearing the matching god cape.", section = boostSection, position = 7)
+		description = "Boost god spells when wearing the matching god cape.", section = boostSection, position = 8)
 	default boolean charge()
 	{
 		return SearchAssumptions.value(this, "charge", false);
@@ -315,14 +315,14 @@ public interface BestGearSetupConfig extends Config
 
 	@ConfigItem(keyName = "markOfDarkness", name = "Mark of Darkness",
 		description = "Assume Mark of Darkness before demonbane spells",
-		section = boostSection, position = 8)
+		section = boostSection, position = 9)
 	default boolean markOfDarkness()
 	{
 		return SearchAssumptions.value(this, "markOfDarkness", true);
 	}
 
 	@ConfigItem(keyName = "sunfireRunes", name = "Use sunfire runes",
-		description = "Raise fire spell minimum hits to 10% of max", section = boostSection, position = 9)
+		description = "Raise fire spell minimum hits to 10% of max", section = boostSection, position = 10)
 	default boolean sunfireRunes()
 	{
 		return SearchAssumptions.value(this, "sunfireRunes", false);
@@ -358,7 +358,7 @@ public interface BestGearSetupConfig extends Config
 	}
 
 	@ConfigItem(keyName = "weaponPoison", name = "Weapon poison",
-		description = "Poison assumed on poisonable weapons and ammo", section = boostSection, position = 6)
+		description = "Poison assumed on poisonable weapons and ammo", section = boostSection, position = 7)
 	default WeaponPoison weaponPoison()
 	{
 		return SearchAssumptions.value(this, "weaponPoison", WeaponPoison.NONE);
@@ -730,12 +730,19 @@ public interface BestGearSetupConfig extends Config
 		return SearchAssumptions.value(this, "usePrayers", true);
 	}
 
+	@ConfigItem(keyName = "excludedPrayers", name = "Excluded prayers",
+		description = "Offensive prayers never assumed, comma-separated (e.g. Piety, Rigour)", section = boostSection, position = 1)
+	default String excludedPrayers()
+	{
+		return SearchAssumptions.value(this, "excludedPrayers", "");
+	}
+
 	@ConfigItem(
 		keyName = "thrall",
 		name = "Thralls",
 		description = "Add your best thrall (Arceuus, A Kingdom Divided)",
 		section = boostSection,
-		position = 5
+		position = 6
 	)
 	default boolean thrall()
 	{
@@ -747,7 +754,7 @@ public interface BestGearSetupConfig extends Config
 		name = "Include raid potions",
 		description = "Let Best available use overloads and smelling salts",
 		section = boostSection,
-		position = 1
+		position = 2
 	)
 	default boolean raidPotions()
 	{
@@ -761,13 +768,13 @@ public interface BestGearSetupConfig extends Config
 	@ConfigItem(keyName = "autoRaid", name = "Use active raid", description = "Read scaling from a matching live raid target", hidden = true)
 	default boolean autoRaid() { return SearchAssumptions.value(this, "autoRaid", true); }
 
-	@ConfigItem(keyName = "meleePotionChoice", name = "Melee potion", description = "Best available follows ownership; a named boost overrides it", section = boostSection, position = 2)
+	@ConfigItem(keyName = "meleePotionChoice", name = "Melee potion", description = "Best available follows ownership; a named boost overrides it", section = boostSection, position = 3)
 	default PotionOptions.Melee meleePotion() { return SearchAssumptions.value(this, "meleePotion", PotionOptions.Melee.BEST); }
 
-	@ConfigItem(keyName = "rangedPotionChoice", name = "Ranged potion", description = "Best available follows ownership; a named boost overrides it", section = boostSection, position = 3)
+	@ConfigItem(keyName = "rangedPotionChoice", name = "Ranged potion", description = "Best available follows ownership; a named boost overrides it", section = boostSection, position = 4)
 	default PotionOptions.Ranged rangedPotion() { return SearchAssumptions.value(this, "rangedPotion", PotionOptions.Ranged.BEST); }
 
-	@ConfigItem(keyName = "magicPotionChoice", name = "Magic potion", description = "Best available follows ownership; a named boost overrides it", section = boostSection, position = 4)
+	@ConfigItem(keyName = "magicPotionChoice", name = "Magic potion", description = "Best available follows ownership; a named boost overrides it", section = boostSection, position = 5)
 	default PotionOptions.Magic magicPotion() { return SearchAssumptions.value(this, "magicPotion", PotionOptions.Magic.BEST); }
 
 	// ------------------------------------------------------------ managed from the side panel

@@ -179,6 +179,7 @@ public class SearchAssumptionsTest
 		GETTERS.put("specSeercullDamage", BestGearSetupConfig::specSeercullDamage);
 		GETTERS.put("specAyakDamage", BestGearSetupConfig::specAyakDamage);
 		GETTERS.put("usePrayers", BestGearSetupConfig::usePrayers);
+		GETTERS.put("excludedPrayers", BestGearSetupConfig::excludedPrayers);
 		GETTERS.put("thrall", BestGearSetupConfig::thrall);
 		GETTERS.put("raidPotions", BestGearSetupConfig::raidPotions);
 		GETTERS.put("taskMode", BestGearSetupConfig::taskMode);
