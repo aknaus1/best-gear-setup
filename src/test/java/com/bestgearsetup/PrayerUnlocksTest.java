@@ -26,9 +26,33 @@ public class PrayerUnlocksTest
 
 	private static String best(List<OffensivePrayer> prayers, Set<String> unlocked)
 	{
-		OffensivePrayer p = PrayerUnlocks.best(prayers, PlayerLevels.maxed(), PrayerUnlocks.available(unlocked));
+		return best(prayers, unlocked, "");
+	}
+
+	private static String best(List<OffensivePrayer> prayers, Set<String> unlocked, String excluded)
+	{
+		OffensivePrayer p = PrayerUnlocks.best(prayers, PlayerLevels.maxed(), PrayerUnlocks.available(unlocked, excluded));
 		return p == null ? null : p.getName();
 	}
+
+	@Test
+	public void excludedPrayersFallBackToTheNextBest()
+	{
+		assertEquals("deadeye", best(RANGED, null, "Rigour"));
+		assertEquals("chivalry", best(MELEE, null, " PIETY , not a prayer"));
+		assertEquals("ultimate strength", best(MELEE, Collections.singleton("piety"), "piety"));
+		assertNull(best(RANGED, null, "eagle eye,deadeye,rigour"));
+	}
+
+	@Test
+	public void unrecognisedExcludedPrayersAreListedAsTyped()
+	{
+		assertEquals(Arrays.asList("Rigor", "Smite"), PrayerUnlocks.unknown(" Rigor, PIETY,,Smite ", MELEE_AND_RANGED));
+		assertEquals(Collections.emptyList(), PrayerUnlocks.unknown("", MELEE_AND_RANGED));
+	}
+
+	private static final List<OffensivePrayer> MELEE_AND_RANGED = new java.util.ArrayList<>(RANGED);
+	static { MELEE_AND_RANGED.addAll(MELEE); }
 
 	@Test
 	public void lockedPrayersFallBackToTheBestUnlockedOne()

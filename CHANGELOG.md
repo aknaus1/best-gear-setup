@@ -76,6 +76,8 @@ is what the Plugin Hub shows.
   and names keep short words such as "of", "the", "to" and "a" in lower case.
 - The overhead advice no longer repeats its summary on a second line ("None needed" at range, Pestilent Bloat).
 - The *Open in RuneLite settings* link is underlined and shows a hand cursor.
+- Add Excluded prayers under Boosts: offensive prayers listed there are never assumed, and the next best one is
+  used instead. A name that isn't an offensive prayer is named in the search notes.
 
 ## 1.1.3 (2026-11-10)
 

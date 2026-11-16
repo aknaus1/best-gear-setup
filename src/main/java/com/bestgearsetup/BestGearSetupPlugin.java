@@ -47,6 +47,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -1177,7 +1178,7 @@ public class BestGearSetupPlugin extends Plugin
 			Map<CombatClass, OffensivePrayer> prayers = new EnumMap<>(CombatClass.class);
 			if (config.usePrayers())
 			{
-				Predicate<String> available = PrayerUnlocks.available(prayerUnlocks);
+				Predicate<String> available = PrayerUnlocks.available(prayerUnlocks, config.excludedPrayers());
 				for (CombatClass cls : CombatClass.values())
 				{
 					OffensivePrayer p = PrayerUnlocks.best(data.getPrayers(cls), levels, available);
@@ -1254,6 +1255,9 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				notes.add("Prayer unlocks are unknown until you log in; Piety, Rigour, Augury and similar are assumed unlocked.");
 			}
+			for (String name : PrayerUnlocks.unknown(config.excludedPrayers(), Arrays.stream(CombatClass.values())
+				.flatMap(cls -> data.getPrayers(cls).stream()).collect(Collectors.toList())))
+				notes.add("Excluded prayers: \"" + name + "\" isn't an offensive prayer, so it is ignored.");
 			if (kourendElite == null && !eliteDiary && SlayerEquipment.inKaruulm(baseMonster, settings))
 			{
 				notes.add("Elite Kourend & Kebos Diary status is unknown until you log in, so Karuulm boots are required.");

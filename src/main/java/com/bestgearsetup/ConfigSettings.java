@@ -112,6 +112,7 @@ public final class ConfigSettings
 		add("excluded", BestGearSetupConfig::excluded);
 		add("blockedSpells", BestGearSetupConfig::blockedSpells);
 		add("forcedSpells", BestGearSetupConfig::forcedSpells);
+		add("excludedPrayers", BestGearSetupConfig::excludedPrayers);
 		BestGearSetupConfig defaults = new BestGearSetupConfig() { };
 		for (Function<BestGearSetupConfig, Object> getter : GETTERS)
 		{
