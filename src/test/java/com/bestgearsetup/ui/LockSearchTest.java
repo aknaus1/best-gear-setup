@@ -1,6 +1,7 @@
 package com.bestgearsetup.ui;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.BestGearSetupPlugin;
@@ -89,7 +90,9 @@ public class LockSearchTest
 			assertNotNull("Any slot finds the ring", any);
 			assertEquals("Lightbearer (Ring)", any.getText());
 
+			assertFalse("Gear cards start collapsed", named(panel, "locksContent").isVisible());
 			panel.startLockSearch(Slot.RING);
+			assertTrue("A lock search opens its card", named(panel, "locksContent").isVisible());
 			assertEquals("Ring", ((JComboBox<?>) named(panel, "lockSlot")).getSelectedItem());
 			search.setText("lightbear");
 			JButton ring = button(suggestions, "Lightbearer");

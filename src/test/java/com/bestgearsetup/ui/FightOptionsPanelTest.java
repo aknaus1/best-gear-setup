@@ -180,15 +180,22 @@ public class FightOptionsPanelTest
 			((JSpinner) control(panel, "specBgsDamage")).setValue(40);
 			assertEquals(40, writes.get("specBgsDamage"));
 			assertEquals("Pre-fight preparation (3)", toggle.getText());
-			// Opening and closing it must leave the always-open sections showing.
-			assertTrue(control(panel, "fightConditionsContent").isVisible());
+			// Each card opens and collapses on its own; the buttons above them open or collapse them all.
+			assertFalse("Starts collapsed", control(panel, "fightConditionsContent").isVisible());
+			((JButton) control(panel, "fightConditionsToggle")).doClick();
 			toggle.doClick();
 			assertTrue(control(panel, "preparationContent").isVisible());
 			assertTrue("Fight conditions stay open", control(panel, "fightConditionsContent").isVisible());
-			assertTrue("Raid scaling stays open", control(panel, "raidScalingContent").isVisible());
+			assertFalse(control(panel, "raidScalingContent").isVisible());
 			toggle.doClick();
 			assertFalse(control(panel, "preparationContent").isVisible());
 			assertTrue(control(panel, "fightConditionsContent").isVisible());
+			((JButton) control(panel, "fightExpandAll")).doClick();
+			assertTrue(control(panel, "raidScalingContent").isVisible());
+			assertTrue(control(panel, "preparationContent").isVisible());
+			((JButton) control(panel, "fightCollapseAll")).doClick();
+			assertFalse(control(panel, "fightConditionsContent").isVisible());
+			assertFalse(control(panel, "preparationContent").isVisible());
 			assertEquals("Spinners share one width", ((JSpinner) control(panel, "specDwh")).getPreferredSize().width,
 				((JSpinner) control(panel, "specBgsDamage")).getPreferredSize().width);
 		});

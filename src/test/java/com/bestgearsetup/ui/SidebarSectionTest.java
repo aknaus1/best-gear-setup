@@ -39,4 +39,21 @@ public class SidebarSectionTest
 			assertFalse(fight.getContent().isVisible());
 		});
 	}
+
+	@Test
+	public void independentSectionsOpenAndCloseOnTheirOwn() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			SidebarSection.Accordion accordion = new SidebarSection.Accordion(true);
+			SidebarSection first = accordion.create("first", "First");
+			SidebarSection second = accordion.create("second", "Second");
+			first.setExpanded(true);
+			second.setExpanded(true);
+			assertTrue(first.getContent().isVisible());
+			second.setExpanded(false);
+			assertTrue(first.getContent().isVisible());
+			assertFalse(second.getContent().isVisible());
+		});
+	}
 }

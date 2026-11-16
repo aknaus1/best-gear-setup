@@ -33,27 +33,20 @@ class FightOptionsPanel extends JPanel
 	/** @param items the config's item descriptors, from {@link net.runelite.client.config.ConfigManager#getConfigDescriptor} */
 	FightOptionsPanel(BestGearSetupPlugin plugin, BestGearSetupConfig config, Collection<ConfigItemDescriptor> items)
 	{
-		this(plugin, config, items, new SidebarSection.Accordion());
-	}
-
-	FightOptionsPanel(BestGearSetupPlugin plugin, BestGearSetupConfig config, Collection<ConfigItemDescriptor> items,
-		SidebarSection.Accordion accordion)
-	{
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
+		SidebarSection.Accordion accordion = new SidebarSection.Accordion(true);
+		add(BestGearSetupPanel.left(accordion.expandCollapseAll("fight")));
 		// Each row's control is built as its one-level section is filled.
 		settingRows = new SettingRows(plugin, config, items, SPINNER_COLUMNS, this::updateVisibility);
 		SidebarSection conditions = accordion.create("fightConditions", "Fight conditions");
 		addRows(conditions, "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
 			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "killsPerTrip");
 		wildernessTip = control("wilderness").getToolTipText();
-		conditions.showAsEditor();
 		add(BestGearSetupPanel.left(conditions));
 		raidSection = accordion.create("raidScaling", "Raid scaling");
-		raidSection.showAsEditor();
 		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel");
 		add(BestGearSetupPanel.left(raidSection));
-		// Collapsed by default: most searches start from the target's full stats.
 		preparationSection = accordion.create("preparation", "Pre-fight preparation");
 		preparationSection.setToolTipText("Specs and defence drains landed before the fight");
 		addRows(preparationSection, "autoSpecs");

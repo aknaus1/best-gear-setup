@@ -85,16 +85,18 @@ class ConstraintsPanel extends JPanel
 
 	ConstraintsPanel(BestGearSetupPlugin plugin)
 	{
-		this(plugin, new SidebarSection.Accordion(), null, null);
+		this(plugin, null, null);
 	}
 
-	ConstraintsPanel(BestGearSetupPlugin plugin, SidebarSection.Accordion accordion, ItemManager itemManager, SpriteCache sprites)
+	ConstraintsPanel(BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites)
 	{
 		this.plugin = plugin;
 		this.itemManager = itemManager;
 		this.sprites = sprites;
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
+		SidebarSection.Accordion accordion = new SidebarSection.Accordion(true);
+		add(BestGearSetupPanel.left(accordion.expandCollapseAll("gear")));
 
 		locksSection = card(accordion, "locks", "Locked items");
 		JPanel body = locksSection.getContent();
@@ -164,7 +166,6 @@ class ConstraintsPanel extends JPanel
 	private SidebarSection card(SidebarSection.Accordion accordion, String key, String title)
 	{
 		SidebarSection section = accordion.create(key, title);
-		section.showAsEditor();
 		add(BestGearSetupPanel.left(section));
 		return section;
 	}
@@ -172,6 +173,7 @@ class ConstraintsPanel extends JPanel
 	/** Limit the lock search to a slot (null for any) and put the cursor in it. */
 	void startLockSearch(Slot slot)
 	{
+		locksSection.setExpanded(true);
 		lockSlot.setSelectedIndex(slot == null ? 0 : slot.ordinal() + 1);
 		lockSearch.setText("");
 		lockSearch.requestFocusInWindow();
