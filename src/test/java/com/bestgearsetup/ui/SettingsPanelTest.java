@@ -129,7 +129,12 @@ public class SettingsPanelTest
 		SwingUtilities.invokeAndWait(() ->
 		{
 			SettingsPanel panel = new SettingsPanel(opener, new BestGearSetupConfig() {}, ConfigItemsForTests.descriptor());
-			((JButton) named(panel, "openRuneLiteSettings")).doClick();
+			JButton link = (JButton) named(panel, "openRuneLiteSettings");
+			// Underlined with a hand cursor, so it reads as a link.
+			assertEquals(java.awt.font.TextAttribute.UNDERLINE_ON,
+				link.getFont().getAttributes().get(java.awt.font.TextAttribute.UNDERLINE));
+			assertEquals(java.awt.Cursor.HAND_CURSOR, link.getCursor().getType());
+			link.doClick();
 			assertEquals(1, opened[0]);
 		});
 	}

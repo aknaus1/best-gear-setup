@@ -120,6 +120,11 @@ public class ResultViewTest
 			assertEquals("<html>Trip combat: ~10m 00s</html>", named(box, "tripCombatTime").getText());
 			assertTrue(named(box, "prayerPerKill").getText().contains("Prayer/kill: ~6.7 points"));
 			assertTrue(named(box, "tripSupplies").getText().contains("Supplies: 3 Prayer potion"));
+			// A rule opens the trip lines and another the overhead advice; lines within a group have none.
+			assertNotNull(named(box, "tripCombatTime").getBorder());
+			assertNull(named(box, "prayerPerKill").getBorder());
+			assertNull(named(box, "tripSupplies").getBorder());
+			assertNotNull(named(box, "protectionPrayer").getBorder());
 			JPanel single = view(100).statsBox(dps(5), null);
 			view(100).addTripLines(single, setup, 1, Collections.emptyList());
 			assertNull(named(single, "tripCombatTime"));
@@ -130,10 +135,15 @@ public class ResultViewTest
 			assertTrue(named(advised, "protectionPrayer").getText().contains("Overhead: Protect from Magic"));
 			// A note opening with the summary continues it rather than repeating "None needed" on a second line.
 			ResultView dragon = view(100, "steel dragon (level 246 (task only))");
-			JPanel ranged = dragon.statsBox(dps(5), null);
-			dragon.addTripLines(ranged, new SetupResult(CombatClass.MAGIC, loadout, dps(5), 0), 1, Collections.emptyList());
-			assertTrue(named(ranged, "protectionPrayer").getText(),
-				named(ranged, "protectionPrayer").getText().contains("Overhead: None needed at range: "));
+			JPanel magic = dragon.statsBox(dps(5), null);
+			dragon.addTripLines(magic, new SetupResult(CombatClass.MAGIC, loadout, dps(5), 0), 1, Collections.emptyList());
+			assertTrue(named(magic, "protectionPrayer").getText(),
+				named(magic, "protectionPrayer").getText().contains("Overhead: None needed at range: "));
+			ResultView bloat = view(100, "pestilent bloat (normal)");
+			JPanel bloatBox = bloat.statsBox(dps(5), null);
+			bloat.addTripLines(bloatBox, setup, 1, Collections.emptyList());
+			String bloatText = named(bloatBox, "protectionPrayer").getText();
+			assertTrue(bloatText, bloatText.contains("Overhead: None needed: step out"));
 			// Raid targets show their overhead but no trip lines.
 			Monster tekton = new Monster();
 			tekton.setName("tekton (normal)");
@@ -244,6 +254,30 @@ public class ResultViewTest
 				assertTrue(label(withThrall, "Incl. thrall").getToolTipText().startsWith("Superior ghostly thrall"));
 			});
 		}
+	}
+
+	@Test
+	public void ttkKeepsADecimalOnlyBelowTenSeconds() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			ResultView view = view(100);
+			assertEquals("<html>TTK: ~8.0s</html>", label(view.statsBox(dps(12.5), null), "TTK:").getText());
+			// 9.97s rounds to 10, so it drops the decimal like 10s does.
+			assertEquals("<html>TTK: ~10s</html>", label(view.statsBox(dps(10.03), null), "TTK:").getText());
+			assertEquals("<html>TTK: ~13s</html>", label(view.statsBox(dps(8), null), "TTK:").getText());
+		});
+	}
+
+	@Test
+	public void costLineNamesWhatYouOwn() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			JPanel box = view(100).costBox(new Loadout(), null);
+			String text = ((JLabel) box.getComponent(0)).getText();
+			assertTrue(text, text.contains(" (own <font color='#6BD56B'>0</font>)<br>To buy: "));
+		});
 	}
 
 	private static JLabel label(JPanel box, String text)

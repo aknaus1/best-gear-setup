@@ -50,6 +50,10 @@ public class MonsterGroupTest
 		MonsterGroup doom = found.get(0);
 		assertEquals("Doom of Mokhaiotl", doom.getDisplayName());
 		assertEquals("Amulet of the Damned", GameData.titleCase("amulet of the damned"));
+		assertEquals("Flower (A Night at the Theatre)", GameData.titleCase("flower (a night at the theatre)"));
+		assertEquals("Leech (A Shell of a Friend)", GameData.titleCase("leech (a shell of a friend)"));
+		assertEquals("Teleport to House", GameData.titleCase("teleport to house"));
+		assertEquals("The Leviathan", GameData.titleCase("the leviathan"));
 		assertEquals("doom of mokhaiotl (delve 1)", doom.getPrimary().getName());
 		assertEquals(Arrays.asList("Delve 1", "Delve 1, NPC 14708", "Delve 2", "Delve 10"),
 			doom.getVariants().stream().map(doom::versionLabel).collect(Collectors.toList()));

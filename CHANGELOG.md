@@ -73,7 +73,7 @@ is what the Plugin Hub shows.
 - Tidy the result panel: the attack style sits under the gear in a plain box, trip lines and then the overhead
   advice are set apart from the stats, the list of setups is headed "<Style> setups" and marks the shown one,
   the cost line names what you own, DPS shows two decimals everywhere, TTK shows whole seconds from 10 seconds,
-  and names keep "of", "the" and "and" in lower case.
+  and names keep short words such as "of", "the", "to" and "a" in lower case.
 - The overhead advice no longer repeats its summary on a second line ("None needed" at range, Pestilent Bloat).
 - The *Open in RuneLite settings* link is underlined and shows a hand cursor.
 

@@ -533,7 +533,7 @@ class ResultView extends JPanel
 		return box;
 	}
 
-	private JPanel costBox(Loadout l, SpecialPlan special)
+	JPanel costBox(Loadout l, SpecialPlan special)
 	{
 		long total = 0;
 		long ownedValue = 0;
