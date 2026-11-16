@@ -363,7 +363,7 @@ class ResultView extends JPanel
 		box.add(stat("Accuracy: " + fmt(d.getAccuracy() * 100, 1) + "%"), row);
 		box.add(stat((area ? "Avg attack: " : "Avg hit: ") + fmt(d.getAverageHit(), 2)), row);
 		box.add(stat("Speed: " + fmt(d.getExpectedSpeedTicks() * 0.6, 2) + "s"), row);
-		JLabel ttkLabel = stat("TTK: ~" + fmt(ttk, ttk < 10 ? 1 : 0) + "s");
+		JLabel ttkLabel = stat("TTK: ~" + fmt(ttk, ttk < 9.95 ? 1 : 0) + "s");
 		ttkLabel.setToolTipText("Enemy hitpoints / DPS, ignoring overkill");
 		box.add(ttkLabel, row);
 		if (area)

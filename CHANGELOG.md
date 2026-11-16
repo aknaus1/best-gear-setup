@@ -70,9 +70,12 @@ is what the Plugin Hub shows.
   the time. The **Search depth** setting is gone.
 - A setup killing faster with poison, venom or burns is never credited a slightly slower kill than a weaker one
   (up to 0.07% DPS).
-- Tidy the result panel: the attack style sits under the gear in a plain box, trip lines and the overhead advice
-  are set apart from the stats, the shown setup is marked in the list of setups, the cost line names what you
-  own, DPS shows two decimals everywhere, and names keep "of", "the" and "and" in lower case.
+- Tidy the result panel: the attack style sits under the gear in a plain box, trip lines and then the overhead
+  advice are set apart from the stats, the list of setups is headed "<Style> setups" and marks the shown one,
+  the cost line names what you own, DPS shows two decimals everywhere, TTK shows whole seconds from 10 seconds,
+  and names keep "of", "the" and "and" in lower case.
+- The overhead advice no longer repeats its summary on a second line ("None needed" at range, Pestilent Bloat).
+- The *Open in RuneLite settings* link is underlined and shows a hand cursor.
 
 ## 1.1.3 (2026-11-10)
 
