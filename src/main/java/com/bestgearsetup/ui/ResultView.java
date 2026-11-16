@@ -185,6 +185,9 @@ class ResultView extends JPanel
 		selected = setup;
 		List<Potion> potions = potionsFor(setup);
 		supplies = plugin.tripSupplies(setup, results, potions);
+		// The bank shows only the boosts the trip withdraws, as the Supplies line lists them.
+		if (results.getMonster() != null)
+			potions.removeIf(p -> !TripSupplies.takes(p, results.getMonster()));
 		plugin.setBankHighlightedSetup(setup, potions, supplies);
 		rebuildTabs();
 		rebuildBody();

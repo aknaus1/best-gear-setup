@@ -12,6 +12,7 @@ import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.MonsterStates;
 import com.bestgearsetup.calc.Optimizer;
 import com.bestgearsetup.calc.OptimizerSettings;
+import com.bestgearsetup.calc.Overheads;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.calc.RaidScaling;
@@ -1290,6 +1291,8 @@ public class BestGearSetupPlugin extends Plugin
 				rememberedLevels, warnings,
 				Thrall.eligibleType(monster) == null ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
 				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels);
+			// Loads the overhead notes here rather than on the Swing thread when the first result is shown.
+			Overheads.recommend(monster, CombatClass.MELEE);
 			SwingUtilities.invokeLater(() ->
 			{
 				if (panel != null && generation == searchGeneration.get())

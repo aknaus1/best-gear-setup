@@ -126,6 +126,8 @@ public class Optimizer
 	/** Per weapon and {@link #optionKey}, whether each item is effect gear ({@link #effect}). */
 	private final Map<GearItem, Map<String, Map<GearItem, Boolean>>> effectItems = new IdentityHashMap<>();
 	private CombatClass boundClass;
+	/** The running search's cancellation, polled inside each weapon's search too. */
+	private BooleanSupplier cancelled = () -> false;
 	/** The searched class's candidate shields, offered as an off-hand for one-handed spec weapons. */
 	private List<GearItem> specShields = Collections.emptyList();
 	private final PlayerLevels levels;
@@ -197,6 +199,7 @@ public class Optimizer
 			return Collections.emptyList();
 		}
 		Map<Slot, List<GearItem>> candidates = candidates(cls);
+		this.cancelled = cancelled;
 		boundClass = cls;
 		alternatives.clear();
 		origins.clear();
@@ -759,6 +762,8 @@ public class Optimizer
 		Map<Slot, List<GearItem>> pools, Map<Slot, Collection<List<GearItem>>> effects, int[] totals, List<Option> options,
 		Exact best)
 	{
+		if (cancelled.getAsBoolean())
+			return;
 		if (index == free.size())
 		{
 			Exact own = new Exact();

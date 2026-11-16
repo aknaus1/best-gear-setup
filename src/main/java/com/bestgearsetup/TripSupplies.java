@@ -117,6 +117,13 @@ public final class TripSupplies
 		return advice.getPrayer() != null && advice.getPrayer().getLevel() <= levels.getPrayer();
 	}
 
+	/** Whether a trip to {@code monster} withdraws this boost: never raid supplies, NMZ potions only in Nightmare Zone. */
+	public static boolean takes(Potion potion, Monster monster)
+	{
+		return !potion.isRaidSupply() && (!potion.getAttributes().contains("nmz")
+			|| monster.getLowerName().contains("(nightmare zone"));
+	}
+
 	/**
 	 * The supplies {@code kills} kills need: each boost's bottles, the {@code antifire} a dragon's breath needs
 	 * ({@link Antifire#NONE} when fire protection isn't required), prayer restores, a bottle of cure against a target
@@ -131,9 +138,8 @@ public final class TripSupplies
 			return out;
 		PlayerLevels levels = results.getLevels() == null ? PlayerLevels.maxed() : results.getLevels();
 		double seconds = killSeconds(setup, results) * kills;
-		boolean nmz = results.getMonster().getLowerName().contains("(nightmare zone");
 		for (Potion potion : potions)
-			if (!potion.isRaidSupply() && (nmz || !potion.getAttributes().contains("nmz")))
+			if (takes(potion, results.getMonster()))
 				out.add(new Supply(GameData.titleCase(potion.getName()), new ArrayList<>(BoostAccess.itemIds(potion)),
 					boostBottles(potion, level(levels, potion.getSkill()), seconds)));
 		// A dose of antifire lasts 6 minutes, of super antifire 3 (Wiki); the extended potion is its alternative.
