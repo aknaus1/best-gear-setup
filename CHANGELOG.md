@@ -80,6 +80,9 @@ is what the Plugin Hub shows.
   used instead. A name that isn't an offensive prayer is named in the search notes.
 - The picked attack style tab stays selected when a Fight, Gear or Settings change recalculates the results; a new
   target or Find best setup opens on the best style again.
+- Every card in Fight and Gear now opens and collapses on its own, and they start collapsed with their counts
+  in the header. **Expand all** and **Collapse all** sit at the top of both views. Locking an item from a result
+  opens Locked items.
 
 ## 1.1.3 (2026-11-10)
 

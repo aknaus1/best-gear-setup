@@ -124,14 +124,13 @@ public class BestGearSetupPanel extends PluginPanel
 		super(false);
 		this.plugin = plugin;
 		this.config = config;
-		SidebarSection.Accordion options = new SidebarSection.Accordion();
 		ConfigDescriptor descriptor = plugin.getConfigDescriptor();
-		this.fightOptions = new FightOptionsPanel(plugin, config, descriptor.getItems(), options);
+		this.fightOptions = new FightOptionsPanel(plugin, config, descriptor.getItems());
 		this.settingsPanel = new SettingsPanel(plugin, config, descriptor);
 		this.itemManager = itemManager;
 		this.sprites = new SpriteCache(spriteManager);
 		this.skillIcons = skillIconManager;
-		this.constraints = new ConstraintsPanel(plugin, options, itemManager, spriteManager == null ? null : sprites);
+		this.constraints = new ConstraintsPanel(plugin, itemManager, spriteManager == null ? null : sprites);
 
 		setLayout(views);
 		setBorder(new EmptyBorder(8, 8, 8, 8));

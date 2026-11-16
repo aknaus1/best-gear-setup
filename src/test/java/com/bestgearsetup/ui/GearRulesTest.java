@@ -111,6 +111,37 @@ public class GearRulesTest
 	}
 
 	@Test
+	public void gearCardsStartCollapsedAndOpenOnTheirOwnOrAllAtOnce() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			String[] cards = {"locks", "exclusions", "forcedSpells", "blockedSpells", "extraOwnedItems"};
+			for (String card : cards)
+			{
+				assertFalse(card + " starts collapsed", named(panel, card + "Content").isVisible());
+			}
+			((JButton) named(panel, "locksToggle")).doClick();
+			((JButton) named(panel, "exclusionsToggle")).doClick();
+			assertTrue("Opening a card leaves the others open", named(panel, "locksContent").isVisible());
+			assertTrue(named(panel, "exclusionsContent").isVisible());
+			((JButton) named(panel, "locksToggle")).doClick();
+			assertFalse(named(panel, "locksContent").isVisible());
+			assertTrue("Collapsing a card leaves the others open", named(panel, "exclusionsContent").isVisible());
+			((JButton) named(panel, "gearExpandAll")).doClick();
+			for (String card : cards)
+			{
+				assertTrue(card + " expanded", named(panel, card + "Content").isVisible());
+			}
+			((JButton) named(panel, "gearCollapseAll")).doClick();
+			for (String card : cards)
+			{
+				assertFalse(card + " collapsed", named(panel, card + "Content").isVisible());
+			}
+		});
+	}
+
+	@Test
 	public void locksAndExclusionsAreListedAndClearedSeparately() throws Exception
 	{
 		GearItem lightbearer = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);
@@ -129,7 +160,7 @@ public class GearRulesTest
 			assertNotNull(label(lockCard, "Keep empty"));
 			assertNull("Exclusions are not listed with locks", label(lockCard, helm));
 			assertNotNull(label(excludedCard, helm));
-			assertEquals("Locked items (2)", ((JLabel) ((Container) named(panel, "locksSection")).getComponent(1)).getText());
+			assertEquals("Locked items (2)", ((JButton) named(panel, "locksToggle")).getText());
 
 			button(lockCard, "Clear locks").doClick();
 			assertEquals("Clearing locks keeps exclusions", List.of("locks"), cleared);

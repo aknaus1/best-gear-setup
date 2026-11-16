@@ -1,25 +1,21 @@
 package com.bestgearsetup.ui;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;
-import javax.swing.JLabel;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 
-/**
- * Related controls, drawn as a raised card. A collapsible card's header shows a chevron; separate
- * editors show their groups as always-open cards with a plain heading.
- */
+/** Related controls, drawn as a raised card with a collapsible header that shows a chevron. */
 class SidebarSection extends JPanel
 {
 	/** Space below each card, outside its outline. */
@@ -32,23 +28,6 @@ class SidebarSection extends JPanel
 	private String summary = "";
 	/** What the section covers, shown under the expand / collapse hint. */
 	private String description;
-	private JLabel heading;
-	/** Always open; opening another section must not collapse it. */
-	private boolean editor;
-
-	/** Always open, for a separate editor: a plain heading and no expand/collapse control. */
-	void showAsEditor()
-	{
-		remove(toggle);
-		editor = true;
-		heading = new JLabel(title + summary);
-		heading.setFont(Controls.plain(FontManager.getRunescapeBoldFont()));
-		heading.setForeground(Color.WHITE);
-		heading.setBorder(new EmptyBorder(6, 7, 2, 6));
-		add(heading, BorderLayout.NORTH);
-		content.setVisible(true);
-		updateToggle();
-	}
 
 	private SidebarSection(Accordion accordion, String key, String title)
 	{
@@ -88,10 +67,6 @@ class SidebarSection extends JPanel
 	{
 		summary = count > 0 ? " (" + count + ")" : "";
 		updateToggle();
-		if (heading != null)
-		{
-			heading.setText(title + summary);
-		}
 	}
 
 	void setToolTip(String description)
@@ -102,9 +77,9 @@ class SidebarSection extends JPanel
 
 	void setExpanded(boolean expanded)
 	{
-		if (expanded)
+		if (expanded && !accordion.independent)
 		{
-			accordion.sections.stream().filter(section -> section != this && !section.editor)
+			accordion.sections.stream().filter(section -> section != this)
 				.forEach(section -> section.setExpanded(false));
 		}
 		content.setVisible(expanded);
@@ -134,7 +109,7 @@ class SidebarSection extends JPanel
 			int cardHeight = height - GAP;
 			g.setColor(Controls.CARD_OUTLINE);
 			g.drawRect(x, y, width - 1, cardHeight - 1);
-			if (content.isVisible() && !editor)
+			if (content.isVisible())
 			{
 				g.setColor(ColorScheme.BRAND_ORANGE);
 				g.fillRect(x, y, 2, cardHeight);
@@ -148,10 +123,40 @@ class SidebarSection extends JPanel
 		}
 	}
 
-	/** Shared across fight, potion and gear sections so only one options panel is open at a time. */
+	/** A group of sections: only one open at a time, or each opened and collapsed on its own. */
 	static class Accordion
 	{
 		private final List<SidebarSection> sections = new ArrayList<>();
+		private final boolean independent;
+
+		Accordion()
+		{
+			this(false);
+		}
+
+		Accordion(boolean independent)
+		{
+			this.independent = independent;
+		}
+
+		/** Expand all and Collapse all buttons for an independent group. */
+		JPanel expandCollapseAll(String key)
+		{
+			JPanel row = new JPanel(new GridLayout(1, 2, 4, 0));
+			row.setName(key + "ExpandCollapseAll");
+			row.setOpaque(false);
+			row.setBorder(new EmptyBorder(0, 0, GAP, 0));
+			for (boolean expand : new boolean[]{true, false})
+			{
+				JButton button = new JButton(expand ? "Expand all" : "Collapse all");
+				button.setName(key + (expand ? "ExpandAll" : "CollapseAll"));
+				Controls.secondary(button);
+				button.setFocusable(false);
+				button.addActionListener(e -> sections.forEach(section -> section.setExpanded(expand)));
+				row.add(button);
+			}
+			return row;
+		}
 
 		SidebarSection create(String key, String title)
 		{
