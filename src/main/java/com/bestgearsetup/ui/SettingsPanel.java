@@ -2,6 +2,9 @@ package com.bestgearsetup.ui;
 
 import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
+import java.awt.Cursor;
+import java.awt.font.TextAttribute;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -72,9 +75,13 @@ class SettingsPanel extends JPanel
 			first.setExpanded(true);
 		}
 
+		// Underlined with a hand cursor, so the quiet text reads as a link before it is hovered.
 		JButton runeLite = new JButton("Open in RuneLite settings");
 		runeLite.setName("openRuneLiteSettings");
 		Controls.ghost(runeLite);
+		runeLite.setFont(runeLite.getFont().deriveFont(Collections.singletonMap(TextAttribute.UNDERLINE,
+			TextAttribute.UNDERLINE_ON)));
+		runeLite.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		runeLite.setToolTipText("Same settings on RuneLite's config page, with reset");
 		runeLite.addActionListener(e -> plugin.openConfiguration());
 		JPanel link = BestGearSetupPanel.left(runeLite);

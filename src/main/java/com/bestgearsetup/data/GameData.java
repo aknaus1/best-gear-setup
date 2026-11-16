@@ -552,6 +552,11 @@ public class GameData
 			sb.append(upper ? Character.toUpperCase(c) : c);
 			upper = c == ' ' || c == '(' || c == '-';
 		}
-		return sb.toString();
+		String out = sb.toString();
+		for (String word : new String[]{"Of", "The", "And", "At", "From", "To", "For", "A"})
+		{
+			out = out.replace(" " + word + " ", " " + word.toLowerCase(Locale.ROOT) + " ");
+		}
+		return out;
 	}
 }
