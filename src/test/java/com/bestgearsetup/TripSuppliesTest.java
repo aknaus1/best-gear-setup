@@ -161,6 +161,9 @@ public class TripSuppliesTest
 		SearchResults zone = results(100, PIETY);
 		zone.getMonster().setName("count draynor (nightmare zone)");
 		assertEquals("1 Super Ranging", TripSupplies.summary(TripSupplies.plan(setup(5, 0), zone, potions, 1, false, id -> false, Antifire.NONE)));
+		// The bank layout and highlights use the same rule, so they show no bottle the Supplies line leaves out.
+		assertFalse(TripSupplies.takes(nmz, results(100, PIETY).getMonster()));
+		assertTrue(TripSupplies.takes(nmz, zone.getMonster()));
 	}
 
 	@Test
