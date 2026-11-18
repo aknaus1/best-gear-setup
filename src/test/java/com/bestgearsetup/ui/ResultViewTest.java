@@ -183,7 +183,7 @@ public class ResultViewTest
 	private static ResultView view(Monster monster)
 	{
 		int hp = monster.getHitpoints();
-		SearchResults results = new SearchResults(monster, hp, Collections.emptyMap(), Collections.emptyList(),
+		SearchResults results = com.bestgearsetup.TestResults.of(monster, hp, Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyMap(), Collections.emptyMap(), false);
 		return new ResultView(results, null, null, null, null, 0, null, style -> { });
 	}
@@ -233,7 +233,7 @@ public class ResultViewTest
 				.withModifiers(CombatModifiers.builder().monsterHitpoints(selected).build());
 			int starting = selected == 100 ? 100 : 750;
 			assertEquals(starting, ctx.getTargetHitpoints());
-			SearchResults results = new SearchResults(monster, ctx.getTargetHitpoints(), Collections.emptyMap(),
+			SearchResults results = com.bestgearsetup.TestResults.of(monster, ctx.getTargetHitpoints(), Collections.emptyMap(),
 				Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false);
 			SwingUtilities.invokeAndWait(() ->
 			{
@@ -328,7 +328,7 @@ public class ResultViewTest
 		java.util.Map<AttackStyle.Type, java.util.List<SetupResult>> byType = new java.util.EnumMap<>(AttackStyle.Type.class);
 		byType.put(AttackStyle.Type.CRUSH, Collections.singletonList(styleSetup("mace", 5)));
 		byType.put(AttackStyle.Type.STAB, Collections.singletonList(styleSetup("spear", 3)));
-		return new SearchResults(new Monster(), 100, byType, Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false);
+		return com.bestgearsetup.TestResults.of(new Monster(), 100, byType, Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false);
 	}
 
 	private static SetupResult styleSetup(String weaponName, double dps)

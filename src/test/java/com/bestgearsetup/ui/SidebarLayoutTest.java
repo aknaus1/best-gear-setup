@@ -133,7 +133,7 @@ public class SidebarLayoutTest
 				{
 					assertFits(scroll, slot);
 				}
-				panel.showResults(new SearchResults(new Monster(), 100, Collections.emptyMap(),
+				panel.showResults(com.bestgearsetup.TestResults.of(new Monster(), 100, Collections.emptyMap(),
 					Collections.singletonList("Long calculation and provenance explanation"),
 					Collections.emptyMap(), Collections.emptyMap(), false));
 				JButton details = button(panel, "Search details");

@@ -1,16 +1,15 @@
 package com.bestgearsetup;
 
+import com.bestgearsetup.data.NameLists;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
+import lombok.AllArgsConstructor;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.Skill;
@@ -29,21 +28,17 @@ final class AccountFacts
 	/** Parsed without Gson: this runs at class load, before the client's Gson can be passed in. */
 	private static Map<String, List<String>> loadTargets()
 	{
-		try (InputStreamReader reader = new InputStreamReader(AccountFacts.class.getResourceAsStream("slayer-targets.json"), StandardCharsets.UTF_8))
+		Map<String, List<String>> targets = new HashMap<>();
+		for (Map.Entry<String, JsonElement> entry : NameLists.load("/com/bestgearsetup/slayer-targets.json").entrySet())
 		{
-			Map<String, List<String>> targets = new HashMap<>();
-			for (Map.Entry<String, JsonElement> entry : new JsonParser().parse(reader).getAsJsonObject().entrySet())
+			List<String> aliases = new ArrayList<>();
+			for (JsonElement alias : entry.getValue().getAsJsonArray())
 			{
-				List<String> aliases = new ArrayList<>();
-				for (JsonElement alias : entry.getValue().getAsJsonArray())
-				{
-					aliases.add(alias.getAsString());
-				}
-				targets.put(entry.getKey(), aliases);
+				aliases.add(alias.getAsString());
 			}
-			return targets;
+			targets.put(entry.getKey(), aliases);
 		}
-		catch (Exception e) { throw new IllegalStateException("Cannot load Slayer target aliases", e); }
+		return targets;
 	}
 
 	static Boolean diary(Client client, ConfigManager manager)
@@ -75,7 +70,7 @@ final class AccountFacts
 		if (ready(client))
 		{
 			int remaining = client.getVarpValue(VarPlayerID.SLAYER_COUNT);
-			if (remaining == 0) { record = new TaskRecord("", 0, false); }
+			if (remaining == 0) { record = new TaskRecord("", 0, false, null); }
 			else
 			{
 				try
@@ -129,11 +124,6 @@ final class AccountFacts
 			.replaceFirst("^the ", "").trim();
 	}
 
-	static Boolean matches(TaskRecord record, String target)
-	{
-		return matches(record, target, null);
-	}
-
 	static Boolean matches(TaskRecord record, String target, WorldPoint location)
 	{
 		if (record == null || record.name == null || record.remaining < 0) { return null; }
@@ -155,7 +145,7 @@ final class AccountFacts
 	 */
 	static Boolean matchesAssignment(TaskRecord record, String target)
 	{
-		return record == null ? null : matches(new TaskRecord(record.name, record.remaining, false), target);
+		return record == null ? null : matches(new TaskRecord(record.name, record.remaining, false, null), target, null);
 	}
 
 	/** Unknown areas remain unknown rather than granting a location-restricted task bonus. */
@@ -202,19 +192,12 @@ final class AccountFacts
 		return inKaruulm(player);
 	}
 
+	@AllArgsConstructor
 	static final class TaskRecord
 	{
 		final String name;
 		final int remaining;
 		final boolean locationRestricted;
 		final String location;
-		TaskRecord(String name, int remaining, boolean locationRestricted)
-		{
-			this(name, remaining, locationRestricted, null);
-		}
-		TaskRecord(String name, int remaining, boolean locationRestricted, String location)
-		{
-			this.name = name; this.remaining = remaining; this.locationRestricted = locationRestricted; this.location = location;
-		}
 	}
 }

@@ -8,7 +8,7 @@ import org.junit.Test;
 public class AccountFactsTest
 {
 	private static Boolean match(String task, String npc)
-	{ return AccountFacts.matches(new AccountFacts.TaskRecord(task, 35, false), npc); }
+	{ return AccountFacts.matches(new AccountFacts.TaskRecord(task, 35, false, null), npc, null); }
 
 	@Test public void taskMatchesAliasesAndVariantsInsteadOfAllTargets()
 	{
@@ -24,9 +24,9 @@ public class AccountFactsTest
 	@Test public void missingLocationUnknownAssignmentAndFinishedTaskDoNotGrantBonus()
 	{
 		assertNull(match("Unrecognised new assignment", "Turoth"));
-		assertNull(AccountFacts.matches(null, "Turoth"));
-		assertNull(AccountFacts.matches(new AccountFacts.TaskRecord("Blue dragons", 8, true), "Vorkath"));
-		assertEquals(false, AccountFacts.matches(new AccountFacts.TaskRecord("Blue dragons", 0, false), "Vorkath"));
+		assertNull(AccountFacts.matches(null, "Turoth", null));
+		assertNull(AccountFacts.matches(new AccountFacts.TaskRecord("Blue dragons", 8, true, null), "Vorkath", null));
+		assertEquals(false, AccountFacts.matches(new AccountFacts.TaskRecord("Blue dragons", 0, false, null), "Vorkath", null));
 		assertEquals(false, match("Turoths", "Notaturoth"));
 	}
 

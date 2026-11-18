@@ -303,7 +303,7 @@ public class SpellRunesTest
 		assertEquals(Integer.valueOf(5), split.get(ItemID._4DOSE2STRENGTH));
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
 		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout(null, "abyssal whip", null), null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null),
-			Collections.singletonList(combat));
+			Collections.singletonList(combat), Collections.emptyList());
 		assertTrue(plugin.getBankHighlightIds().containsAll(Arrays.asList(ItemID._1DOSE2COMBAT,
 			ItemID._1DOSEDIVINECOMBAT)));
 	}
