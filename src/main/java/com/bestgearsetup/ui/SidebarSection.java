@@ -129,11 +129,6 @@ class SidebarSection extends JPanel
 		private final List<SidebarSection> sections = new ArrayList<>();
 		private final boolean independent;
 
-		Accordion()
-		{
-			this(false);
-		}
-
 		Accordion(boolean independent)
 		{
 			this.independent = independent;

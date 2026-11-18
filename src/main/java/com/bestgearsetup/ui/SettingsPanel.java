@@ -48,7 +48,7 @@ class SettingsPanel extends JPanel
 			}
 		}
 		// One section open at a time, as in the Fight editor, keeps the list short enough to scan.
-		SidebarSection.Accordion accordion = new SidebarSection.Accordion();
+		SidebarSection.Accordion accordion = new SidebarSection.Accordion(false);
 		List<ConfigSectionDescriptor> sections = descriptor.getSections().stream()
 			.sorted(Comparator.comparingInt(ConfigSectionDescriptor::position))
 			.collect(Collectors.toList());

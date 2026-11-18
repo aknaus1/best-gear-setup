@@ -246,14 +246,16 @@ public class SpellRunesTest
 	{
 		Loadout loadout = loadout("dark demonbane", "magic staff", null);
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MAGIC, loadout, null,
-			0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.MARK_OF_DARKNESS, SupportSpell.THRALL), null, null));
+			0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.MARK_OF_DARKNESS, SupportSpell.THRALL), null, null),
+			Collections.emptyList(), Collections.emptyList());
 		// The pouch takes the first inventory slot; the items past its three follow it.
 		assertEquals(Integer.valueOf(5), cells.get(ItemID.BLOODRUNE));
 		assertEquals(Integer.valueOf(6), cells.get(ItemID.BOOK_OF_THE_DEAD));
 		// Aether replaces soul and cosmic; it sits with the first of those (soul), in the pouch row.
 		assertEquals(Integer.valueOf(61), cells.get(ItemID.AETHERRUNE));
 		Map<Integer, Integer> thrall = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
-			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.THRALL), null, null));
+			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.THRALL), null, null),
+			Collections.emptyList(), Collections.emptyList());
 		assertEquals(thrall.get(ItemID.COSMICRUNE), thrall.get(ItemID.AETHERRUNE));
 	}
 
@@ -263,7 +265,7 @@ public class SpellRunesTest
 		Loadout loadout = loadout("fire surge", "staff of earth", null);
 		loadout.set(Slot.HEAD, gear(ItemID.WRATHRUNE, "test helm"));
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(
-			new SetupResult(CombatClass.MAGIC, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
+			new SetupResult(CombatClass.MAGIC, loadout, null, 0, 0, Collections.emptySet(), Collections.emptySet(), null, null), Collections.emptyList(), Collections.emptyList());
 		// Equipment keeps its silhouette cell; a rune pouch takes the first inventory slot and its runes sit in the
 		// row under the inventory, in spellbook order.
 		assertEquals(Integer.valueOf(1), cells.get(ItemID.WRATHRUNE));
@@ -286,7 +288,8 @@ public class SpellRunesTest
 		Potion heart = new Potion();
 		heart.setId(ItemID.SATURATED_HEART);
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
-			loadout(null, "abyssal whip", null), null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), Arrays.asList(combat, heart));
+			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), Collections.emptySet(), null, null), Arrays.asList(combat, heart),
+			Collections.emptyList());
 		assertEquals(Integer.valueOf(4), cells.get(ItemID._4DOSE2COMBAT));
 		assertEquals(Integer.valueOf(4), cells.get(ItemID._2DOSE2COMBAT));
 		assertEquals(Integer.valueOf(4), cells.get(ItemID._3DOSEDIVINECOMBAT));
@@ -296,7 +299,8 @@ public class SpellRunesTest
 		Potion strength = new Potion();
 		strength.setId(ItemID._4DOSE2STRENGTH);
 		Map<Integer, Integer> split = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
-			loadout(null, "abyssal whip", null), null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), Arrays.asList(attack, strength));
+			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), Collections.emptySet(), null, null), Arrays.asList(attack, strength),
+			Collections.emptyList());
 		// A super combat covers both and sits with the first; each keeps its own cell.
 		assertEquals(Integer.valueOf(4), split.get(ItemID._4DOSE2ATTACK));
 		assertEquals(Integer.valueOf(4), split.get(ItemID._3DOSE2COMBAT));

@@ -17,7 +17,7 @@ public class SidebarSectionTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			SidebarSection.Accordion accordion = new SidebarSection.Accordion();
+			SidebarSection.Accordion accordion = new SidebarSection.Accordion(false);
 			SidebarSection fight = accordion.create("fightConditions", "Fight conditions");
 			SidebarSection gear = accordion.create("gearRules", "Locks & exclusions");
 			gear.setSummary(3);

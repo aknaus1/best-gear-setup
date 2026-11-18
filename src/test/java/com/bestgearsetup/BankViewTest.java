@@ -535,6 +535,25 @@ public class BankViewTest
 		return event;
 	}
 
+	/** The bank view with the selection shortcuts these tests use: no trip, each item with its own ids. */
+	private static class SelectionView extends BestGearSetupBankView
+	{
+		SelectionView(Client client, ItemManager itemManager, BankSearch bankSearch, EventBus eventBus)
+		{
+			super(client, itemManager, bankSearch, eventBus);
+		}
+
+		void setSelection(SetupResult setup)
+		{
+			setSelection(setup, Collections.emptyList());
+		}
+
+		void setSelection(SetupResult setup, List<Potion> potions)
+		{
+			setSelection(setup, potions, BestGearSetupBankView::itemIds, Collections.emptyList());
+		}
+	}
+
 	/** Minimal game-script fixture: native tab/search mode, filtering, and rebuilt bank widgets. */
 	private static class Fixture
 	{
@@ -554,7 +573,7 @@ public class BankViewTest
 		private int tab;
 		private final List<Object> posted = new ArrayList<>();
 		private final Map<Integer, ItemComposition> compositions = new HashMap<>();
-		private final BestGearSetupBankView view;
+		private final SelectionView view;
 		private final Client client;
 		private final ClientThread thread;
 
@@ -649,7 +668,7 @@ public class BankViewTest
 				@Override
 				public void post(Object event) { posted.add(event); }
 			};
-			view = new BestGearSetupBankView(client, manager, bankSearch, eventBus);
+			view = new SelectionView(client, manager, bankSearch, eventBus);
 		}
 
 		private ItemComposition composition(int id)

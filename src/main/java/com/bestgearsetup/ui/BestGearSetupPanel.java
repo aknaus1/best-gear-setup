@@ -43,12 +43,11 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.Scrollable;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import net.runelite.client.config.ConfigDescriptor;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
@@ -86,7 +85,7 @@ public class BestGearSetupPanel extends PluginPanel
 	final JComboBox<EncounterPhase> phaseBox = new JComboBox<>();
 	final JPanel phaseRow = new JPanel(new BorderLayout(0, 2));
 	private final JLabel monsterLabel = new JLabel();
-	final JButton wikiButton = new JButton("Open Wiki");
+	final JButton wikiButton = new JButton("Wiki");
 	final JComboBox<SearchMode> modeBox = new JComboBox<>(SearchMode.values());
 	final JTextField budgetField = new JTextField();
 	final JPanel budgetRow = new JPanel(new BorderLayout(4, 0));
@@ -153,15 +152,9 @@ public class BestGearSetupPanel extends PluginPanel
 		content.add(left(titleRow));
 		content.add(spacer(6));
 
-		JPanel filter = new JPanel(new GridLayout(1, 2, 2, 0));
-		filter.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		ButtonGroup filterGroup = new ButtonGroup();
-		bossesButton.setToolTipText("Search bosses only");
-		allButton.setToolTipText("Search bosses and other monsters");
 		for (JToggleButton button : new JToggleButton[]{bossesButton, allButton})
 		{
-			button.setFont(FontManager.getRunescapeSmallFont());
-			button.setFocusable(false);
 			button.addActionListener(e ->
 			{
 				if (!syncing)
@@ -171,34 +164,11 @@ public class BestGearSetupPanel extends PluginPanel
 				updateSuggestions();
 			});
 			filterGroup.add(button);
-			filter.add(button);
 		}
-		// The search filter is a persistent plugin preference; the recovery action still uses allButton.
+		// The search filter is a persistent plugin preference; these buttons are never shown and only hold its state.
 
-		searchField.setIcon(IconTextField.Icon.SEARCH);
-		searchField.setPreferredSize(new Dimension(PANEL_WIDTH - 16, 30));
-		Controls.search(searchField, "Search monsters...");
+		Controls.search(searchField, PANEL_WIDTH - 16, "Search monsters...", this::updateSuggestions);
 		searchField.setEnabled(false);
-		searchField.getDocument().addDocumentListener(new DocumentListener()
-		{
-			@Override
-			public void insertUpdate(DocumentEvent e)
-			{
-				updateSuggestions();
-			}
-
-			@Override
-			public void removeUpdate(DocumentEvent e)
-			{
-				updateSuggestions();
-			}
-
-			@Override
-			public void changedUpdate(DocumentEvent e)
-			{
-				updateSuggestions();
-			}
-		});
 		searchField.addActionListener(e ->
 		{
 			if (data != null)
@@ -235,12 +205,7 @@ public class BestGearSetupPanel extends PluginPanel
 		content.add(left(noMatches));
 		content.add(spacer(6));
 
-		versionRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		JLabel versionLabel = Controls.caption("Version");
-		versionLabel.setLabelFor(versionBox);
-		versionBox.setFocusable(false);
-		Controls.field(versionBox);
-		versionBox.setToolTipText("Boss phase or monster variant to search against");
+		content.add(choiceRow(versionRow, versionBox, "Version", "Boss phase or monster variant to search against"));
 		versionBox.setRenderer(new DefaultListCellRenderer()
 		{
 			@Override
@@ -264,18 +229,9 @@ public class BestGearSetupPanel extends PluginPanel
 				select(selectedGroup, variant, true);
 			}
 		});
-		versionRow.add(versionLabel, BorderLayout.NORTH);
-		versionRow.add(versionBox, BorderLayout.CENTER);
-		versionRow.setVisible(false);
-		content.add(left(versionRow));
 
-		phaseRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		phaseRow.setBorder(new EmptyBorder(3, 0, 0, 0));
-		JLabel phaseLabel = Controls.caption("Boss phase");
-		phaseLabel.setLabelFor(phaseBox);
-		phaseBox.setFocusable(false);
-		Controls.field(phaseBox);
-		phaseBox.setToolTipText("Temporary state of the named boss");
+		content.add(choiceRow(phaseRow, phaseBox, "Boss phase", "Temporary state of the named boss"));
 		phaseBox.addActionListener(e ->
 		{
 			if (!syncing && phaseBox.getSelectedItem() != null)
@@ -283,10 +239,6 @@ public class BestGearSetupPanel extends PluginPanel
 				plugin.setConfig(BestGearSetupConfig.PHASE_KEY, phaseBox.getSelectedItem());
 			}
 		});
-		phaseRow.add(phaseLabel, BorderLayout.NORTH);
-		phaseRow.add(phaseBox, BorderLayout.CENTER);
-		phaseRow.setVisible(false);
-		content.add(left(phaseRow));
 		content.add(spacer(6));
 
 		monsterLabel.setForeground(Color.WHITE);
@@ -310,7 +262,6 @@ public class BestGearSetupPanel extends PluginPanel
 					.build().toString());
 			}
 		});
-		wikiButton.setText("Wiki");
 		Controls.secondary(wikiButton);
 		wikiButton.setMargin(new java.awt.Insets(1, 6, 1, 6));
 		targetRow.add(wikiButton, BorderLayout.EAST);
@@ -416,8 +367,7 @@ public class BestGearSetupPanel extends PluginPanel
 		content.add(left(ownedLabel));
 
 		statusLabel.setFont(FontManager.getRunescapeSmallFont());
-		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-		statusLabel.setText(html("Loading bundled Wiki data..."));
+		setStatus("Loading bundled Wiki data...");
 		content.add(left(statusLabel));
 		progressBar.setName("searchProgress");
 		progressBar.setStringPainted(true);
@@ -435,19 +385,27 @@ public class BestGearSetupPanel extends PluginPanel
 		resultsPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		content.add(left(resultsPanel));
 
-		JPanel north = new SidebarContent();
-		north.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		north.add(content, BorderLayout.NORTH);
-		javax.swing.JScrollPane scroll = new javax.swing.JScrollPane(north);
-		scroll.setBorder(null);
-		scroll.getVerticalScrollBar().setUnitIncrement(16);
-		scroll.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		add(scroll, "results");
+		add(scroll(content), "results");
 		addEditor("Fight assumptions", fightOptions, "fight");
 		addEditor("Gear rules", constraints, "gear");
 		addEditor("Settings", settingsPanel, "settings");
 
 		syncFromConfig();
+	}
+
+	/** A captioned drop-down, hidden until the target offers a choice. */
+	private static JPanel choiceRow(JPanel row, JComboBox<?> box, String caption, String tooltip)
+	{
+		row.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		JLabel label = Controls.caption(caption);
+		label.setLabelFor(box);
+		box.setFocusable(false);
+		Controls.field(box);
+		box.setToolTipText(tooltip);
+		row.add(label, BorderLayout.NORTH);
+		row.add(box, BorderLayout.CENTER);
+		row.setVisible(false);
+		return left(row);
 	}
 
 	private void addEditor(String title, JPanel body, String key)
@@ -475,15 +433,21 @@ public class BestGearSetupPanel extends PluginPanel
 		heading.setBorder(new EmptyBorder(4, 0, 0, 0));
 		header.add(heading, BorderLayout.SOUTH);
 		editor.add(header, BorderLayout.NORTH);
-		JPanel wrapped = new SidebarContent();
-		wrapped.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		wrapped.add(body, BorderLayout.NORTH);
-		javax.swing.JScrollPane scroll = new javax.swing.JScrollPane(wrapped);
-		scroll.setBorder(null);
-		scroll.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		scroll.getVerticalScrollBar().setUnitIncrement(16);
-		editor.add(scroll, BorderLayout.CENTER);
+		editor.add(scroll(body), BorderLayout.CENTER);
 		add(editor, key);
+	}
+
+	/** A view's body at the top of a vertical scroll pane that keeps it to the sidebar's width. */
+	private static JScrollPane scroll(JPanel body)
+	{
+		JPanel view = new SidebarContent();
+		view.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		view.add(body, BorderLayout.NORTH);
+		JScrollPane scroll = new JScrollPane(view);
+		scroll.setBorder(null);
+		scroll.getVerticalScrollBar().setUnitIncrement(16);
+		scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		return scroll;
 	}
 
 	private void openEditor(String key)
@@ -520,15 +484,14 @@ public class BestGearSetupPanel extends PluginPanel
 		constraints.refresh();
 		if (first)
 		{
-			statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-			statusLabel.setText(html("Search for a monster, or right-click one in game and pick <b>Best setup</b>."));
+			setStatus("Search for a monster, or right-click one in game and pick <b>Best setup</b>.");
 		}
 	}
 
 	public void showError(String message)
 	{
 		progressRow.setVisible(false);
-		statusLabel.setForeground(new Color(0xFF6B6B));
+		statusLabel.setForeground(ERROR_COLOR);
 		statusLabel.setText(html(escape(message)));
 		findButton.setEnabled(selected != null && data != null);
 	}
@@ -536,8 +499,13 @@ public class BestGearSetupPanel extends PluginPanel
 	/** A neutral status message, e.g. while the data is still loading. */
 	public void showStatus(String message)
 	{
+		setStatus(escape(message));
+	}
+
+	private void setStatus(String body)
+	{
 		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-		statusLabel.setText(html(escape(message)));
+		statusLabel.setText(html(body));
 	}
 
 	/** The bundled data could not be read: show the error with a Retry button. */
@@ -552,8 +520,7 @@ public class BestGearSetupPanel extends PluginPanel
 			{
 				resultsPanel.removeAll();
 				resultView = null;
-				statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-				statusLabel.setText(html("Loading bundled Wiki data..."));
+				setStatus("Loading bundled Wiki data...");
 				plugin.reloadGameData();
 			});
 			resultsPanel.removeAll();
@@ -679,8 +646,7 @@ public class BestGearSetupPanel extends PluginPanel
 	 */
 	public void showSearching(MonsterSummary monster)
 	{
-		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-		statusLabel.setText(html(escape("Searching setups for " + monster.getDisplayName() + "...")));
+		showStatus("Searching setups for " + monster.getDisplayName() + "...");
 		progressBar.setValue(0);
 		progressRow.setVisible(true);
 	}
@@ -698,8 +664,7 @@ public class BestGearSetupPanel extends PluginPanel
 		assumptionsLabel.setText("");
 		assumptionsLabel.setToolTipText(null);
 		plugin.setBankHighlightedSetup(null);
-		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-		statusLabel.setText(html(escape(message)));
+		showStatus(message);
 		resultsPanel.removeAll();
 		resultView = null;
 		resultsPanel.revalidate();
@@ -731,7 +696,6 @@ public class BestGearSetupPanel extends PluginPanel
 			plugin.setBankHighlightedSetup(null);
 		}
 		resultsPanel.removeAll();
-		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 
 		StringBuilder status = new StringBuilder();
 		if (found.isEmpty())
@@ -772,7 +736,7 @@ public class BestGearSetupPanel extends PluginPanel
 		{
 			status.append("<br>Not logged in: using the levels last seen on this account.");
 		}
-		statusLabel.setText(html(status.toString()));
+		setStatus(status.toString());
 
 		if (!found.getWarnings().isEmpty())
 		{
