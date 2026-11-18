@@ -24,7 +24,7 @@ public class CheapestTieTest
 		CombatContext ctx = new CombatContext(m, PlayerLevels.maxed(), false, true, null);
 		OptimizerSettings s = OptimizerSettings.builder().mode(SearchMode.UNLIMITED).killSpecials(true)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "arceuus", "ancient"))).build();
-		List<SetupResult> list = new Optimizer(data, ctx, s, id -> false, SingleSearchBench::price).optimize(cls, () -> false);
+		List<SetupResult> list = com.bestgearsetup.calc.Optimizers.of(data, ctx, s, id -> false, SingleSearchBench::price).optimize(cls, () -> false, done -> { });
 		return list.get(0);
 	}
 

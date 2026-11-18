@@ -46,9 +46,9 @@ public class PyrefiendOptimizerTest
 
 	private static SetupResult best(AttackStyle.Type type, Set<Integer> owned, OptimizerSettings settings)
 	{
-		return new Optimizer(data, ctx, settings.toBuilder().styles(Collections.singleton(type)).build(),
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().styles(Collections.singleton(type)).build(),
 			owned::contains, item -> 1_000).optimize(type == AttackStyle.Type.RANGED ? CombatClass.RANGED
-				: CombatClass.MELEE, () -> false).get(0);
+				: CombatClass.MELEE, () -> false, done -> { }).get(0);
 	}
 
 	@Test

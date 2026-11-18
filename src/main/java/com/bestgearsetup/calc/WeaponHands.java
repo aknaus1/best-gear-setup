@@ -1,12 +1,10 @@
 package com.bestgearsetup.calc;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
  * Restrict weapons to one-handed or two-handed.
  */
-@Getter
 @RequiredArgsConstructor
 public enum WeaponHands
 {

@@ -167,8 +167,8 @@ public class CombatCatalogTest
 			CombatContext ctx = new CombatContext(monster, PlayerLevels.maxed(), false, true, null);
 			for (CombatClass cls : CombatClass.values())
 			{
-				List<SetupResult> results = new Optimizer(data, ctx, budget(20_000_000, 1), itemId -> false, PRICE)
-					.optimize(cls, () -> false);
+				List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(20_000_000, 1), itemId -> false, PRICE)
+					.optimize(cls, () -> false, done -> { });
 				for (SetupResult result : results)
 				{
 					sane(result.getDps());
@@ -202,8 +202,8 @@ public class CombatCatalogTest
 				.withHealthStates(hp -> MonsterStates.atHealth(monster, hp));
 			for (CombatClass cls : CombatClass.values())
 			{
-				for (SetupResult result : new Optimizer(data, ctx, budget(50_000_000, 1), itemId -> false, PRICE)
-					.optimize(cls, () -> false))
+				for (SetupResult result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(50_000_000, 1), itemId -> false, PRICE)
+					.optimize(cls, () -> false, done -> { }))
 				{
 					sane(result.getDps());
 					assertTrue(result.getBuyCost() <= 50_000_000);
@@ -248,8 +248,8 @@ public class CombatCatalogTest
 		CombatContext ctx = new CombatContext(target(12223), PlayerLevels.maxed(), false, true, null).withModifiers(spec);
 		for (CombatClass cls : CombatClass.values())
 		{
-			for (SetupResult result : new Optimizer(data, ctx, budget(200_000_000, 3), itemId -> false, PRICE)
-				.optimize(cls, () -> false))
+			for (SetupResult result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(200_000_000, 3), itemId -> false, PRICE)
+				.optimize(cls, () -> false, done -> { }))
 			{
 				sane(result.getDps());
 				assertNotNull(result.getLoadout().getWeapon().getName(), SpecialAttack.of(result.getLoadout(), ctx));
@@ -266,8 +266,8 @@ public class CombatCatalogTest
 			CombatContext ctx = new CombatContext(target(id), PlayerLevels.maxed(), false, true, null).withModifiers(poison);
 			for (CombatClass cls : CombatClass.values())
 			{
-				for (SetupResult result : new Optimizer(data, ctx, budget(100_000_000, 1), itemId -> false, PRICE)
-					.optimize(cls, () -> false))
+				for (SetupResult result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(100_000_000, 1), itemId -> false, PRICE)
+					.optimize(cls, () -> false, done -> { }))
 				{
 					sane(result.getDps());
 				}

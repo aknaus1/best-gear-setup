@@ -50,7 +50,7 @@ public class DemonMagicTest
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(Long.MAX_VALUE)
 			.resultsPerClass(40)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();
-		return new Optimizer(data, ctx, settings, id -> false, PRICE).optimize(CombatClass.MAGIC, () -> false);
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, PRICE).optimize(CombatClass.MAGIC, () -> false, done -> { });
 	}
 
 	@Test

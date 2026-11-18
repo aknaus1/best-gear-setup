@@ -2,7 +2,6 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.Slot;
-import java.util.Collections;
 import java.util.Set;
 import lombok.Value;
 
@@ -29,42 +28,5 @@ public class SetupResult
 	public AttackStyle.Type getAttackType()
 	{
 		return loadout.getStyle() == null ? null : WeaponRules.tabType(loadout.getWeapon(), loadout.getStyle());
-	}
-
-	public SetupResult(CombatClass combatClass, Loadout loadout, DpsResult dps, long buyCost)
-	{
-		this(combatClass, loadout, dps, buyCost, 0, Collections.emptySet());
-	}
-
-	public SetupResult(CombatClass combatClass, Loadout loadout, DpsResult dps, long buyCost, int unpricedItems,
-		Set<Slot> filledSlots)
-	{
-		this(combatClass, loadout, dps, buyCost, unpricedItems, filledSlots, Collections.emptySet());
-	}
-
-	public SetupResult(CombatClass combatClass, Loadout loadout, DpsResult dps, long buyCost, int unpricedItems,
-		Set<Slot> filledSlots, Set<SupportSpell> supportSpells)
-	{
-		this(combatClass, loadout, dps, buyCost, unpricedItems, filledSlots, supportSpells, null);
-	}
-
-	public SetupResult(CombatClass combatClass, Loadout loadout, DpsResult dps, long buyCost, int unpricedItems,
-		Set<Slot> filledSlots, Set<SupportSpell> supportSpells, SpecialPlan special)
-	{
-		this(combatClass, loadout, dps, buyCost, unpricedItems, filledSlots, supportSpells, special, null);
-	}
-
-	public SetupResult(CombatClass combatClass, Loadout loadout, DpsResult dps, long buyCost, int unpricedItems,
-		Set<Slot> filledSlots, Set<SupportSpell> supportSpells, SpecialPlan special, Thrall thrall)
-	{
-		this.combatClass = combatClass;
-		this.loadout = loadout;
-		this.dps = dps;
-		this.buyCost = buyCost;
-		this.unpricedItems = unpricedItems;
-		this.filledSlots = filledSlots;
-		this.supportSpells = supportSpells;
-		this.special = special;
-		this.thrall = thrall;
 	}
 }

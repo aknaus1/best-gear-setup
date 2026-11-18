@@ -63,8 +63,8 @@ public class SingleSearchBench
 						OptimizerSettings s = OptimizerSettings.builder().mode(mode).budget(10_000_000).killSpecials(specs)
 							.spellbooks(new HashSet<>(Arrays.asList("standard", "arceuus", "ancient"))).build();
 						long t0 = System.nanoTime();
-						List<SetupResult> list = new Optimizer(data, ctx, s, id -> false, SingleSearchBench::price)
-							.optimize(cls, () -> false);
+						List<SetupResult> list = com.bestgearsetup.calc.Optimizers.of(data, ctx, s, id -> false, SingleSearchBench::price)
+							.optimize(cls, () -> false, done -> { });
 						long ms = (System.nanoTime() - t0) / 1_000_000;
 						out.printf(Locale.ROOT, "\"%s\",%s,%s,%d,%.12f,%.12f,\"%s\"%n", sum.getName(), mode, cls, ms,
 							list.isEmpty() ? 0 : list.get(0).getDps().getDps(),

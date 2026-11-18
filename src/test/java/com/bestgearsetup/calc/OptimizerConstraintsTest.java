@@ -110,7 +110,7 @@ public class OptimizerConstraintsTest
 		OptimizerSettings settings = b.mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard"))
 			.build();
-		return new Optimizer(data, ctx, settings, id -> false, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false);
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { });
 	}
 
 	private static OptimizerSettings.OptimizerSettingsBuilder settings()
@@ -220,17 +220,17 @@ public class OptimizerConstraintsTest
 		CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = settings().mode(SearchMode.UNLIMITED).fillMode(FillMode.DEFENCE)
 			.fillMarginPercent(15).resultsPerClass(2).build();
-		List<SetupResult> before = new Optimizer(data, ctx, settings.toBuilder().fillMode(FillMode.NONE).build(),
-			id -> true, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false);
+		List<SetupResult> before = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().fillMode(FillMode.NONE).build(),
+			id -> true, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { });
 		assertEquals(slow, before.get(0).getLoadout().getWeapon());
-		List<SetupResult> after = new Optimizer(data, ctx, settings, id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MELEE, () -> false);
+		List<SetupResult> after = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> true, GearItem::getPrice)
+			.optimize(CombatClass.MELEE, () -> false, done -> { });
 		assertEquals(2, after.size());
 		assertEquals(fast, after.get(0).getLoadout().getWeapon());
 		assertTrue(after.get(0).getDps().getDps() > after.get(1).getDps().getDps());
 		assertEquals(defenceHelm, after.get(1).getLoadout().get(Slot.HEAD));
-		List<SetupResult> limited = new Optimizer(data, ctx, settings.toBuilder().resultsPerClass(1).build(),
-			id -> true, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false);
+		List<SetupResult> limited = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().resultsPerClass(1).build(),
+			id -> true, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { });
 		assertEquals(1, limited.size());
 		assertEquals(fast, limited.get(0).getLoadout().getWeapon());
 	}
@@ -273,13 +273,13 @@ public class OptimizerConstraintsTest
 		OptimizerSettings.OptimizerSettingsBuilder b = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(200_000)
 			.spellbooks(Collections.singleton("standard"));
 
-		SetupResult ignoreAmmo = new Optimizer(data, ctx, b.build(), id -> id == 600, GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false).get(0);
+		SetupResult ignoreAmmo = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.build(), id -> id == 600, GearItem::getPrice)
+			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(goodArrow, ignoreAmmo.getLoadout().get(Slot.AMMO));
 
 		// 1000 good arrows cost 1m, over the 200k budget.
-		SetupResult priced = new Optimizer(data, ctx, b.ammoCount(1000).build(), id -> id == 600, GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false).get(0);
+		SetupResult priced = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.ammoCount(1000).build(), id -> id == 600, GearItem::getPrice)
+			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(cheapArrow, priced.getLoadout().get(Slot.AMMO));
 		assertEquals(10_000, priced.getBuyCost());
 	}
@@ -305,14 +305,14 @@ public class OptimizerConstraintsTest
 		OptimizerSettings.OptimizerSettingsBuilder b = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard"));
 
-		List<SetupResult> ranged = new Optimizer(data, ctx, b.styles(EnumSet.of(AttackStyle.Type.RANGED)).build(),
-			id -> true, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false);
+		List<SetupResult> ranged = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.styles(EnumSet.of(AttackStyle.Type.RANGED)).build(),
+			id -> true, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false, done -> { });
 		assertEquals(1, ranged.size());
 		assertEquals(bow, ranged.get(0).getLoadout().getWeapon());
 		assertEquals(AttackStyle.Type.RANGED, ranged.get(0).getAttackType());
 
-		List<SetupResult> atl = new Optimizer(data, ctx, b.styles(EnumSet.of(AttackStyle.Type.ATLATL)).build(),
-			id -> true, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false);
+		List<SetupResult> atl = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.styles(EnumSet.of(AttackStyle.Type.ATLATL)).build(),
+			id -> true, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false, done -> { });
 		assertEquals(1, atl.size());
 		assertEquals(atlatl, atl.get(0).getLoadout().getWeapon());
 		assertEquals(AttackStyle.Type.ATLATL, atl.get(0).getAttackType());

@@ -118,9 +118,9 @@ public class DragonfireProtectionTest
 		{
 			OptimizerSettings s = locked ? settings.toBuilder()
 				.locks(Collections.singletonMap(Slot.SHIELD, SlotLock.item(defender.getId()))).build() : settings;
-			Optimizer optimizer = new Optimizer(TestData.gameData(Arrays.asList(whip, fire, defender), Collections.emptyList()),
+			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(whip, fire, defender), Collections.emptyList()),
 				ctx, s, id -> true, GearItem::getPrice);
-			List<SetupResult> setups = optimizer.optimize(CombatClass.MELEE, () -> false);
+			List<SetupResult> setups = optimizer.optimize(CombatClass.MELEE, () -> false, done -> { });
 			if (locked)
 			{
 				assertTrue(setups.isEmpty());

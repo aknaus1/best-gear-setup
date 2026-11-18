@@ -96,7 +96,7 @@ public class HoverTextLengthTest
 		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
 		SwingUtilities.invokeAndWait(() ->
 		{
-			EquipmentGrid grid = new EquipmentGrid(new SetupResult(CombatClass.MELEE, loadout, null, 0),
+			EquipmentGrid grid = new EquipmentGrid(new SetupResult(CombatClass.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null),
 				Collections.emptyMap(), plugin, images, null, 0);
 			JComponent neck = (JComponent) grid.getComponent(4);
 			MouseEvent hover = new MouseEvent(neck, MouseEvent.MOUSE_MOVED, 0, 0, 1, 1, 0, false);

@@ -86,7 +86,7 @@ public class OptimizerTest
 	{
 		GameData data = TestData.gameData(Arrays.asList(items), Collections.emptyList());
 		CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
-		return new Optimizer(data, ctx, settings, owned::contains, prices).optimize(CombatClass.MELEE, () -> false);
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, prices).optimize(CombatClass.MELEE, () -> false, done -> { });
 	}
 
 	@Test
@@ -275,7 +275,7 @@ public class OptimizerTest
 		CombatContext ctx = new CombatContext(monster(1, 0, "melee immune"), PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard")).build();
-		assertTrue(new Optimizer(data, ctx, settings, id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MELEE, () -> false).isEmpty());
+		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> true, GearItem::getPrice)
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
 	}
 }

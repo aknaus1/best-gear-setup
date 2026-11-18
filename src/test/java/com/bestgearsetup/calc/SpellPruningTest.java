@@ -97,7 +97,7 @@ public class SpellPruningTest
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(Long.MAX_VALUE)
 			.preventManualCast(preventManualCast)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();
-		return new Optimizer(data, ctx, settings, id -> false, GearItem::getPrice).optimize(CombatClass.MAGIC, () -> false);
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, GearItem::getPrice).optimize(CombatClass.MAGIC, () -> false, done -> { });
 	}
 
 	@Test

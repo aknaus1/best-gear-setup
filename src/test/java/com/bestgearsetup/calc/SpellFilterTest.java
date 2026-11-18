@@ -87,16 +87,13 @@ public class SpellFilterTest
 		SpellFilter blocked = original.withRule("Fire Bolt", SpellRule.BLOCK);
 		assertEquals(Collections.singleton("fire bolt"), blocked.getBlocked());
 		assertTrue(blocked.getForced().isEmpty());
-		assertEquals(SpellRule.BLOCK, blocked.ruleFor(" FIRE BOLT "));
 
 		SpellFilter forced = blocked.withRule("Fire Bolt", SpellRule.FORCE);
 		assertTrue(forced.getBlocked().isEmpty());
 		assertEquals(Collections.singleton("fire bolt"), forced.getForced());
-		assertEquals(SpellRule.FORCE, forced.ruleFor("fire bolt"));
 
 		SpellFilter allowed = forced.withRule(" Fire Bolt ", SpellRule.ALLOW);
 		assertEquals(SpellFilter.NONE, allowed);
-		assertEquals(SpellRule.ALLOW, allowed.ruleFor("fire bolt"));
 		assertTrue(original.isEmpty());
 		assertEquals(Collections.singleton("fire bolt"), blocked.getBlocked());
 		assertEquals(Collections.singleton("fire bolt"), forced.getForced());

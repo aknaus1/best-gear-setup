@@ -35,21 +35,7 @@ public class AttackStyle
 
 	public static AttackStyle parse(String raw)
 	{
-		if (raw == null)
-		{
-			return null;
-		}
-		AttackStyle known = PARSED.get(raw);
-		if (known != null)
-		{
-			return known;
-		}
-		AttackStyle parsed = parseUncached(raw);
-		if (parsed != null)
-		{
-			PARSED.put(raw, parsed);
-		}
-		return parsed;
+		return raw == null ? null : PARSED.computeIfAbsent(raw, AttackStyle::parseUncached);
 	}
 
 	private static AttackStyle parseUncached(String raw)

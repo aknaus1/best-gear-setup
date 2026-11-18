@@ -54,7 +54,7 @@ public class TripSuppliesTest
 	public void drainEffectsFollowTheWikiPrayerTable()
 	{
 		// Deadeye drains 12, half of Rigour's 24; with Vorkath's overhead (12) a ranged kill drains 24 or 36.
-		SetupResult ranged = new SetupResult(CombatClass.RANGED, new Loadout(), setup(5, 0).getDps(), 0);
+		SetupResult ranged = new SetupResult(CombatClass.RANGED, new Loadout(), setup(5, 0).getDps(), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 		assertEquals(40 / 3.0, TripSupplies.prayerPerKill(ranged, results(100, Collections.singletonMap(CombatClass.RANGED,
 			new OffensivePrayer("Deadeye", 18, 18, 62, 1)))), 1e-9);
 		assertEquals(20, TripSupplies.prayerPerKill(ranged, results(100, Collections.singletonMap(CombatClass.RANGED,
@@ -93,9 +93,9 @@ public class TripSuppliesTest
 		SpecialPlan same = new SpecialPlan(sword, shield, null, null, null, null, null, dps, dps, null, 2, 0, 0);
 		SpecialPlan other = new SpecialPlan(new GearItem(), shield, null, null, null, null, null, dps, dps, null, 2, 0, 0);
 		assertEquals(1, TripSupplies.usedSlots(new SetupResult(CombatClass.MELEE, worn, dps, 0, 0,
-			Collections.emptySet(), Collections.emptySet(), same), Collections.emptyList()));
+			Collections.emptySet(), Collections.emptySet(), same, null), Collections.emptyList()));
 		assertEquals(2, TripSupplies.usedSlots(new SetupResult(CombatClass.MELEE, worn, dps, 0, 0,
-			Collections.emptySet(), Collections.emptySet(), other), Collections.emptyList()));
+			Collections.emptySet(), Collections.emptySet(), other, null), Collections.emptyList()));
 		// A two-handed spec weapon also takes the worn shield off into the inventory.
 		GearItem claws = new GearItem();
 		claws.setId(3);
@@ -104,7 +104,7 @@ public class TripSuppliesTest
 		worn.set(Slot.SHIELD, shield);
 		SpecialPlan twoHanded = new SpecialPlan(claws, null, null, null, null, null, null, dps, dps, null, 2, 0, 0);
 		assertEquals(2, TripSupplies.usedSlots(new SetupResult(CombatClass.MELEE, worn, dps, 0, 0,
-			Collections.emptySet(), Collections.emptySet(), twoHanded), Collections.emptyList()));
+			Collections.emptySet(), Collections.emptySet(), twoHanded, null), Collections.emptyList()));
 	}
 
 	@Test
@@ -265,7 +265,7 @@ public class TripSuppliesTest
 	{
 		SearchResults results = target(name, boss, attacks);
 		SetupResult melee = setup(5, 0);
-		SetupResult setup = new SetupResult(cls, melee.getLoadout(), melee.getDps(), 0);
+		SetupResult setup = new SetupResult(cls, melee.getLoadout(), melee.getDps(), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 		return TripSupplies.plan(setup, results, Collections.emptyList(), 1, true, owns, antifire).stream()
 			.anyMatch(s -> s.getName().equals("Shark"));
 	}
@@ -352,7 +352,7 @@ public class TripSuppliesTest
 		item.setName("test amulet");
 		item.setPrayerBonus(prayerBonus);
 		loadout.set(Slot.NECK, item);
-		return new SetupResult(CombatClass.MELEE, loadout, new DpsResult(dps, 10, 1, 4, 5, null), 0);
+		return new SetupResult(CombatClass.MELEE, loadout, new DpsResult(dps, 10, 1, 4, 5, null), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 	}
 
 	private static SearchResults results(int hp, Map<CombatClass, OffensivePrayer> prayers)

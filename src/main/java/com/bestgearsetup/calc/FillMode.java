@@ -1,12 +1,10 @@
 package com.bestgearsetup.calc;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
  * What to put in slots that add no DPS.
  */
-@Getter
 @RequiredArgsConstructor
 public enum FillMode
 {

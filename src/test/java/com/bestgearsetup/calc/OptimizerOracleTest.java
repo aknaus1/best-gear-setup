@@ -172,7 +172,7 @@ public class OptimizerOracleTest
 							kept.score, best.score) + "\n    oracle " + describe(best.loadout));
 					}
 				}
-				List<SetupResult> results = optimizer.optimize(c.cls, () -> false);
+				List<SetupResult> results = optimizer.optimize(c.cls, () -> false, done -> { });
 				for (SetupResult result : results)
 				{
 					assertTrue(label + "returned blocked spell: " + describe(result.getLoadout()),

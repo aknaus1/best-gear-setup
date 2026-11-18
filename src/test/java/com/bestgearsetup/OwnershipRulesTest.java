@@ -42,7 +42,7 @@ public class OwnershipRulesTest
 	private Optimizer optimizer(int source, SearchMode mode)
 	{
 		Set<Integer> owned = OwnedItems.expand(Collections.singleton(source));
-		return new Optimizer(data, context, OptimizerSettings.builder().mode(mode).budget(Long.MAX_VALUE)
+		return com.bestgearsetup.calc.Optimizers.of(data, context, OptimizerSettings.builder().mode(mode).budget(Long.MAX_VALUE)
 			.spellbooks(Collections.emptySet()).build(), owned::contains, item -> 1);
 	}
 
@@ -117,7 +117,7 @@ public class OwnershipRulesTest
 		assertTrue(expanded.findItem(8714).isTradeable());
 		assertEquals(data.findItem(6585).getName(), expanded.findItem(12436).getCombatName());
 		Set<Integer> ordinary = OwnedItems.expand(Collections.singleton(1201));
-		Optimizer search = new Optimizer(expanded, context,
+		Optimizer search = com.bestgearsetup.calc.Optimizers.of(expanded, context,
 			OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY).build(), ordinary::contains, item -> 1);
 		assertNotNull(search.unusableReason(expanded.getItem(Slot.SHIELD, 8714)));
 	}
@@ -137,7 +137,7 @@ public class OwnershipRulesTest
 			for (int source : sources)
 			{
 				Set<Integer> owned = OwnedItems.expand(Collections.singleton(source));
-				Optimizer search = new Optimizer(data, context, settings, owned::contains, item -> 1);
+				Optimizer search = com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, item -> 1);
 				for (GearItem target : data.getItems(slot))
 				{
 					if (!OwnershipRules.equivalent(source, target.getId()))

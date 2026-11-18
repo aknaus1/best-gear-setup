@@ -63,8 +63,8 @@ public class DuplicateItemTieTest
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).spellbooks(Collections.emptySet())
 			.styles(EnumSet.of(AttackStyle.Type.RANGED, AttackStyle.Type.ATLATL))
 			.requireAtlatlAmmoRecovery(recovery).build();
-		return new Optimizer(data, ctx, settings, owned, GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false).get(0).getLoadout().get(Slot.CAPE);
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned, GearItem::getPrice)
+			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getLoadout().get(Slot.CAPE);
 	}
 
 	@Test

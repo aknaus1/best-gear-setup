@@ -317,9 +317,9 @@ public class EncounterDamageTest
 		assertEquals(0, calculate(sword.getWeapon(), "lash,slash,aggressive", guardian, true).getDps(), 0);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.locks(Collections.singletonMap(Slot.WEAPON, SlotLock.item(sword.getWeapon().getId()))).build();
-		assertTrue(new Optimizer(TestData.gameData(Arrays.asList(sword.getWeapon()), Collections.emptyList()),
+		assertTrue(com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(sword.getWeapon()), Collections.emptyList()),
 			new CombatContext(guardian, PlayerLevels.maxed(), false, true, piety()), settings, id -> true,
-			GearItem::getPrice).optimize(CombatClass.MELEE, () -> false).isEmpty());
+			GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
 		Monster leafy = monster(100, 20, "leafy");
 		assertFalse(EncounterImmunities.attackAllowed(leafy, sword));
 		assertTrue(EncounterImmunities.attackAllowed(leafy, loadout("leaf-bladed sword", "stab sword", "stab,stab,accurate")));

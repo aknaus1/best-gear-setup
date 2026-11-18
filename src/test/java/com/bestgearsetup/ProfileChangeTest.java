@@ -74,7 +74,7 @@ public class ProfileChangeTest
 			GearItem weapon = new GearItem();
 			weapon.setId(4151);
 			loadout.set(Slot.WEAPON, weapon);
-			plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout, null, 0));
+			plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 			SwingUtilities.invokeAndWait(() -> { plugin.rerun(); plugin.clearGearSearch(); });
 			SwingUtilities.invokeAndWait(() -> {});
 			assertTrue(active.isCancelled());
@@ -170,7 +170,7 @@ public class ProfileChangeTest
 			GearItem weapon = new GearItem();
 			weapon.setId(4151);
 			previous.set(Slot.WEAPON, weapon);
-			plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, previous, null, 0));
+			plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, previous, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 			assertTrue(plugin.getBankHighlightIds().contains(4151));
 			JPanel results = PanelInternals.resultsPanel(panel);
 			SwingUtilities.invokeAndWait(() -> results.add(new JLabel("Old account's recommendation")));

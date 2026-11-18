@@ -39,8 +39,8 @@ public class GloryOwnershipTest
 			ItemID.DRAGON_SCIMITAR, ItemID.AMULET_OF_GLORY_4)));
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.spellbooks(Collections.emptySet()).build();
-		List<SetupResult> results = new Optimizer(data, context, settings, owned::contains, GearItem::getPrice)
-			.optimize(CombatClass.MELEE, () -> false);
+		List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, GearItem::getPrice)
+			.optimize(CombatClass.MELEE, () -> false, done -> { });
 		assertFalse(results.isEmpty());
 		for (SetupResult result : results)
 		{

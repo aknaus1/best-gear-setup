@@ -198,7 +198,7 @@ public class BankViewTest
 		loadout.setSpell(spell);
 		Potion attack = new Potion();
 		attack.setId(ItemID._4DOSE2ATTACK);
-		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0), Collections.singletonList(attack));
+		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), Collections.singletonList(attack));
 		assertTrue(bank.view.show());
 		// Own cells: the weapon; air and mind runes in the pouch row under the inventory, whose first slot the
 		// (missing) pouch takes; the super attack in the second inventory slot.
@@ -229,7 +229,7 @@ public class BankViewTest
 		Spell spell = new Spell();
 		spell.setName("wind strike");
 		loadout.setSpell(spell);
-		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0), Collections.emptyList());
+		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), Collections.emptyList());
 		assertTrue(bank.view.show());
 		// The placeholder counts as owning air runes, so it keeps the air cell and the mist rune is an extra.
 		assertFalse(bank.items[4].widget.isSelfHidden());
@@ -288,7 +288,7 @@ public class BankViewTest
 		Loadout loadout = new Loadout();
 		loadout.set(Slot.WEAPON, item(12926, 12924));
 		loadout.setLoadedAmmo(item(11230, 11231));
-		bank.view.setSelection(new SetupResult(CombatClass.RANGED, loadout, null, 0));
+		bank.view.setSelection(new SetupResult(CombatClass.RANGED, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 		bank.view.refreshSelection();
 		assertEquals(0, bank.filter(11231));
 		assertEquals(1, bank.filter(12926));
@@ -517,7 +517,7 @@ public class BankViewTest
 	{
 		Loadout loadout = new Loadout();
 		loadout.set(slot, item);
-		return new SetupResult(CombatClass.MELEE, loadout, null, 0);
+		return new SetupResult(CombatClass.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 	}
 
 	private static GearItem item(int id, Integer... variants)

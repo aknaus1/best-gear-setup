@@ -7,9 +7,12 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-import java.util.StringJoiner;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
 /** Immutable blocked and forced autocast spell names, in their stored order. */
+@Getter
+@EqualsAndHashCode
 public final class SpellFilter
 {
 	public static final SpellFilter NONE = new SpellFilter(new LinkedHashSet<>(), new LinkedHashSet<>());
@@ -38,25 +41,7 @@ public final class SpellFilter
 
 	public static String format(Collection<String> names)
 	{
-		StringJoiner joined = new StringJoiner(",");
-		if (names != null)
-		{
-			for (String name : names)
-			{
-				joined.add(name);
-			}
-		}
-		return joined.toString();
-	}
-
-	public Set<String> getBlocked()
-	{
-		return blocked;
-	}
-
-	public Set<String> getForced()
-	{
-		return forced;
+		return names == null ? "" : String.join(",", names);
 	}
 
 	public boolean allows(Spell spell)
@@ -72,16 +57,6 @@ public final class SpellFilter
 	public boolean isEmpty()
 	{
 		return blocked.isEmpty() && forced.isEmpty();
-	}
-
-	public SpellRule ruleFor(String name)
-	{
-		String normalized = normalize(name);
-		if (blocked.contains(normalized))
-		{
-			return SpellRule.BLOCK;
-		}
-		return forced.contains(normalized) ? SpellRule.FORCE : SpellRule.ALLOW;
 	}
 
 	public SpellFilter withRule(String name, SpellRule rule)
@@ -112,27 +87,6 @@ public final class SpellFilter
 		}
 		return nextBlocked.equals(blocked) && nextForced.equals(forced)
 			? this : of(nextBlocked, nextForced);
-	}
-
-	@Override
-	public boolean equals(Object other)
-	{
-		if (this == other)
-		{
-			return true;
-		}
-		if (!(other instanceof SpellFilter))
-		{
-			return false;
-		}
-		SpellFilter that = (SpellFilter) other;
-		return blocked.equals(that.blocked) && forced.equals(that.forced);
-	}
-
-	@Override
-	public int hashCode()
-	{
-		return Objects.hash(blocked, forced);
 	}
 
 	@Override

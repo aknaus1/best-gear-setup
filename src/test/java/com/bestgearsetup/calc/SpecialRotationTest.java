@@ -58,7 +58,7 @@ public class SpecialRotationTest
 	@Test
 	public void areaDamageBlendsTotalAndPrimaryRatesSeparately()
 	{
-		DpsResult area = new DpsResult(15, 30, 0.8, 4, 12, null, 5, 3);
+		DpsResult area = new DpsResult(15, 30, 0.8, 4, 12, null, 5, 3, 4);
 		SpecialRotation.Blend b = SpecialRotation.blend(area, SPEC, 50, 500, SpecEnergy.REGENERATION, SpecialRotation.REGEN_PER_SECOND);
 		double share = 2.4 / 3 / 50;
 		assertEquals(share * 10 + (1 - share) * 15, b.getResult().getDps(), EPS);

@@ -148,13 +148,6 @@ public class Optimizer
 	/** Tests turn this off to compare the search against one that scores every spell. */
 	static boolean pruneSpells = true;
 
-	/** As the full constructor, with every owned item held in any quantity. */
-	public Optimizer(GameData data, CombatContext ctx, OptimizerSettings settings, IntPredicate owned,
-		ToLongFunction<GearItem> priceFn)
-	{
-		this(data, ctx, settings, owned, id -> owned.test(id) ? Long.MAX_VALUE : 0, priceFn);
-	}
-
 	/**
 	 * @param owned         whether the player owns an item id (bank, inventory, worn or marked owned)
 	 * @param ownedQuantity units of an item id held; ammunition beyond this is bought for the ammo quantity
@@ -180,16 +173,8 @@ public class Optimizer
 	}
 
 	/**
-	 * Best setups for one combat class, best first, one per weapon.
-	 */
-	public List<SetupResult> optimize(CombatClass cls, BooleanSupplier cancelled)
-	{
-		return optimize(cls, cancelled, done -> { });
-	}
-
-	/**
-	 * As {@link #optimize(CombatClass, BooleanSupplier)}, reporting the fraction of work done (0 to 1, never
-	 * decreasing) on the calling thread. Each weapon solved or finished counts as one step.
+	 * Best setups for one combat class, best first, one per weapon, reporting the fraction of work done (0 to 1,
+	 * never decreasing) on the calling thread. Each weapon solved or finished counts as one step.
 	 */
 	public List<SetupResult> optimize(CombatClass cls, BooleanSupplier cancelled, DoubleConsumer progress)
 	{

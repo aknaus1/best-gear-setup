@@ -35,7 +35,7 @@ public class BoostAccessTest
 	{
 		Set<Integer> expanded = OwnedItems.expand(new HashSet<>(Arrays.asList(owned)));
 		Predicate<Potion> boosts = BoostAccess.allowed(mode, expanded, true);
-		Potion p = PotionChoice.resolve(data, skill, 99, PotionChoice.BEST, boosts);
+		Potion p = PotionChoice.resolve(data, skill, 99, PotionChoice.BEST, boosts, null);
 		return p == null ? null : p.getName();
 	}
 
@@ -165,6 +165,6 @@ public class BoostAccessTest
 	{
 		Predicate<Potion> none = BoostAccess.allowed(SearchMode.OWNED_ONLY, Collections.emptySet(), true);
 		assertEquals("super combat potion",
-			PotionChoice.resolve(data, "attack", 99, "super combat potion", none).getName());
+			PotionChoice.resolve(data, "attack", 99, "super combat potion", none, null).getName());
 	}
 }

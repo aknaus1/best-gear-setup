@@ -57,8 +57,8 @@ public class GearPruningTest
 				.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();
 			for (CombatClass cls : CombatClass.values())
 			{
-				Optimizer optimizer = new Optimizer(data, ctx, settings, owned, GearItem::getPrice);
-				for (SetupResult result : optimizer.optimize(cls, () -> false))
+				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned, GearItem::getPrice);
+				for (SetupResult result : optimizer.optimize(cls, () -> false, done -> { }))
 				{
 					Loadout found = result.getLoadout();
 					double score = optimizer.scoreWithBestOption(found.copy(), cls);

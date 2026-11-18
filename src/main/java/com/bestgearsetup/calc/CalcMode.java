@@ -1,12 +1,10 @@
 package com.bestgearsetup.calc;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
  * What the optimiser maximises. DPS breaks ties for the other modes.
  */
-@Getter
 @RequiredArgsConstructor
 public enum CalcMode
 {

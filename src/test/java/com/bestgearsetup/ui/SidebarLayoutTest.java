@@ -115,7 +115,7 @@ public class SidebarLayoutTest
 					assertEquals(editorScroll.getViewport().getWidth(), editorScroll.getViewport().getView().getWidth());
 					back.doClick();
 				}
-				EquipmentGrid grid = new EquipmentGrid(new SetupResult(CombatClass.MELEE, new Loadout(), null, 0),
+				EquipmentGrid grid = new EquipmentGrid(new SetupResult(CombatClass.MELEE, new Loadout(), null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null),
 					java.util.Collections.emptyMap(), plugin, null, null, 0);
 				JPanel gridRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
 				gridRow.add(grid);

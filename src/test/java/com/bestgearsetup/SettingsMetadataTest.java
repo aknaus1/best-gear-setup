@@ -2,7 +2,7 @@ package com.bestgearsetup;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.calc.PotionChoice;
+import com.bestgearsetup.calc.PotionNames;
 import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GameDataLoader;
@@ -36,8 +36,8 @@ public class SettingsMetadataTest
 			if (cls == CombatClass.RANGED) { for (PotionOptions.Ranged option : PotionOptions.Ranged.values()) { names.add(option.value()); } }
 			if (cls == CombatClass.MAGIC) { for (PotionOptions.Magic option : PotionOptions.Magic.values()) { names.add(option.value()); } }
 			assertTrue(names.contains("best")); assertTrue(names.contains("none"));
-			for (String name : PotionChoice.namesFor(data,cls)) { assertTrue(cls + ": " + name,names.contains(name)); }
-			assertEquals(PotionChoice.namesFor(data,cls).size() + 2,names.size());
+			for (String name : PotionNames.namesFor(data,cls)) { assertTrue(cls + ": " + name,names.contains(name)); }
+			assertEquals(PotionNames.namesFor(data,cls).size() + 2,names.size());
 		}
 	}
 }

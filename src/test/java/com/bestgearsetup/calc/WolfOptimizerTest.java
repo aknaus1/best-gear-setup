@@ -35,8 +35,8 @@ public class WolfOptimizerTest
 			.styles(Collections.singleton(AttackStyle.Type.CRUSH))
 			.spellbooks(Collections.singleton("standard"))
 			.build();
-		SetupResult best = new Optimizer(data, ctx, settings, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false).get(0);
+		SetupResult best = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(11865, best.getLoadout().get(Slot.HEAD).getId());
 		assertEquals(6585, best.getLoadout().get(Slot.NECK).getId());
 		assertEquals(33, best.getDps().getMaxHit());

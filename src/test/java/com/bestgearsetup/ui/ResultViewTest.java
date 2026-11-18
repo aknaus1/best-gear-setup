@@ -110,7 +110,7 @@ public class ResultViewTest
 	public void tripLinesShowCombatTimePrayerAndSupplies() throws Exception
 	{
 		Loadout loadout = new Loadout();
-		SetupResult setup = new SetupResult(CombatClass.MELEE, loadout, dps(5), 0);
+		SetupResult setup = new SetupResult(CombatClass.MELEE, loadout, dps(5), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 		java.util.List<com.bestgearsetup.TripSupplies.Supply> supplies = Collections.singletonList(
 			new com.bestgearsetup.TripSupplies.Supply("Prayer potion", Collections.singletonList(2434), 3));
 		SwingUtilities.invokeAndWait(() ->
@@ -137,7 +137,7 @@ public class ResultViewTest
 			// A note opening with the summary continues it rather than repeating "None needed" on a second line.
 			ResultView dragon = view(100, "steel dragon (level 246 (task only))");
 			JPanel magic = dragon.statsBox(dps(5), null);
-			dragon.addTripLines(magic, new SetupResult(CombatClass.MAGIC, loadout, dps(5), 0), 1, Collections.emptyList());
+			dragon.addTripLines(magic, new SetupResult(CombatClass.MAGIC, loadout, dps(5), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), 1, Collections.emptyList());
 			assertTrue(named(magic, "protectionPrayer").getText(),
 				named(magic, "protectionPrayer").getText().contains("Overhead: None needed at range: "));
 			ResultView bloat = view(100, "pestilent bloat (normal)");
@@ -340,7 +340,7 @@ public class ResultViewTest
 		Loadout loadout = new Loadout();
 		loadout.set(Slot.WEAPON, weapon);
 		loadout.setStyle(AttackStyle.parse("pound,crush,aggressive"));
-		return new SetupResult(CombatClass.MELEE, loadout, new DpsResult(dps, 0, 1, 4, 12, null), 0);
+		return new SetupResult(CombatClass.MELEE, loadout, new DpsResult(dps, 0, 1, 4, 12, null), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 	}
 
 	private static SetupResult best(SearchResults results, AttackStyle.Type type)

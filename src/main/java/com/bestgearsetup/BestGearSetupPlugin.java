@@ -1457,7 +1457,7 @@ public class BestGearSetupPlugin extends Plugin
 		for (int i = 0; i < skills.length; i++)
 		{
 			String choice = potionChoice(config, classes[i]);
-			Potion p = PotionChoice.isExplicit(choice) ? PotionChoice.resolve(data, skills[i], base[i], choice) : null;
+			Potion p = PotionChoice.isExplicit(choice) ? PotionChoice.resolve(data, skills[i], base[i], choice, potion -> true, null) : null;
 			if (p == null || !seen.add(classes[i] + "/" + p.getName()))
 			{
 				continue;

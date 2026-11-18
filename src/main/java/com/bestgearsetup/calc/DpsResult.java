@@ -1,9 +1,11 @@
 package com.bestgearsetup.calc;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
 @Value
+@Builder(toBuilder = true)
 @AllArgsConstructor
 public class DpsResult
 {
@@ -25,15 +27,9 @@ public class DpsResult
 	/** Mean attack interval when a set effect shortens some attacks. */
 	double expectedSpeedTicks;
 
-	public DpsResult(double dps, int maxHit, double accuracy, int speed, double averageHit, String detail,
-		double primaryDps, int targetsHit)
-	{
-		this(dps, maxHit, accuracy, speed, averageHit, detail, primaryDps, targetsHit, speed);
-	}
-
 	public DpsResult(double dps, int maxHit, double accuracy, int speed, double averageHit, String detail)
 	{
-		this(dps, maxHit, accuracy, speed, averageHit, detail, dps, 1);
+		this(dps, maxHit, accuracy, speed, averageHit, detail, dps, 1, speed);
 	}
 
 	public DpsResult withAreaDamage(double extraAverage, double returningAverage, int targets)
@@ -52,14 +48,12 @@ public class DpsResult
 
 	public DpsResult withExtraDps(double extra)
 	{
-		return new DpsResult(dps + extra, maxHit, accuracy, attackSpeedTicks, averageHit, maxHitDetail,
-			primaryDps + extra, targetsHit, expectedSpeedTicks);
+		return withDamageRates(dps + extra, primaryDps + extra);
 	}
 
 	public DpsResult withDetail(String detail)
 	{
-		return new DpsResult(dps, maxHit, accuracy, attackSpeedTicks, averageHit, detail,
-			primaryDps, targetsHit, expectedSpeedTicks);
+		return toBuilder().maxHitDetail(detail).build();
 	}
 
 	/**
@@ -76,15 +70,14 @@ public class DpsResult
 	/** Replace the damage rates, keeping this attack's max hit, accuracy and speed (special attacks mixed in). */
 	public DpsResult withDamageRates(double totalDps, double primary)
 	{
-		return new DpsResult(totalDps, maxHit, accuracy, attackSpeedTicks, averageHit, maxHitDetail, primary,
-			targetsHit, expectedSpeedTicks);
+		return toBuilder().dps(totalDps).primaryDps(primary).build();
 	}
 
 	/** Apply a mean interval before adding independent thrall damage. */
 	public DpsResult withExpectedSpeed(double speed)
 	{
 		double interval = Math.max(1, speed);
-		return new DpsResult(dps * expectedSpeedTicks / interval, maxHit, accuracy, attackSpeedTicks, averageHit,
-			maxHitDetail, primaryDps * expectedSpeedTicks / interval, targetsHit, interval);
+		return toBuilder().dps(dps * expectedSpeedTicks / interval).primaryDps(primaryDps * expectedSpeedTicks / interval)
+			.expectedSpeedTicks(interval).build();
 	}
 }
