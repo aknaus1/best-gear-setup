@@ -187,3 +187,11 @@ def write_atomic(path, text, mode="w"):
     except BaseException:
         os.unlink(temp)
         raise
+
+
+def java_keys(record, names=None):
+    """The record with each key renamed as given, or else from snake_case to the camelCase Java field name."""
+    def camel(key):
+        head, *rest = key.split("_")
+        return head + "".join(part.capitalize() for part in rest)
+    return {(names or {}).get(key, camel(key)): value for key, value in record.items()}

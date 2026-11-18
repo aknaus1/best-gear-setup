@@ -2,7 +2,6 @@ package com.bestgearsetup.data;
 
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.OwnershipRules;
-import com.google.gson.annotations.SerializedName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -40,61 +39,37 @@ public class GearItem
 	private transient String lowerCombatName;
 	private transient Boolean dmmEquipment;
 
-	@SerializedName("stab_bonus")
 	private int stabBonus;
-	@SerializedName("slash_bonus")
 	private int slashBonus;
-	@SerializedName("crush_bonus")
 	private int crushBonus;
-	@SerializedName("ranged_bonus")
 	private int rangedBonus;
-	@SerializedName("magic_bonus")
 	private int magicBonus;
-	@SerializedName("melee_str")
 	private int meleeStr;
-	@SerializedName("ranged_str")
 	private int rangedStr;
 	/** Magic damage bonus in percent. */
-	@SerializedName("magic_str")
 	private double magicStr;
-	@SerializedName("prayer_bonus")
 	private int prayerBonus;
 
-	@SerializedName("stab_def")
 	private int stabDef;
-	@SerializedName("slash_def")
 	private int slashDef;
-	@SerializedName("crush_def")
 	private int crushDef;
-	@SerializedName("ranged_def")
 	private int rangedDef;
-	@SerializedName("magic_def")
 	private int magicDef;
 
-	@SerializedName("attack_req")
 	private int attackReq = 1;
-	@SerializedName("strength_req")
 	private int strengthReq = 1;
-	@SerializedName("defence_req")
 	private int defenceReq = 1;
-	@SerializedName("ranged_req")
 	private int rangedReq = 1;
-	@SerializedName("magic_req")
 	private int magicReq = 1;
-	@SerializedName("prayer_req")
 	private int prayerReq = 1;
-	@SerializedName("hitpoints_req")
 	private int hitpointsReq = 1;
-	@SerializedName("slayer_req")
 	private int slayerReq = 1;
 	/** Combined combat level gate (e.g. black masks), separate from individual skill levels. */
 	private int combatReq;
 
 	// Weapon-only fields
-	@SerializedName("two_handed")
 	private boolean twoHanded;
 	private String subcategory;
-	@SerializedName("attack_speed")
 	private int attackSpeed;
 	private List<String> styles;
 	private List<Integer> ammunition;

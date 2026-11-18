@@ -2,8 +2,10 @@ package com.bestgearsetup;
 
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
+import com.google.common.base.Suppliers;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -11,6 +13,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.client.game.ItemVariationMapping;
 
@@ -19,7 +22,11 @@ public final class OwnershipRules
 {
 	/** RuneLite's injected Gson: plugins may not create their own (Plugin Hub disallowed API). */
 	private static volatile Gson gson;
-	private static volatile Rules rules;
+	/** Entries whose variants are charge counts or other providers of the same earned imbue. */
+	private static final NameLists.NameList CHARGE_STATES = NameLists.list("ownership charge states");
+	/** Earned imbues and upgrades, which buying the tradable base doesn't give. */
+	private static final NameLists.NameList EARNED = NameLists.list("earned upgrades");
+	private static final Supplier<Rules> RULES = Suppliers.memoize(Rules::new);
 
 	/** Built once from the bundled catalogue, on first use rather than at class load, so it can use the client's Gson. */
 	private static final class Rules
@@ -43,12 +50,7 @@ public final class OwnershipRules
 						{
 							equipmentFamilies.add(ItemVariationMapping.map(variant));
 						}
-						// These entries contain charge counts or alternative providers of the same earned imbue.
-						String name = item.getName();
-						if (name.equals("black mask") || name.equals("black mask (i)")
-							|| name.endsWith("ring (i)") || name.equals("ring of the gods (i)")
-							|| name.equals("ring of suffering (i)") || name.equals("salve amulet(i)")
-							|| name.equals("salve amulet(ei)"))
+						if (CHARGE_STATES.matches(item.getName()))
 						{
 							states.put(item.getId(), item.getId());
 							for (int variant : item.getVariants())
@@ -56,10 +58,7 @@ public final class OwnershipRules
 								states.put(variant, item.getId());
 							}
 						}
-						if (name.endsWith("ring (i)") || name.equals("ring of the gods (i)")
-							|| name.equals("ring of suffering (i)") || name.equals("black mask (i)")
-							|| name.equals("slayer helmet (i)") || name.startsWith("salve amulet")
-							|| name.equals("slayer helmet") || name.endsWith("cape (i)"))
+						if (EARNED.matches(item.getName()))
 						{
 							earned.add(item.getId());
 							earned.addAll(item.getVariants());
@@ -127,25 +126,7 @@ public final class OwnershipRules
 	/** Build the rules on a background thread before UI or client-thread code first queries them. */
 	public static void load()
 	{
-		rules();
-	}
-
-	private static Rules rules()
-	{
-		Rules loaded = rules;
-		if (loaded == null)
-		{
-			synchronized (OwnershipRules.class)
-			{
-				loaded = rules;
-				if (loaded == null)
-				{
-					loaded = new Rules();
-					rules = loaded;
-				}
-			}
-		}
-		return loaded;
+		RULES.get();
 	}
 
 	/** The cached catalogue the plugin also loads: no second parse, monster list or deep copy. */
@@ -177,18 +158,18 @@ public final class OwnershipRules
 		{
 			return id;
 		}
-		Integer state = rules().states.get(id);
+		Integer state = RULES.get().states.get(id);
 		if (state != null)
 		{
 			return state;
 		}
 		int base = ItemVariationMapping.map(id);
-		return rules().equipmentFamilies.contains(base) ? id : base;
+		return RULES.get().equipmentFamilies.contains(base) ? id : base;
 	}
 
 	/** Earned imbues cannot be acquired just by buying the tradable base in a budget search. */
 	public static boolean requiresOwnership(int id)
 	{
-		return DiaryRewards.isReward(id) || rules().earned.contains(id);
+		return DiaryRewards.isReward(id) || RULES.get().earned.contains(id);
 	}
 }

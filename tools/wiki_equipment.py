@@ -695,6 +695,11 @@ def build(refresh):
                                    "skill": skill, "attributes": attributes})
     retrieved = datetime.datetime.fromtimestamp((CACHE / "wiki-equipment-raw.json").stat().st_mtime,
                                                 datetime.timezone.utc).isoformat()
+    # The plugin binds records to its model classes by field name, so keys are written in Java camel case.
+    weapons = [wiki_api.java_keys(item) for item in weapons]
+    equipment = {slot: [wiki_api.java_keys(item) for item in items] for slot, items in equipment.items()}
+    spells = [wiki_api.java_keys(spell, {"max": "maxHit"}) for spell in spells]
+    potions = {skill: [wiki_api.java_keys(potion) for potion in rows] for skill, rows in potions.items()}
     payload = {"source": "Old School RuneScape Wiki infobox_item, infobox_bonuses and infobox_spell buckets and "
                          "item pages (CC BY-NC-SA 3.0); game cache item parameters; curated tables",
                "retrievedUtc": retrieved, "weapons": weapons, "equipment": equipment, "spells": spells,

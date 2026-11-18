@@ -246,7 +246,7 @@ public class CombatEdgeCasesTest
 	@Test
 	public void realApiFlatFieldIsRetainedInCopies()
 	{
-		Monster m = RuneLiteAPI.GSON.fromJson("{\"id\":13012,\"name\":\"eclipse moon\",\"flat\":6}", Monster.class);
+		Monster m = RuneLiteAPI.GSON.fromJson("{\"id\":13012,\"name\":\"eclipse moon\",\"flatArmour\":6}", Monster.class);
 		assertEquals(Integer.valueOf(6), m.getFlatArmour());
 		assertEquals(Integer.valueOf(6), m.copy().getFlatArmour());
 	}

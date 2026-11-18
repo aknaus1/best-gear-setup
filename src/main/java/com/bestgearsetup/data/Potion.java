@@ -1,6 +1,5 @@
 package com.bestgearsetup.data;
 
-import com.google.gson.annotations.SerializedName;
 import java.util.Collections;
 import java.util.List;
 import lombok.Data;
@@ -13,9 +12,7 @@ public class Potion
 {
 	private int id;
 	private String name;
-	@SerializedName("base_increase")
 	private int baseIncrease;
-	@SerializedName("percentage_increase")
 	private int percentageIncrease;
 	private String skill;
 	/** e.g. "xerician" (Chambers of Xeric), "tombs of amascut", "nmz", "deadman". */

@@ -3,11 +3,6 @@ package com.bestgearsetup.data;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
@@ -112,17 +107,11 @@ public final class StatusImmunities
 			}
 			Map<String, int[]> ids = new HashMap<>();
 			Map<String, int[]> names = new HashMap<>();
-			try (InputStream in = StatusImmunities.class.getResourceAsStream(RESOURCE))
+			try
 			{
-				if (in != null)
-				{
-					try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8))
-					{
-						JsonObject root = new JsonParser().parse(reader).getAsJsonObject();
-						read(root.getAsJsonObject("ids"), ids);
-						read(root.getAsJsonObject("names"), names);
-					}
-				}
+				JsonObject root = NameLists.load(RESOURCE);
+				read(root.getAsJsonObject("ids"), ids);
+				read(root.getAsJsonObject("names"), names);
 			}
 			catch (Exception ex)
 			{

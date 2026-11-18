@@ -387,8 +387,8 @@ public class CombatMechanicsTest
 	@Test
 	public void copiedMonsterRetainsWeaknessAndReplacedAttributesInvalidateCache()
 	{
-		Monster m = RuneLiteAPI.GSON.fromJson("{\"name\":\"target\",\"weakness_type\":\"air\",\"weakness\":50,"
-			+ "\"flat_armour\":6,\"attributes\":[{\"name\":\"undead\"}]}", Monster.class);
+		Monster m = RuneLiteAPI.GSON.fromJson("{\"name\":\"target\",\"weaknessType\":\"air\",\"weakness\":50,"
+			+ "\"flatArmour\":6,\"attributes\":[{\"name\":\"undead\"}]}", Monster.class);
 		assertTrue(m.hasAttribute("undead"));
 		Monster copy = m.copy();
 		assertEquals("air", copy.getWeaknessType());

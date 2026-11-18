@@ -1,6 +1,5 @@
 package com.bestgearsetup.data;
 
-import com.google.gson.annotations.SerializedName;
 import java.util.Collections;
 import java.util.List;
 import lombok.Data;
@@ -13,7 +12,6 @@ public class MonsterSummary
 {
 	private int id;
 	private String name;
-	@SerializedName("level_cb")
 	private int combatLevel;
 	private boolean boss;
 	private List<String> attributes;

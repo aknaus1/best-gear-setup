@@ -253,6 +253,12 @@ def records(row, bosses):
     return [build(row, ids, name, bosses)]
 
 
+# Record keys whose Java field is not simply the camel-case form.
+JAVA_NAMES = {"level_cb": "combatLevel", "level_hp": "hitpoints", "level_attack": "attackLevel",
+              "level_strength": "strengthLevel", "level_defence": "defenceLevel", "level_magic": "magicLevel",
+              "level_ranged": "rangedLevel", "agg_magic": "magicAttackBonus", "flat": "flatArmour"}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--refresh", action="store_true")
@@ -269,6 +275,10 @@ def main():
         if record["name"] in seen:
             record["name"] = f"{record['name']} (npc {record['id']})"
         seen.add(record["name"])
+    # The plugin binds records to its model classes by field name, so keys are written in Java camel case.
+    monsters = [wiki_api.java_keys(dict(record, attackStyles={style: wiki_api.java_keys(attack)
+                                                             for style, attack in record["attackStyles"].items()}),
+                                   JAVA_NAMES) for record in monsters]
     payload = {"source": "Old School RuneScape Wiki infobox_monster bucket and Category:Bosses (CC BY-NC-SA 3.0)",
                "retrievedUtc": datetime.datetime.fromtimestamp((CACHE / "wiki-monsters-full.json").stat().st_mtime,
                                                                datetime.timezone.utc).isoformat(),
