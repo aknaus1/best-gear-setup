@@ -1,22 +1,9 @@
 package com.bestgearsetup;
 
-import com.bestgearsetup.calc.CalcMode;
-import com.bestgearsetup.calc.Antifire;
-import com.bestgearsetup.calc.DefenceFocus;
-import com.bestgearsetup.calc.DrainSpecs;
-import com.bestgearsetup.calc.FillMode;
-import com.bestgearsetup.calc.SearchMode;
-import com.bestgearsetup.calc.SpecEnergy;
-import com.bestgearsetup.calc.WeaponHands;
-import com.bestgearsetup.calc.WeaponPoison;
+import com.bestgearsetup.calc.*;
 import com.bestgearsetup.data.EncounterPhase;
 import java.awt.Color;
-import net.runelite.client.config.Config;
-import net.runelite.client.config.ConfigGroup;
-import net.runelite.client.config.ConfigItem;
-import net.runelite.client.config.ConfigSection;
-import net.runelite.client.config.Range;
-import net.runelite.client.config.Units;
+import net.runelite.client.config.*;
 
 @ConfigGroup(BestGearSetupConfig.GROUP)
 public interface BestGearSetupConfig extends Config

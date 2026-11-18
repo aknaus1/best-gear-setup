@@ -1,8 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.Slot;
-import com.bestgearsetup.data.Spell;
+import com.bestgearsetup.data.*;
 import java.util.Arrays;
 import lombok.Getter;
 import lombok.Setter;

@@ -3,9 +3,7 @@ package com.bestgearsetup;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterSummary;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Locale;
+import java.util.*;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.VarbitID;
 

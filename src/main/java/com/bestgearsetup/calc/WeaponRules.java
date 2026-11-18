@@ -1,10 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.NameLists;
-import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.Slot;
+import com.bestgearsetup.data.*;
 import static com.bestgearsetup.calc.EncounterDamage.*;
 
 /**

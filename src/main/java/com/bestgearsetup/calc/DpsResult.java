@@ -1,8 +1,6 @@
 package com.bestgearsetup.calc;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Value;
+import lombok.*;
 
 @Value
 @Builder(toBuilder = true)

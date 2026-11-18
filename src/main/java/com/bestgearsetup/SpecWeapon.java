@@ -1,10 +1,6 @@
 package com.bestgearsetup;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import net.runelite.api.NPC;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.NpcID;

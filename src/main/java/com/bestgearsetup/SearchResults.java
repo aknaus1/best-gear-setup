@@ -1,14 +1,7 @@
 package com.bestgearsetup;
 
-import com.bestgearsetup.calc.AttackStyle;
-import com.bestgearsetup.calc.LockStatus;
-import com.bestgearsetup.calc.PlayerLevels;
-import com.bestgearsetup.calc.SetupResult;
-import com.bestgearsetup.calc.Thrall;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.OffensivePrayer;
-import com.bestgearsetup.data.Potion;
+import com.bestgearsetup.calc.*;
+import com.bestgearsetup.data.*;
 import java.util.List;
 import java.util.Map;
 import lombok.Value;

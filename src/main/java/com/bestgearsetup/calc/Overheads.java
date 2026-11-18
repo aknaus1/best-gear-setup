@@ -1,18 +1,10 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.NameLists;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import com.bestgearsetup.data.*;
+import com.google.gson.*;
+import java.util.*;
 import java.util.stream.Collectors;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
+import lombok.*;
 
 /**
  * The overhead protection prayer against a monster, looked up by name in {@code encounter-prayers.json}: game-mode

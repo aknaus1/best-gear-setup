@@ -1,12 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.Spell;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 

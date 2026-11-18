@@ -1,8 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.NameLists;
+import com.bestgearsetup.data.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

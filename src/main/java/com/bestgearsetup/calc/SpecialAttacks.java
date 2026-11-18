@@ -1,9 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.Monster;
-import lombok.Builder;
-import lombok.Value;
-import lombok.With;
+import lombok.*;
 
 /**
  * Stat-draining special attacks landed before the fight, applied in the following order

@@ -2,9 +2,7 @@ package com.bestgearsetup.data;
 
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.OwnershipRules;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.Data;
 import net.runelite.api.gameval.ItemID;

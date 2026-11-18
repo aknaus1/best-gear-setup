@@ -1,12 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.EncounterPhase;
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.OffensivePrayer;
-import com.bestgearsetup.data.Slot;
-import com.bestgearsetup.data.StatusImmunities;
+import com.bestgearsetup.data.*;
 import java.util.function.LongUnaryOperator;
 import static com.bestgearsetup.calc.EquipmentEffects.*;
 import static com.bestgearsetup.calc.CombatRules.*;

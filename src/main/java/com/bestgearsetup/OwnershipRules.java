@@ -1,18 +1,11 @@
 package com.bestgearsetup;
 
-import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.NameLists;
-import com.bestgearsetup.data.Slot;
-import com.bestgearsetup.data.WikiGameData;
+import com.bestgearsetup.data.*;
 import com.google.common.base.Suppliers;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.client.game.ItemVariationMapping;

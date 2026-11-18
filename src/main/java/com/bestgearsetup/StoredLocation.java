@@ -1,8 +1,6 @@
 package com.bestgearsetup;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import lombok.Value;
 
 /** A snapshot supplied by Dude, Where's My Stuff?, kept separate from live carried containers. */

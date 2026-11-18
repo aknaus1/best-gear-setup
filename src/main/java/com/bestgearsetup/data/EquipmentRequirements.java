@@ -3,20 +3,11 @@ package com.bestgearsetup.data;
 import com.google.common.base.Suppliers;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.function.IntPredicate;
-import java.util.function.IntUnaryOperator;
-import java.util.function.Supplier;
+import java.util.*;
+import java.util.function.*;
 import java.util.regex.Pattern;
 import lombok.Getter;
-import net.runelite.api.ItemComposition;
-import net.runelite.api.IterableHashTable;
-import net.runelite.api.Node;
+import net.runelite.api.*;
 
 /**
  * Cache wear parameters plus a curated, source-linked table for legacy equipment. Missing parameters

@@ -1,16 +1,8 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.NameLists;
-import com.bestgearsetup.data.Slot;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import com.bestgearsetup.data.*;
+import com.google.gson.*;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 
 /**
