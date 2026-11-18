@@ -24,24 +24,12 @@ public final class CosmeticVariants
 		{
 			return true;
 		}
-		return a != null && b != null
+		// Each bonus no lower both ways is each bonus equal.
+		return Optimizer.noWorseBonuses(a, b) && Optimizer.noWorseBonuses(b, a)
+			&& Double.compare(a.getMagicStr(), b.getMagicStr()) == 0
 			&& a.getSlot() == b.getSlot()
 			&& a.getCombatId() == b.getCombatId()
 			&& a.getLowerCombatName().equals(b.getLowerCombatName())
-			&& a.getStabBonus() == b.getStabBonus()
-			&& a.getSlashBonus() == b.getSlashBonus()
-			&& a.getCrushBonus() == b.getCrushBonus()
-			&& a.getRangedBonus() == b.getRangedBonus()
-			&& a.getMagicBonus() == b.getMagicBonus()
-			&& a.getMeleeStr() == b.getMeleeStr()
-			&& a.getRangedStr() == b.getRangedStr()
-			&& Double.compare(a.getMagicStr(), b.getMagicStr()) == 0
-			&& a.getPrayerBonus() == b.getPrayerBonus()
-			&& a.getStabDef() == b.getStabDef()
-			&& a.getSlashDef() == b.getSlashDef()
-			&& a.getCrushDef() == b.getCrushDef()
-			&& a.getRangedDef() == b.getRangedDef()
-			&& a.getMagicDef() == b.getMagicDef()
 			&& a.getAttackSpeed() == b.getAttackSpeed()
 			&& a.isTwoHanded() == b.isTwoHanded()
 			&& a.getSubcategory().equals(b.getSubcategory())
