@@ -23,18 +23,10 @@ final class EncounterImmunities
 	static boolean classAllowed(Monster monster, CombatClass cls)
 	{
 		int id = monster.getId();
-		if (CombatRules.eclipseClone(monster))
-		{
-			return cls == CombatClass.MELEE;
-		}
 		boolean dusk = id == 7851 || id == 7854 || id == 7855 || id == 7882 || id == 7883
 			|| id >= 7886 && id <= 7889 || EncounterDamage.named(monster, "dusk");
-		if (dusk || EncounterDamage.guardian(monster))
-		{
-			return cls == CombatClass.MELEE;
-		}
-		if (id == 2463 || id == 2464 || id == 2465 || id == 2466 || id == 2467 || id == 2468
-			|| id >= 2137 && id <= 2142)
+		if (CombatRules.eclipseClone(monster) || dusk || EncounterDamage.guardian(monster)
+			|| id >= 2463 && id <= 2468 || id >= 2137 && id <= 2142)
 		{
 			return cls == CombatClass.MELEE;
 		}

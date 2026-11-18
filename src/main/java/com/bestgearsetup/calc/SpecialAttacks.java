@@ -3,6 +3,7 @@ package com.bestgearsetup.calc;
 import com.bestgearsetup.data.Monster;
 import lombok.Builder;
 import lombok.Value;
+import lombok.With;
 
 /**
  * Stat-draining special attacks landed before the fight, applied in the following order
@@ -11,7 +12,8 @@ import lombok.Value;
  * values are total damage dealt, since they drain by the damage.
  */
 @Value
-@Builder(toBuilder = true)
+@Builder
+@With
 public class SpecialAttacks
 {
 	public static final SpecialAttacks NONE = SpecialAttacks.builder().build();
@@ -37,24 +39,31 @@ public class SpecialAttacks
 		switch (drain)
 		{
 			case DRAGON_WARHAMMER:
-				return toBuilder().dragonWarhammer(dragonWarhammer + 1).build();
+				return withDragonWarhammer(dragonWarhammer + 1);
 			case ELDER_MAUL:
-				return toBuilder().elderMaul(elderMaul + 1).build();
+				return withElderMaul(elderMaul + 1);
 			case ARCLIGHT:
-				return toBuilder().arclight(arclight + 1).build();
+				return withArclight(arclight + 1);
 			case EMBERLIGHT:
-				return toBuilder().emberlight(emberlight + 1).build();
+				return withEmberlight(emberlight + 1);
 			case TONALZTICS:
-				return toBuilder().tonalztics(tonalztics + 1).build();
+				return withTonalztics(tonalztics + 1);
 			case BANDOS_GODSWORD:
-				return toBuilder().bandosGodswordDamage(bandosGodswordDamage + damage).build();
+				return withBandosGodswordDamage(bandosGodswordDamage + damage);
 			case SEERCULL:
-				return toBuilder().seercullDamage(seercullDamage + damage).build();
+				return withSeercullDamage(seercullDamage + damage);
 			case EYE_OF_AYAK:
-				return toBuilder().ayakDamage(ayakDamage + damage).build();
+				return withAyakDamage(ayakDamage + damage);
 			default:
 				return this;
 		}
+	}
+
+	/** Emberlight and arclight hits: each drains its share of the base level plus one. */
+	private int lights(int level, boolean demon)
+	{
+		return Math.max(0, emberlight) * (level * (demon ? 15 : 5) / 100 + 1)
+			+ Math.max(0, arclight) * (level * (demon ? 10 : 5) / 100 + 1);
 	}
 
 	public boolean isAny()
@@ -93,25 +102,9 @@ public class SpecialAttacks
 		{
 			def = Math.max(floor, def - def * 30 / 100);
 		}
-		int baseDef = base.getDefenceLevel();
-		int att = base.getAttackLevel();
-		int str = base.getStrengthLevel();
-		for (int i = 0; i < emberlight; i++)
-		{
-			def -= baseDef * (demon ? 15 : 5) / 100 + 1;
-			att -= base.getAttackLevel() * (demon ? 15 : 5) / 100 + 1;
-			str -= base.getStrengthLevel() * (demon ? 15 : 5) / 100 + 1;
-		}
-		for (int i = 0; i < arclight; i++)
-		{
-			def -= baseDef * (demon ? 10 : 5) / 100 + 1;
-			att -= base.getAttackLevel() * (demon ? 10 : 5) / 100 + 1;
-			str -= base.getStrengthLevel() * (demon ? 10 : 5) / 100 + 1;
-		}
-		for (int i = 0; i < tonalztics; i++)
-		{
-			def -= base.getMagicLevel() / 8;
-		}
+		def -= lights(base.getDefenceLevel(), demon) + Math.max(0, tonalztics) * (base.getMagicLevel() / 8);
+		int att = base.getAttackLevel() - lights(base.getAttackLevel(), demon);
+		int str = base.getStrengthLevel() - lights(base.getStrengthLevel(), demon);
 		def = Math.max(floor, def);
 
 		int magic = Math.max(0, base.getMagicLevel() - seercullDamage);

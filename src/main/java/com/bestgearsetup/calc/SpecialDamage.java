@@ -1,10 +1,12 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.StatusImmunities;
 import java.util.function.LongFunction;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Expected damage of one special attack, from its accuracy and min/max roll. Hit structures follow each
@@ -203,18 +205,12 @@ final class SpecialDamage
 	 * between {@code quarters / 4} of the max hit and that plus the max hit ({@code + extra}), then splits the
 	 * total into hitsplats. Later rolls start lower, so a late success deals less.
 	 */
+	@RequiredArgsConstructor
 	private static final class ClawRoll
 	{
 		private final int quarters;
 		private final int extra;
 		private final LongFunction<long[]> split;
-
-		private ClawRoll(int quarters, int extra, LongFunction<long[]> split)
-		{
-			this.quarters = quarters;
-			this.extra = extra;
-			this.split = split;
-		}
 	}
 
 	/**
@@ -313,7 +309,7 @@ final class SpecialDamage
 	}
 
 	/** Staves whose specials cast a built-in spell even when the staff normally autocasts. */
-	static boolean builtInSpell(com.bestgearsetup.data.GearItem weapon)
+	static boolean builtInSpell(GearItem weapon)
 	{
 		String n = EncounterDamage.lower(weapon);
 		return n.startsWith("accursed sceptre") || n.startsWith("volatile nightmare staff")
@@ -321,17 +317,11 @@ final class SpecialDamage
 	}
 
 	/** Built-in spec max hits of the nightmare staves; other staves use their powered formula. */
-	static int builtInMax(com.bestgearsetup.data.GearItem weapon, int magic)
+	static int builtInMax(GearItem weapon, int magic)
 	{
 		String n = EncounterDamage.lower(weapon);
-		if (n.startsWith("volatile nightmare staff"))
-		{
-			return Math.max(1, Math.min(58, (99 + 58 * magic) / 99));
-		}
-		if (n.startsWith("eldritch nightmare staff"))
-		{
-			return Math.max(1, Math.min(44, (99 + 44 * magic) / 99));
-		}
-		return WeaponRules.poweredStaffMaxHit(weapon, magic);
+		int cap = n.startsWith("volatile nightmare staff") ? 58 : n.startsWith("eldritch nightmare staff") ? 44 : 0;
+		return cap == 0 ? WeaponRules.poweredStaffMaxHit(weapon, magic)
+			: Math.max(1, Math.min(cap, (99 + cap * magic) / 99));
 	}
 }

@@ -1,5 +1,6 @@
 package com.bestgearsetup.calc;
 
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
 /**
@@ -40,11 +41,6 @@ public final class SpecialRotation
 		DpsResult ordinary(SpecialAttacks drains);
 
 		DpsResult spec(SpecialAttacks drains);
-	}
-
-	public static Blend blend(DpsResult ordinary, DpsResult spec, int energy, int targetHp, SpecEnergy mode)
-	{
-		return blend(ordinary, spec, energy, targetHp, mode, REGEN_PER_SECOND);
 	}
 
 	/**
@@ -93,15 +89,6 @@ public final class SpecialRotation
 	/**
 	 * Open each kill with draining specs and finish at the drained stats, or null when the target can't be
 	 * killed. The result keeps the undrained ordinary attack's max hit and accuracy.
-	 */
-	public static Blend draining(Fight fight, SpecialAttack.Drain drain, int energy, int targetHp, SpecEnergy mode,
-		double regen)
-	{
-		return draining(fight, drain, energy, targetHp, mode, regen, false);
-	}
-
-	/**
-	 * As {@link #draining(Fight, SpecialAttack.Drain, int, int, SpecEnergy, double)}.
 	 *
 	 * @param allMiss the worst case: every opening spec misses, costing its attack and draining nothing
 	 */
@@ -153,6 +140,7 @@ public final class SpecialRotation
 	}
 
 	/** Expected kill time and specs used from a point in the opening. */
+	@RequiredArgsConstructor
 	private static final class DrainKill
 	{
 		private final Fight fight;
@@ -161,15 +149,6 @@ public final class SpecialRotation
 		/** Energy per second that can be spent after the opening specs. */
 		private final double midFightRegen;
 		private final boolean allMiss;
-
-		DrainKill(Fight fight, SpecialAttack.Drain drain, int energy, double midFightRegen, boolean allMiss)
-		{
-			this.fight = fight;
-			this.drain = drain;
-			this.energy = energy;
-			this.midFightRegen = midFightRegen;
-			this.allMiss = allMiss;
-		}
 
 		/** {seconds, specs} with the given opening specs still to throw and HP left. */
 		double[] path(int left, SpecialAttacks drains, double hp)

@@ -15,7 +15,7 @@ public class SpecialRotationTest
 	@Test
 	public void regeneratedEnergySpecsForItsShareOfTheFight()
 	{
-		SpecialRotation.Blend b = SpecialRotation.blend(ORDINARY, SPEC, 50, 500, SpecEnergy.REGENERATION);
+		SpecialRotation.Blend b = SpecialRotation.blend(ORDINARY, SPEC, 50, 500, SpecEnergy.REGENERATION, SpecialRotation.REGEN_PER_SECOND);
 		// 1/3% per second for 2.4s per spec at 50% each: 1.6% of the fight is spent speccing.
 		double share = 2.4 / 3 / 50;
 		double rate = share * 10 + (1 - share) * 5;
@@ -30,7 +30,7 @@ public class SpecialRotationTest
 	@Test
 	public void fullBarOpensWithEveryWholeSpecItHolds()
 	{
-		SpecialRotation.Blend b = SpecialRotation.blend(ORDINARY, SPEC, 40, 500, SpecEnergy.FULL_BAR);
+		SpecialRotation.Blend b = SpecialRotation.blend(ORDINARY, SPEC, 40, 500, SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND);
 		// Two 40% specs (24 damage each, 4.8s); the 20% remainder is not carried over.
 		double share = 2.4 / 3 / 40;
 		double rate = share * 10 + (1 - share) * 5;
@@ -42,7 +42,7 @@ public class SpecialRotationTest
 	@Test
 	public void openingSpecsAloneCanKill()
 	{
-		SpecialRotation.Blend b = SpecialRotation.blend(ORDINARY, SPEC, 25, 30, SpecEnergy.FULL_BAR);
+		SpecialRotation.Blend b = SpecialRotation.blend(ORDINARY, SPEC, 25, 30, SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND);
 		assertEquals(10, b.getResult().getPrimaryDps(), EPS);
 		assertEquals(30 / 24.0, b.getSpecsPerKill(), EPS);
 	}
@@ -50,16 +50,16 @@ public class SpecialRotationTest
 	@Test
 	public void specsThatDoNotOutDamageOrdinaryAttacksAreNotUsed()
 	{
-		assertNull(SpecialRotation.blend(SPEC, ORDINARY, 50, 500, SpecEnergy.FULL_BAR));
-		assertNull(SpecialRotation.blend(ORDINARY, SPEC, 0, 500, SpecEnergy.FULL_BAR));
-		assertNull(SpecialRotation.blend(ORDINARY, DpsResult.ZERO, 50, 500, SpecEnergy.FULL_BAR));
+		assertNull(SpecialRotation.blend(SPEC, ORDINARY, 50, 500, SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND));
+		assertNull(SpecialRotation.blend(ORDINARY, SPEC, 0, 500, SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND));
+		assertNull(SpecialRotation.blend(ORDINARY, DpsResult.ZERO, 50, 500, SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND));
 	}
 
 	@Test
 	public void areaDamageBlendsTotalAndPrimaryRatesSeparately()
 	{
 		DpsResult area = new DpsResult(15, 30, 0.8, 4, 12, null, 5, 3);
-		SpecialRotation.Blend b = SpecialRotation.blend(area, SPEC, 50, 500, SpecEnergy.REGENERATION);
+		SpecialRotation.Blend b = SpecialRotation.blend(area, SPEC, 50, 500, SpecEnergy.REGENERATION, SpecialRotation.REGEN_PER_SECOND);
 		double share = 2.4 / 3 / 50;
 		assertEquals(share * 10 + (1 - share) * 15, b.getResult().getDps(), EPS);
 		assertEquals(3, b.getResult().getTargetsHit());
@@ -86,7 +86,7 @@ public class SpecialRotationTest
 	public void fullBarDrainsOpenTheKillAndEachOutcomeFinishesAtItsStats()
 	{
 		SpecialRotation.Blend b = SpecialRotation.draining(WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 500,
-			SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND);
+			SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND, false);
 		// A landed spec deals 24. Two hits: 4.8s + 452/10; one: 4.8s + 476/8 (either order); none: 4.8s + 500/5.
 		double seconds = 4.8 + 0.25 * 45.2 + 0.5 * 59.5 + 0.25 * 100;
 		assertEquals(500 / seconds, b.getResult().getPrimaryDps(), EPS);
@@ -137,7 +137,7 @@ public class SpecialRotationTest
 			}
 		};
 		SpecialRotation.Blend b = SpecialRotation.draining(strong, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 5000,
-			SpecEnergy.REGENERATION, SpecialRotation.REGEN_PER_SECOND);
+			SpecEnergy.REGENERATION, SpecialRotation.REGEN_PER_SECOND, false);
 		double seconds = 5000 / b.getResult().getPrimaryDps();
 		// Over 300s regenerates more than a full bar: two opening specs, then the rest during the kill, so all of
 		// one kill's regenerated energy is spent.
@@ -149,7 +149,7 @@ public class SpecialRotationTest
 	public void regeneratedDrainsOpenEachKillWithTheEnergyOfOneKill()
 	{
 		SpecialRotation.Blend b = SpecialRotation.draining(WARHAMMER, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 500,
-			SpecEnergy.REGENERATION, SpecialRotation.REGEN_PER_SECOND);
+			SpecEnergy.REGENERATION, SpecialRotation.REGEN_PER_SECOND, false);
 		double seconds = 500 / b.getResult().getPrimaryDps();
 		// Self-consistent: the specs opening a kill are what one kill regenerates.
 		assertEquals(SpecialRotation.REGEN_PER_SECOND * seconds / 50, b.getSpecsPerKill(), 1e-4);
@@ -162,7 +162,7 @@ public class SpecialRotationTest
 	@Test
 	public void lightbearerDoublesRegeneratedSpecs()
 	{
-		SpecialRotation.Blend plain = SpecialRotation.blend(ORDINARY, SPEC, 50, 500, SpecEnergy.REGENERATION);
+		SpecialRotation.Blend plain = SpecialRotation.blend(ORDINARY, SPEC, 50, 500, SpecEnergy.REGENERATION, SpecialRotation.REGEN_PER_SECOND);
 		SpecialRotation.Blend lit = SpecialRotation.blend(ORDINARY, SPEC, 50, 500, SpecEnergy.REGENERATION,
 			2 * SpecialRotation.REGEN_PER_SECOND);
 		double share = 2 * 2.4 / 3 / 50;

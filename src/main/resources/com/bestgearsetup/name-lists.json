@@ -31,6 +31,10 @@
     "kree'arra (*)", "wingman skree (*)", "flockleader geerin (*)", "flight kilisa (*)", "aviansie (*)",
     "reanimated aviansie (*)", "dawn (*)"
   ],
+  "metal dragons": ["bronze dragon*", "iron dragon*", "steel dragon*", "mithril dragon*", "adamant dragon*", "rune dragon*"],
+  "chromatic dragons": [
+    "green dragon*", "blue dragon*", "red dragon*", "black dragon*", "lava dragon*", "frost dragon*", "reanimated dragon*"
+  ],
   "protective shields": ["anti-dragon shield*", "dragonfire shield*", "dragonfire ward*", "ancient wyvern shield*", "elemental shield", "mind shield"],
 
   "demonbane melee weapons": ["silverlight*", "darklight*", "arclight*", "emberlight*", "bone claws*", "burning claws*"],
@@ -64,6 +68,25 @@
   "staff-bound spells": ["iban blast", "magic dart", "saradomin strike", "claws of guthix", "flames of zamorak"],
   "hand-cast god staves": ["saradomin staff", "guthix staff", "zamorak staff"],
   "venom helms": ["serpentine helm*", "tanzanite helm*", "magma helm*"],
+  "_poisonable": "Weapons and ammunition the weapon poison option applies to: the bundled data lists only unpoisoned items.",
+  "poisonable melee weapons": [
+    "bronze dagger", "iron dagger", "steel dagger", "black dagger", "white dagger", "mithril dagger",
+    "adamant dagger", "rune dagger", "dragon dagger", "bronze spear", "iron spear", "steel spear", "black spear",
+    "white spear", "mithril spear", "adamant spear", "rune spear", "dragon spear", "bronze hasta", "iron hasta",
+    "steel hasta", "black hasta", "white hasta", "mithril hasta", "adamant hasta", "rune hasta", "dragon hasta",
+    "abyssal dagger", "bone dagger"
+  ],
+  "poisonable ammunition": [
+    "bronze arrow", "iron arrow", "steel arrow", "black arrow", "mithril arrow", "adamant arrow", "rune arrow",
+    "amethyst arrow", "dragon arrow", "bronze arrows", "iron arrows", "steel arrows", "black arrows",
+    "mithril arrows", "adamant arrows", "rune arrows", "amethyst arrows", "dragon arrows", "bronze dart",
+    "iron dart", "steel dart", "black dart", "mithril dart", "adamant dart", "rune dart", "amethyst dart",
+    "dragon dart", "bronze knife", "iron knife", "steel knife", "black knife", "mithril knife", "adamant knife",
+    "rune knife", "amethyst knife", "dragon knife", "bronze javelin", "iron javelin", "steel javelin",
+    "black javelin", "mithril javelin", "adamant javelin", "rune javelin", "amethyst javelin", "dragon javelin",
+    "bronze bolts", "iron bolts", "steel bolts", "mithril bolts", "adamant bolts", "runite bolts", "dragon bolts",
+    "silver bolts", "blurite bolts", "bone bolts"
+  ],
 
   "wilderness-only monsters": [
     "mammoth", "lava dragon", "elder chaos druid", "callisto", "artio", "venenatis", "venenatis' spiderling (monster)",

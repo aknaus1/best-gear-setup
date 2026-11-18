@@ -82,10 +82,14 @@ public final class AttackReach
 	private static boolean flying(Monster monster)
 	{
 		int id = monster.getId();
-		return monster.hasAttribute("flying") || id >= 3162 && id <= 3165
-			|| id >= 3169 && id <= 3183 || id == 7037 || id == 12443 || id == 6492 || id == 15697
+		return monster.hasAttribute("flying") || id >= 3162 && id <= 3165 || aviansieId(id)
 			|| id == 7850 || id == 7852 || id == 7853 || id == 7884 || id == 7885
 			|| id == 15623 || id == 15635 || FLYING.matches(monster.getLowerName().replace('\u2019', '\''));
+	}
+
+	private static boolean aviansieId(int id)
+	{
+		return id >= 3169 && id <= 3183 || id == 7037 || id == 12443 || id == 6492 || id == 15697;
 	}
 
 	private static boolean named(Monster monster, String target)
@@ -97,9 +101,7 @@ public final class AttackReach
 	public static boolean meleeAllowed(Monster monster, GearItem weapon)
 	{
 		boolean salamander = weapon.getSubcategory().equals("salamander");
-		int id = monster.getId();
-		if (id >= 3169 && id <= 3183 || id == 7037 || id == 12443 || id == 6492 || id == 15697
-			|| named(monster, "aviansie") || named(monster, "reanimated aviansie"))
+		if (aviansieId(monster.getId()) || named(monster, "aviansie") || named(monster, "reanimated aviansie"))
 		{
 			return salamander;
 		}

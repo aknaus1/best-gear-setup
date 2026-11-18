@@ -14,27 +14,38 @@ final class EncounterDamage
 {
 	private static final NameLists.NameList DEMONBANE_MELEE = NameLists.list("demonbane melee weapons");
 	private static final NameLists.NameList ABYSSAL_WEAPONS = NameLists.list("abyssal weapons");
-	private static final Rule NONE = new Rule(1, 1, false, -1, 0, false, null);
-	private static final Rule THIRD = new Rule(1, 3, false, -1, 0, false, "Damage / 3, rounded per hit");
-	private static final Rule HALF = new Rule(1, 2, false, -1, 0, false, "Damage / 2, rounded per hit");
-	private static final Rule QUARTER = new Rule(1, 4, false, -1, 0, false, "Damage / 4, rounded per hit");
-	private static final Rule KRAKEN = new Rule(1, 7, true, -1, 0, false, "Ranged damage / 7; positive hits stay at least 1");
-	private static final Rule TEKTON = new Rule(1, 5, true, -1, 0, false, "Magic damage / 5; positive hits stay at least 1");
-	private static final Rule TD_SHIELD = new Rule(4, 5, true, -1, 0, false, "Fire shield: damage reduced by 20%");
-	private static final Rule ZULRAH = new Rule(1, 1, false, 50, 45, true, "Hits above 50 rerolled to 45-50");
-	private static final Rule SEREN = new Rule(1, 1, false, 2, 22, false, "Each hit limited by a random 22-24 cap");
-	private static final Rule VERZIK_MELEE = new Rule(1, 1, false, 10, 0, false, "P1: each hit limited by a random 0-10 cap");
-	private static final Rule VERZIK_OTHER = new Rule(1, 1, false, 3, 0, false, "P1: each hit limited by a random 0-3 cap");
-	private static final Rule SILVER_CAP = new Rule(1, 1, false, 0, 10, false, "Silver weapon damage capped at 10");
-	private static final Rule TOTEM = new Rule(2, 1, false, -1, 0, false, "Nightmare totem: double Magic damage");
-	private static final Rule SIRE_TRANSITION = new Rule(1, 2, false, -1, 0, false, "Transition: damage / 2 per hit");
-	private static final Rule HUEY_OTHER = new Rule(1, 1, false, 4, 0, false, "Tail: random 0-4 damage cap");
-	private static final Rule HUEY_EARTH = new Rule(1, 1, false, 9, 0, false, "Tail: random 0-9 earth spell cap");
-	private static final Rule HUEY_CRUSH = new Rule(1, 1, false, 9, 0, false,
-		"Tail: random 0-9 crush cap, minimum 1 including misses", 0, true);
+	private static final Rule NONE = scaled(1, 1, false, null);
+	private static final Rule THIRD = scaled(1, 3, false, "Damage / 3, rounded per hit");
+	private static final Rule HALF = scaled(1, 2, false, "Damage / 2, rounded per hit");
+	private static final Rule QUARTER = scaled(1, 4, false, "Damage / 4, rounded per hit");
+	private static final Rule KRAKEN = scaled(1, 7, true, "Ranged damage / 7; positive hits stay at least 1");
+	private static final Rule TEKTON = scaled(1, 5, true, "Magic damage / 5; positive hits stay at least 1");
+	private static final Rule TD_SHIELD = scaled(4, 5, true, "Fire shield: damage reduced by 20%");
+	private static final Rule ZULRAH = new Rule(1, 1, false, 50, 45, true, "Hits above 50 rerolled to 45-50", 0, false, 1, 1);
+	private static final Rule SEREN = capped(2, 22, false, "Each hit limited by a random 22-24 cap");
+	private static final Rule VERZIK_MELEE = capped(10, 0, false, "P1: each hit limited by a random 0-10 cap");
+	private static final Rule VERZIK_OTHER = capped(3, 0, false, "P1: each hit limited by a random 0-3 cap");
+	private static final Rule SILVER_CAP = capped(0, 10, false, "Silver weapon damage capped at 10");
+	private static final Rule TOTEM = scaled(2, 1, false, "Nightmare totem: double Magic damage");
+	private static final Rule SIRE_TRANSITION = scaled(1, 2, false, "Transition: damage / 2 per hit");
+	private static final Rule HUEY_OTHER = capped(4, 0, false, "Tail: random 0-4 damage cap");
+	private static final Rule HUEY_EARTH = capped(9, 0, false, "Tail: random 0-9 earth spell cap");
+	private static final Rule HUEY_CRUSH = capped(9, 0, true, "Tail: random 0-9 crush cap, minimum 1 including misses");
 
 	private EncounterDamage()
 	{
+	}
+
+	/** Every hit multiplied by a fraction and rounded down. */
+	private static Rule scaled(int numerator, int divisor, boolean positiveMinimum, String detail)
+	{
+		return new Rule(numerator, divisor, positiveMinimum, -1, 0, false, detail, 0, false, 1, 1);
+	}
+
+	/** Every hit limited by a random cap from offset to offset + limit. */
+	private static Rule capped(int limit, int offset, boolean outputMinimum, String detail)
+	{
+		return new Rule(1, 1, false, limit, offset, false, detail, 0, outputMinimum, 1, 1);
 	}
 
 	static CombatClass olmPreferredClass(Monster monster)
@@ -348,18 +359,6 @@ final class EncounterDamage
 		private final double[] sums = new double[513];
 
 		private Rule(int numerator, int divisor, boolean positiveMinimum, int limit, int offset,
-			boolean reroll, String detail)
-		{
-			this(numerator, divisor, positiveMinimum, limit, offset, reroll, detail, 0, false, 1, 1);
-		}
-
-		private Rule(int numerator, int divisor, boolean positiveMinimum, int limit, int offset,
-			boolean reroll, String detail, int flatArmour, boolean outputMinimum)
-		{
-			this(numerator, divisor, positiveMinimum, limit, offset, reroll, detail, flatArmour, outputMinimum, 1, 1);
-		}
-
-		private Rule(int numerator, int divisor, boolean positiveMinimum, int limit, int offset,
 			boolean reroll, String detail, int flatArmour, boolean outputMinimum, int postNumerator, int postDivisor)
 		{
 			this.numerator = numerator;
@@ -391,52 +390,30 @@ final class EncounterDamage
 			return outputMinimum ? Math.max(1, value) : Math.max(0, value - (armour ? flatArmour : 0));
 		}
 
-		private double finish(long hit)
-		{
-			return finish(hit, true);
-		}
-
 		/** Mean for an inaccurate hitsplat that still deals damage: flat armour only reduces accurate hits. */
 		double meanInaccurate(long raw)
 		{
-			if (flatArmour == 0)
-			{
-				return mean(raw);
-			}
+			return mean(raw, false);
+		}
+
+		double mean(long raw)
+		{
+			return mean(raw, true);
+		}
+
+		private double mean(long raw, boolean armour)
+		{
 			long hit = scaled(raw);
 			if (limit < 0 || reroll && hit <= limit)
 			{
-				return finish(hit, false);
+				return finish(hit, armour);
 			}
 			double sum = 0;
 			if (reroll)
 			{
 				for (long rerolled = offset; rerolled <= limit; rerolled++)
 				{
-					sum += finish(rerolled, false);
-				}
-				return sum / (limit - offset + 1.0);
-			}
-			for (long cap = offset; cap <= offset + limit; cap++)
-			{
-				sum += finish(Math.min(hit, cap), false);
-			}
-			return sum / (limit + 1.0);
-		}
-
-		double mean(long raw)
-		{
-			long hit = scaled(raw);
-			if (limit < 0 || reroll && hit <= limit)
-			{
-				return finish(hit);
-			}
-			if (reroll)
-			{
-				double sum = 0;
-				for (long rerolled = offset; rerolled <= limit; rerolled++)
-				{
-					sum += finish(rerolled);
+					sum += finish(rerolled, armour);
 				}
 				return sum / (limit - offset + 1.0);
 			}
@@ -444,10 +421,9 @@ final class EncounterDamage
 			{
 				return cappedMean(hit);
 			}
-			double sum = 0;
 			for (long cap = offset; cap <= offset + limit; cap++)
 			{
-				sum += finish(Math.min(hit, cap));
+				sum += finish(Math.min(hit, cap), armour);
 			}
 			return sum / (limit + 1.0);
 		}
@@ -472,12 +448,12 @@ final class EncounterDamage
 		{
 			long hit = scaled(raw);
 			long capped = limit < 0 ? hit : Math.min(hit, reroll ? limit : offset + limit);
-			return (int) finish(capped);
+			return (int) finish(capped, true);
 		}
 
 		double missDamage()
 		{
-			return outputMinimum ? finish(1) : 0;
+			return outputMinimum ? finish(1, true) : 0;
 		}
 
 		double average(long minimum, long maximum)
