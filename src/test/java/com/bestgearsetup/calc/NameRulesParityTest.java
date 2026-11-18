@@ -199,7 +199,7 @@ public class NameRulesParityTest
 		assertEquals(LegacyNameRules.REPAIR_COSTS.size(), fees.size());
 		LegacyNameRules.REPAIR_COSTS.forEach((n, fee) -> assertEquals(n, fee.longValue(), (long) fees.get(n)));
 		same("league equipment", raw, LegacyNameRules::leagueName, n -> in("league equipment", n));
-		same("GearItem.isLeagueEquipment", items, i -> LegacyNameRules.leagueName(i.getName().toLowerCase(java.util.Locale.ROOT))
+		same("Gear.isLeagueEquipment", items, i -> LegacyNameRules.leagueName(i.getName().toLowerCase(java.util.Locale.ROOT))
 			&& !i.isDmmEquipment(), Gear::isLeagueEquipment);
 	}
 }

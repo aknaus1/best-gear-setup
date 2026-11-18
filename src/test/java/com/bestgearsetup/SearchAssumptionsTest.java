@@ -122,7 +122,7 @@ public class SearchAssumptionsTest
 		String source = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(
 			"src/main/java/com/bestgearsetup/BestGearSetupPlugin.java")), java.nio.charset.StandardCharsets.UTF_8);
 		java.util.regex.Matcher put = java.util.regex.Pattern.compile(
-			"detected\\.put\\((?:\"(\\w+)\"|BestGearSetupConfig\\.POTION_KEY_PREFIX \\+ \"(\\w+)\"|(\\S+?)),").matcher(source);
+			"detected\\.put\\((?:\"(\\w+)\"|Options\\.POTION_KEY_PREFIX \\+ \"(\\w+)\"|(\\S+?)),").matcher(source);
 		int keys = 0;
 		while (put.find())
 		{

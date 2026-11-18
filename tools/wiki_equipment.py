@@ -89,7 +89,7 @@ STYLES = {
     "thrown": ["accurate,ranged,accurate", "rapid,ranged,rapid", "longrange,ranged,longrange"],
     "unarmed": ["punch,crush,accurate", "kick,crush,aggressive", "block,crush,defensive", "spell,magic,magic"],
     # Obligator (Wiki CombatStyles "Extending chain mace"): Thrust accurate and aggressive at the weapon's 5 ticks, with
-    # damage re-rolls and a size bonus, and Smash aggressive at 3 ticks (page text and launch post; WeaponRules).
+    # damage re-rolls and a size bonus, and Smash aggressive at 3 ticks (page text and launch post; Weapons).
     "extending chain mace": ["thrust,crush,accurate", "thrust,crush,aggressive", "smash,crush,aggressive"],
     "whip": ["flick,slash,accurate", "lash,slash,controlled", "deflect,slash,defensive"],
 }

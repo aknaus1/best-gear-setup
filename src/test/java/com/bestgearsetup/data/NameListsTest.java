@@ -134,7 +134,7 @@ public class NameListsTest
 	public void everyNameTheCodeAsksForIsBundled() throws IOException
 	{
 		JsonObject root = read("src/main/resources/com/bestgearsetup/name-lists.json");
-		Pattern call = Pattern.compile("NameLists\\.(list|table|tables|exact|rows)\\(\"([^\"]+)\"\\)");
+		Pattern call = Pattern.compile("Names\\.(list|table|tables|exact|rows)\\(\"([^\"]+)\"\\)");
 		int found = 0;
 		try (Stream<Path> sources = Files.walk(Paths.get("src/main/java")))
 		{
