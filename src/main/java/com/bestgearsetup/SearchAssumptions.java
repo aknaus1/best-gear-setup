@@ -4,7 +4,7 @@ import java.util.Map;
 
 /**
  * Immutable configuration values for one search, including transient detected overrides. Overrides are keyed by
- * the config method name. Each config default reads its captured value through {@link #value}, so this class needs
+ * the config key. Each config default reads its captured value through {@link #value}, so this class needs
  * no override per setting; SearchAssumptionsTest checks that every config item is copied and can be overridden.
  */
 final class SearchAssumptions implements BestGearSetupConfig
@@ -22,11 +22,6 @@ final class SearchAssumptions implements BestGearSetupConfig
 		Object[] values = ConfigSettings.capture(source);
 		overrides.forEach((name, value) -> ConfigSettings.set(values, name, value));
 		return new SearchAssumptions(values);
-	}
-
-	Object[] copyValues()
-	{
-		return values.clone();
 	}
 
 	/**

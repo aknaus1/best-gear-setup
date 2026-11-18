@@ -103,6 +103,37 @@ public class SearchAssumptionsTest
 		assertEquals(planning.meleePotion(), snapshot.meleePotion());
 	}
 
+	/** The search overrides the legacy potion names with the dropdown choice; overrides are keyed by config key. */
+	@Test public void legacyPotionNamesAreOverriddenByConfigKey()
+	{
+		Map<String, Object> overrides = new HashMap<>();
+		overrides.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MELEE", "super combat potion");
+		overrides.put(BestGearSetupConfig.POTION_KEY_PREFIX + "RANGED", "ranging potion");
+		overrides.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MAGIC", "magic potion");
+		BestGearSetupConfig snapshot = SearchAssumptions.capture(new BestGearSetupConfig() { }, overrides);
+		assertEquals("super combat potion", snapshot.potionMelee());
+		assertEquals("ranging potion", snapshot.potionRanged());
+		assertEquals("magic potion", snapshot.potionMagic());
+	}
+
+	/** Every key the plugin puts in a search's detected overrides names a setting, so capturing never throws. */
+	@Test public void pluginOverrideKeysAreConfigKeys() throws Exception
+	{
+		String source = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(
+			"src/main/java/com/bestgearsetup/BestGearSetupPlugin.java")), java.nio.charset.StandardCharsets.UTF_8);
+		java.util.regex.Matcher put = java.util.regex.Pattern.compile(
+			"detected\\.put\\((?:\"(\\w+)\"|BestGearSetupConfig\\.POTION_KEY_PREFIX \\+ \"(\\w+)\"|(\\S+?)),").matcher(source);
+		int keys = 0;
+		while (put.find())
+		{
+			assertTrue("override key is not a literal or potion key: " + put.group(3), put.group(3) == null);
+			String key = put.group(1) != null ? put.group(1) : BestGearSetupConfig.POTION_KEY_PREFIX + put.group(2);
+			ConfigSettings.index(key);
+			keys++;
+		}
+		assertTrue("found the plugin's detected overrides", keys >= 6);
+	}
+
 	/** Every config item's getter, by key; the first test below fails until a new item is added here. */
 	private static final Map<String, Function<BestGearSetupConfig, Object>> GETTERS = new LinkedHashMap<>();
 
@@ -185,12 +216,12 @@ public class SearchAssumptionsTest
 		GETTERS.put("taskMode", BestGearSetupConfig::taskMode);
 		GETTERS.put("autoRaid", BestGearSetupConfig::autoRaid);
 		GETTERS.put("autoSpecs", BestGearSetupConfig::autoSpecs);
-		GETTERS.put("meleePotion", BestGearSetupConfig::meleePotion);
-		GETTERS.put("rangedPotion", BestGearSetupConfig::rangedPotion);
-		GETTERS.put("magicPotion", BestGearSetupConfig::magicPotion);
-		GETTERS.put("potionMelee", BestGearSetupConfig::potionMelee);
-		GETTERS.put("potionRanged", BestGearSetupConfig::potionRanged);
-		GETTERS.put("potionMagic", BestGearSetupConfig::potionMagic);
+		GETTERS.put("meleePotionChoice", BestGearSetupConfig::meleePotion);
+		GETTERS.put("rangedPotionChoice", BestGearSetupConfig::rangedPotion);
+		GETTERS.put("magicPotionChoice", BestGearSetupConfig::magicPotion);
+		GETTERS.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MELEE", BestGearSetupConfig::potionMelee);
+		GETTERS.put(BestGearSetupConfig.POTION_KEY_PREFIX + "RANGED", BestGearSetupConfig::potionRanged);
+		GETTERS.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MAGIC", BestGearSetupConfig::potionMagic);
 		GETTERS.put("locks", BestGearSetupConfig::locks);
 		GETTERS.put("excluded", BestGearSetupConfig::excluded);
 		GETTERS.put("blockedSpells", BestGearSetupConfig::blockedSpells);
@@ -202,12 +233,6 @@ public class SearchAssumptionsTest
 
 	static
 	{
-		METHOD_BY_KEY.put("meleePotionChoice", "meleePotion");
-		METHOD_BY_KEY.put("rangedPotionChoice", "rangedPotion");
-		METHOD_BY_KEY.put("magicPotionChoice", "magicPotion");
-		METHOD_BY_KEY.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MELEE", "potionMelee");
-		METHOD_BY_KEY.put(BestGearSetupConfig.POTION_KEY_PREFIX + "RANGED", "potionRanged");
-		METHOD_BY_KEY.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MAGIC", "potionMagic");
 	}
 
 	@Test public void getterTableCoversEveryConfigItem()

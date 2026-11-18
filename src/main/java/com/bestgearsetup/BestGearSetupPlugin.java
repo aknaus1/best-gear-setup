@@ -994,9 +994,9 @@ public class BestGearSetupPlugin extends Plugin
 			detected.putAll(landed);
 			if (!landed.isEmpty())
 			{ detectedNotes.add("Pre-fight preparation: specs landed on this target so far, in place of the Fight settings."); }
-			detected.put("potionMelee", getPotionChoice(CombatClass.MELEE));
-			detected.put("potionRanged", getPotionChoice(CombatClass.RANGED));
-			detected.put("potionMagic", getPotionChoice(CombatClass.MAGIC));
+			detected.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MELEE", getPotionChoice(CombatClass.MELEE));
+			detected.put(BestGearSetupConfig.POTION_KEY_PREFIX + "RANGED", getPotionChoice(CombatClass.RANGED));
+			detected.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MAGIC", getPotionChoice(CombatClass.MAGIC));
 			BestGearSetupConfig assumptions = SearchAssumptions.capture(config, detected);
 			String assumptionDetail = taskNote;
 			SwingUtilities.invokeLater(() ->
