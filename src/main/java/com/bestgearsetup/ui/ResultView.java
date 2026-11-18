@@ -64,14 +64,14 @@ class ResultView extends JPanel
 	}
 
 	/** Item icons for the melee styles and the atlatl (white weapons, eclipse atlatl). */
-	private static final Map<AttackStyle.Type, Integer> TAB_ITEM_ICONS = new EnumMap<>(AttackStyle.Type.class);
+	private static final Map<Style.Type, Integer> TAB_ITEM_ICONS = new EnumMap<>(Style.Type.class);
 
 	static
 	{
-		TAB_ITEM_ICONS.put(AttackStyle.Type.STAB, ItemID.WHITE_DAGGER);
-		TAB_ITEM_ICONS.put(AttackStyle.Type.SLASH, ItemID.WHITE_SCIMITAR);
-		TAB_ITEM_ICONS.put(AttackStyle.Type.CRUSH, ItemID.WHITE_WARHAMMER);
-		TAB_ITEM_ICONS.put(AttackStyle.Type.ATLATL, ItemID.ECLIPSE_ATLATL);
+		TAB_ITEM_ICONS.put(Style.Type.STAB, ItemID.WHITE_DAGGER);
+		TAB_ITEM_ICONS.put(Style.Type.SLASH, ItemID.WHITE_SCIMITAR);
+		TAB_ITEM_ICONS.put(Style.Type.CRUSH, ItemID.WHITE_WARHAMMER);
+		TAB_ITEM_ICONS.put(Style.Type.ATLATL, ItemID.ECLIPSE_ATLATL);
 	}
 
 	private static final int TAB_SIZE = 32;
@@ -85,19 +85,19 @@ class ResultView extends JPanel
 	private final int ammoCount;
 	private final SearchResults results;
 	/** Result tabs, highest DPS first. */
-	private final List<AttackStyle.Type> tabOrder = new ArrayList<>();
+	private final List<Style.Type> tabOrder = new ArrayList<>();
 	private final JPanel tabs = new JPanel(new GridLayout(0, 5, 2, 2));
 	private final JPanel body = new JPanel();
 
-	private AttackStyle.Type selectedType;
-	private SetupResult selected;
+	private Style.Type selectedType;
+	private Setup selected;
 	/** Told the style tab the player clicks, so the panel can reopen it on the next recalculation. */
-	private final Consumer<AttackStyle.Type> onPick;
+	private final Consumer<Style.Type> onPick;
 	private List<TripSupplies.Supply> supplies = Collections.emptyList();
 
 	/** @param kept the style tab to open on when these results have one; otherwise the best style */
 	ResultView(SearchResults results, BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites,
-		SkillIconManager skillIcons, int ammoCount, AttackStyle.Type kept, Consumer<AttackStyle.Type> onPick)
+		SkillIconManager skillIcons, int ammoCount, Style.Type kept, Consumer<Style.Type> onPick)
 	{
 		this.onPick = onPick;
 		this.results = results;
@@ -113,15 +113,15 @@ class ResultView extends JPanel
 		add(centred(tabs));
 		body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
 		body.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		add(BestGearSetupPanel.left(body));
+		add(Sidebar.left(body));
 
 		tabOrder.addAll(results.getByType().keySet());
-		tabOrder.sort(Comparator.comparingDouble((AttackStyle.Type t) -> -results.getByType().get(t).get(0).getDps().getDps()));
+		tabOrder.sort(Comparator.comparingDouble((Style.Type t) -> -results.getByType().get(t).get(0).getDps().getDps()));
 
 		// A recalculation keeps the picked style; new results open on the best (first) one.
 		if (!tabOrder.isEmpty())
 		{
-			AttackStyle.Type initial = tabOrder.contains(kept) ? kept : tabOrder.get(0);
+			Style.Type initial = tabOrder.contains(kept) ? kept : tabOrder.get(0);
 			select(initial, results.getByType().get(initial).get(0));
 		}
 	}
@@ -133,7 +133,7 @@ class ResultView extends JPanel
 			select(selectedType, selected);
 	}
 
-	private void select(AttackStyle.Type type, SetupResult setup)
+	private void select(Style.Type type, Setup setup)
 	{
 		selectedType = type;
 		selected = setup;
@@ -152,7 +152,7 @@ class ResultView extends JPanel
 	private void rebuildTabs()
 	{
 		tabs.removeAll();
-		for (AttackStyle.Type type : tabOrder)
+		for (Style.Type type : tabOrder)
 		{
 			tabs.add(new StyleTab(type, results.getByType().get(type).get(0), type == selectedType));
 		}
@@ -160,7 +160,7 @@ class ResultView extends JPanel
 		tabs.repaint();
 	}
 
-	private static String typeName(AttackStyle.Type type)
+	private static String typeName(Style.Type type)
 	{
 		return GameData.titleCase(type.name().toLowerCase(Locale.ROOT));
 	}
@@ -171,7 +171,7 @@ class ResultView extends JPanel
 		private final BufferedImage icon;
 		private final boolean active;
 
-		StyleTab(AttackStyle.Type type, SetupResult best, boolean active)
+		StyleTab(Style.Type type, Setup best, boolean active)
 		{
 			this.active = active;
 			Integer itemId = TAB_ITEM_ICONS.get(type);
@@ -183,7 +183,7 @@ class ResultView extends JPanel
 			}
 			else
 			{
-				icon = skillIcons.getSkillImage(type == AttackStyle.Type.MAGIC ? Skill.MAGIC : Skill.RANGED);
+				icon = skillIcons.getSkillImage(type == Style.Type.MAGIC ? Skill.MAGIC : Skill.RANGED);
 			}
 			setPreferredSize(new Dimension(TAB_SIZE, TAB_SIZE));
 			setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -231,41 +231,41 @@ class ResultView extends JPanel
 			body.revalidate();
 			return;
 		}
-		Loadout l = selected.getLoadout();
-		DpsResult d = selected.getDps();
+		Outfit l = selected.getLoadout();
+		Dps d = selected.getDps();
 
 		body.add(spacer(6));
 		body.add(centred(new EquipmentGrid(selected, locksBySlot(), plugin, itemManager, sprites, ammoCount)));
 		body.add(spacer(6));
-		body.add(BestGearSetupPanel.left(styleRow(l)));
+		body.add(Sidebar.left(styleRow(l)));
 		body.add(spacer(6));
 
 		RuneUse runes = RuneUse.of(selected, results.getMonster().getHitpoints(),
 			results.getBaseMagic(), results.getBoostedMagic());
-		boolean poweredStaff = selected.getCombatClass() == CombatClass.MAGIC && l.getSpell() == null;
+		boolean poweredStaff = selected.getCombatClass() == Combat.MAGIC && l.getSpell() == null;
 		JPanel stats = statsBox(d, thrallFor(selected), runes, plugin != null && plugin.isSunfireRunes(), poweredStaff);
 		if (plugin != null)
 			addTripLines(stats, selected, plugin.getKillsPerTrip(), supplies);
-		body.add(BestGearSetupPanel.left(stats));
+		body.add(Sidebar.left(stats));
 		if (selected.getSpecial() != null)
 		{
 			body.add(spacer(4));
-			body.add(BestGearSetupPanel.left(specBox(selected.getSpecial(), l)));
+			body.add(Sidebar.left(specBox(selected.getSpecial(), l)));
 		}
 		body.add(spacer(4));
-		body.add(BestGearSetupPanel.left(costBox(l, selected.getSpecial())));
+		body.add(Sidebar.left(costBox(l, selected.getSpecial())));
 
-		List<SetupResult> others = results.getByType().getOrDefault(selectedType, Collections.emptyList());
+		List<Setup> others = results.getByType().getOrDefault(selectedType, Collections.emptyList());
 		if (others.size() > 1)
 		{
 			JLabel header = new JLabel(typeName(selectedType) + " setups");
 			header.setFont(FontManager.getRunescapeBoldFont());
 			header.setForeground(ColorScheme.BRAND_ORANGE);
 			header.setBorder(new EmptyBorder(8, 0, 2, 0));
-			body.add(BestGearSetupPanel.left(header));
-			for (SetupResult r : others)
+			body.add(Sidebar.left(header));
+			for (Setup r : others)
 			{
-				body.add(BestGearSetupPanel.left(alternativeRow(r, r == selected)));
+				body.add(Sidebar.left(alternativeRow(r, r == selected)));
 			}
 		}
 		body.revalidate();
@@ -283,7 +283,7 @@ class ResultView extends JPanel
 	}
 
 	/** Statistics, followed by expected attack and support rune use per kill. */
-	JPanel statsBox(DpsResult d, Thrall thrall, RuneUse runes, boolean sunfire, boolean poweredStaff)
+	JPanel statsBox(Dps d, Thrall thrall, RuneUse runes, boolean sunfire, boolean poweredStaff)
 	{
 		// One column, each row only as tall as its own text, so a wrapped max-hit note doesn't stretch every row
 		JPanel box = box(new GridBagLayout(), 2, 4);
@@ -301,7 +301,7 @@ class ResultView extends JPanel
 		if (d.getMaxHitDetail() != null)
 		{
 			// A fixed width gives the long note its wrapped height; an unsized label only reports one line
-			maxHit.setText(BestGearSetupPanel.html(maxText, STAT_WRAP_WIDTH));
+			maxHit.setText(Sidebar.html(maxText, STAT_WRAP_WIDTH));
 		}
 		line(box, "Accuracy: " + fmt(d.getAccuracy() * 100, 1) + "%", null, null);
 		line(box, (area ? "Avg attack: " : "Avg hit: ") + fmt(d.getAverageHit(), 2), null, null);
@@ -332,7 +332,7 @@ class ResultView extends JPanel
 	}
 
 	/** A trip's combat time, prayer use per kill and supplies (Kills per trip), then the overhead advice, below the setup's stats. */
-	void addTripLines(JPanel box, SetupResult setup, int kills, List<TripSupplies.Supply> supplies)
+	void addTripLines(JPanel box, Setup setup, int kills, List<TripSupplies.Supply> supplies)
 	{
 		int first = box.getComponentCount();
 		// Raid targets have no trip: the raid hands out its supplies. Their overhead advice still shows.
@@ -341,22 +341,22 @@ class ResultView extends JPanel
 		if (trip && kills > 1 && Double.isFinite(seconds))
 		{
 			line(box, "Trip combat: ~" + duration(seconds), "tripCombatTime",
-				BestGearSetupPanel.tip("Kills per trip times TTK; no banking"));
+				Sidebar.tip("Kills per trip times TTK; no banking"));
 		}
 		double prayer = trip ? TripSupplies.prayerPerKill(setup, results) : 0;
 		if (prayer > 0)
 		{
 			line(box, "Prayer/kill: ~" + fmt(prayer, 1) + " points", "prayerPerKill",
-				BestGearSetupPanel.tip("Offensive prayer and the overhead below"));
+				Sidebar.tip("Offensive prayer and the overhead below"));
 		}
 		if (supplies != null && !supplies.isEmpty())
 		{
-			line(box, "", "tripSupplies", BestGearSetupPanel.tip("Bottles and food for one trip"))
-				.setText(BestGearSetupPanel.html("Supplies: " + TripSupplies.summary(supplies), STAT_WRAP_WIDTH));
+			line(box, "", "tripSupplies", Sidebar.tip("Bottles and food for one trip"))
+				.setText(Sidebar.html("Supplies: " + TripSupplies.summary(supplies), STAT_WRAP_WIDTH));
 			if (TripSupplies.usedSlots(setup, supplies) > TripSupplies.INVENTORY_SLOTS)
 			{
 				line(box, "Doesn't fit one inventory: fewer kills per trip", "tripOverflow", null)
-					.setForeground(BestGearSetupPanel.WARNING_COLOR);
+					.setForeground(Sidebar.WARNING_COLOR);
 			}
 		}
 		divide(box, first);
@@ -369,11 +369,11 @@ class ResultView extends JPanel
 			boolean inline = advice.isSwitching() || advice.getPrayer() == null || !shortNote;
 			// A note that opens with the summary ("None needed at range: ...") continues it instead of repeating it.
 			String note = advice.getNote().startsWith(advice.summary())
-				? BestGearSetupPanel.escape(advice.getNote().substring(advice.summary().length()))
-				: "<br>" + BestGearSetupPanel.escape(advice.getNote());
+				? Sidebar.escape(advice.getNote().substring(advice.summary().length()))
+				: "<br>" + Sidebar.escape(advice.getNote());
 			int at = box.getComponentCount();
-			line(box, "", "protectionPrayer", BestGearSetupPanel.tip(shortNote ? advice.getNote() : "Static advice from the Wiki"))
-				.setText(BestGearSetupPanel.html("Overhead: " + BestGearSetupPanel.escape(advice.summary())
+			line(box, "", "protectionPrayer", Sidebar.tip(shortNote ? advice.getNote() : "Static advice from the Wiki"))
+				.setText(Sidebar.html("Overhead: " + Sidebar.escape(advice.summary())
 					+ (inline ? note : ""), STAT_WRAP_WIDTH));
 			divide(box, at);
 		}
@@ -410,13 +410,13 @@ class ResultView extends JPanel
 	}
 
 	/** The special attack mixed into the kill: its weapon, energy, uses per kill and one spec's stats. */
-	private JPanel specBox(SpecialPlan plan, Loadout worn)
+	private JPanel specBox(SpecialPlan plan, Outfit worn)
 	{
 		JPanel box = box(new BorderLayout(6, 0), 3, 3);
 		boolean newWeapon = plan.getWeapon() != worn.getWeapon();
 		JPanel icons = new JPanel(new GridLayout(1, 0, 2, 0));
 		icons.setOpaque(false);
-		for (GearItem item : new GearItem[]{newWeapon ? plan.getWeapon() : null, plan.getOffhand(), plan.getAmmo()})
+		for (Gear item : new Gear[]{newWeapon ? plan.getWeapon() : null, plan.getOffhand(), plan.getAmmo()})
 		{
 			if (item != null)
 			{
@@ -428,8 +428,8 @@ class ResultView extends JPanel
 			box.add(icons, BorderLayout.WEST);
 		}
 		String uses = newWeapon ? "switch" : plan.getOffhand() != null ? "add off-hand" : "same weapon";
-		DpsResult spec = plan.getSpec();
-		JLabel label = stat("<font color='#FF9F40'>" + BestGearSetupPanel.escape(
+		Dps spec = plan.getSpec();
+		JLabel label = stat("<font color='#FF9F40'>" + Sidebar.escape(
 			GameData.titleCase(plan.getSpecial().getName())) + "</font> spec (" + plan.getSpecial().getEnergy() + "%)"
 			+ "<br>~" + fmt(plan.getSpecsPerKill(), 1) + " per kill, " + uses
 			+ "<br>Max " + spec.getMaxHit() + ", " + fmt(spec.getAccuracy() * 100, 1) + "% acc");
@@ -440,7 +440,7 @@ class ResultView extends JPanel
 		return box;
 	}
 
-	JPanel costBox(Loadout l, SpecialPlan special)
+	JPanel costBox(Outfit l, SpecialPlan special)
 	{
 		long total = 0;
 		long ownedValue = 0;
@@ -452,7 +452,7 @@ class ResultView extends JPanel
 			ownedValue += v[1];
 			unpriced += (int) v[2];
 		}
-		List<GearItem> extras = new ArrayList<>();
+		List<Gear> extras = new ArrayList<>();
 		extras.add(l.getLoadedAmmo());
 		if (special != null && special.getWeapon() != l.getWeapon())
 		{
@@ -465,7 +465,7 @@ class ResultView extends JPanel
 			extras.add(special.getOffhand());
 			extras.add(special.getAmmo());
 		}
-		for (GearItem extra : extras)
+		for (Gear extra : extras)
 		{
 			long[] v = value(extra);
 			total += v[0];
@@ -490,13 +490,13 @@ class ResultView extends JPanel
 	 * {total, owned, unpriced to buy} for one item; ammunition and thrown weapons are priced x ammo count and
 	 * owned up to the stack held.
 	 */
-	private long[] value(GearItem item)
+	private long[] value(Gear item)
 	{
 		if (item == null)
 		{
 			return new long[]{0, 0, 0};
 		}
-		boolean ammo = WeaponRules.consumedPerAttack(item);
+		boolean ammo = Weapons.consumedPerAttack(item);
 		long price = plugin.price(item);
 		boolean owned = plugin.owns(item);
 		long units = ammo ? Math.max(0, ammoCount) : 1;
@@ -508,7 +508,7 @@ class ResultView extends JPanel
 		return new long[]{price * units, price * ownedUnits, 0};
 	}
 
-	private JPanel styleRow(Loadout l)
+	private JPanel styleRow(Outfit l)
 	{
 		JPanel row = new JPanel(new BorderLayout(6, 0));
 		row.setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -518,7 +518,7 @@ class ResultView extends JPanel
 		styleBox.setBackground(BOX_BG);
 		styleBox.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 3, 0, 0, STYLE_BORDER),
 			new EmptyBorder(2, 6, 2, 6)));
-		AttackStyle style = l.getStyle();
+		Style style = l.getStyle();
 		String name = style == null ? "" : GameData.titleCase(style.getName());
 		String sub = style == null ? "" : GameData.titleCase(style.getType().name().toLowerCase(Locale.ROOT))
 			+ ", " + GameData.titleCase(style.getStance());
@@ -527,12 +527,12 @@ class ResultView extends JPanel
 			name = l.getSpell().toString();
 			sub = style != null && style.isManualCast() ? "Manual cast" : "Autocast";
 		}
-		else if (style != null && style.getType() == AttackStyle.Type.MAGIC && WeaponRules.isPoweredStaff(l.getWeapon()))
+		else if (style != null && style.getType() == Style.Type.MAGIC && Weapons.isPoweredStaff(l.getWeapon()))
 		{
 			name = "Built-in spell";
 		}
-		JLabel styleLabel = stat("<center><font color='#FF9F40'>" + BestGearSetupPanel.escape(name)
-			+ "</font><br>" + BestGearSetupPanel.escape(sub) + "</center>");
+		JLabel styleLabel = stat("<center><font color='#FF9F40'>" + Sidebar.escape(name)
+			+ "</font><br>" + Sidebar.escape(sub) + "</center>");
 		styleLabel.setHorizontalAlignment(JLabel.CENTER);
 		if (style != null)
 		{
@@ -554,7 +554,7 @@ class ResultView extends JPanel
 
 		JPanel boosts = new JPanel(new GridLayout(0, 5, 2, 0));
 		boosts.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		CombatClass cls = selected.getCombatClass();
+		Combat cls = selected.getCombatClass();
 		OffensivePrayer prayer = results.getPrayers().get(cls);
 		if (prayer != null)
 		{
@@ -586,13 +586,13 @@ class ResultView extends JPanel
 	}
 
 	/** Potions and hearts a setup in the selected tab assumes; the atlatl also uses the melee boosts. */
-	private List<Potion> potionsFor(SetupResult setup)
+	private List<Potion> potionsFor(Setup setup)
 	{
 		List<Potion> potions = new ArrayList<>(results.getPotions().getOrDefault(setup.getCombatClass(),
 			Collections.emptyList()));
-		if (selectedType == AttackStyle.Type.ATLATL)
+		if (selectedType == Style.Type.ATLATL)
 		{
-			for (Potion p : results.getPotions().getOrDefault(CombatClass.MELEE, Collections.emptyList()))
+			for (Potion p : results.getPotions().getOrDefault(Combat.MELEE, Collections.emptyList()))
 			{
 				if (potions.stream().noneMatch(x -> x.getId() == p.getId()))
 				{
@@ -604,7 +604,7 @@ class ResultView extends JPanel
 	}
 
 	/** The thrall this setup's DPS includes, or null. */
-	private Thrall thrallFor(SetupResult setup)
+	private Thrall thrallFor(Setup setup)
 	{
 		return setup.getSupportSpells() != null && setup.getSupportSpells().contains(SupportSpell.THRALL)
 			? results.getThrall() : null;
@@ -618,14 +618,14 @@ class ResultView extends JPanel
 	}
 
 	/** Mark of Darkness only affects demonbane spells cast at demons. */
-	private boolean usesMarkOfDarkness(Loadout l)
+	private boolean usesMarkOfDarkness(Outfit l)
 	{
 		return results.isMarkOfDarkness() && l.getSpell() != null
 			&& l.getSpell().getName().toLowerCase(Locale.ROOT).contains("demonbane")
 			&& results.getMonster().hasAttribute("demon");
 	}
 
-	private JPanel alternativeRow(SetupResult r, boolean current)
+	private JPanel alternativeRow(Setup r, boolean current)
 	{
 		JPanel row = new JPanel(new BorderLayout(4, 0));
 		Color bg = current ? ColorScheme.DARK_GRAY_HOVER_COLOR : ColorScheme.DARKER_GRAY_COLOR;
@@ -633,16 +633,16 @@ class ResultView extends JPanel
 		row.setBorder(current ? BorderFactory.createCompoundBorder(
 			BorderFactory.createMatteBorder(0, 2, 0, 0, ColorScheme.BRAND_ORANGE), new EmptyBorder(1, 0, 1, 4))
 			: new EmptyBorder(1, 2, 1, 4));
-		GearItem weapon = r.getLoadout().getWeapon();
+		Gear weapon = r.getLoadout().getWeapon();
 		row.add(itemIcon(weapon.getId(), 36, null), BorderLayout.WEST);
 		JLabel name = new JLabel(GameData.titleCase(weapon.getName()));
-		BestGearSetupPanel.setSmall(name, Color.WHITE);
+		Sidebar.setSmall(name, Color.WHITE);
 		row.add(name, BorderLayout.CENTER);
 		JLabel right = new JLabel("<html><div style='text-align:right'>" + fmt(r.getDps().getDps(), 2) + " dps<br>"
 			+ (r.getBuyCost() == 0 && r.getUnpricedItems() == 0 ? "<font color='#6BD56B'>owned</font>"
 			: "<font color='#FFD24D'>" + Budget.format(r.getBuyCost()) + (r.getUnpricedItems() > 0 ? "+?" : "") + "</font>")
 			+ "</div></html>");
-		BestGearSetupPanel.setSmall(right, ColorScheme.LIGHT_GRAY_COLOR);
+		Sidebar.setSmall(right, ColorScheme.LIGHT_GRAY_COLOR);
 		row.add(right, BorderLayout.EAST);
 		row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		SpecialPlan plan = r.getSpecial();
@@ -668,7 +668,7 @@ class ResultView extends JPanel
 				row.setBackground(bg);
 			}
 		});
-		JPanel wrap = BestGearSetupPanel.left(row);
+		JPanel wrap = Sidebar.left(row);
 		wrap.setBorder(new EmptyBorder(1, 0, 1, 0));
 		return wrap;
 	}
@@ -721,13 +721,13 @@ class ResultView extends JPanel
 		JPanel row = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
 		row.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		row.add(c);
-		return BestGearSetupPanel.left(row);
+		return Sidebar.left(row);
 	}
 
 	private static JLabel textChip(String text)
 	{
 		JLabel l = new JLabel(text);
-		BestGearSetupPanel.setSmall(l, YELLOW);
+		Sidebar.setSmall(l, YELLOW);
 		return l;
 	}
 

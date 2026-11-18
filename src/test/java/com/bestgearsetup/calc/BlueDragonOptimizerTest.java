@@ -2,9 +2,9 @@ package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
@@ -47,9 +47,9 @@ public class BlueDragonOptimizerTest
 			29283, 7462, 13239, 11773));
 	}
 
-	private static SetupResult best(Set<Integer> owned, CombatClass cls)
+	private static Setup best(Set<Integer> owned, Combat cls)
 	{
-		List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, ctx, SETTINGS, owned::contains, item -> 1_000)
+		List<Setup> results = com.bestgearsetup.calc.Optimizers.of(data, ctx, SETTINGS, owned::contains, item -> 1_000)
 			.optimize(cls, () -> false, done -> { });
 		return results.get(0);
 	}
@@ -60,16 +60,16 @@ public class BlueDragonOptimizerTest
 		Set<Integer> owned = meleeOwned();
 		owned.remove(6585);
 		owned.remove(6570);
-		Loadout baseline = best(owned, CombatClass.MELEE).getLoadout();
-		DpsResult before = DpsCalculator.calculate(baseline, ctx);
-		Loadout furyOnly = baseline.copy();
+		Outfit baseline = best(owned, Combat.MELEE).getLoadout();
+		Dps before = DpsCalculator.calculate(baseline, ctx);
+		Outfit furyOnly = baseline.copy();
 		furyOnly.set(Slot.NECK, data.getItem(Slot.NECK, 6585));
 		assertEquals(before.getDps(), DpsCalculator.calculate(furyOnly, ctx).getDps(), 1e-9);
-		Loadout capeOnly = baseline.copy();
+		Outfit capeOnly = baseline.copy();
 		capeOnly.set(Slot.CAPE, data.getItem(Slot.CAPE, 6570));
 		assertTrue(DpsCalculator.calculate(capeOnly, ctx).getDps() < before.getDps());
 
-		SetupResult result = best(meleeOwned(), CombatClass.MELEE);
+		Setup result = best(meleeOwned(), Combat.MELEE);
 		assertEquals(6585, result.getLoadout().get(Slot.NECK).getId());
 		assertEquals(6570, result.getLoadout().get(Slot.CAPE).getId());
 		assertEquals(32, result.getDps().getMaxHit());
@@ -81,20 +81,20 @@ public class BlueDragonOptimizerTest
 	public void bloodMoonArmourTogetherEscapesTheEmptyCrushSlots()
 	{
 		Set<Integer> owned = new HashSet<>(Arrays.asList(11865, 6570, 6585, 28810, 1540, 7462, 13239, 11773));
-		OptimizerSettings crush = SETTINGS.toBuilder().styles(Collections.singleton(AttackStyle.Type.CRUSH)).build();
-		Loadout baseline = com.bestgearsetup.calc.Optimizers.of(data, ctx, crush, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0).getLoadout();
+		OptimizerSettings crush = SETTINGS.toBuilder().styles(Collections.singleton(Style.Type.CRUSH)).build();
+		Outfit baseline = com.bestgearsetup.calc.Optimizers.of(data, ctx, crush, owned::contains, item -> 1_000)
+			.optimize(Combat.MELEE, () -> false, done -> { }).get(0).getLoadout();
 		double before = DpsCalculator.calculate(baseline, ctx).getDps();
 		for (Slot slot : Arrays.asList(Slot.BODY, Slot.LEGS))
 		{
-			Loadout single = baseline.copy();
+			Outfit single = baseline.copy();
 			single.set(slot, data.getItem(slot, slot == Slot.BODY ? 29022 : 29025));
 			assertEquals(before, DpsCalculator.calculate(single, ctx).getDps(), 1e-9);
 		}
 		owned.add(29022);
 		owned.add(29025);
-		SetupResult result = com.bestgearsetup.calc.Optimizers.of(data, ctx, crush, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
+		Setup result = com.bestgearsetup.calc.Optimizers.of(data, ctx, crush, owned::contains, item -> 1_000)
+			.optimize(Combat.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(29022, result.getLoadout().get(Slot.BODY).getId());
 		assertEquals(29025, result.getLoadout().get(Slot.LEGS).getId());
 		assertEquals(38, result.getDps().getMaxHit());
@@ -107,10 +107,10 @@ public class BlueDragonOptimizerTest
 	{
 		Set<Integer> owned = new HashSet<>(Arrays.asList(11865, 27374, 10354, 6585, 9243, 9185,
 			29004, 1540, 2497, 7462, 22951));
-		SetupResult result = best(owned, CombatClass.RANGED);
+		Setup result = best(owned, Combat.RANGED);
 		assertEquals(6585, result.getLoadout().get(Slot.NECK).getId());
-		Loadout glory = result.getLoadout().copy();
-		GearItem amulet = data.getItem(Slot.NECK, 10354);
+		Outfit glory = result.getLoadout().copy();
+		Gear amulet = data.getItem(Slot.NECK, 10354);
 		glory.set(Slot.NECK, amulet);
 		assertEquals(result.getDps().getDps(), DpsCalculator.calculate(glory, ctx).getDps(), 1e-9);
 		assertEquals(0, result.getBuyCost());
@@ -122,19 +122,19 @@ public class BlueDragonOptimizerTest
 		Set<Integer> owned = meleeOwned();
 		owned.addAll(Arrays.asList(11865, 12954, 29025));
 		OptimizerSettings settings = SETTINGS.toBuilder().antifire(Antifire.SUPER)
-			.styles(Collections.singleton(AttackStyle.Type.STAB)).build();
+			.styles(Collections.singleton(Style.Type.STAB)).build();
 		// The best setup with the cape and legs held at their stab plateau: either trade alone loses DPS.
-		Loadout baseline = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().locks(SlotLock.parse("CAPE:13121,LEGS:29283")).build(),
-			owned::contains, item -> 1_000).optimize(CombatClass.MELEE, () -> false, done -> { }).get(0).getLoadout();
+		Outfit baseline = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().locks(SlotLock.parse("CAPE:13121,LEGS:29283")).build(),
+			owned::contains, item -> 1_000).optimize(Combat.MELEE, () -> false, done -> { }).get(0).getLoadout();
 		double before = DpsCalculator.calculate(baseline, ctx).getDps();
 		for (Slot slot : Arrays.asList(Slot.CAPE, Slot.LEGS))
 		{
-			Loadout single = baseline.copy();
+			Outfit single = baseline.copy();
 			single.set(slot, data.getItem(slot, slot == Slot.CAPE ? 6570 : 29025));
 			assertTrue(DpsCalculator.calculate(single, ctx).getDps() < before);
 		}
-		SetupResult result = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
+		Setup result = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
+			.optimize(Combat.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(6570, result.getLoadout().get(Slot.CAPE).getId());
 		assertEquals(29025, result.getLoadout().get(Slot.LEGS).getId());
 		assertEquals(33, result.getDps().getMaxHit());
@@ -142,16 +142,16 @@ public class BlueDragonOptimizerTest
 		assertEquals(0, result.getBuyCost());
 
 		OptimizerSettings locked = settings.toBuilder().locks(SlotLock.parse("CAPE:13121,LEGS:29283")).build();
-		SetupResult constrained = com.bestgearsetup.calc.Optimizers.of(data, ctx, locked, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
+		Setup constrained = com.bestgearsetup.calc.Optimizers.of(data, ctx, locked, owned::contains, item -> 1_000)
+			.optimize(Combat.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(13121, constrained.getLoadout().get(Slot.CAPE).getId());
 		assertEquals(29283, constrained.getLoadout().get(Slot.LEGS).getId());
 		assertTrue(constrained.getDps().getDps() < result.getDps().getDps());
 
 		owned.removeAll(Arrays.asList(6570, 29025));
 		OptimizerSettings noSpend = settings.toBuilder().mode(SearchMode.BUDGET).budget(0).build();
-		SetupResult affordable = com.bestgearsetup.calc.Optimizers.of(data, ctx, noSpend, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
+		Setup affordable = com.bestgearsetup.calc.Optimizers.of(data, ctx, noSpend, owned::contains, item -> 1_000)
+			.optimize(Combat.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(0, affordable.getBuyCost());
 		assertTrue(affordable.getDps().getDps() < result.getDps().getDps());
 	}
@@ -161,9 +161,9 @@ public class BlueDragonOptimizerTest
 	{
 		Set<Integer> owned = new HashSet<>(Arrays.asList(11865, 27374, 6585, 9242, 9243, 9185,
 			29004, 1540, 2497, 7462, 22951));
-		SetupResult result = best(owned, CombatClass.RANGED);
+		Setup result = best(owned, Combat.RANGED);
 		assertEquals(9243, result.getLoadout().get(Slot.AMMO).getId());
-		Loadout ruby = result.getLoadout().copy();
+		Outfit ruby = result.getLoadout().copy();
 		ruby.set(Slot.AMMO, data.getItem(Slot.AMMO, 9242));
 		assertTrue(DpsCalculator.snapshot(ruby, ctx).getDps() > result.getDps().getDps());
 		assertEquals(3.996653853236797, DpsCalculator.snapshot(ruby, ctx).getDps(), 1e-9);
@@ -181,24 +181,24 @@ public class BlueDragonOptimizerTest
 	@Test
 	public void shortAtlatlFightFavoursSlayerHelmetOverTheFullBurnSet()
 	{
-		GearItem eclipseHelm = data.getItems(Slot.HEAD).stream()
+		Gear eclipseHelm = data.getItems(Slot.HEAD).stream()
 			.filter(i -> i.getName().equals("eclipse moon helm")).findFirst().get();
-		GearItem mixedBoots = data.getItems(Slot.FEET).stream()
+		Gear mixedBoots = data.getItems(Slot.FEET).stream()
 			.filter(i -> i.getName().equals("mixed hide boots")).findFirst().get();
 		Set<Integer> owned = new HashSet<>(Arrays.asList(11865, 6570, 6585, 29000, 28991, 29004,
 			29007, 7462, 13239, 11773, eclipseHelm.getId(), mixedBoots.getId()));
 		OptimizerSettings settings = SETTINGS.toBuilder().antifire(Antifire.SUPER)
-			.styles(Collections.singleton(AttackStyle.Type.ATLATL)).build();
-		SetupResult result = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+			.styles(Collections.singleton(Style.Type.ATLATL)).build();
+		Setup result = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
+			.optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(11865, result.getLoadout().get(Slot.HEAD).getId());
 		assertEquals(13239, result.getLoadout().get(Slot.FEET).getId());
 		assertEquals(5.16442935381305, result.getDps().getDps(), 1e-9);
 
-		Loadout fullSet = result.getLoadout().copy();
+		Outfit fullSet = result.getLoadout().copy();
 		fullSet.set(Slot.HEAD, eclipseHelm);
 		fullSet.set(Slot.FEET, mixedBoots);
-		DpsResult direct = DpsCalculator.snapshot(fullSet, ctx);
+		Dps direct = DpsCalculator.snapshot(fullSet, ctx);
 		// Crediting all ten future burn hits per proc reproduces GearScape's sustained result.
 		double allBurnHits = direct.getDps() + direct.getAccuracy() * 0.2 * 10 / 1.8;
 		assertEquals(5.19227, allBurnHits, 1e-5);
@@ -213,12 +213,12 @@ public class BlueDragonOptimizerTest
 		Set<Integer> owned = new HashSet<>(Arrays.asList(11865, 27374, 6585, 868, 9242, 9243, 9185,
 			29004, 22275, 2497, 7462, 22951));
 		OptimizerSettings settings = SETTINGS.toBuilder().antifire(Antifire.SUPER)
-			.styles(Collections.singleton(AttackStyle.Type.RANGED)).build();
-		SetupResult result = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+			.styles(Collections.singleton(Style.Type.RANGED)).build();
+		Setup result = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
+			.optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(868, result.getLoadout().getWeapon().getId());
 		assertEquals(3.9831401730861367, result.getDps().getDps(), 1e-9);
-		Loadout crossbow = result.getLoadout().copy();
+		Outfit crossbow = result.getLoadout().copy();
 		crossbow.set(Slot.WEAPON, data.getItem(Slot.WEAPON, 9185));
 		crossbow.set(Slot.AMMO, data.getItem(Slot.AMMO, 9242));
 		assertEquals(4.00754, DpsCalculator.snapshot(crossbow, ctx).getDps(), 1e-5);
@@ -233,9 +233,9 @@ public class BlueDragonOptimizerTest
 	{
 		Set<Integer> owned = new HashSet<>(Arrays.asList(11865, 27374, 6585, 9243, 9185, 29004,
 			1540, 2497, 7462, 22951));
-		assertEquals(9185, best(owned, CombatClass.RANGED).getLoadout().getWeapon().getId());
+		assertEquals(9185, best(owned, Combat.RANGED).getLoadout().getWeapon().getId());
 		owned.add(11230);
-		SetupResult darts = best(owned, CombatClass.RANGED);
+		Setup darts = best(owned, Combat.RANGED);
 		assertEquals(11230, darts.getLoadout().getWeapon().getId());
 		assertEquals(4.12223197101416, darts.getDps().getDps(), 1e-9);
 	}

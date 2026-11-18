@@ -8,7 +8,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import java.util.Arrays;
@@ -26,11 +26,11 @@ public class SpecialAttackTest
 		return max / 2.0 + 1.0 / (max + 1);
 	}
 
-	private static Loadout loadout(GearItem weapon, String style)
+	private static Outfit loadout(Gear weapon, String style)
 	{
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, weapon);
-		l.setStyle(AttackStyle.parse(style));
+		l.setStyle(Style.parse(style));
 		return l;
 	}
 
@@ -39,9 +39,9 @@ public class SpecialAttackTest
 		return TestFactories.combatContext(m, PlayerLevels.maxed(), false, false, null).withModifiers(modifiers);
 	}
 
-	private static GearItem melee(String name, int bonus, int strength, int speed)
+	private static Gear melee(String name, int bonus, int strength, int speed)
 	{
-		GearItem w = weapon(50000, name, "slash sword", speed, "slash,slash,aggressive", "lunge,stab,aggressive");
+		Gear w = weapon(50000, name, "slash sword", speed, "slash,slash,aggressive", "lunge,stab,aggressive");
 		w.setStabBonus(bonus);
 		w.setSlashBonus(bonus);
 		w.setCrushBonus(bonus);
@@ -52,8 +52,8 @@ public class SpecialAttackTest
 	@Test
 	public void armadylGodswordAppliesGodswordThenOwnMultiplierWithDoubleAccuracy()
 	{
-		Loadout l = loadout(melee("armadyl godsword", 132, 132, 6), "slash,slash,aggressive");
-		DpsResult r = DpsCalculator.calculate(l, context(monster(100, 50), SPEC));
+		Outfit l = loadout(melee("armadyl godsword", 132, 132, 6), "slash,slash,aggressive");
+		Dps r = DpsCalculator.calculate(l, context(monster(100, 50), SPEC));
 		// Max (110 * 196 + 320) / 640 = 34; x 11/10 = 37; x 5/4 = 46. Attack roll 107 * 196, doubled.
 		assertEquals(46, r.getMaxHit());
 		double acc = HitChance.single(2L * 107 * 196, 109L * 114);
@@ -70,8 +70,8 @@ public class SpecialAttackTest
 		target.setDefStab(300);
 		target.setDefSlash(-20);
 		// Dragon dagger rolls against slash even from a stab stance, and hits twice.
-		GearItem dds = melee("dragon dagger(p++)", 40, 40, 4);
-		DpsResult r = DpsCalculator.calculate(loadout(dds, "lunge,stab,aggressive"), context(target, SPEC));
+		Gear dds = melee("dragon dagger(p++)", 40, 40, 4);
+		Dps r = DpsCalculator.calculate(loadout(dds, "lunge,stab,aggressive"), context(target, SPEC));
 		long attack = 107L * 104 * 23 / 20;
 		double acc = HitChance.single(attack, 109L * 44);
 		long max = (110L * 104 + 320) / 640 * 23 / 20;
@@ -83,9 +83,9 @@ public class SpecialAttackTest
 	@Test
 	public void dragonClawsFollowTheCascadeDistribution()
 	{
-		Loadout l = loadout(melee("dragon claws", 57, 56, 4), "slash,slash,aggressive");
+		Outfit l = loadout(melee("dragon claws", 57, 56, 4), "slash,slash,aggressive");
 		Monster target = monster(150, 80);
-		DpsResult r = DpsCalculator.calculate(l, context(target, SPEC));
+		Dps r = DpsCalculator.calculate(l, context(target, SPEC));
 		long max = (110L * 120 + 320) / 640;
 		double acc = HitChance.single(107L * 121, 159L * 144);
 		double expected = 0;
@@ -108,10 +108,10 @@ public class SpecialAttackTest
 	@Test
 	public void voidwakerAlwaysHitsFor50To150PercentAsMagic()
 	{
-		GearItem voidwaker = melee("voidwaker", 70, 80, 4);
-		Loadout l = loadout(voidwaker, "slash,slash,aggressive");
+		Gear voidwaker = melee("voidwaker", 70, 80, 4);
+		Outfit l = loadout(voidwaker, "slash,slash,aggressive");
 		Monster target = monster(300, 300);
-		DpsResult r = DpsCalculator.calculate(l, context(target, SPEC));
+		Dps r = DpsCalculator.calculate(l, context(target, SPEC));
 		long max = (110L * 144 + 320) / 640;
 		assertEquals(1.0, r.getAccuracy(), EPS);
 		assertEquals(max + max / 2, r.getMaxHit());
@@ -126,15 +126,15 @@ public class SpecialAttackTest
 	@Test
 	public void darkBowMissesStillDealTheArrowMinimumAndHitsCapAt48()
 	{
-		GearItem bow = weapon(11235, "dark bow", "bow", 9, "rapid,ranged,rapid");
+		Gear bow = weapon(11235, "dark bow", "bow", 9, "rapid,ranged,rapid");
 		bow.setAmmunition(Arrays.asList(11212, 882));
 		bow.setRangedBonus(95);
-		Loadout l = loadout(bow, "rapid,ranged,rapid");
-		GearItem dragon = item(11212, "dragon arrow", Slot.AMMO);
+		Outfit l = loadout(bow, "rapid,ranged,rapid");
+		Gear dragon = item(11212, "dragon arrow", Slot.AMMO);
 		dragon.setRangedStr(60);
 		l.set(Slot.AMMO, dragon);
 		Monster target = monster(200, 200);
-		DpsResult r = DpsCalculator.calculate(l, context(target, SPEC));
+		Dps r = DpsCalculator.calculate(l, context(target, SPEC));
 		long max = (107L * 124 + 320) / 640 * 15 / 10;
 		double acc = HitChance.single(107L * 159, 209L * 264);
 		double hit = 0;
@@ -150,19 +150,19 @@ public class SpecialAttackTest
 	@Test
 	public void zarytCrossbowSpecGuaranteesBoltEffectsOnAccurateHits()
 	{
-		GearItem zcb = weapon(26374, "zaryte crossbow", "crossbow", 5, "rapid,ranged,rapid");
+		Gear zcb = weapon(26374, "zaryte crossbow", "crossbow", 5, "rapid,ranged,rapid");
 		zcb.setAmmunition(Arrays.asList(9243));
 		zcb.setRangedBonus(110);
-		GearItem diamond = item(9243, "diamond bolts (e)", Slot.AMMO);
+		Gear diamond = item(9243, "diamond bolts (e)", Slot.AMMO);
 		diamond.setRangedStr(105);
-		Loadout l = loadout(zcb, "rapid,ranged,rapid");
+		Outfit l = loadout(zcb, "rapid,ranged,rapid");
 		l.set(Slot.AMMO, diamond);
 		Monster target = monster(150, 80);
 		CombatContext ctx = context(target, SPEC);
 		long max = (107L * 169 + 320) / 640;
 		long effect = max * 126 / 100;
 		double acc = HitChance.single(2L * 107 * 174, 159L * 144);
-		DpsResult r = DpsCalculator.calculate(l, ctx);
+		Dps r = DpsCalculator.calculate(l, ctx);
 		assertEquals(acc * ordinary(effect) + (1 - acc) * 0.1 * ordinary(effect), r.getAverageHit(), EPS);
 		assertTrue(r.getMaxHitDetail().contains("guaranteed on hit"));
 	}
@@ -170,10 +170,10 @@ public class SpecialAttackTest
 	@Test
 	public void accursedSceptreAutocastSpecUsesItsBuiltInSpell()
 	{
-		GearItem sceptre = weapon(27679, "accursed sceptre (a)", "staff", 5, "bash,crush,accurate", "spell,magic,magic");
+		Gear sceptre = weapon(27679, "accursed sceptre (a)", "staff", 5, "bash,crush,accurate", "spell,magic,magic");
 		sceptre.setMagicBonus(22);
-		Loadout l = loadout(sceptre, "spell,magic,magic");
-		DpsResult r = DpsCalculator.calculate(l, context(monster(100, 50), SPEC));
+		Outfit l = loadout(sceptre, "spell,magic,magic");
+		Dps r = DpsCalculator.calculate(l, context(monster(100, 50), SPEC));
 		// Built-in max 99 / 3 - 6 = 27, x 3/2 = 40; accurate stance +2 and spec accuracy x 3/2.
 		assertEquals(40, r.getMaxHit());
 		assertEquals(HitChance.single((99L + 2 + 9) * 86 * 3 / 2, 109L * 114), r.getAccuracy(), EPS);
@@ -185,9 +185,9 @@ public class SpecialAttackTest
 	public void unsupportedWeaponsScoreNothing()
 	{
 		CombatContext ctx = context(monster(100, 50), SPEC);
-		GearItem scythe = melee("scythe of vitur", 125, 75, 5);
+		Gear scythe = melee("scythe of vitur", 125, 75, 5);
 		assertEquals(0, DpsCalculator.calculate(loadout(scythe, "slash,slash,aggressive"), ctx).getDps(), EPS);
-		GearItem other = weapon(11785, "unlisted crossbow", "crossbow", 6, "rapid,ranged,rapid");
+		Gear other = weapon(11785, "unlisted crossbow", "crossbow", 6, "rapid,ranged,rapid");
 		assertNull(SpecialAttack.of(loadout(other, "rapid,ranged,rapid"), ctx));
 		// Ordinary attacks are unchanged when the mode is off.
 		assertFalse(CombatModifiers.NONE.isSpecialAttack());
@@ -242,14 +242,14 @@ public class SpecialAttackTest
 	@Test
 	public void seekingBroadArrowsRaiseSuccessfulHitsToThree()
 	{
-		GearItem bow = weapon(50010, "test bow", "bow", 4, "rapid,ranged,rapid");
+		Gear bow = weapon(50010, "test bow", "bow", 4, "rapid,ranged,rapid");
 		bow.setAmmunition(Arrays.asList(50011));
 		bow.setRangedBonus(50);
-		GearItem arrows = item(50011, "seeking broad arrows", Slot.AMMO);
+		Gear arrows = item(50011, "seeking broad arrows", Slot.AMMO);
 		arrows.setRangedStr(-40);
-		Loadout l = loadout(bow, "rapid,ranged,rapid");
+		Outfit l = loadout(bow, "rapid,ranged,rapid");
 		l.set(Slot.AMMO, arrows);
-		DpsResult r = DpsCalculator.calculate(l, context(monster(1, 0), CombatModifiers.NONE));
+		Dps r = DpsCalculator.calculate(l, context(monster(1, 0), CombatModifiers.NONE));
 		long max = (107L * 24 + 320) / 640;
 		double acc = HitChance.single(107L * 114, 10L * 64);
 		double mean = 0;

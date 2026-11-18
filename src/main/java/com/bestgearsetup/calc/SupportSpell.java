@@ -15,7 +15,7 @@ public enum SupportSpell
 	THRALL;
 
 	/** The support spells the calculator applies to this loadout in this context. */
-	static Set<SupportSpell> assumed(Loadout loadout, CombatContext ctx)
+	static Set<SupportSpell> assumed(Outfit loadout, CombatContext ctx)
 	{
 		Set<SupportSpell> spells = EnumSet.noneOf(SupportSpell.class);
 		if (markOfDarkness(loadout, ctx))
@@ -37,32 +37,32 @@ public enum SupportSpell
 	 * Thralls need the Magic level, a thrall type that can damage the target and can't be cast while autocasting a
 	 * non-Arceuus spell.
 	 */
-	static boolean thrall(Loadout loadout, CombatContext ctx)
+	static boolean thrall(Outfit loadout, CombatContext ctx)
 	{
 		boolean usable = loadout.getSpell() == null || "arceuus".equalsIgnoreCase(loadout.getSpell().getSpellbook());
 		return ctx.getThrall() != null && usable && ctx.thrallTarget();
 	}
 
-	static boolean demonbane(Loadout loadout, CombatContext ctx)
+	static boolean demonbane(Outfit loadout, CombatContext ctx)
 	{
-		return EncounterDamage.spell(loadout).contains("demonbane") && ctx.getMonster().hasAttribute("demon");
+		return Encounter.spell(loadout).contains("demonbane") && ctx.getMonster().hasAttribute("demon");
 	}
 
-	static boolean markOfDarkness(Loadout loadout, CombatContext ctx)
+	static boolean markOfDarkness(Outfit loadout, CombatContext ctx)
 	{
 		return ctx.getModifiers().isMarkOfDarkness() && demonbane(loadout, ctx);
 	}
 
-	static boolean charge(Loadout loadout, CombatContext ctx)
+	static boolean charge(Outfit loadout, CombatContext ctx)
 	{
 		if (!ctx.getModifiers().isCharge())
 		{
 			return false;
 		}
-		String spell = EncounterDamage.spell(loadout);
+		String spell = Encounter.spell(loadout);
 		String god = spell.equals("saradomin strike") ? "saradomin" : spell.equals("claws of guthix") ? "guthix"
 			: spell.equals("flames of zamorak") ? "zamorak" : "";
-		String cape = EncounterDamage.lower(loadout.get(Slot.CAPE));
+		String cape = Encounter.lower(loadout.get(Slot.CAPE));
 		return !god.isEmpty() && (cape.equals(god + " cape") || cape.equals("imbued " + god + " cape")
 			|| cape.equals(god + " max cape") || cape.equals("imbued " + god + " max cape"));
 	}

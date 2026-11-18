@@ -9,7 +9,7 @@ import org.junit.Test;
 
 public class WildernessSettingsTest
 {
-	private OptimizerSettings settings(BestGearSetupConfig config)
+	private OptimizerSettings settings(Options config)
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
 		plugin.config = config;
@@ -19,7 +19,7 @@ public class WildernessSettingsTest
 	@Test
 	public void savedLimitActivatesOnlyInWildernessAndAcceptsGpSuffixes() throws Exception
 	{
-		BestGearSetupConfig planning = new BestGearSetupConfig()
+		Options planning = new Options()
 		{
 			@Override public boolean limitWildernessRisk() { return true; }
 			@Override public int maxExpensiveItems() { return 0; }
@@ -27,20 +27,20 @@ public class WildernessSettingsTest
 		};
 		assertFalse(settings(planning).isWildernessRiskLimited());
 		// Live fight detection overrides only the location; saved risk choices still apply.
-		BestGearSetupConfig live = SearchAssumptions.capture(planning, Collections.singletonMap("wilderness", true));
+		Options live = Assumptions.capture(planning, Collections.singletonMap("wilderness", true));
 		OptimizerSettings result = settings(live);
 		assertTrue(result.isWildernessRiskLimited());
 		assertEquals(0, result.getMaxExpensiveItems());
 		assertEquals(500_000, result.getExpensiveItemThreshold());
 		assertFalse(planning.wilderness());
-		assertFalse(settings(new BestGearSetupConfig() { @Override public boolean wilderness() { return true; } })
+		assertFalse(settings(new Options() { @Override public boolean wilderness() { return true; } })
 			.isWildernessRiskLimited());
 	}
 
 	@Test
 	public void invalidThresholdNeverSilentlyRemovesTheLimit() throws Exception
 	{
-		OptimizerSettings result = settings(new BestGearSetupConfig()
+		OptimizerSettings result = settings(new Options()
 		{
 			@Override public boolean wilderness() { return true; }
 			@Override public boolean limitWildernessRisk() { return true; }

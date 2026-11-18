@@ -1,24 +1,24 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.*;
-import static com.bestgearsetup.calc.EncounterDamage.*;
+import static com.bestgearsetup.calc.Encounter.*;
 
 /**
  * Weapon classification helpers shared by the calculator and the optimiser.
  */
-public final class WeaponRules
+public final class Weapons
 {
 	/** Bolt racks, Karil's crossbow's only ammunition, which Ava's devices cannot retrieve (OSRS Wiki). */
 	private static final int BOLT_RACK = 4740;
-	private static final NameLists.NameTable SALAMANDER_BONUS = NameLists.table("salamander magic bonus");
-	private static final NameLists.NameList RECOVERY_CAPES = NameLists.list("ammo recovery capes");
+	private static final Names.NameTable SALAMANDER_BONUS = Names.table("salamander magic bonus");
+	private static final Names.NameList RECOVERY_CAPES = Names.list("ammo recovery capes");
 
-	private WeaponRules()
+	private Weapons()
 	{
 	}
 
 	/** Weapons with external ammunition fire what is in the ammo slot. */
-	public static boolean firesAmmoSlot(GearItem weapon)
+	public static boolean firesAmmoSlot(Gear weapon)
 	{
 		if (weapon == null || weapon.getAmmunition().isEmpty())
 		{
@@ -28,7 +28,7 @@ public final class WeaponRules
 	}
 
 	/** Built-in magic damage of a salamander; tar is required separately by the optimizer. */
-	public static int salamanderMaxHit(GearItem weapon, int magic)
+	public static int salamanderMaxHit(Gear weapon, int magic)
 	{
 		String name = lower(weapon);
 		int bonus = SALAMANDER_BONUS.get(name, -1);
@@ -36,13 +36,13 @@ public final class WeaponRules
 	}
 
 	/** Blowpipes hold darts internally; the ammo slot stays free. */
-	public static boolean loadsAmmo(GearItem weapon)
+	public static boolean loadsAmmo(Gear weapon)
 	{
 		return weapon != null && lower(weapon).contains("blowpipe") && !weapon.getAmmunition().isEmpty();
 	}
 
 	/** Consumable ammunition includes zero-bonus atlatl darts and salamander tar. */
-	public static boolean isAmmunition(GearItem item)
+	public static boolean isAmmunition(Gear item)
 	{
 		if (item == null)
 		{
@@ -58,7 +58,7 @@ public final class WeaponRules
 	 * blowpipe darts) and stackable thrown weapons such as knives, darts, thrownaxes and chinchompas. Blowpipes,
 	 * Tonalztics of Ralos and the Hunter's spear are thrown-style weapons that are not consumed.
 	 */
-	public static boolean consumedPerAttack(GearItem item)
+	public static boolean consumedPerAttack(Gear item)
 	{
 		if (item == null)
 		{
@@ -81,7 +81,7 @@ public final class WeaponRules
 	 * Ticks between attacks with a weapon's own attack (not a spell): rapid is a tick faster, and the Obligator's
 	 * single-target Smash is 3 ticks against its 5-tick Thrust (Wiki "Obligator").
 	 */
-	public static int attackSpeed(GearItem weapon, AttackStyle style)
+	public static int attackSpeed(Gear weapon, Style style)
 	{
 		return weapon.getAttackSpeed() - (style.getStance().equals("rapid") ? 1 : 0)
 			- (style.getName().equals("smash") && lower(weapon).startsWith("obligator") ? 2 : 0);
@@ -91,7 +91,7 @@ public final class WeaponRules
 	 * Damage rolls of an Obligator Thrust, keeping the highest: two, plus one for each of the target's stab and slash
 	 * defence bonuses above its crush defence (Jagex rewards poll blog, 2026-07-30). Other attacks roll once.
 	 */
-	static int obligatorRolls(GearItem weapon, AttackStyle style, Monster m)
+	static int obligatorRolls(Gear weapon, Style style, Monster m)
 	{
 		if (!style.getName().equals("thrust") || !lower(weapon).startsWith("obligator"))
 		{
@@ -106,7 +106,7 @@ public final class WeaponRules
 		return m.getSize() >= 3 ? 40 : m.getSize() == 2 ? 20 : 0;
 	}
 
-	public static boolean isPoweredStaff(GearItem weapon)
+	public static boolean isPoweredStaff(Gear weapon)
 	{
 		return weapon != null && weapon.getSubcategory().equals("powered staff");
 	}
@@ -116,7 +116,7 @@ public final class WeaponRules
 	 * or -1 when the staff is not supported (wilderness-only or unknown formula).
 	 * Formulas from the OSRS Wiki.
 	 */
-	public static int poweredStaffMaxHit(GearItem weapon, int magic)
+	public static int poweredStaffMaxHit(Gear weapon, int magic)
 	{
 		String name = lower(weapon);
 		int third = magic / 3;
@@ -183,9 +183,9 @@ public final class WeaponRules
 	 * salamander tar and weapons without consumable ammunition (crystal bows, Tonalztics of Ralos, the Hunter's
 	 * spear) are not recovered.
 	 */
-	public static boolean firesRecoverableAmmo(GearItem weapon, CombatClass combatClass)
+	public static boolean firesRecoverableAmmo(Gear weapon, Combat combatClass)
 	{
-		if (weapon == null || combatClass != CombatClass.RANGED || weapon.getSubcategory().equals("salamander"))
+		if (weapon == null || combatClass != Combat.RANGED || weapon.getSubcategory().equals("salamander"))
 		{
 			return false;
 		}
@@ -211,13 +211,13 @@ public final class WeaponRules
 	}
 
 	/** The eclipse atlatl: a ranged weapon that scales with Strength and melee strength bonus. */
-	public static boolean isAtlatl(GearItem weapon)
+	public static boolean isAtlatl(Gear weapon)
 	{
 		return weapon != null && weapon.getLowerCombatName().startsWith("eclipse atlatl");
 	}
 
 	/** Ava's devices and their assembler cape variants, plus charged or uncharged Dizana's quivers and max cape. */
-	public static boolean isAmmoRecoveryCape(GearItem item)
+	public static boolean isAmmoRecoveryCape(Gear item)
 	{
 		if (item == null || item.getSlot() != Slot.CAPE)
 		{
@@ -230,7 +230,7 @@ public final class WeaponRules
 	 * Ranged weapons whose damage uses visible Strength, melee strength bonus and melee slayer/salve
 	 * damage branches: the eclipse atlatl and Hunter's spear. Accuracy remains ordinary ranged accuracy.
 	 */
-	public static boolean scalesWithStrength(GearItem weapon)
+	public static boolean scalesWithStrength(Gear weapon)
 	{
 		return isAtlatl(weapon) || weapon != null && weapon.getLowerCombatName().startsWith("hunter's spear");
 	}
@@ -239,22 +239,22 @@ public final class WeaponRules
 	 * The result tab a style belongs to: the atlatl gets its own tab even though its
 	 * styles are ranged styles.
 	 */
-	public static AttackStyle.Type tabType(GearItem weapon, AttackStyle style)
+	public static Style.Type tabType(Gear weapon, Style style)
 	{
-		return style.getType() == AttackStyle.Type.RANGED && isAtlatl(weapon) ? AttackStyle.Type.ATLATL : style.getType();
+		return style.getType() == Style.Type.RANGED && isAtlatl(weapon) ? Style.Type.ATLATL : style.getType();
 	}
 
-	public static boolean isShadow(GearItem weapon)
+	public static boolean isShadow(Gear weapon)
 	{
 		return weapon != null && lower(weapon).startsWith("tumeken's shadow");
 	}
 
 	/** Which class a weapon style belongs to, from the style list. */
-	public static boolean supports(GearItem weapon, CombatClass combatClass)
+	public static boolean supports(Gear weapon, Combat combatClass)
 	{
 		for (String raw : weapon.getStyles())
 		{
-			AttackStyle s = AttackStyle.parse(raw);
+			Style s = Style.parse(raw);
 			if (s != null && classOf(s) == combatClass)
 			{
 				return true;
@@ -263,17 +263,17 @@ public final class WeaponRules
 		return false;
 	}
 
-	public static CombatClass classOf(AttackStyle style)
+	public static Combat classOf(Style style)
 	{
 		switch (style.getType())
 		{
 			case RANGED:
 			case ATLATL:
-				return CombatClass.RANGED;
+				return Combat.RANGED;
 			case MAGIC:
-				return CombatClass.MAGIC;
+				return Combat.MAGIC;
 			default:
-				return CombatClass.MELEE;
+				return Combat.MELEE;
 		}
 	}
 }

@@ -8,7 +8,7 @@ import lombok.Data;
  * Entry in the bundled monster list. The id is an in-game NPC id.
  */
 @Data
-public class MonsterSummary
+public class Summary
 {
 	private int id;
 	private String name;

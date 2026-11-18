@@ -8,9 +8,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.google.gson.Gson;
 import java.util.Arrays;
@@ -31,10 +31,10 @@ public class LockStatusTest
 		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
-	private final GearItem whip = weapon(4151, "abyssal whip", "whip", 4, "flick,slash,accurate");
-	private final GearItem bow = weapon(20997, "twisted bow", "bow", 5, "accurate,ranged,accurate");
-	private final GearItem helm = item(10828, "helm of neitiznot", Slot.HEAD);
-	private final GearItem shield = item(12954, "dragon defender", Slot.SHIELD);
+	private final Gear whip = weapon(4151, "abyssal whip", "whip", 4, "flick,slash,accurate");
+	private final Gear bow = weapon(20997, "twisted bow", "bow", 5, "accurate,ranged,accurate");
+	private final Gear helm = item(10828, "helm of neitiznot", Slot.HEAD);
+	private final Gear shield = item(12954, "dragon defender", Slot.SHIELD);
 	private final PlayerLevels levels = new PlayerLevels(60, 60, 60, 80, 60, 60, 60, 1);
 
 	{
@@ -48,7 +48,7 @@ public class LockStatusTest
 		GameData data = TestData.gameData(Arrays.asList(whip, bow, helm, shield), Collections.emptyList());
 		CombatContext ctx = TestFactories.combatContext(monster(1, 0), levels, false, false, null);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).budget(1_000_000).locks(locks).build();
-		return LockStatus.check(data, com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, GearItem::getPrice), locks);
+		return LockStatus.check(data, com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, Gear::getPrice), locks);
 	}
 
 	private static Map<Slot, SlotLock> locks(Slot slot, SlotLock lock)
@@ -72,7 +72,7 @@ public class LockStatusTest
 	public void unownedLockIsWornInOwnedModesAndPricedAsAPurchase()
 	{
 		// Nothing is owned; the helm costs 2m and the scimitar has no price.
-		GearItem scimitar = weapon(1333, "rune scimitar", "scimitar", 4, "chop,slash,accurate");
+		Gear scimitar = weapon(1333, "rune scimitar", "scimitar", 4, "chop,slash,accurate");
 		scimitar.setPrice(0);
 		GameData data = TestData.gameData(Arrays.asList(scimitar, helm), Collections.emptyList());
 		CombatContext ctx = TestFactories.combatContext(monster(1, 0), levels, false, false, null);
@@ -81,9 +81,9 @@ public class LockStatusTest
 		{
 			locks.put(Slot.WEAPON, SlotLock.item(scimitar.getId()));
 			OptimizerSettings settings = OptimizerSettings.builder().mode(mode).locks(locks).build();
-			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, GearItem::getPrice);
+			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, Gear::getPrice);
 			assertTrue(mode.toString(), LockStatus.check(data, optimizer, locks).stream().noneMatch(LockStatus::isBlocking));
-			List<SetupResult> found = optimizer.optimize(CombatClass.MELEE, () -> false, done -> { });
+			List<Setup> found = optimizer.optimize(Combat.MELEE, () -> false, done -> { });
 			assertFalse(mode.toString(), found.isEmpty());
 			assertEquals(mode.toString(), helm, found.get(0).getLoadout().get(Slot.HEAD));
 			assertEquals(mode.toString(), 2_000_000, found.get(0).getBuyCost());

@@ -8,10 +8,10 @@ import com.bestgearsetup.calc.Optimizer;
 import com.bestgearsetup.calc.OptimizerSettings;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.SearchMode;
-import com.bestgearsetup.calc.SetupResult;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.calc.Setup;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
@@ -40,10 +40,10 @@ public class GloryOwnershipTest
 			ItemID.DRAGON_SCIMITAR, ItemID.AMULET_OF_GLORY_4)));
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.spellbooks(Collections.emptySet()).build();
-		List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, GearItem::getPrice)
-			.optimize(CombatClass.MELEE, () -> false, done -> { });
+		List<Setup> results = com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, Gear::getPrice)
+			.optimize(Combat.MELEE, () -> false, done -> { });
 		assertFalse(results.isEmpty());
-		for (SetupResult result : results)
+		for (Setup result : results)
 		{
 			assertEquals(ItemID.AMULET_OF_GLORY, result.getLoadout().get(Slot.NECK).getId());
 			assertEquals(0, result.getBuyCost());
@@ -53,7 +53,7 @@ public class GloryOwnershipTest
 	@Test
 	public void trimmedGloryUsesTrimmedAcquisitionPrice()
 	{
-		GearItem trimmed = new GearItem();
+		Gear trimmed = new Gear();
 		trimmed.setId(ItemID.TRAIL_AMULET_OF_GLORY_4);
 		trimmed.setTradeable(true);
 		assertEquals(50_000, ItemCosts.price(trimmed,

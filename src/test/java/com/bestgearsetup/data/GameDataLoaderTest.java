@@ -18,9 +18,9 @@ public class GameDataLoaderTest
 		assertFalse(data.getMonsters().isEmpty());
 		assertTrue(data.getItems(Slot.WEAPON).size() > 600);
 		assertTrue(data.getSpells().size() > 40);
-		assertFalse(data.getPrayers(CombatClass.MAGIC).isEmpty());
+		assertFalse(data.getPrayers(Combat.MAGIC).isEmpty());
 		assertFalse(data.getPotions("strength").isEmpty());
-		MonsterSummary vorkath = data.matchNpc(8061, "Vorkath", 732);
+		Summary vorkath = data.matchNpc(8061, "Vorkath", 732);
 		assertNotNull(vorkath);
 		Monster first = loader.getMonster(vorkath);
 		assertEquals(vorkath.getName(), first.getName());

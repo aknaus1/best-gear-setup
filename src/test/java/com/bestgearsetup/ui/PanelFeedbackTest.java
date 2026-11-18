@@ -5,14 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.BestGearSetupConfig;
+import com.bestgearsetup.Options;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.OwnedItems;
 import com.bestgearsetup.SearchResults;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.calc.SlotLock;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
@@ -67,7 +67,7 @@ public class PanelFeedbackTest
 			}
 
 			@Override
-			public String getPotionChoice(CombatClass cls)
+			public String getPotionChoice(Combat cls)
 			{
 				return PotionChoice.BEST;
 			}
@@ -84,10 +84,10 @@ public class PanelFeedbackTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			BestGearSetupConfig config = new BestGearSetupConfig()
+			Options config = new Options()
 			{
 			};
-			BestGearSetupPanel panel = new BestGearSetupPanel(plugin(), config, null, null, null);
+			Sidebar panel = new Sidebar(plugin(), config, null, null, null);
 			JTextField budget = panel.budgetField;
 			JLabel error = (JLabel) named(panel, "budgetError");
 			assertFalse(error.isVisible());
@@ -109,7 +109,7 @@ public class PanelFeedbackTest
 		GameData data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 		SwingUtilities.invokeAndWait(() ->
 		{
-			BestGearSetupPanel panel = new BestGearSetupPanel(plugin(), new BestGearSetupConfig()
+			Sidebar panel = new Sidebar(plugin(), new Options()
 			{
 				@Override
 				public boolean bossesOnly()
@@ -129,7 +129,7 @@ public class PanelFeedbackTest
 			search.setText("vorkath");
 			assertFalse(hint.isVisible());
 		});
-		assertTrue(BestGearSetupPanel.noMatchesMessage(false, "Vorkath").contains("Still targeting <b>Vorkath</b>"));
+		assertTrue(Sidebar.noMatchesMessage(false, "Vorkath").contains("Still targeting <b>Vorkath</b>"));
 	}
 
 	@Test
@@ -137,7 +137,7 @@ public class PanelFeedbackTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			BestGearSetupPanel panel = new BestGearSetupPanel(plugin(), new BestGearSetupConfig()
+			Sidebar panel = new Sidebar(plugin(), new Options()
 			{
 			}, null, null, null);
 			panel.showResults(com.bestgearsetup.TestResults.of(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
@@ -155,7 +155,7 @@ public class PanelFeedbackTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			BestGearSetupPanel panel = new BestGearSetupPanel(plugin(), new BestGearSetupConfig()
+			Sidebar panel = new Sidebar(plugin(), new Options()
 			{
 			}, null, null, null);
 			LockStatus used = new LockStatus(Slot.FEET, SlotLock.item(1), null, null, null);
@@ -202,7 +202,7 @@ public class PanelFeedbackTest
 			}
 
 			@Override
-			public String getPotionChoice(CombatClass cls)
+			public String getPotionChoice(Combat cls)
 			{
 				return PotionChoice.BEST;
 			}
@@ -213,21 +213,21 @@ public class PanelFeedbackTest
 			}
 
 			@Override
-			public void setBankHighlightedSetup(com.bestgearsetup.calc.SetupResult setup)
+			public void setBankHighlightedSetup(com.bestgearsetup.calc.Setup setup)
 			{
 				highlights.add(setup);
 			}
 		};
 		SwingUtilities.invokeAndWait(() ->
 		{
-			BestGearSetupPanel panel = new BestGearSetupPanel(recording, new BestGearSetupConfig()
+			Sidebar panel = new Sidebar(recording, new Options()
 			{
 			}, null, null, null);
 			panel.showResults(com.bestgearsetup.TestResults.of(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
 				Collections.emptyMap(), Collections.emptyMap(), false, Collections.emptyList(), false, false,
 				Collections.singletonList("Earlier search warning")));
 			highlights.clear();
-			com.bestgearsetup.data.MonsterSummary next = new com.bestgearsetup.data.MonsterSummary();
+			com.bestgearsetup.data.Summary next = new com.bestgearsetup.data.Summary();
 			next.setName("Vorkath");
 			panel.showSearching(next);
 			assertNotNull("Previous results stay until the new ones arrive", named(panel, "assumptionWarnings"));
@@ -249,22 +249,22 @@ public class PanelFeedbackTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			BestGearSetupPanel panel = new BestGearSetupPanel(plugin(), new BestGearSetupConfig()
+			Sidebar panel = new Sidebar(plugin(), new Options()
 			{
 			}, null, null, null);
-			com.bestgearsetup.data.MonsterSummary vorkath = new com.bestgearsetup.data.MonsterSummary();
+			com.bestgearsetup.data.Summary vorkath = new com.bestgearsetup.data.Summary();
 			vorkath.setName("Vorkath");
 			vorkath.setId(1);
 			panel.selectMonster(vorkath, false);
-			panel.pickedStyle = com.bestgearsetup.calc.AttackStyle.Type.STAB;
+			panel.pickedStyle = com.bestgearsetup.calc.Style.Type.STAB;
 			panel.selectMonster(vorkath, false);
-			assertEquals("The same target keeps it", com.bestgearsetup.calc.AttackStyle.Type.STAB, panel.pickedStyle);
-			com.bestgearsetup.data.MonsterSummary zulrah = new com.bestgearsetup.data.MonsterSummary();
+			assertEquals("The same target keeps it", com.bestgearsetup.calc.Style.Type.STAB, panel.pickedStyle);
+			com.bestgearsetup.data.Summary zulrah = new com.bestgearsetup.data.Summary();
 			zulrah.setName("Zulrah");
 			zulrah.setId(2);
 			panel.selectMonster(zulrah, false);
 			assertNull(panel.pickedStyle);
-			panel.pickedStyle = com.bestgearsetup.calc.AttackStyle.Type.STAB;
+			panel.pickedStyle = com.bestgearsetup.calc.Style.Type.STAB;
 			panel.findButton.doClick();
 			assertNull(panel.pickedStyle);
 		});

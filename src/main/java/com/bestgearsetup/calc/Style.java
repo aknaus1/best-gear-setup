@@ -11,11 +11,11 @@ import lombok.Value;
  * e.g. "flick,slash,accurate", "rapid,ranged,rapid", "spell,magic,magic".
  */
 @Value
-public class AttackStyle
+public class Style
 {
 	public enum Type
 	{
-		/** ATLATL is never parsed from a style string; see {@link WeaponRules#tabType}. */
+		/** ATLATL is never parsed from a style string; see {@link Weapons#tabType}. */
 		STAB, SLASH, CRUSH, RANGED, MAGIC, ATLATL
 	}
 
@@ -23,22 +23,22 @@ public class AttackStyle
 	 * Parsed styles by catalogue string. Styles are immutable, and one instance per string lets the optimiser's
 	 * identity-keyed score memo recognise the same style across weapons and calls.
 	 */
-	private static final Map<String, AttackStyle> PARSED = new ConcurrentHashMap<>();
+	private static final Map<String, Style> PARSED = new ConcurrentHashMap<>();
 
 	/** Casting a spell by hand, which any weapon can do, including one that can't autocast that spell. */
-	public static final AttackStyle MANUAL_CAST = parse("manual cast,magic,magic");
+	public static final Style MANUAL_CAST = parse("manual cast,magic,magic");
 
 	String name;
 	Type type;
 	/** accurate, aggressive, controlled, defensive, rapid, longrange or magic (autocast). */
 	String stance;
 
-	public static AttackStyle parse(String raw)
+	public static Style parse(String raw)
 	{
-		return raw == null ? null : PARSED.computeIfAbsent(raw, AttackStyle::parseUncached);
+		return raw == null ? null : PARSED.computeIfAbsent(raw, Style::parseUncached);
 	}
 
-	private static AttackStyle parseUncached(String raw)
+	private static Style parseUncached(String raw)
 	{
 		String[] parts = raw.toLowerCase(Locale.ROOT).split(",");
 		if (parts.length < 3)
@@ -66,7 +66,7 @@ public class AttackStyle
 			default:
 				return null;
 		}
-		return new AttackStyle(parts[0].trim(), type, parts[2].trim());
+		return new Style(parts[0].trim(), type, parts[2].trim());
 	}
 
 	public boolean isMelee()

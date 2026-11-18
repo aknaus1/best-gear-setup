@@ -31,7 +31,7 @@ public class OptimizerSettings
 
 	/** Attack types that may be used. */
 	@Builder.Default
-	Set<AttackStyle.Type> styles = EnumSet.allOf(AttackStyle.Type.class);
+	Set<Style.Type> styles = EnumSet.allOf(Style.Type.class);
 	@Builder.Default
 	WeaponHands weaponHands = WeaponHands.ANY;
 	@Builder.Default

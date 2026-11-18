@@ -27,7 +27,7 @@ public class GameDataLoader
 	}
 
 	/** Full stats for the selected variant, as a copy the caller may adjust. */
-	public Monster getMonster(MonsterSummary summary) throws IOException
+	public Monster getMonster(Summary summary) throws IOException
 	{
 		Monster monster = WikiMonsters.get(gson).monster(summary.getName());
 		if (monster == null)

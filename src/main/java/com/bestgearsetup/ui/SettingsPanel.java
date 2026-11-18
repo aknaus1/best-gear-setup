@@ -1,6 +1,6 @@
 package com.bestgearsetup.ui;
 
-import com.bestgearsetup.BestGearSetupConfig;
+import com.bestgearsetup.Options;
 import com.bestgearsetup.BestGearSetupPlugin;
 import java.awt.Cursor;
 import java.awt.font.TextAttribute;
@@ -22,7 +22,7 @@ class SettingsPanel extends JPanel
 
 	private final SettingRows settingRows;
 
-	SettingsPanel(BestGearSetupPlugin plugin, BestGearSetupConfig config, ConfigDescriptor descriptor)
+	SettingsPanel(BestGearSetupPlugin plugin, Options config, ConfigDescriptor descriptor)
 	{
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -60,7 +60,7 @@ class SettingsPanel extends JPanel
 			}
 			if (group.getContent().getComponentCount() > 0)
 			{
-				add(BestGearSetupPanel.left(group));
+				add(Sidebar.left(group));
 				first = first == null ? group : first;
 			}
 		}
@@ -78,7 +78,7 @@ class SettingsPanel extends JPanel
 		runeLite.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		runeLite.setToolTipText("Same settings on RuneLite's config page, with reset");
 		runeLite.addActionListener(e -> plugin.openConfiguration());
-		JPanel link = BestGearSetupPanel.left(runeLite);
+		JPanel link = Sidebar.left(runeLite);
 		link.setBorder(new EmptyBorder(6, 0, 0, 0));
 		add(link);
 		settingRows.refresh();

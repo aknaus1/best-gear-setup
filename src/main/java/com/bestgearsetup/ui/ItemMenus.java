@@ -21,7 +21,7 @@ final class ItemMenus
 	 * @param item the item shown (null for an empty slot)
 	 * @param slot the equipment slot, or null for blowpipe darts
 	 */
-	static JPopupMenu create(GearItem item, Slot slot, boolean locked, BestGearSetupPlugin plugin)
+	static JPopupMenu create(Gear item, Slot slot, boolean locked, BestGearSetupPlugin plugin)
 	{
 		JPopupMenu menu = new JPopupMenu();
 		String slotName = slot == null ? "" : slot.getDisplayName().toLowerCase(Locale.ROOT);
@@ -48,7 +48,7 @@ final class ItemMenus
 			String name = GameData.titleCase(item.getName());
 			GameData data = plugin.getGameData();
 			List<Integer> family = data == null ? Collections.emptyList() : data.variantFamily(item).stream()
-				.map(GearItem::getId).collect(Collectors.toList());
+				.map(Gear::getId).collect(Collectors.toList());
 			if (family.size() > 1)
 			{
 				// Variants are separate entries ("(b)", "(e)"); offer the whole family so it can't simply reappear.

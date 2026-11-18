@@ -42,7 +42,7 @@ public class ThrallTest
 			Monster restricted = monster(name);
 			assertNull(name, Thrall.eligibleType(restricted));
 			assertTrue(name, Thrall.immune(restricted));
-			assertEquals(name, EnumSet.noneOf(SupportSpell.class), SupportSpell.assumed(new Loadout(), context(restricted)));
+			assertEquals(name, EnumSet.noneOf(SupportSpell.class), SupportSpell.assumed(new Outfit(), context(restricted)));
 		}
 		assertFalse(Thrall.immune(monster("Elvarg")));
 	}
@@ -51,9 +51,9 @@ public class ThrallTest
 	public void eligibleThrallAddsItsDamageAndAnIneligibleOneAddsNone()
 	{
 		Monster rangedOnly = monster("Nylocas Toxobolos", "ranged only");
-		assertEquals(EnumSet.of(SupportSpell.THRALL), SupportSpell.assumed(new Loadout(), context(rangedOnly)));
+		assertEquals(EnumSet.of(SupportSpell.THRALL), SupportSpell.assumed(new Outfit(), context(rangedOnly)));
 		Monster none = monster("Test", "melee only", "melee immune");
-		assertEquals(EnumSet.noneOf(SupportSpell.class), SupportSpell.assumed(new Loadout(), context(none)));
+		assertEquals(EnumSet.noneOf(SupportSpell.class), SupportSpell.assumed(new Outfit(), context(none)));
 	}
 
 	@Test

@@ -20,7 +20,7 @@ public class CombatContext
 	private final int strength;
 	private final int ranged;
 	private final int magic;
-	private final Map<CombatClass, OffensivePrayer> prayers;
+	private final Map<Combat, OffensivePrayer> prayers;
 	private final boolean thrall;
 	private final int aoeTargets;
 	private final int targetDistance;
@@ -32,14 +32,14 @@ public class CombatContext
 	private Boolean thrallTarget;
 
 	public CombatContext(Monster monster, PlayerLevels levels, boolean onTask, int attack, int strength, int ranged,
-		int magic, Map<CombatClass, OffensivePrayer> prayers, boolean thrall)
+		int magic, Map<Combat, OffensivePrayer> prayers, boolean thrall)
 	{
 		this(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall, 1, 0, CombatModifiers.NONE, null);
 	}
 
 	@Builder(toBuilder = true, access = AccessLevel.PRIVATE)
 	private CombatContext(Monster monster, PlayerLevels levels, boolean onTask, int attack, int strength, int ranged,
-		int magic, Map<CombatClass, OffensivePrayer> prayers, boolean thrall, int aoeTargets, int targetDistance,
+		int magic, Map<Combat, OffensivePrayer> prayers, boolean thrall, int aoeTargets, int targetDistance,
 		CombatModifiers modifiers, IntFunction<Monster> healthStates)
 	{
 		this.monster = monster;
@@ -49,7 +49,7 @@ public class CombatContext
 		this.strength = strength;
 		this.ranged = ranged;
 		this.magic = magic;
-		this.prayers = prayers == null ? new EnumMap<>(CombatClass.class) : new EnumMap<>(prayers);
+		this.prayers = prayers == null ? new EnumMap<>(Combat.class) : new EnumMap<>(prayers);
 		this.thrall = thrall;
 		this.aoeTargets = Math.max(1, Math.min(12, aoeTargets));
 		this.targetDistance = targetDistance;
@@ -119,7 +119,7 @@ public class CombatContext
 		return toBuilder().monster(target).modifiers(modifiers.toBuilder().monsterHitpoints(hp).build()).build();
 	}
 
-	public OffensivePrayer getPrayer(CombatClass combatClass)
+	public OffensivePrayer getPrayer(Combat combatClass)
 	{
 		return prayers.get(combatClass);
 	}

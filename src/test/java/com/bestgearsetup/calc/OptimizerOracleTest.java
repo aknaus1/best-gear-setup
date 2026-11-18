@@ -4,9 +4,9 @@ import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.DiaryRewards;
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
@@ -49,9 +49,9 @@ public class OptimizerOracleTest
 	private static final Slot[] ARMOUR = {
 		Slot.HEAD, Slot.CAPE, Slot.NECK, Slot.BODY, Slot.LEGS, Slot.HANDS, Slot.FEET, Slot.RING, Slot.SHIELD,
 	};
-	private static final AttackStyle.Type[] TABS = {
-		AttackStyle.Type.STAB, AttackStyle.Type.SLASH, AttackStyle.Type.CRUSH, AttackStyle.Type.RANGED,
-		AttackStyle.Type.MAGIC, AttackStyle.Type.ATLATL,
+	private static final Style.Type[] TABS = {
+		Style.Type.STAB, Style.Type.SLASH, Style.Type.CRUSH, Style.Type.RANGED,
+		Style.Type.MAGIC, Style.Type.ATLATL,
 	};
 	private static final String[] MONSTERS = {
 		"chaos dwarf", "hill giant", "black demon (level 172)", "ankou (level 75)", "general graardor",
@@ -151,7 +151,7 @@ public class OptimizerOracleTest
 			}
 			for (int order = 0; order < 2; order++)
 			{
-				List<GearItem> items = new ArrayList<>(c.pool);
+				List<Gear> items = new ArrayList<>(c.pool);
 				if (order > 0)
 				{
 					Collections.shuffle(items, new Random(seed * 31L + order));
@@ -172,8 +172,8 @@ public class OptimizerOracleTest
 							kept.score, best.score) + "\n    oracle " + describe(best.loadout));
 					}
 				}
-				List<SetupResult> results = optimizer.optimize(c.cls, () -> false, done -> { });
-				for (SetupResult result : results)
+				List<Setup> results = optimizer.optimize(c.cls, () -> false, done -> { });
+				for (Setup result : results)
 				{
 					assertTrue(label + "returned blocked spell: " + describe(result.getLoadout()),
 						c.settings.getSpellFilter().allows(result.getLoadout().getSpell()));
@@ -186,7 +186,7 @@ public class OptimizerOracleTest
 					}
 					continue;
 				}
-				Loadout found = results.get(0).getLoadout();
+				Outfit found = results.get(0).getLoadout();
 				double score = oracle.metric(DpsCalculator.calculate(found, c.ctx));
 				String detail = "\n    found  " + describe(found) + "\n    oracle " + describe(best.loadout);
 				String illegal = oracle.illegal(found);
@@ -218,12 +218,12 @@ public class OptimizerOracleTest
 			+ String.join("\n", misses), missedBanks.isEmpty());
 	}
 
-	private static double dps(Loadout l, Case c)
+	private static double dps(Outfit l, Case c)
 	{
 		return DpsCalculator.calculate(l, c.ctx).getDps();
 	}
 
-	private static String describe(Loadout l)
+	private static String describe(Outfit l)
 	{
 		if (l == null)
 		{
@@ -249,18 +249,18 @@ public class OptimizerOracleTest
 
 	private static final class Case
 	{
-		AttackStyle.Type tab;
-		CombatClass cls;
+		Style.Type tab;
+		Combat cls;
 		CombatContext ctx;
 		PlayerLevels levels;
 		OptimizerSettings settings;
-		final List<GearItem> pool = new ArrayList<>();
+		final List<Gear> pool = new ArrayList<>();
 		final Set<Integer> owned = new HashSet<>();
 		final Map<Integer, Long> quantities = new HashMap<>();
 		final Map<Integer, Long> prices = new HashMap<>();
 		String monster;
 
-		long price(GearItem item)
+		long price(Gear item)
 		{
 			return prices.getOrDefault(item.getId(), ItemCosts.UNKNOWN);
 		}
@@ -285,8 +285,8 @@ public class OptimizerOracleTest
 		Random r = new Random(seed);
 		Case c = new Case();
 		c.tab = TABS[(seed - 1) % TABS.length];
-		c.cls = c.tab == AttackStyle.Type.MAGIC ? CombatClass.MAGIC
-			: c.tab == AttackStyle.Type.RANGED || c.tab == AttackStyle.Type.ATLATL ? CombatClass.RANGED : CombatClass.MELEE;
+		c.cls = c.tab == Style.Type.MAGIC ? Combat.MAGIC
+			: c.tab == Style.Type.RANGED || c.tab == Style.Type.ATLATL ? Combat.RANGED : Combat.MELEE;
 		c.monster = targets[r.nextInt(targets.length)];
 		Monster monster = monsters.monster(c.monster);
 		c.levels = new PlayerLevels(level(r), level(r), level(r), level(r), level(r), level(r), level(r), level(r));
@@ -295,9 +295,9 @@ public class OptimizerOracleTest
 			.withModifiers(CombatModifiers.builder().wilderness(wilderness).build());
 
 		// Weapons for the tab, then 4-6 armour slots of relevant items; magic keeps its spell lists small.
-		Set<GearItem> pool = new LinkedHashSet<>();
-		List<GearItem> weapons = new ArrayList<>();
-		for (GearItem w : catalogue.getItems(Slot.WEAPON))
+		Set<Gear> pool = new LinkedHashSet<>();
+		List<Gear> weapons = new ArrayList<>();
+		for (Gear w : catalogue.getItems(Slot.WEAPON))
 		{
 			// Mostly wearable picks; a few unwearable ones exercise the requirement filter.
 			if (plain(w) && servesTab(w, c.tab) && (c.levels.canEquip(w) || r.nextInt(8) == 0))
@@ -307,7 +307,7 @@ public class OptimizerOracleTest
 		}
 		if (weapons.isEmpty())
 		{
-			for (GearItem w : catalogue.getItems(Slot.WEAPON))
+			for (Gear w : catalogue.getItems(Slot.WEAPON))
 			{
 				if (plain(w) && servesTab(w, c.tab))
 				{
@@ -315,18 +315,18 @@ public class OptimizerOracleTest
 				}
 			}
 		}
-		int weaponCount = 2 + r.nextInt(c.cls == CombatClass.MAGIC ? 2 : 3);
+		int weaponCount = 2 + r.nextInt(c.cls == Combat.MAGIC ? 2 : 3);
 		for (int i = 0; i < weaponCount; i++)
 		{
 			pool.add(weapons.get(r.nextInt(weapons.size())));
 		}
-		String[][] sets = c.tab == AttackStyle.Type.MAGIC ? MAGIC_SETS : c.tab == AttackStyle.Type.RANGED ? RANGED_SETS
-			: c.tab == AttackStyle.Type.ATLATL ? ATLATL_SETS : MELEE_SETS;
+		String[][] sets = c.tab == Style.Type.MAGIC ? MAGIC_SETS : c.tab == Style.Type.RANGED ? RANGED_SETS
+			: c.tab == Style.Type.ATLATL ? ATLATL_SETS : MELEE_SETS;
 		if (r.nextInt(5) < 3)
 		{
 			for (String name : sets[r.nextInt(sets.length)])
 			{
-				GearItem item = named(name, r);
+				Gear item = named(name, r);
 				if (item != null && (item.getSlot() != Slot.WEAPON || servesTab(item, c.tab)))
 				{
 					pool.add(item);
@@ -335,25 +335,25 @@ public class OptimizerOracleTest
 		}
 		List<Slot> slots = new ArrayList<>(Arrays.asList(ARMOUR));
 		Collections.shuffle(slots, r);
-		int active = (c.cls == CombatClass.MAGIC ? 4 : 5) + r.nextInt(3);
+		int active = (c.cls == Combat.MAGIC ? 4 : 5) + r.nextInt(3);
 		for (Slot slot : slots.subList(0, active))
 		{
-			List<GearItem> relevant = new ArrayList<>();
-			for (GearItem item : catalogue.getItems(slot))
+			List<Gear> relevant = new ArrayList<>();
+			for (Gear item : catalogue.getItems(slot))
 			{
 				if (plain(item) && relevant(item, c.tab) && (c.levels.canEquip(item) || r.nextInt(8) == 0))
 				{
 					relevant.add(item);
 				}
 			}
-			int n = 1 + r.nextInt(slot == Slot.SHIELD || c.cls == CombatClass.MAGIC ? 2 : 3);
+			int n = 1 + r.nextInt(slot == Slot.SHIELD || c.cls == Combat.MAGIC ? 2 : 3);
 			for (int i = 0; i < n && !relevant.isEmpty(); i++)
 			{
 				pool.add(relevant.get(r.nextInt(relevant.size())));
 			}
 		}
 		// Ammunition for every weapon that needs it.
-		for (GearItem w : new ArrayList<>(pool))
+		for (Gear w : new ArrayList<>(pool))
 		{
 			if (w.getSlot() == Slot.WEAPON && !w.getAmmunition().isEmpty())
 			{
@@ -362,7 +362,7 @@ public class OptimizerOracleTest
 				int added = 0;
 				for (int id : ids)
 				{
-					GearItem a = catalogue.getItem(Slot.AMMO, id);
+					Gear a = catalogue.getItem(Slot.AMMO, id);
 					if (a != null && plain(a) && added < 2)
 					{
 						pool.add(a);
@@ -374,13 +374,13 @@ public class OptimizerOracleTest
 		trim(pool, c, r);
 		c.pool.addAll(pool);
 
-		for (GearItem item : c.pool)
+		for (Gear item : c.pool)
 		{
 			c.prices.put(item.getId(), PRICES[r.nextInt(PRICES.length)]);
 			if (r.nextInt(10) < 7)
 			{
 				c.owned.add(item.getId());
-				if (WeaponRules.consumedPerAttack(item))
+				if (Weapons.consumedPerAttack(item))
 				{
 					c.quantities.put(item.getId(), r.nextBoolean() ? 50L : 5_000L);
 				}
@@ -421,7 +421,7 @@ public class OptimizerOracleTest
 		if (r.nextInt(4) == 0)
 		{
 			Map<Slot, SlotLock> locks = new EnumMap<>(Slot.class);
-			GearItem item = c.pool.get(r.nextInt(c.pool.size()));
+			Gear item = c.pool.get(r.nextInt(c.pool.size()));
 			if (item.getSlot() != Slot.WEAPON && item.getSlot() != Slot.AMMO)
 			{
 				locks.put(item.getSlot(), r.nextBoolean() ? SlotLock.item(item.getId()) : SlotLock.empty());
@@ -432,7 +432,7 @@ public class OptimizerOracleTest
 		{
 			s.excluded(Collections.singleton(c.pool.get(r.nextInt(c.pool.size())).getId()));
 		}
-		if (c.tab == AttackStyle.Type.MAGIC)
+		if (c.tab == Style.Type.MAGIC)
 		{
 			Random spellRandom = new Random(seed * 97L + 7);
 			List<String> combatSpells = new ArrayList<>();
@@ -472,17 +472,17 @@ public class OptimizerOracleTest
 	}
 
 	/** Bound the exhaustive search: drop armour from the largest slot until the enumeration is small. */
-	private static void trim(Set<GearItem> pool, Case c, Random r)
+	private static void trim(Set<Gear> pool, Case c, Random r)
 	{
 		while (true)
 		{
 			Map<Slot, Integer> counts = new EnumMap<>(Slot.class);
 			int options = 0;
-			for (GearItem item : pool)
+			for (Gear item : pool)
 			{
 				if (item.getSlot() == Slot.WEAPON)
 				{
-					options += c.cls == CombatClass.MAGIC ? 40 : 4;
+					options += c.cls == Combat.MAGIC ? 40 : 4;
 				}
 				else if (item.getSlot() != Slot.AMMO)
 				{
@@ -503,8 +503,8 @@ public class OptimizerOracleTest
 			{
 				return;
 			}
-			List<GearItem> inSlot = new ArrayList<>();
-			for (GearItem item : pool)
+			List<Gear> inSlot = new ArrayList<>();
+			for (Gear item : pool)
 			{
 				if (item.getSlot() == largest)
 				{
@@ -516,19 +516,19 @@ public class OptimizerOracleTest
 	}
 
 	/** Ordinary equipment whose availability follows the plain ownership / purchase rules. */
-	private static boolean plain(GearItem item)
+	private static boolean plain(Gear item)
 	{
 		return !item.isDmmEquipment() && !item.isBetaEquipment() && !item.isBountyHunterEquipment()
 			&& !item.isLeagueEquipment() && !DiaryRewards.isReward(item.getId())
 			&& !OwnershipRules.requiresOwnership(item.getId()) && item.isTradeable();
 	}
 
-	private static GearItem named(String name, Random r)
+	private static Gear named(String name, Random r)
 	{
-		List<GearItem> matches = new ArrayList<>();
+		List<Gear> matches = new ArrayList<>();
 		for (Slot slot : Slot.values())
 		{
-			for (GearItem item : catalogue.getItems(slot))
+			for (Gear item : catalogue.getItems(slot))
 			{
 				if (item.getName().equalsIgnoreCase(name) && !item.isDmmEquipment() && !item.isBetaEquipment()
 					&& !item.isBountyHunterEquipment() && !item.isLeagueEquipment() && !DiaryRewards.isReward(item.getId()))
@@ -542,7 +542,7 @@ public class OptimizerOracleTest
 			return null;
 		}
 		// Prefer the degraded identities when they exist, so ownership of exactly that variant is exercised.
-		for (GearItem item : matches)
+		for (Gear item : matches)
 		{
 			if (Arrays.stream(DEGRADED).anyMatch(id -> id == item.getId()) && r.nextBoolean())
 			{
@@ -552,7 +552,7 @@ public class OptimizerOracleTest
 		return matches.get(r.nextInt(matches.size()));
 	}
 
-	private static boolean servesTab(GearItem weapon, AttackStyle.Type tab)
+	private static boolean servesTab(Gear weapon, Style.Type tab)
 	{
 		if (weapon.getSubcategory().equals("salamander"))
 		{
@@ -560,16 +560,16 @@ public class OptimizerOracleTest
 		}
 		for (String raw : weapon.getStyles())
 		{
-			AttackStyle s = AttackStyle.parse(raw);
-			if (s != null && WeaponRules.tabType(weapon, s) == tab)
+			Style s = Style.parse(raw);
+			if (s != null && Weapons.tabType(weapon, s) == tab)
 			{
-				return tab != AttackStyle.Type.MAGIC || s.isAutocast() || WeaponRules.isPoweredStaff(weapon);
+				return tab != Style.Type.MAGIC || s.isAutocast() || Weapons.isPoweredStaff(weapon);
 			}
 		}
 		return false;
 	}
 
-	private static boolean relevant(GearItem item, AttackStyle.Type tab)
+	private static boolean relevant(Gear item, Style.Type tab)
 	{
 		switch (tab)
 		{
@@ -594,11 +594,11 @@ public class OptimizerOracleTest
 	{
 		private final Case c;
 		private final OptimizerSettings s;
-		private Map<Slot, List<GearItem>> kept;
+		private Map<Slot, List<Gear>> kept;
 		long evaluations;
 
 		/** Only enumerate these armour candidates (weapons and ammunition stay unrestricted). */
-		void restrict(Map<Slot, List<GearItem>> candidates)
+		void restrict(Map<Slot, List<Gear>> candidates)
 		{
 			kept = candidates;
 		}
@@ -611,12 +611,12 @@ public class OptimizerOracleTest
 
 		static final class Best
 		{
-			Loadout loadout;
+			Outfit loadout;
 			double score = Double.NEGATIVE_INFINITY;
 			long cost = Long.MAX_VALUE;
 		}
 
-		double metric(DpsResult r)
+		double metric(Dps r)
 		{
 			switch (s.getCalcMode())
 			{
@@ -630,13 +630,13 @@ public class OptimizerOracleTest
 		}
 
 		/** Whether the item is the one locked into its slot. */
-		private boolean locked(GearItem item)
+		private boolean locked(Gear item)
 		{
 			SlotLock lock = item.getSlot() == null ? null : s.getLocks().get(item.getSlot());
 			return lock != null && lock.getKind() == SlotLock.Kind.ITEM && find(item.getSlot(), lock.getItemId()) == item;
 		}
 
-		private boolean owns(GearItem item)
+		private boolean owns(Gear item)
 		{
 			if (c.owned.contains(item.getId()))
 			{
@@ -653,7 +653,7 @@ public class OptimizerOracleTest
 		}
 
 		/** Units held of the item and its equivalent variants. */
-		private long held(GearItem item)
+		private long held(Gear item)
 		{
 			Set<Integer> ids = new LinkedHashSet<>(item.getOwnershipVariants());
 			ids.add(item.getId());
@@ -667,9 +667,9 @@ public class OptimizerOracleTest
 		}
 
 		/** Units of the requested ammunition still to buy. */
-		private long shortfall(GearItem item)
+		private long shortfall(Gear item)
 		{
-			if (s.getAmmoCount() <= 0 || !WeaponRules.consumedPerAttack(item))
+			if (s.getAmmoCount() <= 0 || !Weapons.consumedPerAttack(item))
 			{
 				return 0;
 			}
@@ -677,7 +677,7 @@ public class OptimizerOracleTest
 		}
 
 		/** Excluded, unwearable, or not obtainable alone under the search mode. */
-		boolean usable(GearItem item)
+		boolean usable(Gear item)
 		{
 			if (s.getExcluded().contains(item.getId()) || !c.levels.canEquip(item)
 				|| !CombatRules.equipmentAllowed(c.ctx.getMonster(), item))
@@ -701,26 +701,26 @@ public class OptimizerOracleTest
 			long price = c.price(item);
 			if (price < 0)
 			{
-				return s.getAmmoCount() <= 0 && WeaponRules.consumedPerAttack(item);
+				return s.getAmmoCount() <= 0 && Weapons.consumedPerAttack(item);
 			}
 			return price <= s.getBudget();
 		}
 
-		long cost(GearItem item)
+		long cost(Gear item)
 		{
 			if (item == null)
 			{
 				return 0;
 			}
 			long price = Math.max(0, c.price(item));
-			if (WeaponRules.consumedPerAttack(item))
+			if (Weapons.consumedPerAttack(item))
 			{
 				return price * shortfall(item);
 			}
 			return owns(item) ? 0 : price;
 		}
 
-		boolean expensive(GearItem item)
+		boolean expensive(Gear item)
 		{
 			if (item == null)
 			{
@@ -731,9 +731,9 @@ public class OptimizerOracleTest
 		}
 
 		/** Why the loadout breaks a rule, or null if it is a legal answer. */
-		String illegal(Loadout l)
+		String illegal(Outfit l)
 		{
-			GearItem weapon = l.getWeapon();
+			Gear weapon = l.getWeapon();
 			if (weapon == null || !options(weapon).contains(new Option(l.getStyle(), l.getSpell())))
 			{
 				return "option " + l.getStyle() + " / " + l.getSpell();
@@ -742,12 +742,12 @@ public class OptimizerOracleTest
 			int expensive = 0;
 			for (Slot slot : Slot.values())
 			{
-				GearItem item = l.get(slot);
+				Gear item = l.get(slot);
 				SlotLock lock = s.getLocks().get(slot);
 				if (lock != null && !(slot == Slot.SHIELD && weapon.isTwoHanded()))
 				{
 					// An unusable locked item leaves the slot empty.
-					GearItem locked = lock.getKind() == SlotLock.Kind.ITEM ? find(slot, lock.getItemId()) : null;
+					Gear locked = lock.getKind() == SlotLock.Kind.ITEM ? find(slot, lock.getItemId()) : null;
 					if (item != (locked != null && usable(locked) ? locked : null))
 					{
 						return "lock " + slot;
@@ -768,7 +768,7 @@ public class OptimizerOracleTest
 			{
 				return "shield with two-handed weapon";
 			}
-			GearItem ammo = WeaponRules.loadsAmmo(weapon) ? l.getLoadedAmmo() : l.get(Slot.AMMO);
+			Gear ammo = Weapons.loadsAmmo(weapon) ? l.getLoadedAmmo() : l.get(Slot.AMMO);
 			boolean needsAmmo = !weapon.getAmmunition().isEmpty();
 			if (needsAmmo && (ammo == null || !weapon.getAmmunition().contains(ammo.getCombatId()) || !usable(ammo)))
 			{
@@ -785,15 +785,15 @@ public class OptimizerOracleTest
 			return null;
 		}
 
-		List<Option> options(GearItem weapon)
+		List<Option> options(Gear weapon)
 		{
 			List<Option> out = new ArrayList<>();
 			Set<String> seen = new HashSet<>();
 			for (String raw : weapon.getStyles())
 			{
-				AttackStyle style = AttackStyle.parse(raw);
-				if (style == null || WeaponRules.classOf(style) != c.cls || !seen.add(style.getType() + "/" + style.getStance())
-					|| !s.getStyles().contains(WeaponRules.tabType(weapon, style))
+				Style style = Style.parse(raw);
+				if (style == null || Weapons.classOf(style) != c.cls || !seen.add(style.getType() + "/" + style.getStance())
+					|| !s.getStyles().contains(Weapons.tabType(weapon, style))
 					|| !AttackReach.canReach(c.ctx.getMonster(), weapon, style, s.getTargetDistance()))
 				{
 					continue;
@@ -807,7 +807,7 @@ public class OptimizerOracleTest
 				{
 					continue;
 				}
-				if (c.cls != CombatClass.MAGIC)
+				if (c.cls != Combat.MAGIC)
 				{
 					out.add(new Option(style, null));
 				}
@@ -827,7 +827,7 @@ public class OptimizerOracleTest
 						}
 					}
 				}
-				else if (WeaponRules.isPoweredStaff(weapon) && WeaponRules.poweredStaffMaxHit(weapon, c.ctx.getMagic()) > 0)
+				else if (Weapons.isPoweredStaff(weapon) && Weapons.poweredStaffMaxHit(weapon, c.ctx.getMagic()) > 0)
 				{
 					out.add(new Option(style, null));
 				}
@@ -843,7 +843,7 @@ public class OptimizerOracleTest
 				return best;
 			}
 			SlotLock weaponLock = s.getLocks().get(Slot.WEAPON);
-			for (GearItem weapon : c.pool)
+			for (Gear weapon : c.pool)
 			{
 				if (weapon.getSlot() != Slot.WEAPON || !usable(weapon)
 					|| weaponLock != null && weaponLock.getItemId() != weapon.getId())
@@ -860,14 +860,14 @@ public class OptimizerOracleTest
 				{
 					continue;
 				}
-				List<GearItem> ammo = new ArrayList<>();
+				List<Gear> ammo = new ArrayList<>();
 				if (weapon.getAmmunition().isEmpty())
 				{
 					ammo.add(null);
 				}
 				else
 				{
-					for (GearItem a : c.pool)
+					for (Gear a : c.pool)
 					{
 						if (a.getSlot() == Slot.AMMO && weapon.getAmmunition().contains(a.getCombatId()) && usable(a))
 						{
@@ -875,11 +875,11 @@ public class OptimizerOracleTest
 						}
 					}
 				}
-				List<List<GearItem>> choices = new ArrayList<>();
+				List<List<Gear>> choices = new ArrayList<>();
 				List<Slot> slots = new ArrayList<>();
 				for (Slot slot : ARMOUR)
 				{
-					List<GearItem> list = new ArrayList<>();
+					List<Gear> list = new ArrayList<>();
 					SlotLock lock = s.getLocks().get(slot);
 					if (slot == Slot.SHIELD && weapon.isTwoHanded())
 					{
@@ -887,13 +887,13 @@ public class OptimizerOracleTest
 					}
 					else if (lock != null)
 					{
-						GearItem locked = lock.getKind() == SlotLock.Kind.ITEM ? find(slot, lock.getItemId()) : null;
+						Gear locked = lock.getKind() == SlotLock.Kind.ITEM ? find(slot, lock.getItemId()) : null;
 						list.add(locked != null && usable(locked) ? locked : null);
 					}
 					else
 					{
 						list.add(null);
-						for (GearItem item : c.pool)
+						for (Gear item : c.pool)
 						{
 							if (item.getSlot() == slot && usable(item)
 								&& (kept == null || kept.getOrDefault(slot, Collections.emptyList()).contains(item)))
@@ -905,11 +905,11 @@ public class OptimizerOracleTest
 					slots.add(slot);
 					choices.add(list);
 				}
-				for (GearItem a : ammo)
+				for (Gear a : ammo)
 				{
-					Loadout l = new Loadout();
+					Outfit l = new Outfit();
 					l.set(Slot.WEAPON, weapon);
-					if (WeaponRules.loadsAmmo(weapon))
+					if (Weapons.loadsAmmo(weapon))
 					{
 						l.setLoadedAmmo(a);
 					}
@@ -918,16 +918,16 @@ public class OptimizerOracleTest
 						l.set(Slot.AMMO, a);
 					}
 					long cost = cost(weapon) + cost(a);
-					int expensive = (expensive(weapon) ? 1 : 0) + (a != null && !WeaponRules.loadsAmmo(weapon) && expensive(a) ? 1 : 0);
+					int expensive = (expensive(weapon) ? 1 : 0) + (a != null && !Weapons.loadsAmmo(weapon) && expensive(a) ? 1 : 0);
 					enumerate(l, slots, choices, 0, cost, expensive, options, best);
 				}
 			}
 			return best;
 		}
 
-		private GearItem find(Slot slot, int id)
+		private Gear find(Slot slot, int id)
 		{
-			for (GearItem item : c.pool)
+			for (Gear item : c.pool)
 			{
 				if (item.getSlot() == slot && item.getId() == id)
 				{
@@ -937,7 +937,7 @@ public class OptimizerOracleTest
 			return null;
 		}
 
-		private void enumerate(Loadout l, List<Slot> slots, List<List<GearItem>> choices, int index, long cost,
+		private void enumerate(Outfit l, List<Slot> slots, List<List<Gear>> choices, int index, long cost,
 			int expensive, List<Option> options, Best best)
 		{
 			if (s.getMode() == SearchMode.BUDGET && cost > s.getBudget()
@@ -952,7 +952,7 @@ public class OptimizerOracleTest
 					l.setStyle(o.getStyle());
 					l.setSpell(o.getSpell());
 					evaluations++;
-					DpsResult r = DpsCalculator.calculate(l, c.ctx);
+					Dps r = DpsCalculator.calculate(l, c.ctx);
 					if (r.getDps() <= 0)
 					{
 						continue;
@@ -969,7 +969,7 @@ public class OptimizerOracleTest
 				return;
 			}
 			Slot slot = slots.get(index);
-			for (GearItem item : choices.get(index))
+			for (Gear item : choices.get(index))
 			{
 				l.set(slot, item);
 				enumerate(l, slots, choices, index + 1, cost + cost(item), expensive + (expensive(item) ? 1 : 0),
@@ -981,16 +981,16 @@ public class OptimizerOracleTest
 
 	private static final class Option
 	{
-		final AttackStyle style;
+		final Style style;
 		final Spell spell;
 
-		Option(AttackStyle style, Spell spell)
+		Option(Style style, Spell spell)
 		{
 			this.style = style;
 			this.spell = spell;
 		}
 
-		AttackStyle getStyle()
+		Style getStyle()
 		{
 			return style;
 		}

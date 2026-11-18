@@ -72,12 +72,12 @@ public class RaidScalingTest
 	{
 		Monster target = monster(80, 120);
 		target.setToaRaidLevel(300);
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, weapon(50000, "test sword", "stab sword", 4, "lunge,stab,accurate"));
 		l.getWeapon().setStabBonus(100);
 		l.getWeapon().setMeleeStr(50);
-		l.setStyle(AttackStyle.parse("lunge,stab,accurate"));
-		DpsResult r = DpsCalculator.calculate(l, TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null));
+		l.setStyle(Style.parse("lunge,stab,accurate"));
+		Dps r = DpsCalculator.calculate(l, TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null));
 		long defence = 89L * 184 * 550 / 250;
 		assertEquals(36027, defence);
 		assertEquals(HitChance.single(110L * 164, defence), r.getAccuracy(), 1e-12);

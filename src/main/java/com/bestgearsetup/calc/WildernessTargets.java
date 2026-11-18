@@ -1,6 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.NameLists;
+import com.bestgearsetup.data.Names;
 import java.util.Locale;
 
 /**
@@ -9,7 +9,7 @@ import java.util.Locale;
  */
 public final class WildernessTargets
 {
-	private static final NameLists.NameList NAMES = NameLists.list("wilderness-only monsters");
+	private static final Names.NameList NAMES = Names.list("wilderness-only monsters");
 
 	private WildernessTargets()
 	{

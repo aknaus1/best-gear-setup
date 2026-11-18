@@ -6,7 +6,7 @@ import static com.bestgearsetup.calc.TestData.weapon;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
@@ -34,11 +34,11 @@ public class StatusEffectsTest
 		return m;
 	}
 
-	private static Loadout loadout(GearItem weapon, String style)
+	private static Outfit loadout(Gear weapon, String style)
 	{
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, weapon);
-		l.setStyle(AttackStyle.parse(style));
+		l.setStyle(Style.parse(style));
 		return l;
 	}
 
@@ -134,18 +134,18 @@ public class StatusEffectsTest
 	public void venomChancesFollowTheSerpentineHelmRules()
 	{
 		Monster demon = target(415, "abyssal demon (standard)", 150);
-		GearItem whip = weapon(4151, "abyssal whip", "whip", 4, "lash,slash,controlled");
-		Loadout l = loadout(whip, "lash,slash,controlled");
+		Gear whip = weapon(4151, "abyssal whip", "whip", 4, "lash,slash,controlled");
+		Outfit l = loadout(whip, "lash,slash,controlled");
 		CombatContext ctx = context(demon, CombatModifiers.NONE);
 		assertFalse(StatusEffects.sources(l, ctx, 0.8).any());
 		l.set(Slot.HEAD, item(12931, "serpentine helm", Slot.HEAD));
 		assertEquals(0.8 / 6, StatusEffects.sources(l, ctx, 0.8).getVenomChance(), EPS);
-		Loadout dagger = loadout(weapon(1215, "dragon dagger", "stab sword", 4, "lunge,stab,aggressive"), "lunge,stab,aggressive");
+		Outfit dagger = loadout(weapon(1215, "dragon dagger", "stab sword", 4, "lunge,stab,aggressive"), "lunge,stab,aggressive");
 		dagger.set(Slot.HEAD, item(12931, "serpentine helm", Slot.HEAD));
 		CombatContext poisoned = context(demon, CombatModifiers.builder().weaponPoison(WeaponPoison.POISON_PLUS_PLUS).build());
 		assertEquals(0.4, StatusEffects.sources(dagger, poisoned, 0.8).getVenomChance(), EPS);
-		GearItem pipe = weapon(12926, "toxic blowpipe", "thrown", 3, "rapid,ranged,rapid");
-		Loadout blowpipe = loadout(pipe, "rapid,ranged,rapid");
+		Gear pipe = weapon(12926, "toxic blowpipe", "thrown", 3, "rapid,ranged,rapid");
+		Outfit blowpipe = loadout(pipe, "rapid,ranged,rapid");
 		assertEquals(0.25 * 0.7, StatusEffects.sources(blowpipe, ctx, 0.7).getVenomChance(), EPS);
 		blowpipe.set(Slot.HEAD, item(12931, "serpentine helm", Slot.HEAD));
 		assertEquals(0.7, StatusEffects.sources(blowpipe, ctx, 0.7).getVenomChance(), EPS);
@@ -161,24 +161,24 @@ public class StatusEffectsTest
 		assertEquals(0.2, dagger.getPoisonChance(), EPS);
 		assertEquals(30, dagger.getPoisonSeverity());
 		// Poisoned ranged ammunition: 1/8 per successful hit, severity lowered by 14.
-		GearItem bow = weapon(861, "magic shortbow", "bow", 4, "rapid,ranged,rapid");
+		Gear bow = weapon(861, "magic shortbow", "bow", 4, "rapid,ranged,rapid");
 		bow.setAmmunition(Arrays.asList(892));
-		Loadout ranged = loadout(bow, "rapid,ranged,rapid");
+		Outfit ranged = loadout(bow, "rapid,ranged,rapid");
 		ranged.set(Slot.AMMO, item(892, "rune arrow", Slot.AMMO));
 		StatusEffects.Sources arrows = StatusEffects.sources(ranged, ctx, 0.8);
 		assertEquals(0.1, arrows.getPoisonChance(), EPS);
 		assertEquals(16, arrows.getPoisonSeverity());
 		// Emerald bolts: 55% of successful hits, severity 25 (27 with the Zaryte crossbow), never lowered.
-		GearItem zcb = weapon(26374, "zaryte crossbow", "crossbow", 5, "rapid,ranged,rapid");
+		Gear zcb = weapon(26374, "zaryte crossbow", "crossbow", 5, "rapid,ranged,rapid");
 		zcb.setAmmunition(Arrays.asList(9241));
-		Loadout bolts = loadout(zcb, "rapid,ranged,rapid");
+		Outfit bolts = loadout(zcb, "rapid,ranged,rapid");
 		bolts.set(Slot.AMMO, item(9241, "emerald bolts (e)", Slot.AMMO));
 		StatusEffects.Sources emerald = StatusEffects.sources(bolts, context(demon, CombatModifiers.NONE), 0.5);
 		assertEquals(0.275, emerald.getPoisonChance(), EPS);
 		assertEquals(27, emerald.getPoisonSeverity());
 		// Smoke Barrage with an ancient sceptre: 1/8, severity 22.
-		GearItem sceptre = weapon(28264, "smoke ancient sceptre", "staff", 4, "spell,magic,magic");
-		Loadout smoke = loadout(sceptre, "spell,magic,magic");
+		Gear sceptre = weapon(28264, "smoke ancient sceptre", "staff", 4, "spell,magic,magic");
+		Outfit smoke = loadout(sceptre, "spell,magic,magic");
 		Spell barrage = new Spell();
 		barrage.setName("smoke barrage");
 		barrage.setSpellbook("ancient");
@@ -191,8 +191,8 @@ public class StatusEffectsTest
 	@Test
 	public void immuneTargetsTakeNoPoisonOrVenomAndVenomBecomesPoisonWhereListed()
 	{
-		GearItem pipe = weapon(12926, "toxic blowpipe", "thrown", 3, "rapid,ranged,rapid");
-		Loadout blowpipe = loadout(pipe, "rapid,ranged,rapid");
+		Gear pipe = weapon(12926, "toxic blowpipe", "thrown", 3, "rapid,ranged,rapid");
+		Outfit blowpipe = loadout(pipe, "rapid,ranged,rapid");
 		assertFalse(StatusEffects.sources(blowpipe, context(target(8061, "vorkath", 750), CombatModifiers.NONE), 0.7).any());
 		StatusEffects.Sources rex = StatusEffects.sources(blowpipe,
 			context(target(2267, "dagannoth rex", 255), CombatModifiers.NONE), 0.8);
@@ -204,7 +204,7 @@ public class StatusEffectsTest
 	@Test
 	public void burnsRespectSeverityImmunityAndRangedImmunity()
 	{
-		Loadout atlatl = loadout(weapon(29000, "eclipse atlatl", "bow", 4, "rapid,ranged,rapid"), "rapid,ranged,rapid");
+		Outfit atlatl = loadout(weapon(29000, "eclipse atlatl", "bow", 4, "rapid,ranged,rapid"), "rapid,ranged,rapid");
 		atlatl.set(Slot.HEAD, item(29010, "eclipse moon helm", Slot.HEAD));
 		atlatl.set(Slot.BODY, item(29004, "eclipse moon chestplate", Slot.BODY));
 		atlatl.set(Slot.LEGS, item(29007, "eclipse moon tassets", Slot.LEGS));
@@ -221,14 +221,14 @@ public class StatusEffectsTest
 	@Test
 	public void venomRaisesWholeFightDpsOnSusceptibleTargetsOnly()
 	{
-		GearItem pipe = weapon(12926, "toxic blowpipe", "thrown", 3, "rapid,ranged,rapid");
+		Gear pipe = weapon(12926, "toxic blowpipe", "thrown", 3, "rapid,ranged,rapid");
 		pipe.setRangedBonus(30);
 		pipe.setRangedStr(40);
-		Loadout l = loadout(pipe, "rapid,ranged,rapid");
+		Outfit l = loadout(pipe, "rapid,ranged,rapid");
 		l.set(Slot.HEAD, item(12931, "serpentine helm", Slot.HEAD));
 		Monster demon = target(415, "abyssal demon (standard)", 150);
-		DpsResult withVenom = DpsCalculator.calculate(l, context(demon, CombatModifiers.NONE));
-		DpsResult direct = DpsCalculator.snapshot(l, context(demon, CombatModifiers.NONE));
+		Dps withVenom = DpsCalculator.calculate(l, context(demon, CombatModifiers.NONE));
+		Dps direct = DpsCalculator.snapshot(l, context(demon, CombatModifiers.NONE));
 		assertTrue(withVenom.getDps() > direct.getDps());
 		assertTrue(withVenom.getMaxHitDetail().contains("venom"));
 		Monster vorkath = target(8061, "vorkath", 750);
@@ -239,9 +239,9 @@ public class StatusEffectsTest
 	@Test
 	public void iceAncientSceptreGainsAccuracyOnlyAgainstFreezableTargets()
 	{
-		GearItem sceptre = weapon(28262, "ice ancient sceptre", "staff", 4, "spell,magic,magic");
+		Gear sceptre = weapon(28262, "ice ancient sceptre", "staff", 4, "spell,magic,magic");
 		sceptre.setMagicBonus(20);
-		Loadout l = loadout(sceptre, "spell,magic,magic");
+		Outfit l = loadout(sceptre, "spell,magic,magic");
 		Spell barrage = new Spell();
 		barrage.setName("ice barrage");
 		barrage.setSpellbook("ancient");
@@ -250,9 +250,9 @@ public class StatusEffectsTest
 		l.setSpell(barrage);
 		Monster ordinary = target(415, "abyssal demon (standard)", 150);
 		double plain = DpsCalculator.snapshot(l.copy(), context(ordinary, CombatModifiers.NONE)).getAccuracy();
-		GearItem other = weapon(27624, "ancient sceptre", "staff", 4, "spell,magic,magic");
+		Gear other = weapon(27624, "ancient sceptre", "staff", 4, "spell,magic,magic");
 		other.setMagicBonus(20);
-		Loadout baseline = l.copy();
+		Outfit baseline = l.copy();
 		baseline.set(Slot.WEAPON, other);
 		assertTrue(plain > DpsCalculator.snapshot(baseline, context(ordinary, CombatModifiers.NONE)).getAccuracy());
 		Monster boss = target(8061, "vorkath", 750);

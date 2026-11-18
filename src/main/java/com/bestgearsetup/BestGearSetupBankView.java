@@ -62,24 +62,24 @@ class BestGearSetupBankView
 	 * the order they may take its cell; a trip's restores, cure and food follow the boosts, whose bottles already
 	 * have their boost's cell.
 	 */
-	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
+	void setSelection(Setup setup, List<Potion> potions, Function<Gear, List<Integer>> itemIds,
 		List<TripSupplies.Supply> supplies)
 	{
 		selection = layoutFor(setup, potions, itemIds, supplies);
 	}
 
-	static Map<Integer, Integer> cellsFor(SetupResult setup, List<Potion> potions, List<TripSupplies.Supply> supplies)
+	static Map<Integer, Integer> cellsFor(Setup setup, List<Potion> potions, List<TripSupplies.Supply> supplies)
 	{
 		return Collections.unmodifiableMap(layoutFor(setup, potions, BestGearSetupBankView::itemIds, supplies).cells);
 	}
 
-	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
+	static Layout layoutFor(Setup setup, List<Potion> potions, Function<Gear, List<Integer>> itemIds,
 		List<TripSupplies.Supply> supplies)
 	{
 		Layout layout = new Layout();
 		if (setup != null)
 		{
-			Loadout loadout = setup.getLoadout();
+			Outfit loadout = setup.getLoadout();
 			for (Slot slot : Slot.values())
 			{
 				addItem(layout, itemIds, loadout.get(slot), CELLS[slot.ordinal()]);
@@ -141,12 +141,12 @@ class BestGearSetupBankView
 			: EXTRA_ROWS_START + slot - TripSupplies.INVENTORY_SLOTS;
 	}
 
-	private static int carry(Layout layout, Function<GearItem, List<Integer>> itemIds, GearItem item, int slot)
+	private static int carry(Layout layout, Function<Gear, List<Integer>> itemIds, Gear item, int slot)
 	{
 		return item == null ? slot : layout.carry(itemIds.apply(item), slot, 1, GEAR);
 	}
 
-	private static void addItem(Layout layout, Function<GearItem, List<Integer>> itemIds, GearItem item, int cell)
+	private static void addItem(Layout layout, Function<Gear, List<Integer>> itemIds, Gear item, int cell)
 	{
 		if (item != null)
 		{
@@ -155,7 +155,7 @@ class BestGearSetupBankView
 	}
 
 	/** The item, then its equivalent charge states. */
-	static List<Integer> itemIds(GearItem item)
+	static List<Integer> itemIds(Gear item)
 	{
 		List<Integer> ids = new ArrayList<>();
 		ids.add(item.getId());

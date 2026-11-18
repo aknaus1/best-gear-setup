@@ -3,16 +3,16 @@ package com.bestgearsetup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.calc.Loadout;
+import com.bestgearsetup.calc.Outfit;
 import com.bestgearsetup.calc.PotionChoice;
-import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.Setup;
 import com.bestgearsetup.calc.SlotLock;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Gear;
+import com.bestgearsetup.data.Summary;
 import com.bestgearsetup.data.Slot;
-import com.bestgearsetup.ui.BestGearSetupPanel;
+import com.bestgearsetup.ui.Sidebar;
 import com.bestgearsetup.ui.PanelInternals;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,7 +41,7 @@ public class ProfileChangeTest
 			{ return ConfigItemsForTests.descriptor(); }
 			@Override public Map<Slot, SlotLock> getLocks() { return Collections.emptyMap(); }
 			@Override public Set<Integer> getExcluded() { return Collections.emptySet(); }
-			@Override public String getPotionChoice(CombatClass cls) { return PotionChoice.BEST; }
+			@Override public String getPotionChoice(Combat cls) { return PotionChoice.BEST; }
 		};
 		GameData data = new GameData(Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
@@ -58,23 +58,23 @@ public class ProfileChangeTest
 			}
 		};
 		plugin.ownedItems = new OwnedItems(null, null);
-		BestGearSetupPanel[] panels = new BestGearSetupPanel[1];
-		SwingUtilities.invokeAndWait(() -> panels[0] = new BestGearSetupPanel(plugin,
-			new BestGearSetupConfig() {}, null, null, null));
+		Sidebar[] panels = new Sidebar[1];
+		SwingUtilities.invokeAndWait(() -> panels[0] = new Sidebar(plugin,
+			new Options() {}, null, null, null));
 		plugin.panel = panels[0];
 		try
 		{
-			MonsterSummary target = new MonsterSummary();
+			Summary target = new Summary();
 			target.setName("test target");
 			SwingUtilities.invokeAndWait(() -> plugin.findBestSetup(target));
 			FutureTask<Void> active = new FutureTask<>(() -> null);
 			plugin.search = active;
 			plugin.searchOwned = Collections.singleton(4151);
-			Loadout loadout = new Loadout();
-			GearItem weapon = new GearItem();
+			Outfit loadout = new Outfit();
+			Gear weapon = new Gear();
 			weapon.setId(4151);
 			loadout.set(Slot.WEAPON, weapon);
-			plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
+			plugin.setBankHighlightedSetup(new Setup(Combat.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 			SwingUtilities.invokeAndWait(() -> { plugin.rerun(); plugin.clearGearSearch(); });
 			SwingUtilities.invokeAndWait(() -> {});
 			assertTrue(active.isCancelled());
@@ -116,7 +116,7 @@ public class ProfileChangeTest
 			}
 
 			@Override
-			public String getPotionChoice(CombatClass cls)
+			public String getPotionChoice(Combat cls)
 			{
 				return PotionChoice.BEST;
 			}
@@ -152,25 +152,25 @@ public class ProfileChangeTest
 		plugin.executor = executor;
 		try
 		{
-			BestGearSetupPanel[] panels = new BestGearSetupPanel[1];
-			MonsterSummary summary = new MonsterSummary();
+			Sidebar[] panels = new Sidebar[1];
+			Summary summary = new Summary();
 			summary.setName("test target");
 			SwingUtilities.invokeAndWait(() ->
 			{
-				panels[0] = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, null, null, null);
+				panels[0] = new Sidebar(plugin, new Options() {}, null, null, null);
 				panels[0].onDataLoaded(data);
 			});
-			BestGearSetupPanel panel = panels[0];
+			Sidebar panel = panels[0];
 			plugin.panel = panel;
 			SwingUtilities.invokeAndWait(() -> panel.selectMonster(summary, true));
 			assertEquals(1, queued.size());
 			assertEquals(1, generation.get());
 			plugin.search = active;
-			Loadout previous = new Loadout();
-			GearItem weapon = new GearItem();
+			Outfit previous = new Outfit();
+			Gear weapon = new Gear();
 			weapon.setId(4151);
 			previous.set(Slot.WEAPON, weapon);
-			plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, previous, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
+			plugin.setBankHighlightedSetup(new Setup(Combat.MELEE, previous, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 			assertTrue(plugin.getBankHighlightIds().contains(4151));
 			JPanel results = PanelInternals.resultsPanel(panel);
 			SwingUtilities.invokeAndWait(() -> results.add(new JLabel("Old account's recommendation")));

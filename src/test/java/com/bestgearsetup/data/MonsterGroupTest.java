@@ -12,16 +12,16 @@ import org.junit.Test;
 
 public class MonsterGroupTest
 {
-	private static MonsterSummary summary(String name, int level, boolean boss)
+	private static Summary summary(String name, int level, boolean boss)
 	{
-		MonsterSummary m = new MonsterSummary();
+		Summary m = new Summary();
 		m.setName(name);
 		m.setCombatLevel(level);
 		m.setBoss(boss);
 		return m;
 	}
 
-	private static GameData data(MonsterSummary... monsters)
+	private static GameData data(Summary... monsters)
 	{
 		return new GameData(Arrays.asList(monsters), Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
@@ -66,10 +66,10 @@ public class MonsterGroupTest
 	@Test
 	public void bossFilterKeepsOnlyBossVariants()
 	{
-		MonsterSummary deadman = summary("yama (deadman) (permanent)", 524, false);
-		MonsterSummary normal = summary("yama (normal)", 1238, true);
-		MonsterSummary spirit = summary("tree spirit (level 14)", 14, false);
-		MonsterSummary lostCity = summary("tree spirit (lost city)", 101, true);
+		Summary deadman = summary("yama (deadman) (permanent)", 524, false);
+		Summary normal = summary("yama (normal)", 1238, true);
+		Summary spirit = summary("tree spirit (level 14)", 14, false);
+		Summary lostCity = summary("tree spirit (lost city)", 101, true);
 		GameData data = data(deadman, normal, spirit, lostCity, summary("goblin", 2, false));
 
 		MonsterGroup yama = data.searchMonsterGroups("yama", 10, false).get(0);
@@ -85,7 +85,7 @@ public class MonsterGroupTest
 		// A right-clicked non-boss keeps its full group even while searching bosses only.
 		assertEquals(2, data.groupOf(spirit, true).getVariants().size());
 		assertEquals(1, data.groupOf(lostCity, true).getVariants().size());
-		MonsterSummary unknown = summary("test target", 1, false);
+		Summary unknown = summary("test target", 1, false);
 		assertEquals(Collections.singletonList(unknown), data.groupOf(unknown, false).getVariants());
 	}
 
@@ -110,7 +110,7 @@ public class MonsterGroupTest
 		assertEquals("Phase 1", sire.get(0).versionLabel(sire.get(0).getPrimary()));
 		for (MonsterGroup group : data.searchMonsterGroups("a", Integer.MAX_VALUE, true))
 		{
-			assertTrue(group.getName(), group.getVariants().stream().allMatch(MonsterSummary::isBoss));
+			assertTrue(group.getName(), group.getVariants().stream().allMatch(Summary::isBoss));
 		}
 		assertFalse(data.searchMonsterGroups("guard", 10, false).isEmpty());
 		assertTrue(data.searchMonsterGroups("hill giant", 10, true).isEmpty());

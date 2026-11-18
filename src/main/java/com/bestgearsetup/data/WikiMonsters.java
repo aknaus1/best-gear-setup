@@ -13,7 +13,7 @@ public final class WikiMonsters
 	private static final String RESOURCE = "/com/bestgearsetup/wiki-monsters.json.gz";
 	private static volatile WikiMonsters instance;
 
-	private final List<MonsterSummary> summaries;
+	private final List<Summary> summaries;
 	private final Map<String, Monster> byName;
 	private final String retrieved;
 
@@ -30,7 +30,7 @@ public final class WikiMonsters
 		private List<Integer> ids;
 	}
 
-	private WikiMonsters(List<MonsterSummary> summaries, Map<String, Monster> byName, String retrieved)
+	private WikiMonsters(List<Summary> summaries, Map<String, Monster> byName, String retrieved)
 	{
 		this.summaries = summaries;
 		this.byName = byName;
@@ -65,11 +65,11 @@ public final class WikiMonsters
 	{
 		return WikiGameData.read(gson, RESOURCE, Snapshot.class, "monster", root ->
 		{
-			List<MonsterSummary> summaries = new ArrayList<>();
+			List<Summary> summaries = new ArrayList<>();
 			Map<String, Monster> byName = new HashMap<>();
 			for (Entry monster : root.monsters)
 			{
-				MonsterSummary summary = new MonsterSummary();
+				Summary summary = new Summary();
 				summary.setId(monster.getId());
 				summary.setName(monster.getName());
 				summary.setCombatLevel(monster.getCombatLevel());
@@ -88,7 +88,7 @@ public final class WikiMonsters
 		});
 	}
 
-	public List<MonsterSummary> getSummaries()
+	public List<Summary> getSummaries()
 	{
 		return summaries;
 	}

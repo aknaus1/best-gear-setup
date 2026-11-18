@@ -2,8 +2,8 @@ package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.NameLists;
+import com.bestgearsetup.data.Gear;
+import com.bestgearsetup.data.Names;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
 import com.google.gson.JsonArray;
@@ -40,7 +40,7 @@ public class EffectAppliesSetPieceTest
 	public void setPiecesNeverReachEffectApplies() throws Exception
 	{
 		GameData data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
-		NameLists.NameList special = NameLists.list("special gear");
+		Names.NameList special = Names.list("special gear");
 		List<String> reached = new ArrayList<>();
 		int named = 0;
 		for (Slot slot : Slot.values())
@@ -50,9 +50,9 @@ public class EffectAppliesSetPieceTest
 			{
 				continue;
 			}
-			for (GearItem item : data.getItems(slot))
+			for (Gear item : data.getItems(slot))
 			{
-				String name = EncounterDamage.lower(item);
+				String name = Encounter.lower(item);
 				String rule = setRule(name);
 				if (rule == null)
 				{
@@ -86,16 +86,16 @@ public class EffectAppliesSetPieceTest
 	}
 
 	/** Optimizer.setPiece: any slot's name of any "optimizer sets" piece, matched as the calculator matches it. */
-	private static boolean setPiece(GearItem item)
+	private static boolean setPiece(Gear item)
 	{
-		for (JsonElement set : NameLists.rows("optimizer sets"))
+		for (JsonElement set : Names.rows("optimizer sets"))
 		{
 			for (JsonElement piece : set.getAsJsonObject().getAsJsonArray("pieces"))
 			{
 				JsonArray names = piece.getAsJsonArray();
 				for (int i = 1; i < names.size(); i++)
 				{
-					if (EquipmentEffects.namedWeapon(item, names.get(i).getAsString()))
+					if (Effects.namedWeapon(item, names.get(i).getAsString()))
 					{
 						return true;
 					}

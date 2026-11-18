@@ -4,9 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
@@ -27,7 +27,7 @@ import org.junit.Test;
 public class SlayerEquipmentTest
 {
 	private static final Gson GSON = RuneLiteAPI.GSON;
-	private static final ToLongFunction<GearItem> PRICE = item -> 100_000L;
+	private static final ToLongFunction<Gear> PRICE = item -> 100_000L;
 	private static final OptimizerSettings DEFAULTS = OptimizerSettings.builder().build();
 	private static GameData data;
 	private static WikiMonsters monsters;
@@ -53,9 +53,9 @@ public class SlayerEquipmentTest
 		return m;
 	}
 
-	private static GearItem item(Slot slot, String name)
+	private static Gear item(Slot slot, String name)
 	{
-		for (GearItem item : data.getItems(slot))
+		for (Gear item : data.getItems(slot))
 		{
 			if (item.getName().equalsIgnoreCase(name))
 			{
@@ -65,11 +65,11 @@ public class SlayerEquipmentTest
 		throw new AssertionError(name + " is not in the bundled data");
 	}
 
-	private static Loadout wearing(GearItem... items)
+	private static Outfit wearing(Gear... items)
 	{
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, item(Slot.WEAPON, "abyssal whip"));
-		for (GearItem i : items)
+		for (Gear i : items)
 		{
 			l.set(i.getSlot(), i);
 		}
@@ -79,7 +79,7 @@ public class SlayerEquipmentTest
 	@Test
 	public void eachTargetAcceptsOnlyItsProtection()
 	{
-		GearItem slayerHelm = item(Slot.HEAD, "slayer helmet (i)");
+		Gear slayerHelm = item(Slot.HEAD, "slayer helmet (i)");
 		Object[][] cases = {
 			{"dust devil (smoke dungeon)", item(Slot.HEAD, "facemask")},
 			{"choke devil", item(Slot.HEAD, "facemask")},
@@ -101,7 +101,7 @@ public class SlayerEquipmentTest
 		for (Object[] c : cases)
 		{
 			Monster target = bundled((String) c[0]);
-			GearItem protection = (GearItem) c[1];
+			Gear protection = (Gear) c[1];
 			assertTrue(target.getName(), SlayerEquipment.applies(target, DEFAULTS));
 			assertFalse(target.getName() + " unprotected", SlayerEquipment.allowed(target, DEFAULTS, wearing()));
 			assertTrue(target.getName() + " with " + protection.getName(),
@@ -158,12 +158,12 @@ public class SlayerEquipmentTest
 			assertTrue(SlayerEquipment.inKaruulm(wyrm, karuulm));
 			assertTrue(SlayerEquipment.applies(wyrm, karuulm));
 			assertFalse(SlayerEquipment.allowed(wyrm, karuulm, wearing()));
-			GearItem ordinaryBoots = item(Slot.FEET, "primordial boots");
+			Gear ordinaryBoots = item(Slot.FEET, "primordial boots");
 			assertFalse(SlayerEquipment.allowed(wyrm, karuulm, wearing(ordinaryBoots)));
 			assertNotNull(SlayerEquipment.lockConflict(wyrm, karuulm, Slot.FEET, ordinaryBoots));
 			for (String boots : new String[]{"boots of stone", "boots of brimstone", "granite boots"})
 			{
-				GearItem protection = item(Slot.FEET, boots);
+				Gear protection = item(Slot.FEET, boots);
 				assertTrue(SlayerEquipment.isRequired(wyrm, karuulm, protection));
 				assertTrue(SlayerEquipment.allowed(wyrm, karuulm, wearing(protection)));
 			}
@@ -193,11 +193,11 @@ public class SlayerEquipmentTest
 				CombatContext ctx = TestFactories.combatContext(wyrm, PlayerLevels.maxed(), onTask, true, TestData.piety());
 				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, PRICE);
 				int found = 0;
-				for (CombatClass cls : CombatClass.values())
+				for (Combat cls : Combat.values())
 				{
-					List<SetupResult> results = optimizer.optimize(cls, () -> false, done -> { });
+					List<Setup> results = optimizer.optimize(cls, () -> false, done -> { });
 					if (!mode.isHeldOnly()) { assertFalse(mode + " " + cls, results.isEmpty()); }
-					for (SetupResult result : results)
+					for (Setup result : results)
 					{
 						found++;
 						assertTrue(mode + " " + cls + " task=" + onTask,
@@ -211,16 +211,16 @@ public class SlayerEquipmentTest
 			.karuulmDungeon(true).spellbooks(Collections.singleton("standard")).build();
 		CombatContext ctx = TestFactories.combatContext(wyrm, PlayerLevels.maxed(), false, true, TestData.piety());
 		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, ctx, noBoots, id -> id == 4587 || id == 1704, PRICE)
-			.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
+			.optimize(Combat.MELEE, () -> false, done -> { }).isEmpty());
 	}
 
 	@Test
 	public void twoHandedWeaponsCannotHoldARequiredShield()
 	{
 		Monster knight = bundled("basilisk knight");
-		Loadout l = wearing(item(Slot.SHIELD, "mirror shield"));
+		Outfit l = wearing(item(Slot.SHIELD, "mirror shield"));
 		assertTrue(SlayerEquipment.allowed(knight, DEFAULTS, l));
-		GearItem twoHanded = TestData.weapon(1, "test greatsword", "2h sword", 6, "chop,slash,accurate");
+		Gear twoHanded = TestData.weapon(1, "test greatsword", "2h sword", 6, "chop,slash,accurate");
 		twoHanded.setTwoHanded(true);
 		l.set(Slot.WEAPON, twoHanded);
 		assertFalse(SlayerEquipment.allowed(knight, DEFAULTS, l));
@@ -242,9 +242,9 @@ public class SlayerEquipmentTest
 					.withFightOptions(targets, 0);
 				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, PRICE);
 				int found = 0;
-				for (CombatClass cls : CombatClass.values())
+				for (Combat cls : Combat.values())
 				{
-					for (SetupResult r : optimizer.optimize(cls, () -> false, done -> { }))
+					for (Setup r : optimizer.optimize(cls, () -> false, done -> { }))
 					{
 						found++;
 						assertTrue(mode + " " + cls + " x" + targets, SlayerEquipment.allowed(dustDevil, settings, r.getLoadout()));
@@ -267,9 +267,9 @@ public class SlayerEquipmentTest
 			CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
 			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, PRICE);
 			int found = 0;
-			for (CombatClass cls : CombatClass.values())
+			for (Combat cls : Combat.values())
 			{
-				for (SetupResult r : optimizer.optimize(cls, () -> false, done -> { }))
+				for (Setup r : optimizer.optimize(cls, () -> false, done -> { }))
 				{
 					found++;
 					assertTrue(name + " " + cls + " " + r.getLoadout().getWeapon().getName(),
@@ -289,12 +289,12 @@ public class SlayerEquipmentTest
 			.spellbooks(Collections.singleton("standard")).build();
 		CombatContext offTask = TestFactories.combatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety());
 		Set<Integer> noMask = new HashSet<>(Arrays.asList(4587, 1704));
-		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, offTask, owned, noMask::contains, PRICE).optimize(CombatClass.MELEE, () -> false, done -> { })
+		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, offTask, owned, noMask::contains, PRICE).optimize(Combat.MELEE, () -> false, done -> { })
 			.isEmpty());
 
 		CombatContext onTask = TestFactories.combatContext(dustDevil, PlayerLevels.maxed(), true, true, TestData.piety());
 		OptimizerSettings unlimited = owned.toBuilder().mode(SearchMode.UNLIMITED).build();
-		GearItem head = com.bestgearsetup.calc.Optimizers.of(data, onTask, unlimited, id -> false, PRICE).optimize(CombatClass.MELEE, () -> false, done -> { })
+		Gear head = com.bestgearsetup.calc.Optimizers.of(data, onTask, unlimited, id -> false, PRICE).optimize(Combat.MELEE, () -> false, done -> { })
 			.get(0).getLoadout().get(Slot.HEAD);
 		assertTrue(head.getName().toLowerCase(Locale.ROOT).contains("slayer helmet"));
 	}
@@ -311,15 +311,15 @@ public class SlayerEquipmentTest
 		{
 			Monster target = bundled((String) c[0]);
 			Slot slot = (Slot) c[1];
-			GearItem wrong = item(slot, (String) c[2]);
-			GearItem right = item(slot, (String) c[3]);
+			Gear wrong = item(slot, (String) c[2]);
+			Gear right = item(slot, (String) c[3]);
 			CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
 			for (SlotLock lock : new SlotLock[]{SlotLock.item(wrong.getId()), SlotLock.empty(), SlotLock.fill()})
 			{
 				OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 					.spellbooks(Collections.singleton("standard")).locks(Collections.singletonMap(slot, lock)).build();
 				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, PRICE);
-				assertTrue(target.getName() + " " + lock, optimizer.optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
+				assertTrue(target.getName() + " " + lock, optimizer.optimize(Combat.RANGED, () -> false, done -> { }).isEmpty());
 				List<LockStatus> status = LockStatus.check(data, optimizer, settings.getLocks());
 				assertTrue(status.get(0).isBlocking());
 				assertTrue(status.get(0).getProblem().contains("requires"));
@@ -329,7 +329,7 @@ public class SlayerEquipmentTest
 				.locks(Collections.singletonMap(slot, SlotLock.item(right.getId()))).build();
 			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, good, id -> false, PRICE);
 			assertFalse(LockStatus.check(data, optimizer, good.getLocks()).get(0).isBlocking());
-			assertEquals(right, optimizer.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getLoadout().get(slot));
+			assertEquals(right, optimizer.optimize(Combat.RANGED, () -> false, done -> { }).get(0).getLoadout().get(slot));
 		}
 	}
 }

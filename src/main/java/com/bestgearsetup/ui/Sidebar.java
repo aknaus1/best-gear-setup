@@ -19,12 +19,12 @@ import net.runelite.client.ui.components.IconTextField;
 import net.runelite.client.util.LinkBrowser;
 import okhttp3.HttpUrl;
 
-public class BestGearSetupPanel extends PluginPanel
+public class Sidebar extends PluginPanel
 {
 	/** The shown results' view, whose trip supplies follow supply-only settings. */
 	ResultView resultView;
 	/** The style tab picked for the current target, kept across recalculations; null opens on the best style. */
-	AttackStyle.Type pickedStyle;
+	Style.Type pickedStyle;
 	private static final int MAX_SUGGESTIONS = 10;
 	/** CSS width for wrapped labels; the RuneScape font renders wider than Swing's CSS px estimate. */
 	private static final int HTML_WIDTH = 160;
@@ -33,14 +33,14 @@ public class BestGearSetupPanel extends PluginPanel
 	static final Color WARNING_COLOR = new Color(0xFFD24D);
 
 	private final BestGearSetupPlugin plugin;
-	private final BestGearSetupConfig config;
+	private final Options config;
 	private final ItemManager itemManager;
 
 	final IconTextField searchField = new IconTextField();
 	final JToggleButton bossesButton = new JToggleButton("Bosses");
 	final JToggleButton allButton = new JToggleButton("All monsters");
 	final JPanel suggestions = new JPanel();
-	final JComboBox<MonsterSummary> versionBox = new JComboBox<>();
+	final JComboBox<Summary> versionBox = new JComboBox<>();
 	final JPanel versionRow = new JPanel(new BorderLayout(0, 2));
 	final JComboBox<EncounterPhase> phaseBox = new JComboBox<>();
 	final JPanel phaseRow = new JPanel(new BorderLayout(0, 2));
@@ -72,12 +72,12 @@ public class BestGearSetupPanel extends PluginPanel
 	private final SkillIconManager skillIcons;
 
 	private GameData data;
-	MonsterSummary selected;
+	Summary selected;
 	/** The searched group of {@link #selected}; its variants fill the version list. */
 	private MonsterGroup selectedGroup;
 	private boolean syncing;
 
-	public BestGearSetupPanel(BestGearSetupPlugin plugin, BestGearSetupConfig config, ItemManager itemManager,
+	public Sidebar(BestGearSetupPlugin plugin, Options config, ItemManager itemManager,
 		SpriteManager spriteManager, SkillIconManager skillIconManager)
 	{
 		super(false);
@@ -119,7 +119,7 @@ public class BestGearSetupPanel extends PluginPanel
 			{
 				if (!syncing)
 				{
-					plugin.setConfig(BestGearSetupConfig.BOSSES_ONLY_KEY, bossesButton.isSelected());
+					plugin.setConfig(Options.BOSSES_ONLY_KEY, bossesButton.isSelected());
 				}
 				updateSuggestions();
 			});
@@ -173,9 +173,9 @@ public class BestGearSetupPanel extends PluginPanel
 				boolean isSelected, boolean cellHasFocus)
 			{
 				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-				if (value instanceof MonsterSummary && selectedGroup != null)
+				if (value instanceof Summary && selectedGroup != null)
 				{
-					MonsterSummary variant = (MonsterSummary) value;
+					Summary variant = (Summary) value;
 					setText(selectedGroup.versionLabel(variant) + " (lvl " + variant.getCombatLevel() + ")");
 				}
 				return this;
@@ -183,7 +183,7 @@ public class BestGearSetupPanel extends PluginPanel
 		});
 		versionBox.addActionListener(e ->
 		{
-			MonsterSummary variant = (MonsterSummary) versionBox.getSelectedItem();
+			Summary variant = (Summary) versionBox.getSelectedItem();
 			if (!syncing && variant != null && !variant.equals(selected))
 			{
 				select(selectedGroup, variant, true);
@@ -196,7 +196,7 @@ public class BestGearSetupPanel extends PluginPanel
 		{
 			if (!syncing && phaseBox.getSelectedItem() != null)
 			{
-				plugin.setConfig(BestGearSetupConfig.PHASE_KEY, phaseBox.getSelectedItem());
+				plugin.setConfig(Options.PHASE_KEY, phaseBox.getSelectedItem());
 			}
 		});
 		content.add(spacer(6));
@@ -243,7 +243,7 @@ public class BestGearSetupPanel extends PluginPanel
 			updateBudgetEnabled();
 			if (!syncing)
 			{
-				plugin.setConfig(BestGearSetupConfig.MODE_KEY, modeBox.getSelectedItem());
+				plugin.setConfig(Options.MODE_KEY, modeBox.getSelectedItem());
 			}
 		});
 		settings.add(modeBox);
@@ -514,13 +514,13 @@ public class BestGearSetupPanel extends PluginPanel
 		repaint();
 	}
 
-	public void selectMonster(MonsterSummary monster, boolean run)
+	public void selectMonster(Summary monster, boolean run)
 	{
 		select(data == null ? null : data.groupOf(monster, bossesButton.isSelected()), monster, run);
 	}
 
 	/** Select one variant of a searched group; the group's other variants are offered as versions. */
-	private void select(MonsterGroup group, MonsterSummary monster, boolean run)
+	private void select(MonsterGroup group, Summary monster, boolean run)
 	{
 		searchField.setText(group == null ? monster.getDisplayName() : group.getDisplayName());
 		showVersions(group, monster);
@@ -544,7 +544,7 @@ public class BestGearSetupPanel extends PluginPanel
 		}
 	}
 
-	private void showVersions(MonsterGroup group, MonsterSummary monster)
+	private void showVersions(MonsterGroup group, Summary monster)
 	{
 		boolean previous = syncing;
 		syncing = true;
@@ -554,7 +554,7 @@ public class BestGearSetupPanel extends PluginPanel
 			{
 				selectedGroup = group;
 				versionBox.setModel(group == null ? new DefaultComboBoxModel<>()
-					: new DefaultComboBoxModel<>(group.getVariants().toArray(new MonsterSummary[0])));
+					: new DefaultComboBoxModel<>(group.getVariants().toArray(new Summary[0])));
 			}
 			versionBox.setSelectedItem(monster);
 			versionRow.setVisible(group != null && group.getVariants().size() > 1);
@@ -570,7 +570,7 @@ public class BestGearSetupPanel extends PluginPanel
 	 * Offer the temporary boss states that apply to the target. The saved phase is shown when it applies;
 	 * otherwise Standard is shown and the saved choice is kept for the boss it names.
 	 */
-	private void showPhases(MonsterSummary monster)
+	private void showPhases(Summary monster)
 	{
 		boolean previous = syncing;
 		syncing = true;
@@ -604,7 +604,7 @@ public class BestGearSetupPanel extends PluginPanel
 	 * A search started. The previous results and the bank layout stay as they are until the new results
 	 * replace them, so the sidebar doesn't empty and an open gear layout isn't dropped while searching.
 	 */
-	public void showSearching(MonsterSummary monster)
+	public void showSearching(Summary monster)
 	{
 		showStatus("Searching setups for " + monster.getDisplayName() + "...");
 		progressBar.setValue(0);
@@ -700,7 +700,7 @@ public class BestGearSetupPanel extends PluginPanel
 
 		if (!found.getWarnings().isEmpty())
 		{
-			JLabel warnings = new JLabel(html(found.getWarnings().stream().map(BestGearSetupPanel::escape)
+			JLabel warnings = new JLabel(html(found.getWarnings().stream().map(Sidebar::escape)
 				.collect(Collectors.joining("<br>"))));
 			warnings.setName("assumptionWarnings");
 			setSmall(warnings, WARNING_COLOR);
@@ -729,7 +729,7 @@ public class BestGearSetupPanel extends PluginPanel
 			Controls.ghost(toggle);
 			toggle.setIcon(new Controls.Chevron(Controls.Chevron.RIGHT, null));
 			toggle.setIconTextGap(6);
-			JLabel notes = new JLabel(html(detailLines.stream().map(BestGearSetupPanel::escape)
+			JLabel notes = new JLabel(html(detailLines.stream().map(Sidebar::escape)
 				.collect(Collectors.joining("<br>"))));
 			notes.setName("searchDetails");
 			setSmall(notes, ColorScheme.LIGHT_GRAY_COLOR);
@@ -846,7 +846,7 @@ public class BestGearSetupPanel extends PluginPanel
 		budgetField.setText(normalised);
 		if (!normalised.equals(config.budget()))
 		{
-			plugin.setConfig(BestGearSetupConfig.BUDGET_KEY, normalised);
+			plugin.setConfig(Options.BUDGET_KEY, normalised);
 		}
 	}
 

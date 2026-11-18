@@ -23,18 +23,18 @@ import net.runelite.client.util.ColorUtil;
 final class SettingRows
 {
 	private final BestGearSetupPlugin plugin;
-	private final BestGearSetupConfig config;
+	private final Options config;
 	private final Map<String, ConfigItemDescriptor> descriptors = new HashMap<>();
 	/** One width for every spinner in a panel, so the column lines up whatever each one's maximum is. */
 	private final int spinnerColumns;
 	/** Runs after a change is saved, e.g. to show or hide dependent rows. */
 	private final Runnable onChange;
-	private final Map<String, Function<BestGearSetupConfig, Object>> settings = new LinkedHashMap<>();
+	private final Map<String, Function<Options, Object>> settings = new LinkedHashMap<>();
 	private final Map<String, JComponent> controls = new HashMap<>();
 	private final Map<String, JPanel> rows = new HashMap<>();
 	private boolean syncing;
 
-	SettingRows(BestGearSetupPlugin plugin, BestGearSetupConfig config, Collection<ConfigItemDescriptor> items,
+	SettingRows(BestGearSetupPlugin plugin, Options config, Collection<ConfigItemDescriptor> items,
 		int spinnerColumns, Runnable onChange)
 	{
 		this.plugin = plugin;
@@ -50,7 +50,7 @@ final class SettingRows
 	/** Build the row editing this setting, named {@code key + "Row"}; its control is named after the key. */
 	JPanel add(String key)
 	{
-		Function<BestGearSetupConfig, Object> getter = ConfigSettings.getter(key);
+		Function<Options, Object> getter = ConfigSettings.getter(key);
 		ConfigItemDescriptor descriptor = descriptors.get(key);
 		if (descriptor == null)
 		{
@@ -69,7 +69,7 @@ final class SettingRows
 			box.setFont(FontManager.getRunescapeSmallFont());
 			box.addActionListener(e -> save(item, box.isSelected()));
 			control = box;
-			row = BestGearSetupPanel.left(box);
+			row = Sidebar.left(box);
 			row.setOpaque(false);
 		}
 		else if (type instanceof Class && ((Class<?>) type).isEnum())
@@ -164,7 +164,7 @@ final class SettingRows
 		syncing = true;
 		try
 		{
-			for (Map.Entry<String, Function<BestGearSetupConfig, Object>> entry : settings.entrySet())
+			for (Map.Entry<String, Function<Options, Object>> entry : settings.entrySet())
 			{
 				Object value = entry.getValue().apply(config);
 				JComponent control = control(entry.getKey());
@@ -231,7 +231,7 @@ final class SettingRows
 		Units units = descriptor.getUnits();
 		JLabel label = new JLabel(units == null ? item.name() : item.name() + " (" + units.value().trim() + ")");
 		label.setLabelFor(control);
-		BestGearSetupPanel.setSmall(label, Color.WHITE);
+		Sidebar.setSmall(label, Color.WHITE);
 		label.setToolTipText(item.description());
 		row.add(label, BorderLayout.CENTER);
 		row.add(control, BorderLayout.EAST);
@@ -241,7 +241,7 @@ final class SettingRows
 	/** Check boxes carry their own padding; other rows get a matching gap above. */
 	private static JPanel spaced(JPanel row)
 	{
-		JPanel wrap = BestGearSetupPanel.left(row);
+		JPanel wrap = Sidebar.left(row);
 		wrap.setOpaque(false);
 		wrap.setBorder(new EmptyBorder(3, 0, 1, 0));
 		return wrap;

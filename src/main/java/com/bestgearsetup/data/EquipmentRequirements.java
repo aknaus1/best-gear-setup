@@ -40,7 +40,7 @@ public final class EquipmentRequirements
 		List<Rule> rules = new ArrayList<>();
 		try
 		{
-			JsonObject root = NameLists.load(RESOURCE);
+			JsonObject root = Names.load(RESOURCE);
 			if (root.get("schema").getAsInt() != 1)
 			{
 				throw new IllegalStateException("Unsupported equipment requirements schema");
@@ -89,14 +89,14 @@ public final class EquipmentRequirements
 	 * Read an item's actual parameter table on the client thread. Testing presence is necessary:
 	 * getIntValue returns a param's default for an absent key, which can look like an Attack skill ID.
 	 */
-	public Resolution resolve(GearItem item, ItemComposition composition)
+	public Resolution resolve(Gear item, ItemComposition composition)
 	{
 		IterableHashTable<Node> params = composition.getParams();
 		return resolve(item, composition::getIntValue, id -> params != null && params.get(id) != null);
 	}
 
 	/** Resolve against a parameter reader; no client objects escape into the result. */
-	public Resolution resolve(GearItem item, IntUnaryOperator value, IntPredicate present)
+	public Resolution resolve(Gear item, IntUnaryOperator value, IntPredicate present)
 	{
 		Map<String, Integer> requirements = new HashMap<>();
 		Map<Integer, Integer> unmodelled = new HashMap<>();
@@ -152,7 +152,7 @@ public final class EquipmentRequirements
 		return new Resolution(requirements, unmodelled, source, rule == null ? 0 : rule.combat);
 	}
 
-	private Rule match(GearItem item)
+	private Rule match(Gear item)
 	{
 		Rule matched = null;
 		String name = item.getName().toLowerCase(Locale.ROOT).trim();
@@ -175,7 +175,7 @@ public final class EquipmentRequirements
 	 * Replace API skill fields only for reviewed families. All other equipment keeps its current
 	 * baseline until the local equipment loader is ready. The pegasian exception stays review-only.
 	 */
-	public boolean applyReviewed(GearItem item)
+	public boolean applyReviewed(Gear item)
 	{
 		Resolution resolution = resolve(item, id -> 0, id -> false);
 		return resolution.applyTo(item);
@@ -214,7 +214,7 @@ public final class EquipmentRequirements
 		 * Raise the item's levels to any stricter level this resolution states, never lowering one. Used for
 		 * the live cache over the bundled snapshot, whose levels already include the reviewed rules.
 		 */
-		public boolean raise(GearItem item)
+		public boolean raise(Gear item)
 		{
 			int[] before = levels(item);
 			item.setAttackReq(Math.max(item.getAttackReq(), requirements.getOrDefault("attack", 1)));
@@ -229,14 +229,14 @@ public final class EquipmentRequirements
 			return !java.util.Arrays.equals(before, levels(item));
 		}
 
-		private static int[] levels(GearItem item)
+		private static int[] levels(Gear item)
 		{
 			return new int[]{item.getAttackReq(), item.getDefenceReq(), item.getStrengthReq(), item.getHitpointsReq(),
 				item.getRangedReq(), item.getPrayerReq(), item.getMagicReq(), item.getSlayerReq(), item.getCombatReq()};
 		}
 
 		/** Apply a resolved combat-skill vector, returning false without mutation for a gap. */
-		public boolean applyTo(GearItem item)
+		public boolean applyTo(Gear item)
 		{
 			if (!isResolved())
 			{

@@ -5,9 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterGroup;
 import com.bestgearsetup.data.Slot;
@@ -28,8 +28,8 @@ public class ExclusionFamilyTest
 {
 	private static final Gson GSON = RuneLiteAPI.GSON;
 	private static GameData data;
-	private static GearItem crossbow;
-	private static GearItem crossbowB;
+	private static Gear crossbow;
+	private static Gear crossbowB;
 
 	@BeforeClass
 	public static void load() throws Exception
@@ -80,14 +80,14 @@ public class ExclusionFamilyTest
 		Set<Integer> family = ids(data.variantFamily(crossbow));
 		Optimizer whole = com.bestgearsetup.calc.Optimizers.of(data, ctx, base.toBuilder().excluded(family).build(), id -> false, item -> 1L);
 		assertEquals("you excluded it", whole.unusableReason(crossbowB));
-		for (SetupResult r : whole.optimize(CombatClass.RANGED, () -> false, done -> { }))
+		for (Setup r : whole.optimize(Combat.RANGED, () -> false, done -> { }))
 		{
 			assertFalse(r.getLoadout().getWeapon().getName(), family.contains(r.getLoadout().getWeapon().getId()));
 		}
 	}
 
-	private static Set<Integer> ids(List<GearItem> items)
+	private static Set<Integer> ids(List<Gear> items)
 	{
-		return items.stream().map(GearItem::getId).collect(Collectors.toCollection(HashSet::new));
+		return items.stream().map(Gear::getId).collect(Collectors.toCollection(HashSet::new));
 	}
 }

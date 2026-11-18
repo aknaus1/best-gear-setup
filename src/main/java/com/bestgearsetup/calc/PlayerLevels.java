@@ -1,6 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.*;
@@ -38,7 +38,7 @@ public class PlayerLevels
 	}
 
 	/** Wear requirements use base levels, never potion boosts; ownership and locks do not bypass them. */
-	public boolean canEquip(GearItem item)
+	public boolean canEquip(Gear item)
 	{
 		return item.getAttackReq() <= attack && item.getStrengthReq() <= strength
 			&& item.getDefenceReq() <= defence && item.getRangedReq() <= ranged
@@ -48,7 +48,7 @@ public class PlayerLevels
 	}
 
 	/** The wear requirements these levels miss, e.g. "75 Ranged (you have 70)", or null if none. */
-	public String missingRequirements(GearItem item)
+	public String missingRequirements(Gear item)
 	{
 		List<String> missing = new ArrayList<>();
 		missing(missing, item.getAttackReq(), attack, "Attack");

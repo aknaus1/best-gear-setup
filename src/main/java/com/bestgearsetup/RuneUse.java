@@ -23,7 +23,7 @@ public final class RuneUse
 	}
 
 	/** Estimate rune use from total DPS and full monster hitpoints. */
-	public static RuneUse of(SetupResult setup, int monsterHitpoints, int baseMagic, int boostedMagic)
+	public static RuneUse of(Setup setup, int monsterHitpoints, int baseMagic, int boostedMagic)
 	{
 		if (setup == null || setup.getLoadout() == null || setup.getDps() == null
 			|| setup.getDps().getDps() <= 0 || monsterHitpoints <= 0)
@@ -35,10 +35,10 @@ public final class RuneUse
 		{
 			return EMPTY;
 		}
-		Loadout loadout = setup.getLoadout();
+		Outfit loadout = setup.getLoadout();
 		Set<Integer> supplied = SpellRunes.supplied(loadout);
 		SpecialPlan special = setup.getSpecial();
-		DpsResult ordinary = special == null ? setup.getDps() : special.getOrdinary();
+		Dps ordinary = special == null ? setup.getDps() : special.getOrdinary();
 		double interval = ordinary.getExpectedSpeedTicks() * 0.6;
 		double specSeconds = special == null ? 0
 			: special.getSpecsPerKill() * special.getSpec().getExpectedSpeedTicks() * 0.6;

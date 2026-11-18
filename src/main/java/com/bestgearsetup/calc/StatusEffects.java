@@ -3,7 +3,7 @@ package com.bestgearsetup.calc;
 import com.bestgearsetup.data.*;
 import java.util.*;
 import lombok.Value;
-import static com.bestgearsetup.calc.EncounterDamage.*;
+import static com.bestgearsetup.calc.Encounter.*;
 
 /**
  * Damage over time from poison, venom and burns, integrated over the kill (OSRS Wiki Poison, Venom and
@@ -15,7 +15,7 @@ import static com.bestgearsetup.calc.EncounterDamage.*;
  */
 public final class StatusEffects
 {
-	private static final NameLists.NameList VENOM_HELMS = NameLists.list("venom helms");
+	private static final Names.NameList VENOM_HELMS = Names.list("venom helms");
 
 	static final int POISON_INTERVAL = 30;
 	static final int BURN_INTERVAL = 4;
@@ -23,8 +23,8 @@ public final class StatusEffects
 	static final int BURN_STACKS = 5;
 	private static final double SECONDS_PER_TICK = 0.6;
 	private static final int VENOM_AS_POISON = 26;
-	private static final NameLists.NameList POISONABLE_MELEE = NameLists.list("poisonable melee weapons");
-	private static final NameLists.NameList POISONABLE_AMMO = NameLists.list("poisonable ammunition");
+	private static final Names.NameList POISONABLE_MELEE = Names.list("poisonable melee weapons");
+	private static final Names.NameList POISONABLE_AMMO = Names.list("poisonable ammunition");
 
 	private StatusEffects()
 	{
@@ -49,16 +49,16 @@ public final class StatusEffects
 	}
 
 	/** Whether a charged serpentine helm, or its recolour, is worn: immune to poison and venom (Wiki). */
-	public static boolean serpentineHelm(Loadout l)
+	public static boolean serpentineHelm(Outfit l)
 	{
 		String head = lower(l.get(Slot.HEAD));
 		return VENOM_HELMS.matches(head) && !head.contains("uncharged");
 	}
 
 	/** Whether the weapon option poisons this weapon or its ammunition. */
-	static boolean poisonable(Loadout l)
+	static boolean poisonable(Outfit l)
 	{
-		GearItem weapon = l.getWeapon();
+		Gear weapon = l.getWeapon();
 		if (weapon == null)
 		{
 			return false;
@@ -68,24 +68,24 @@ public final class StatusEffects
 		{
 			return POISONABLE_MELEE.matches(w);
 		}
-		if (l.getStyle().getType() != AttackStyle.Type.RANGED)
+		if (l.getStyle().getType() != Style.Type.RANGED)
 		{
 			return false;
 		}
-		if (WeaponRules.firesAmmoSlot(weapon))
+		if (Weapons.firesAmmoSlot(weapon))
 		{
 			return POISONABLE_AMMO.matches(lower(l.get(Slot.AMMO)));
 		}
 		return weapon.getSubcategory().equals("thrown") && POISONABLE_AMMO.matches(w);
 	}
 
-	static Sources sources(Loadout l, CombatContext ctx, double accuracy)
+	static Sources sources(Outfit l, CombatContext ctx, double accuracy)
 	{
 		Monster m = ctx.getMonster();
 		List<String> notes = new ArrayList<>();
-		GearItem weapon = l.getWeapon();
+		Gear weapon = l.getWeapon();
 		String w = lower(weapon);
-		CombatClass cls = WeaponRules.classOf(l.getStyle());
+		Combat cls = Weapons.classOf(l.getStyle());
 		boolean serpentine = serpentineHelm(l);
 		WeaponPoison option = ctx.getModifiers().getWeaponPoison();
 		double poisonMiss = 1;
@@ -129,7 +129,7 @@ public final class StatusEffects
 					severity = Math.max(severity, option.getSeverity() - 14);
 				}
 				String ammo = lower(l.get(Slot.AMMO));
-				if (weapon.getSubcategory().equals("crossbow") && WeaponRules.firesAmmoSlot(weapon)
+				if (weapon.getSubcategory().equals("crossbow") && Weapons.firesAmmoSlot(weapon)
 					&& (ammo.equals("emerald bolts (e)") || ammo.equals("emerald dragon bolts (e)")))
 				{
 					// Magical Poison: 55% of successful hits, not reduced like other ranged poison.
@@ -164,7 +164,7 @@ public final class StatusEffects
 		if (serpentine && !toxic)
 		{
 			// Wiki: 1/6 with unpoisoned melee weapons, 1/2 with poisoned weapons; emerald bolts do not count.
-			venom = poisoned ? 0.5 : cls == CombatClass.MELEE ? 1 / 6.0 : 0;
+			venom = poisoned ? 0.5 : cls == Combat.MELEE ? 1 / 6.0 : 0;
 		}
 		double venomChance = accuracy * venom;
 		double poisonChance = severity > 0 ? 1 - poisonMiss : 0;
@@ -204,9 +204,9 @@ public final class StatusEffects
 
 		double burnChance = 0;
 		double burnFactor = 0;
-		if (WeaponRules.isAtlatl(weapon) && cls == CombatClass.RANGED && EquipmentEffects.named(l, Slot.HEAD, "eclipse moon helm")
-			&& EquipmentEffects.named(l, Slot.BODY, "eclipse moon chestplate")
-			&& EquipmentEffects.named(l, Slot.LEGS, "eclipse moon tassets"))
+		if (Weapons.isAtlatl(weapon) && cls == Combat.RANGED && Effects.named(l, Slot.HEAD, "eclipse moon helm")
+			&& Effects.named(l, Slot.BODY, "eclipse moon chestplate")
+			&& Effects.named(l, Slot.LEGS, "eclipse moon tassets"))
 		{
 			// Eclipse set: 20% of successful atlatl attacks inflict a strong burn.
 			burnFactor = burnFactor(l, ctx, StatusImmunities.BURN_STRONG);
@@ -223,19 +223,19 @@ public final class StatusEffects
 	 * Fraction of burn damage a target takes: zero when it ignores the burn's severity or ranged damage,
 	 * otherwise its ranged mitigation applied to a 10-damage burn.
 	 */
-	static double burnFactor(Loadout l, CombatContext ctx, int severity)
+	static double burnFactor(Outfit l, CombatContext ctx, int severity)
 	{
 		Monster m = ctx.getMonster();
 		if (CombatRules.burnImmune(m) || StatusImmunities.of(m).getBurnImmunity() >= severity
-			|| !EncounterImmunities.classAllowed(m, CombatClass.RANGED))
+			|| !EncounterImmunities.classAllowed(m, Combat.RANGED))
 		{
 			return 0;
 		}
-		return rule(m, l, CombatClass.RANGED).mean(BURN_HITS) / BURN_HITS;
+		return rule(m, l, Combat.RANGED).mean(BURN_HITS) / BURN_HITS;
 	}
 
 	/** Add expected damage over time to a sustained-attack result. */
-	static DpsResult apply(Loadout l, CombatContext ctx, DpsResult r)
+	static Dps apply(Outfit l, CombatContext ctx, Dps r)
 	{
 		Monster m = ctx.getMonster();
 		if (ctx.getModifiers().isSpecialAttack() || r.getPrimaryDps() <= 0 || CombatRules.oneHit(m))

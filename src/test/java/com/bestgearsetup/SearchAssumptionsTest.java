@@ -27,17 +27,17 @@ import org.junit.Test;
 
 public class SearchAssumptionsTest
 {
-	/** Config defaults read their captured value through SearchAssumptions.value; RuneLite's proxy must still serve them. */
+	/** Config defaults read their captured value through Assumptions.value; RuneLite's proxy must still serve them. */
 	@Test public void runeliteConfigurationDefaultsAndSnapshotsShareTheSameValues()
 	{
 		// Exercise RuneLite's actual config proxy: it rejects unannotated instance methods.
 		ConfigManager manager = mock(ConfigManager.class, withSettings().useConstructor(constructorArguments()));
-		doCallRealMethod().when(manager).getConfig(BestGearSetupConfig.class);
-		BestGearSetupConfig live = manager.getConfig(BestGearSetupConfig.class);
-		BestGearSetupConfig defaults = new BestGearSetupConfig() { };
-		BestGearSetupConfig snapshot = SearchAssumptions.capture(live, Collections.emptyMap());
-		assertEquals("Search snapshots are plain immutable objects", SearchAssumptions.class, snapshot.getClass());
-		for (Map.Entry<String, Function<BestGearSetupConfig, Object>> entry : GETTERS.entrySet())
+		doCallRealMethod().when(manager).getConfig(Options.class);
+		Options live = manager.getConfig(Options.class);
+		Options defaults = new Options() { };
+		Options snapshot = Assumptions.capture(live, Collections.emptyMap());
+		assertEquals("Search snapshots are plain immutable objects", Assumptions.class, snapshot.getClass());
+		for (Map.Entry<String, Function<Options, Object>> entry : GETTERS.entrySet())
 		{
 			assertEquals(entry.getKey(), entry.getValue().apply(defaults), entry.getValue().apply(live));
 			assertEquals(entry.getKey(), entry.getValue().apply(defaults), entry.getValue().apply(snapshot));
@@ -75,7 +75,7 @@ public class SearchAssumptionsTest
 	/** Both settings editors look getters up by stored key in ConfigSettings. */
 	@Test public void sharedEditorBindingsMatchEveryPersistedConfigKey()
 	{
-		BestGearSetupConfig defaults = new BestGearSetupConfig() { };
+		Options defaults = new Options() { };
 		for (ConfigItemDescriptor item : ConfigItemsForTests.items())
 		{
 			String key = item.key();
@@ -86,16 +86,16 @@ public class SearchAssumptionsTest
 
 	@Test(expected = IllegalArgumentException.class) public void mistypedOverrideIsRejected()
 	{
-		SearchAssumptions.capture(new BestGearSetupConfig() { }, Collections.singletonMap("ammoCount", "1000"));
+		Assumptions.capture(new Options() { }, Collections.singletonMap("ammoCount", "1000"));
 	}
 
 	@Test public void snapshotKeepsValuesWhenPreferencesAndOverrideMapChange()
 	{
 		int[] stacks = {4};
-		BestGearSetupConfig planning = new BestGearSetupConfig() { @Override public int soulreaperStacks() { return stacks[0]; } };
+		Options planning = new Options() { @Override public int soulreaperStacks() { return stacks[0]; } };
 		Map<String, Object> overrides = new HashMap<>();
 		overrides.put("currentHitpoints", 21);
-		BestGearSetupConfig snapshot = SearchAssumptions.capture(planning, overrides);
+		Options snapshot = Assumptions.capture(planning, overrides);
 		stacks[0] = 2; overrides.put("currentHitpoints", 80);
 		assertEquals(4, snapshot.soulreaperStacks()); assertEquals(21, snapshot.currentHitpoints());
 		assertEquals(0, planning.currentHitpoints()); assertEquals(2, planning.soulreaperStacks());
@@ -107,10 +107,10 @@ public class SearchAssumptionsTest
 	@Test public void legacyPotionNamesAreOverriddenByConfigKey()
 	{
 		Map<String, Object> overrides = new HashMap<>();
-		overrides.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MELEE", "super combat potion");
-		overrides.put(BestGearSetupConfig.POTION_KEY_PREFIX + "RANGED", "ranging potion");
-		overrides.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MAGIC", "magic potion");
-		BestGearSetupConfig snapshot = SearchAssumptions.capture(new BestGearSetupConfig() { }, overrides);
+		overrides.put(Options.POTION_KEY_PREFIX + "MELEE", "super combat potion");
+		overrides.put(Options.POTION_KEY_PREFIX + "RANGED", "ranging potion");
+		overrides.put(Options.POTION_KEY_PREFIX + "MAGIC", "magic potion");
+		Options snapshot = Assumptions.capture(new Options() { }, overrides);
 		assertEquals("super combat potion", snapshot.potionMelee());
 		assertEquals("ranging potion", snapshot.potionRanged());
 		assertEquals("magic potion", snapshot.potionMagic());
@@ -127,7 +127,7 @@ public class SearchAssumptionsTest
 		while (put.find())
 		{
 			assertTrue("override key is not a literal or potion key: " + put.group(3), put.group(3) == null);
-			String key = put.group(1) != null ? put.group(1) : BestGearSetupConfig.POTION_KEY_PREFIX + put.group(2);
+			String key = put.group(1) != null ? put.group(1) : Options.POTION_KEY_PREFIX + put.group(2);
 			ConfigSettings.index(key);
 			keys++;
 		}
@@ -135,97 +135,97 @@ public class SearchAssumptionsTest
 	}
 
 	/** Every config item's getter, by key; the first test below fails until a new item is added here. */
-	private static final Map<String, Function<BestGearSetupConfig, Object>> GETTERS = new LinkedHashMap<>();
+	private static final Map<String, Function<Options, Object>> GETTERS = new LinkedHashMap<>();
 
 	static
 	{
-		GETTERS.put("showMenuOption", BestGearSetupConfig::showMenuOption);
-		GETTERS.put("highlightBankGear", BestGearSetupConfig::highlightBankGear);
-		GETTERS.put("bankHighlightColor", BestGearSetupConfig::bankHighlightColor);
-		GETTERS.put("highlightInventoryGear", BestGearSetupConfig::highlightInventoryGear);
-		GETTERS.put("inventoryHighlightColor", BestGearSetupConfig::inventoryHighlightColor);
-		GETTERS.put("fillFood", BestGearSetupConfig::fillFood);
-		GETTERS.put("mode", BestGearSetupConfig::mode);
-		GETTERS.put("budget", BestGearSetupConfig::budget);
-		GETTERS.put("bossesOnly", BestGearSetupConfig::bossesOnly);
-		GETTERS.put("onSlayerTask", BestGearSetupConfig::onSlayerTask);
-		GETTERS.put("ancientMagicks", BestGearSetupConfig::ancientMagicks);
-		GETTERS.put("arceuusSpellbook", BestGearSetupConfig::arceuusSpellbook);
-		GETTERS.put("membersItems", BestGearSetupConfig::membersItems);
-		GETTERS.put("ammoCount", BestGearSetupConfig::ammoCount);
-		GETTERS.put("killsPerTrip", BestGearSetupConfig::killsPerTrip);
-		GETTERS.put("currentHitpoints", BestGearSetupConfig::currentHitpoints);
-		GETTERS.put("wilderness", BestGearSetupConfig::wilderness);
-		GETTERS.put("limitWildernessRisk", BestGearSetupConfig::limitWildernessRisk);
-		GETTERS.put("maxExpensiveItems", BestGearSetupConfig::maxExpensiveItems);
-		GETTERS.put("expensiveItemThreshold", BestGearSetupConfig::expensiveItemThreshold);
-		GETTERS.put("charge", BestGearSetupConfig::charge);
-		GETTERS.put("markOfDarkness", BestGearSetupConfig::markOfDarkness);
-		GETTERS.put("sunfireRunes", BestGearSetupConfig::sunfireRunes);
-		GETTERS.put("kandarinDiary", BestGearSetupConfig::kandarinDiary);
-		GETTERS.put("killSpecials", BestGearSetupConfig::killSpecials);
-		GETTERS.put("specEnergy", BestGearSetupConfig::specEnergy);
-		GETTERS.put("drainSpecs", BestGearSetupConfig::drainSpecs);
-		GETTERS.put("weaponPoison", BestGearSetupConfig::weaponPoison);
-		GETTERS.put("forinthrySurge", BestGearSetupConfig::forinthrySurge);
-		GETTERS.put("soulreaperStacks", BestGearSetupConfig::soulreaperStacks);
-		GETTERS.put("miningLevel", BestGearSetupConfig::miningLevel);
-		GETTERS.put("raidPartySize", BestGearSetupConfig::raidPartySize);
-		GETTERS.put("toaRaidLevel", BestGearSetupConfig::toaRaidLevel);
-		GETTERS.put("toaPathLevel", BestGearSetupConfig::toaPathLevel);
-		GETTERS.put("coxChallengeMode", BestGearSetupConfig::coxChallengeMode);
-		GETTERS.put("encounterPhase", BestGearSetupConfig::encounterPhase);
-		GETTERS.put("aoe", BestGearSetupConfig::aoe);
-		GETTERS.put("aoeTargets", BestGearSetupConfig::aoeTargets);
-		GETTERS.put("requireFireProtection", BestGearSetupConfig::requireFireProtection);
-		GETTERS.put("antifire", BestGearSetupConfig::antifire);
-		GETTERS.put("protectMagic", BestGearSetupConfig::protectMagic);
-		GETTERS.put("dmmItems", BestGearSetupConfig::dmmItems);
-		GETTERS.put("betaItems", BestGearSetupConfig::betaItems);
-		GETTERS.put("bountyHunterItems", BestGearSetupConfig::bountyHunterItems);
-		GETTERS.put("requireAtlatlAmmoRecovery", BestGearSetupConfig::requireAtlatlAmmoRecovery);
-		GETTERS.put("preventManualCast", BestGearSetupConfig::preventManualCast);
-		GETTERS.put("styleStab", BestGearSetupConfig::styleStab);
-		GETTERS.put("styleSlash", BestGearSetupConfig::styleSlash);
-		GETTERS.put("styleCrush", BestGearSetupConfig::styleCrush);
-		GETTERS.put("styleRanged", BestGearSetupConfig::styleRanged);
-		GETTERS.put("styleMagic", BestGearSetupConfig::styleMagic);
-		GETTERS.put("styleAtlatl", BestGearSetupConfig::styleAtlatl);
-		GETTERS.put("weaponHands", BestGearSetupConfig::weaponHands);
-		GETTERS.put("calcMode", BestGearSetupConfig::calcMode);
-		GETTERS.put("attackXp", BestGearSetupConfig::attackXp);
-		GETTERS.put("strengthXp", BestGearSetupConfig::strengthXp);
-		GETTERS.put("defenceXp", BestGearSetupConfig::defenceXp);
-		GETTERS.put("fillMode", BestGearSetupConfig::fillMode);
-		GETTERS.put("defenceFocus", BestGearSetupConfig::defenceFocus);
-		GETTERS.put("fillMargin", BestGearSetupConfig::fillMargin);
-		GETTERS.put("specVulnerability", BestGearSetupConfig::specVulnerability);
-		GETTERS.put("specTomeOfWater", BestGearSetupConfig::specTomeOfWater);
-		GETTERS.put("specElderMaul", BestGearSetupConfig::specElderMaul);
-		GETTERS.put("specDwh", BestGearSetupConfig::specDwh);
-		GETTERS.put("specEmberlight", BestGearSetupConfig::specEmberlight);
-		GETTERS.put("specArclight", BestGearSetupConfig::specArclight);
-		GETTERS.put("specTonalztics", BestGearSetupConfig::specTonalztics);
-		GETTERS.put("specBgsDamage", BestGearSetupConfig::specBgsDamage);
-		GETTERS.put("specSeercullDamage", BestGearSetupConfig::specSeercullDamage);
-		GETTERS.put("specAyakDamage", BestGearSetupConfig::specAyakDamage);
-		GETTERS.put("usePrayers", BestGearSetupConfig::usePrayers);
-		GETTERS.put("excludedPrayers", BestGearSetupConfig::excludedPrayers);
-		GETTERS.put("thrall", BestGearSetupConfig::thrall);
-		GETTERS.put("raidPotions", BestGearSetupConfig::raidPotions);
-		GETTERS.put("taskMode", BestGearSetupConfig::taskMode);
-		GETTERS.put("autoRaid", BestGearSetupConfig::autoRaid);
-		GETTERS.put("autoSpecs", BestGearSetupConfig::autoSpecs);
-		GETTERS.put("meleePotionChoice", BestGearSetupConfig::meleePotion);
-		GETTERS.put("rangedPotionChoice", BestGearSetupConfig::rangedPotion);
-		GETTERS.put("magicPotionChoice", BestGearSetupConfig::magicPotion);
-		GETTERS.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MELEE", BestGearSetupConfig::potionMelee);
-		GETTERS.put(BestGearSetupConfig.POTION_KEY_PREFIX + "RANGED", BestGearSetupConfig::potionRanged);
-		GETTERS.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MAGIC", BestGearSetupConfig::potionMagic);
-		GETTERS.put("locks", BestGearSetupConfig::locks);
-		GETTERS.put("excluded", BestGearSetupConfig::excluded);
-		GETTERS.put("blockedSpells", BestGearSetupConfig::blockedSpells);
-		GETTERS.put("forcedSpells", BestGearSetupConfig::forcedSpells);
+		GETTERS.put("showMenuOption", Options::showMenuOption);
+		GETTERS.put("highlightBankGear", Options::highlightBankGear);
+		GETTERS.put("bankHighlightColor", Options::bankHighlightColor);
+		GETTERS.put("highlightInventoryGear", Options::highlightInventoryGear);
+		GETTERS.put("inventoryHighlightColor", Options::inventoryHighlightColor);
+		GETTERS.put("fillFood", Options::fillFood);
+		GETTERS.put("mode", Options::mode);
+		GETTERS.put("budget", Options::budget);
+		GETTERS.put("bossesOnly", Options::bossesOnly);
+		GETTERS.put("onSlayerTask", Options::onSlayerTask);
+		GETTERS.put("ancientMagicks", Options::ancientMagicks);
+		GETTERS.put("arceuusSpellbook", Options::arceuusSpellbook);
+		GETTERS.put("membersItems", Options::membersItems);
+		GETTERS.put("ammoCount", Options::ammoCount);
+		GETTERS.put("killsPerTrip", Options::killsPerTrip);
+		GETTERS.put("currentHitpoints", Options::currentHitpoints);
+		GETTERS.put("wilderness", Options::wilderness);
+		GETTERS.put("limitWildernessRisk", Options::limitWildernessRisk);
+		GETTERS.put("maxExpensiveItems", Options::maxExpensiveItems);
+		GETTERS.put("expensiveItemThreshold", Options::expensiveItemThreshold);
+		GETTERS.put("charge", Options::charge);
+		GETTERS.put("markOfDarkness", Options::markOfDarkness);
+		GETTERS.put("sunfireRunes", Options::sunfireRunes);
+		GETTERS.put("kandarinDiary", Options::kandarinDiary);
+		GETTERS.put("killSpecials", Options::killSpecials);
+		GETTERS.put("specEnergy", Options::specEnergy);
+		GETTERS.put("drainSpecs", Options::drainSpecs);
+		GETTERS.put("weaponPoison", Options::weaponPoison);
+		GETTERS.put("forinthrySurge", Options::forinthrySurge);
+		GETTERS.put("soulreaperStacks", Options::soulreaperStacks);
+		GETTERS.put("miningLevel", Options::miningLevel);
+		GETTERS.put("raidPartySize", Options::raidPartySize);
+		GETTERS.put("toaRaidLevel", Options::toaRaidLevel);
+		GETTERS.put("toaPathLevel", Options::toaPathLevel);
+		GETTERS.put("coxChallengeMode", Options::coxChallengeMode);
+		GETTERS.put("encounterPhase", Options::encounterPhase);
+		GETTERS.put("aoe", Options::aoe);
+		GETTERS.put("aoeTargets", Options::aoeTargets);
+		GETTERS.put("requireFireProtection", Options::requireFireProtection);
+		GETTERS.put("antifire", Options::antifire);
+		GETTERS.put("protectMagic", Options::protectMagic);
+		GETTERS.put("dmmItems", Options::dmmItems);
+		GETTERS.put("betaItems", Options::betaItems);
+		GETTERS.put("bountyHunterItems", Options::bountyHunterItems);
+		GETTERS.put("requireAtlatlAmmoRecovery", Options::requireAtlatlAmmoRecovery);
+		GETTERS.put("preventManualCast", Options::preventManualCast);
+		GETTERS.put("styleStab", Options::styleStab);
+		GETTERS.put("styleSlash", Options::styleSlash);
+		GETTERS.put("styleCrush", Options::styleCrush);
+		GETTERS.put("styleRanged", Options::styleRanged);
+		GETTERS.put("styleMagic", Options::styleMagic);
+		GETTERS.put("styleAtlatl", Options::styleAtlatl);
+		GETTERS.put("weaponHands", Options::weaponHands);
+		GETTERS.put("calcMode", Options::calcMode);
+		GETTERS.put("attackXp", Options::attackXp);
+		GETTERS.put("strengthXp", Options::strengthXp);
+		GETTERS.put("defenceXp", Options::defenceXp);
+		GETTERS.put("fillMode", Options::fillMode);
+		GETTERS.put("defenceFocus", Options::defenceFocus);
+		GETTERS.put("fillMargin", Options::fillMargin);
+		GETTERS.put("specVulnerability", Options::specVulnerability);
+		GETTERS.put("specTomeOfWater", Options::specTomeOfWater);
+		GETTERS.put("specElderMaul", Options::specElderMaul);
+		GETTERS.put("specDwh", Options::specDwh);
+		GETTERS.put("specEmberlight", Options::specEmberlight);
+		GETTERS.put("specArclight", Options::specArclight);
+		GETTERS.put("specTonalztics", Options::specTonalztics);
+		GETTERS.put("specBgsDamage", Options::specBgsDamage);
+		GETTERS.put("specSeercullDamage", Options::specSeercullDamage);
+		GETTERS.put("specAyakDamage", Options::specAyakDamage);
+		GETTERS.put("usePrayers", Options::usePrayers);
+		GETTERS.put("excludedPrayers", Options::excludedPrayers);
+		GETTERS.put("thrall", Options::thrall);
+		GETTERS.put("raidPotions", Options::raidPotions);
+		GETTERS.put("taskMode", Options::taskMode);
+		GETTERS.put("autoRaid", Options::autoRaid);
+		GETTERS.put("autoSpecs", Options::autoSpecs);
+		GETTERS.put("meleePotionChoice", Options::meleePotion);
+		GETTERS.put("rangedPotionChoice", Options::rangedPotion);
+		GETTERS.put("magicPotionChoice", Options::magicPotion);
+		GETTERS.put(Options.POTION_KEY_PREFIX + "MELEE", Options::potionMelee);
+		GETTERS.put(Options.POTION_KEY_PREFIX + "RANGED", Options::potionRanged);
+		GETTERS.put(Options.POTION_KEY_PREFIX + "MAGIC", Options::potionMagic);
+		GETTERS.put("locks", Options::locks);
+		GETTERS.put("excluded", Options::excluded);
+		GETTERS.put("blockedSpells", Options::blockedSpells);
+		GETTERS.put("forcedSpells", Options::forcedSpells);
 	}
 
 	/** Config keys that differ from their method name, which is what overrides are keyed by. */
@@ -249,28 +249,28 @@ public class SearchAssumptionsTest
 	/** A new config item that the snapshot forgets would silently fall back to its default during searches. */
 	@Test public void everyConfigItemIsCopiedAndCanBeOverridden()
 	{
-		BestGearSetupConfig defaults = new BestGearSetupConfig() { };
+		Options defaults = new Options() { };
 		Map<String, Object> changed = new LinkedHashMap<>();
-		for (Map.Entry<String, Function<BestGearSetupConfig, Object>> e : GETTERS.entrySet())
+		for (Map.Entry<String, Function<Options, Object>> e : GETTERS.entrySet())
 		{
 			changed.put(e.getKey(), different(e.getValue().apply(defaults)));
 		}
 		// Overriding every key at once gives a source whose every value differs from the default.
-		BestGearSetupConfig source = SearchAssumptions.capture(defaults, changed);
-		BestGearSetupConfig copied = SearchAssumptions.capture(source, Collections.emptyMap());
+		Options source = Assumptions.capture(defaults, changed);
+		Options copied = Assumptions.capture(source, Collections.emptyMap());
 		for (Map.Entry<String, Object> e : changed.entrySet())
 		{
-			Function<BestGearSetupConfig, Object> getter = GETTERS.get(e.getKey());
+			Function<Options, Object> getter = GETTERS.get(e.getKey());
 			assertEquals(e.getKey(), e.getValue(), getter.apply(source));
 			assertEquals(e.getKey(), e.getValue(), getter.apply(copied));
-			BestGearSetupConfig overridden = SearchAssumptions.capture(defaults, Collections.singletonMap(e.getKey(), e.getValue()));
+			Options overridden = Assumptions.capture(defaults, Collections.singletonMap(e.getKey(), e.getValue()));
 			assertEquals(e.getKey(), e.getValue(), getter.apply(overridden));
 		}
 	}
 
 	@Test(expected = IllegalArgumentException.class) public void unknownOverrideIsRejected()
 	{
-		SearchAssumptions.capture(new BestGearSetupConfig() { }, Collections.singletonMap("noSuchSetting", true));
+		Assumptions.capture(new Options() { }, Collections.singletonMap("noSuchSetting", true));
 	}
 
 	private static Object different(Object value)

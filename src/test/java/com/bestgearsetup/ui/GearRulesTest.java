@@ -10,7 +10,7 @@ import com.bestgearsetup.ConfigItemsForTests;
 import com.bestgearsetup.OwnedItems;
 import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
 import java.awt.Component;
@@ -92,7 +92,7 @@ public class GearRulesTest
 		}
 
 		@Override
-		public boolean owns(GearItem item)
+		public boolean owns(Gear item)
 		{
 			return false;
 		}
@@ -144,8 +144,8 @@ public class GearRulesTest
 	@Test
 	public void locksAndExclusionsAreListedAndClearedSeparately() throws Exception
 	{
-		GearItem lightbearer = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);
-		GearItem torva = DATA.searchItems("torva full helm", 1, Slot.HEAD).get(0);
+		Gear lightbearer = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);
+		Gear torva = DATA.searchItems("torva full helm", 1, Slot.HEAD).get(0);
 		locks.put(Slot.RING, SlotLock.item(lightbearer.getId()));
 		locks.put(Slot.SHIELD, SlotLock.empty());
 		excluded.add(torva.getId());
@@ -171,7 +171,7 @@ public class GearRulesTest
 	@Test
 	public void anyItemCanBeExcludedFromTheGearView() throws Exception
 	{
-		GearItem lightbearer = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);
+		Gear lightbearer = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);
 		SwingUtilities.invokeAndWait(() ->
 		{
 			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);

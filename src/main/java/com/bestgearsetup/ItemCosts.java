@@ -1,7 +1,7 @@
 package com.bestgearsetup;
 
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.NameLists;
+import com.bestgearsetup.data.Gear;
+import com.bestgearsetup.data.Names;
 import java.util.*;
 import java.util.function.IntPredicate;
 import java.util.function.IntToLongFunction;
@@ -23,7 +23,7 @@ public final class ItemCosts
 	 * (broken) page. Ancient sceptres also charge the ancient staff's current price, which their acquisition
 	 * price already covers.
 	 */
-	private static final Map<String, Integer> REPAIR_COSTS = NameLists.exact("pvp repair fees");
+	private static final Map<String, Integer> REPAIR_COSTS = Names.exact("pvp repair fees");
 
 	private ItemCosts()
 	{
@@ -49,7 +49,7 @@ public final class ItemCosts
 	 * Coins needed to repair the item after an unprotected PvP death, or 0 if it doesn't break. Variants share
 	 * their base item's catalogue name, so a trimmed dragon defender pays the fee as well as losing its kit.
 	 */
-	public static long pvpRepairCost(GearItem item)
+	public static long pvpRepairCost(Gear item)
 	{
 		String name = item.getName() == null ? "" : item.getName().toLowerCase(Locale.ROOT);
 		if (name.startsWith("decorative armour"))
@@ -130,7 +130,7 @@ public final class ItemCosts
 	 *
 	 * @param tradeable whether the game cache marks an item id as tradeable
 	 */
-	public static long price(GearItem item, IntToLongFunction quote, IntPredicate tradeable)
+	public static long price(Gear item, IntToLongFunction quote, IntPredicate tradeable)
 	{
 		int base = acquisitionBase(item.getId());
 		boolean unmapped = mappings(item.getId(), base) == null;

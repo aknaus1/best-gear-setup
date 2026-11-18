@@ -24,8 +24,8 @@ public final class WikiGameData
 	private static final class Snapshot
 	{
 		private String retrievedUtc;
-		private Map<String, List<GearItem>> equipment;
-		private List<GearItem> weapons;
+		private Map<String, List<Gear>> equipment;
+		private List<Gear> weapons;
 		private List<Spell> spells;
 		private Map<String, List<Prayer>> prayers;
 		private Map<String, List<Potion>> potions;

@@ -4,11 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import com.bestgearsetup.data.Spell;
 import com.bestgearsetup.data.WikiGameData;
 import com.bestgearsetup.data.WikiMonsters;
@@ -89,7 +89,7 @@ public class SpellPruningTest
 		assertTrue(outclasses("ice barrage", "ice blitz", false, false, true));
 	}
 
-	private static List<SetupResult> search(Monster monster, boolean preventManualCast, int aoeTargets, boolean prune)
+	private static List<Setup> search(Monster monster, boolean preventManualCast, int aoeTargets, boolean prune)
 	{
 		Optimizer.pruneSpells = prune;
 		CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, false, TestData.piety())
@@ -97,7 +97,7 @@ public class SpellPruningTest
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(Long.MAX_VALUE)
 			.preventManualCast(preventManualCast)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();
-		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, GearItem::getPrice).optimize(CombatClass.MAGIC, () -> false, done -> { });
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, Gear::getPrice).optimize(Combat.MAGIC, () -> false, done -> { });
 	}
 
 	@Test
@@ -106,15 +106,15 @@ public class SpellPruningTest
 		// Yama, Zulrah, Kraken, an abyssal demon, General Graardor, a fire giant and Kree'arra.
 		for (int npc : new int[]{14176, 2042, 494, 415, 2215, 2075, 3162})
 		{
-			MonsterSummary summary = data.matchNpc(npc, null, 0);
+			Summary summary = data.matchNpc(npc, null, 0);
 			assertNotNull("npc " + npc, summary);
 			Monster monster = WikiMonsters.get(GSON).monster(summary.getName());
 			for (int variant = 0; variant < 3; variant++)
 			{
 				boolean prevent = variant == 1;
 				int targets = variant == 2 ? 9 : 1;
-				SetupResult full = search(monster, prevent, targets, false).get(0);
-				SetupResult pruned = search(monster, prevent, targets, true).get(0);
+				Setup full = search(monster, prevent, targets, false).get(0);
+				Setup pruned = search(monster, prevent, targets, true).get(0);
 				String label = summary.getName() + " variant " + variant;
 				assertEquals(label, full.getDps().getDps(), pruned.getDps().getDps(), 1e-9);
 				assertEquals(label, full.getLoadout().getWeapon(), pruned.getLoadout().getWeapon());

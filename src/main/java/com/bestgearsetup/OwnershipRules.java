@@ -16,9 +16,9 @@ public final class OwnershipRules
 	/** RuneLite's injected Gson: plugins may not create their own (Plugin Hub disallowed API). */
 	private static volatile Gson gson;
 	/** Entries whose variants are charge counts or other providers of the same earned imbue. */
-	private static final NameLists.NameList CHARGE_STATES = NameLists.list("ownership charge states");
+	private static final Names.NameList CHARGE_STATES = Names.list("ownership charge states");
 	/** Earned imbues and upgrades, which buying the tradable base doesn't give. */
-	private static final NameLists.NameList EARNED = NameLists.list("earned upgrades");
+	private static final Names.NameList EARNED = Names.list("earned upgrades");
 	private static final Supplier<Rules> RULES = Suppliers.memoize(Rules::new);
 
 	/** Built once from the bundled catalogue, on first use rather than at class load, so it can use the client's Gson. */
@@ -36,7 +36,7 @@ public final class OwnershipRules
 				GameData data = catalogue().getEquipment();
 				for (Slot slot : Slot.values())
 				{
-					for (GearItem item : data.getItems(slot))
+					for (Gear item : data.getItems(slot))
 					{
 						equipmentFamilies.add(ItemVariationMapping.map(item.getId()));
 						for (int variant : item.getVariants())

@@ -1,6 +1,6 @@
 package com.bestgearsetup;
 
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -14,16 +14,16 @@ final class PreferenceMigration
 	{
 		Map<String, Object> changes = new LinkedHashMap<>();
 		if ("true".equals(old.get(MARKER))) { return changes; }
-		for (CombatClass cls : CombatClass.values())
+		for (Combat cls : Combat.values())
 		{
-			String name = old.get(BestGearSetupConfig.POTION_KEY_PREFIX + cls.name());
+			String name = old.get(Options.POTION_KEY_PREFIX + cls.name());
 			String key = cls.name().toLowerCase(java.util.Locale.ROOT) + "PotionChoice";
 			Object selected = name == null ? null : BestGearSetupPlugin.potionOption(cls, name);
 			if (selected != null && (old.get(key) == null || "BEST".equals(old.get(key))))
 			{ changes.put(key, selected); }
 		}
 		// Legacy false was the default, not evidence that the user intended a permanent override.
-		if ("true".equals(old.get(BestGearSetupConfig.ON_TASK_KEY)) && (old.get("taskMode") == null || "AUTO".equals(old.get("taskMode"))))
+		if ("true".equals(old.get(Options.ON_TASK_KEY)) && (old.get("taskMode") == null || "AUTO".equals(old.get("taskMode"))))
 		{ changes.put("taskMode", AutoState.ON); }
 		for (String[] input : new String[][]{{"raidPartySize","1"},{"toaRaidLevel","0"},{"toaPathLevel","0"},{"coxChallengeMode","false"}})
 		{

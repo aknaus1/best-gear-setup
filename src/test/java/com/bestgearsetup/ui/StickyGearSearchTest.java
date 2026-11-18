@@ -12,7 +12,7 @@ import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.calc.SpellFilter;
 import com.bestgearsetup.calc.SpellRule;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
 import com.bestgearsetup.data.WikiGameData;
@@ -45,16 +45,16 @@ public class StickyGearSearchTest
 	@org.junit.After public void tipsAreShort() throws Exception { HoverTextLengthTest.assertTrackedTipsShort(); }
 
 	private static final GameData DATA = load();
-	private static final GearItem BERSERKER = DATA.searchItems("berserker ring", 2, Slot.RING).get(0);
-	private static final GearItem BERSERKER_I = DATA.searchItems("berserker ring", 2, Slot.RING).get(1);
-	private static final GearItem LIGHTBEARER = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);
+	private static final Gear BERSERKER = DATA.searchItems("berserker ring", 2, Slot.RING).get(0);
+	private static final Gear BERSERKER_I = DATA.searchItems("berserker ring", 2, Slot.RING).get(1);
+	private static final Gear LIGHTBEARER = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);
 	private static final String BERSERKER_BUTTON = titled(BERSERKER) + " (Ring)";
 	private static final String BERSERKER_I_BUTTON = titled(BERSERKER_I) + " (Ring)";
 
 	private final Map<Slot, SlotLock> locks = new EnumMap<>(Slot.class);
 	private final Set<Integer> excluded = new LinkedHashSet<>();
 	private final Set<Integer> manual = new LinkedHashSet<>();
-	private final List<GearItem> lockCalls = new ArrayList<>();
+	private final List<Gear> lockCalls = new ArrayList<>();
 	private SpellFilter filter = SpellFilter.NONE;
 	private final List<Spell> spells = Arrays.asList(spell("fire bolt"), spell("fire strike"), spell("fire blast"),
 		spell("wind strike"));
@@ -68,7 +68,7 @@ public class StickyGearSearchTest
 		}
 
 		@Override
-		public boolean owns(GearItem item)
+		public boolean owns(Gear item)
 		{
 			return false;
 		}
@@ -80,7 +80,7 @@ public class StickyGearSearchTest
 		}
 
 		@Override
-		public void lockItem(GearItem item)
+		public void lockItem(Gear item)
 		{
 			lockCalls.add(item);
 			excluded.remove(item.getId());
@@ -597,7 +597,7 @@ public class StickyGearSearchTest
 		});
 	}
 
-	private static String titled(GearItem item)
+	private static String titled(Gear item)
 	{
 		return GameData.titleCase(item.getName());
 	}

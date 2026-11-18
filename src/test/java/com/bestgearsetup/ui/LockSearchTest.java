@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
 import java.awt.Component;
@@ -53,7 +53,7 @@ public class LockSearchTest
 	@Test
 	public void anyItemCanBeLockedFromTheGearView() throws Exception
 	{
-		List<GearItem> locked = new ArrayList<>();
+		List<Gear> locked = new ArrayList<>();
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin()
 		{
 			@Override
@@ -63,7 +63,7 @@ public class LockSearchTest
 			}
 
 			@Override
-			public boolean owns(GearItem item)
+			public boolean owns(Gear item)
 			{
 				return false;
 			}
@@ -75,7 +75,7 @@ public class LockSearchTest
 			}
 
 			@Override
-			public void lockItem(GearItem item)
+			public void lockItem(Gear item)
 			{
 				locked.add(item);
 			}
@@ -111,7 +111,7 @@ public class LockSearchTest
 	@Test
 	public void lockingAnExcludedItemRestoresIt()
 	{
-		GearItem lightbearer = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);
+		Gear lightbearer = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);
 		Map<String, Object> writes = new HashMap<>();
 		Set<Integer> excluded = new LinkedHashSet<>(Collections.singleton(lightbearer.getId()));
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin()

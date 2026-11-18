@@ -4,9 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.ItemCosts;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
 import java.util.Arrays;
@@ -21,8 +21,8 @@ import org.junit.Test;
 public class AmmunitionOwnershipTest
 {
 	private static GameData data;
-	private static GearItem atlatl;
-	private static GearItem dart;
+	private static Gear atlatl;
+	private static Gear dart;
 	private static CombatContext context;
 
 	@BeforeClass
@@ -39,14 +39,14 @@ public class AmmunitionOwnershipTest
 	{
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.spellbooks(Collections.emptySet()).build();
-		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, context, settings, id -> id == atlatl.getId() || id == 22947, GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
-		SetupResult result = com.bestgearsetup.calc.Optimizers.of(data, context, settings,
-			id -> id == atlatl.getId() || id == dart.getId() || id == 22947, GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, context, settings, id -> id == atlatl.getId() || id == 22947, Gear::getPrice)
+			.optimize(Combat.RANGED, () -> false, done -> { }).isEmpty());
+		Setup result = com.bestgearsetup.calc.Optimizers.of(data, context, settings,
+			id -> id == atlatl.getId() || id == dart.getId() || id == 22947, Gear::getPrice)
+			.optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(dart, result.getLoadout().get(Slot.AMMO));
-		assertTrue(WeaponRules.firesAmmoSlot(atlatl));
-		assertFalse(WeaponRules.loadsAmmo(atlatl));
+		assertTrue(Weapons.firesAmmoSlot(atlatl));
+		assertFalse(Weapons.loadsAmmo(atlatl));
 	}
 
 	@Test
@@ -55,11 +55,11 @@ public class AmmunitionOwnershipTest
 		GameData small = TestData.gameData(Arrays.asList(atlatl, dart), Collections.emptyList());
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(7000)
 			.ammoCount(1000).spellbooks(Collections.emptySet()).build();
-		SetupResult result = com.bestgearsetup.calc.Optimizers.of(small, context, settings, id -> id == atlatl.getId(), item -> 7)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup result = com.bestgearsetup.calc.Optimizers.of(small, context, settings, id -> id == atlatl.getId(), item -> 7)
+			.optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(7000, result.getBuyCost());
 		assertTrue(com.bestgearsetup.calc.Optimizers.of(small, context, settings.toBuilder().budget(6999).build(),
-			id -> id == atlatl.getId(), item -> 7).optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
+			id -> id == atlatl.getId(), item -> 7).optimize(Combat.RANGED, () -> false, done -> { }).isEmpty());
 	}
 
 	/** Owning part of the requested stack prices only the shortfall; it never makes the whole stack free. */
@@ -72,33 +72,33 @@ public class AmmunitionOwnershipTest
 		OptimizerSettings budget = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(0)
 			.ammoCount(100_000).spellbooks(Collections.emptySet()).build();
 		assertTrue("A zero budget can't buy the 99,841 missing darts",
-			new Optimizer(small, context, budget, owned, held, item -> 7).optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
+			new Optimizer(small, context, budget, owned, held, item -> 7).optimize(Combat.RANGED, () -> false, done -> { }).isEmpty());
 
 		long shortfall = (100_000 - 159) * 7L;
-		SetupResult bought = new Optimizer(small, context, budget.toBuilder().budget(shortfall).build(), owned, held,
-			item -> 7).optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup bought = new Optimizer(small, context, budget.toBuilder().budget(shortfall).build(), owned, held,
+			item -> 7).optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(shortfall, bought.getBuyCost());
 		assertTrue(new Optimizer(small, context, budget.toBuilder().budget(shortfall - 1).build(), owned, held,
-			item -> 7).optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
+			item -> 7).optimize(Combat.RANGED, () -> false, done -> { }).isEmpty());
 
-		SetupResult unlimited = new Optimizer(small, context, budget.toBuilder().mode(SearchMode.UNLIMITED).build(),
-			owned, held, item -> 7).optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup unlimited = new Optimizer(small, context, budget.toBuilder().mode(SearchMode.UNLIMITED).build(),
+			owned, held, item -> 7).optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(shortfall, unlimited.getBuyCost());
 
 		OptimizerSettings ownedOnly = budget.toBuilder().mode(SearchMode.OWNED_ONLY).build();
 		Optimizer tooFew = new Optimizer(small, context, ownedOnly, owned, held, item -> 7);
-		assertTrue(tooFew.optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
+		assertTrue(tooFew.optimize(Combat.RANGED, () -> false, done -> { }).isEmpty());
 		assertTrue(tooFew.unusableReason(dart).contains("159 of the 100000"));
-		SetupResult enough = new Optimizer(small, context, ownedOnly.toBuilder().ammoCount(159).build(), owned, held,
-			item -> 7).optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup enough = new Optimizer(small, context, ownedOnly.toBuilder().ammoCount(159).build(), owned, held,
+			item -> 7).optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(0, enough.getBuyCost());
 
 		// Unpriced darts: the shortfall can't be priced, so it is reported rather than counted as free.
-		SetupResult unpriced = new Optimizer(small, context, budget.toBuilder().mode(SearchMode.UNLIMITED).build(),
-			owned, held, item -> item == dart ? ItemCosts.UNKNOWN : 7).optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup unpriced = new Optimizer(small, context, budget.toBuilder().mode(SearchMode.UNLIMITED).build(),
+			owned, held, item -> item == dart ? ItemCosts.UNKNOWN : 7).optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(1, unpriced.getUnpricedItems());
-		SetupResult covered = new Optimizer(small, context, budget.toBuilder().mode(SearchMode.UNLIMITED).ammoCount(100)
-			.build(), owned, held, item -> item == dart ? ItemCosts.UNKNOWN : 7).optimize(CombatClass.RANGED, () -> false, done -> { })
+		Setup covered = new Optimizer(small, context, budget.toBuilder().mode(SearchMode.UNLIMITED).ammoCount(100)
+			.build(), owned, held, item -> item == dart ? ItemCosts.UNKNOWN : 7).optimize(Combat.RANGED, () -> false, done -> { })
 			.get(0);
 		assertEquals(0, covered.getUnpricedItems());
 	}
@@ -107,7 +107,7 @@ public class AmmunitionOwnershipTest
 	@Test
 	public void thrownWeaponsArePricedAndOwnedByTheRequestedQuantity()
 	{
-		GearItem knife = data.getItem(Slot.WEAPON, 868);
+		Gear knife = data.getItem(Slot.WEAPON, 868);
 		assertEquals("rune knife", knife.getName());
 		GameData small = TestData.gameData(Collections.singletonList(knife), Collections.emptyList());
 		IntPredicate owned = id -> id == knife.getId();
@@ -115,20 +115,20 @@ public class AmmunitionOwnershipTest
 		OptimizerSettings budget = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(0)
 			.ammoCount(100_000).spellbooks(Collections.emptySet()).build();
 		assertTrue("Six knives can't supply 100,000 throws on a zero budget",
-			new Optimizer(small, context, budget, owned, held, item -> 50).optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
+			new Optimizer(small, context, budget, owned, held, item -> 50).optimize(Combat.RANGED, () -> false, done -> { }).isEmpty());
 		OptimizerSettings ownedOnly = budget.toBuilder().mode(SearchMode.OWNED_ONLY).build();
 		assertTrue(new Optimizer(small, context, ownedOnly, owned, held, item -> 50)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
+			.optimize(Combat.RANGED, () -> false, done -> { }).isEmpty());
 
 		long shortfall = (100_000 - 6) * 50L;
 		assertEquals(shortfall, new Optimizer(small, context, budget.toBuilder().budget(shortfall).build(), owned, held,
-			item -> 50).optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getBuyCost());
+			item -> 50).optimize(Combat.RANGED, () -> false, done -> { }).get(0).getBuyCost());
 		assertEquals(shortfall, new Optimizer(small, context, budget.toBuilder().mode(SearchMode.UNLIMITED).build(),
-			owned, held, item -> 50).optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getBuyCost());
+			owned, held, item -> 50).optimize(Combat.RANGED, () -> false, done -> { }).get(0).getBuyCost());
 		assertEquals(0, new Optimizer(small, context, ownedOnly.toBuilder().ammoCount(6).build(), owned, held,
-			item -> 50).optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getBuyCost());
+			item -> 50).optimize(Combat.RANGED, () -> false, done -> { }).get(0).getBuyCost());
 		assertEquals(1, new Optimizer(small, context, budget.toBuilder().mode(SearchMode.UNLIMITED).build(), owned, held,
-			item -> ItemCosts.UNKNOWN).optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getUnpricedItems());
+			item -> ItemCosts.UNKNOWN).optimize(Combat.RANGED, () -> false, done -> { }).get(0).getUnpricedItems());
 	}
 
 	@Test
@@ -136,29 +136,29 @@ public class AmmunitionOwnershipTest
 	{
 		for (int id : new int[]{868, 811, 805, 11959, 6522, 33716})
 		{
-			assertTrue(data.getItem(Slot.WEAPON, id).getName(), WeaponRules.consumedPerAttack(data.getItem(Slot.WEAPON, id)));
+			assertTrue(data.getItem(Slot.WEAPON, id).getName(), Weapons.consumedPerAttack(data.getItem(Slot.WEAPON, id)));
 		}
 		// Blowpipes, Tonalztics of Ralos, the Hunter's spear and the atlatl are thrown-style or ranged but kept.
 		for (int id : new int[]{12926, 28922, 29305, atlatl.getId(), 21012})
 		{
-			assertFalse(data.getItem(Slot.WEAPON, id).getName(), WeaponRules.consumedPerAttack(data.getItem(Slot.WEAPON, id)));
+			assertFalse(data.getItem(Slot.WEAPON, id).getName(), Weapons.consumedPerAttack(data.getItem(Slot.WEAPON, id)));
 		}
-		assertTrue(WeaponRules.consumedPerAttack(dart));
-		assertFalse(WeaponRules.consumedPerAttack(data.getItem(Slot.AMMO, 22947)));
+		assertTrue(Weapons.consumedPerAttack(dart));
+		assertFalse(Weapons.consumedPerAttack(data.getItem(Slot.AMMO, 22947)));
 	}
 
 	@Test
 	public void onlyBestInSlotAssumesAnUnownedDiaryTier()
 	{
-		GearItem elite = data.getItem(Slot.AMMO, 22947);
+		Gear elite = data.getItem(Slot.AMMO, 22947);
 		for (SearchMode mode : SearchMode.values())
 		{
 			OptimizerSettings settings = OptimizerSettings.builder().mode(mode).budget(Long.MAX_VALUE)
 				.spellbooks(Collections.emptySet()).build();
 			// Best in slot has no limit, so every diary tier is assumed.
 			assertEquals(mode == SearchMode.UNLIMITED,
-				com.bestgearsetup.calc.Optimizers.of(data, context, settings, id -> id == 22943, GearItem::getPrice).available(elite));
-			assertTrue(com.bestgearsetup.calc.Optimizers.of(data, context, settings, id -> id == 22947, GearItem::getPrice).available(elite));
+				com.bestgearsetup.calc.Optimizers.of(data, context, settings, id -> id == 22943, Gear::getPrice).available(elite));
+			assertTrue(com.bestgearsetup.calc.Optimizers.of(data, context, settings, id -> id == 22947, Gear::getPrice).available(elite));
 		}
 	}
 }

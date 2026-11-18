@@ -13,16 +13,16 @@ import lombok.Getter;
 public class GameData
 {
 	/** Unusable states, minigame-only items and starter gear, by name. */
-	private static final NameLists.NameList EXCLUDED = NameLists.list("catalogue exclusions");
+	private static final Names.NameList EXCLUDED = Names.list("catalogue exclusions");
 
 	@Getter
-	private final List<MonsterSummary> monsters;
-	private final Map<Slot, List<GearItem>> itemsBySlot = new EnumMap<>(Slot.class);
-	private final Map<Slot, Map<Integer, GearItem>> itemsBySlotAndId = new EnumMap<>(Slot.class);
+	private final List<Summary> monsters;
+	private final Map<Slot, List<Gear>> itemsBySlot = new EnumMap<>(Slot.class);
+	private final Map<Slot, Map<Integer, Gear>> itemsBySlotAndId = new EnumMap<>(Slot.class);
 	@Getter
 	private final List<Spell> spells;
-	private final Map<CombatClass, List<OffensivePrayer>> prayers = new EnumMap<>(CombatClass.class);
-	private final Map<Integer, MonsterSummary> monstersById = new HashMap<>();
+	private final Map<Combat, List<OffensivePrayer>> prayers = new EnumMap<>(Combat.class);
+	private final Map<Integer, Summary> monstersById = new HashMap<>();
 	/** Variants grouped by base name, in bundle order of each group's first variant. */
 	private final List<MonsterGroup> groups = new ArrayList<>();
 	/** The same groups holding only their boss variants. */
@@ -34,9 +34,9 @@ public class GameData
 	 * Wiki text and the reviewed rule table.
 	 */
 	public GameData(
-		List<MonsterSummary> monsters,
-		Map<String, List<GearItem>> equipmentBySlotKey,
-		List<GearItem> weapons,
+		List<Summary> monsters,
+		Map<String, List<Gear>> equipmentBySlotKey,
+		List<Gear> weapons,
 		List<Spell> spells,
 		Map<String, List<Prayer>> prayersByCategory,
 		Map<String, List<Potion>> potionsBySkill)
@@ -49,19 +49,19 @@ public class GameData
 			itemsBySlot.put(slot, new ArrayList<>());
 			itemsBySlotAndId.put(slot, new HashMap<>());
 		}
-		for (Map.Entry<String, List<GearItem>> e : equipmentBySlotKey.entrySet())
+		for (Map.Entry<String, List<Gear>> e : equipmentBySlotKey.entrySet())
 		{
 			Slot slot = Slot.fromApiKey(e.getKey());
 			if (slot == null || slot == Slot.WEAPON)
 			{
 				continue;
 			}
-			for (GearItem item : e.getValue())
+			for (Gear item : e.getValue())
 			{
 				addItem(slot, item);
 			}
 		}
-		for (GearItem weapon : weapons)
+		for (Gear weapon : weapons)
 		{
 			addItem(Slot.WEAPON, weapon);
 		}
@@ -88,16 +88,16 @@ public class GameData
 
 	private void indexMonsters()
 	{
-		for (MonsterSummary m : this.monsters)
+		for (Summary m : this.monsters)
 		{
 			for (int id : m.getIds())
 			{
 				monstersById.putIfAbsent(id, m);
 			}
 		}
-		Map<String, List<MonsterSummary>> byBase = new LinkedHashMap<>();
-		Map<String, List<MonsterSummary>> bossesByBase = new LinkedHashMap<>();
-		for (MonsterSummary m : this.monsters)
+		Map<String, List<Summary>> byBase = new LinkedHashMap<>();
+		Map<String, List<Summary>> bossesByBase = new LinkedHashMap<>();
+		for (Summary m : this.monsters)
 		{
 			String base = MonsterGroup.baseName(m.getName());
 			byBase.computeIfAbsent(base, k -> new ArrayList<>()).add(m);
@@ -111,7 +111,7 @@ public class GameData
 	}
 
 	/** @param gson the client's Gson, used to deep-copy the items (plugins may not create their own) */
-	private GameData(Gson gson, GameData base, List<MonsterSummary> monsters)
+	private GameData(Gson gson, GameData base, List<Summary> monsters)
 	{
 		this.monsters = Collections.unmodifiableList(new ArrayList<>(monsters));
 		indexMonsters();
@@ -119,9 +119,9 @@ public class GameData
 		{
 			itemsBySlot.put(slot, new ArrayList<>());
 			itemsBySlotAndId.put(slot, new HashMap<>());
-			for (GearItem item : base.itemsBySlot.get(slot))
+			for (Gear item : base.itemsBySlot.get(slot))
 			{
-				addItem(slot, gson.fromJson(gson.toJson(item), GearItem.class));
+				addItem(slot, gson.fromJson(gson.toJson(item), Gear.class));
 			}
 		}
 		spells = base.spells;
@@ -134,18 +134,18 @@ public class GameData
 	 *
 	 * @param gson the client's Gson, used to deep-copy the items
 	 */
-	public GameData withMonsters(Gson gson, List<MonsterSummary> replacement)
+	public GameData withMonsters(Gson gson, List<Summary> replacement)
 	{
 		return new GameData(gson, this, replacement);
 	}
 
-	private void addItem(Slot slot, GearItem item)
+	private void addItem(Slot slot, Gear item)
 	{
 		// The same id can appear in two slots (darts are both blowpipe ammo and thrown weapons). Within a slot
 		// one id may name two states with different stats (the keris partisan of amascut inside and outside
 		// the Tombs of Amascut); encounter rules pick one, and id lookups return the first.
-		Map<Integer, GearItem> byId = itemsBySlotAndId.get(slot);
-		GearItem existing = item == null ? null : byId.get(item.getId());
+		Map<Integer, Gear> byId = itemsBySlotAndId.get(slot);
+		Gear existing = item == null ? null : byId.get(item.getId());
 		if (item == null || isExcluded(item) || existing != null && existing.getName().equals(item.getName()))
 		{
 			return;
@@ -159,7 +159,7 @@ public class GameData
  * Unsupported custom Leagues items and unusable uncharged weapons. Activity gear is filtered per encounter.
 	 * Optional DMM, Bounty Hunter and beta equipment stays in the catalogue for search-time filtering.
 	 */
-	static boolean isExcluded(GearItem item)
+	static boolean isExcluded(Gear item)
 	{
 		if (item.isLeagueEquipment())
 		{
@@ -193,9 +193,9 @@ public class GameData
 				melee.add(new OffensivePrayer(att.getName(), att.getBoost(), 0, att.getPrayerLevel(), att.getDefenceLevel()));
 			}
 		}
-		prayers.put(CombatClass.MELEE, melee);
-		prayers.put(CombatClass.RANGED, toOffensive(byCategory.get("ranged")));
-		prayers.put(CombatClass.MAGIC, toOffensive(byCategory.get("magic")));
+		prayers.put(Combat.MELEE, melee);
+		prayers.put(Combat.RANGED, toOffensive(byCategory.get("ranged")));
+		prayers.put(Combat.MAGIC, toOffensive(byCategory.get("magic")));
 	}
 
 	private static Map<String, Prayer> standardByName(List<Prayer> list)
@@ -237,7 +237,7 @@ public class GameData
 		return out;
 	}
 
-	public List<GearItem> getItems(Slot slot)
+	public List<Gear> getItems(Slot slot)
 	{
 		return Collections.unmodifiableList(itemsBySlot.get(slot));
 	}
@@ -250,7 +250,7 @@ public class GameData
 	{
 		for (Slot slot : Slot.values())
 		{
-			for (GearItem item : new ArrayList<>(getItems(slot)))
+			for (Gear item : new ArrayList<>(getItems(slot)))
 			{
 				for (int variant : item.getVariants())
 				{
@@ -263,7 +263,7 @@ public class GameData
 					{
 						continue;
 					}
-					GearItem copy = gson.fromJson(gson.toJson(item), GearItem.class);
+					Gear copy = gson.fromJson(gson.toJson(item), Gear.class);
 					copy.setId(variant);
 					copy.setCombatName(item.getCombatName());
 					copy.setCombatId(item.getCombatId());
@@ -288,7 +288,7 @@ public class GameData
 		}
 	}
 
-	public GearItem getItem(Slot slot, int id)
+	public Gear getItem(Slot slot, int id)
 	{
 		return itemsBySlotAndId.get(slot).get(id);
 	}
@@ -300,11 +300,11 @@ public class GameData
 	}
 
 	/** Finds an item in any slot by id. */
-	public GearItem findItem(int id)
+	public Gear findItem(int id)
 	{
 		for (Slot slot : Slot.values())
 		{
-			GearItem item = itemsBySlotAndId.get(slot).get(id);
+			Gear item = itemsBySlotAndId.get(slot).get(id);
 			if (item != null)
 			{
 				return item;
@@ -318,11 +318,11 @@ public class GameData
 	 * "dragon hunter crossbow" and "dragon hunter crossbow (b)". Includes the item itself. Members can differ
 	 * in stats or effects ("ruby bolts (e)"), so excluding the family is offered as a separate choice.
 	 */
-	public List<GearItem> variantFamily(GearItem item)
+	public List<Gear> variantFamily(Gear item)
 	{
 		String family = familyName(item.getName());
-		List<GearItem> out = new ArrayList<>();
-		for (GearItem other : getItems(item.getSlot()))
+		List<Gear> out = new ArrayList<>();
+		for (Gear other : getItems(item.getSlot()))
 		{
 			if (other.getId() == item.getId() || familyName(other.getName()).equals(family))
 			{
@@ -339,17 +339,17 @@ public class GameData
 	}
 
 	/** Case-insensitive substring search over all equipment names, one entry per item id. */
-	public List<GearItem> searchItems(String query, int limit)
+	public List<Gear> searchItems(String query, int limit)
 	{
 		return searchItems(query, limit, null);
 	}
 
 	/** As {@link #searchItems(String, int)}, limited to one equipment slot (null for every slot). */
-	public List<GearItem> searchItems(String query, int limit, Slot only)
+	public List<Gear> searchItems(String query, int limit, Slot only)
 	{
 		String q = query == null ? "" : query.toLowerCase(Locale.ROOT).trim();
-		List<GearItem> prefix = new ArrayList<>();
-		List<GearItem> contains = new ArrayList<>();
+		List<Gear> prefix = new ArrayList<>();
+		List<Gear> contains = new ArrayList<>();
 		if (q.isEmpty())
 		{
 			return prefix;
@@ -357,7 +357,7 @@ public class GameData
 		java.util.Set<Integer> seen = new java.util.HashSet<>();
 		for (Slot slot : only == null ? Slot.values() : new Slot[]{only})
 		{
-			for (GearItem item : itemsBySlot.get(slot))
+			for (Gear item : itemsBySlot.get(slot))
 			{
 				String n = item.getName();
 				if (!n.contains(q) || !seen.add(item.getId()))
@@ -367,13 +367,13 @@ public class GameData
 				(n.startsWith(q) ? prefix : contains).add(item);
 			}
 		}
-		prefix.sort(java.util.Comparator.comparing(GearItem::getName));
-		contains.sort(java.util.Comparator.comparing(GearItem::getName));
+		prefix.sort(java.util.Comparator.comparing(Gear::getName));
+		contains.sort(java.util.Comparator.comparing(Gear::getName));
 		prefix.addAll(contains);
 		return prefix.size() > limit ? new ArrayList<>(prefix.subList(0, limit)) : prefix;
 	}
 
-	public List<OffensivePrayer> getPrayers(CombatClass combatClass)
+	public List<OffensivePrayer> getPrayers(Combat combatClass)
 	{
 		return Collections.unmodifiableList(prayers.getOrDefault(combatClass, Collections.emptyList()));
 	}
@@ -382,9 +382,9 @@ public class GameData
 	 * Find the monster variant for an in-game NPC: exact NPC id first, then name and level fallbacks.
 	 * Normal variants take precedence over special versions at every fallback tier.
 	 */
-	public MonsterSummary matchNpc(int npcId, String npcName, int combatLevel)
+	public Summary matchNpc(int npcId, String npcName, int combatLevel)
 	{
-		MonsterSummary byId = monstersById.get(npcId);
+		Summary byId = monstersById.get(npcId);
 		if (byId != null)
 		{
 			return byId;
@@ -394,9 +394,9 @@ public class GameData
 			return null;
 		}
 		String name = npcName.toLowerCase(Locale.ROOT).trim();
-		MonsterSummary[] normal = new MonsterSummary[4];
-		MonsterSummary[] special = new MonsterSummary[4];
-		for (MonsterSummary m : monsters)
+		Summary[] normal = new Summary[4];
+		Summary[] special = new Summary[4];
+		for (Summary m : monsters)
 		{
 			String n = m.getName();
 			int tier;
@@ -412,20 +412,20 @@ public class GameData
 			{
 				continue;
 			}
-			MonsterSummary[] candidates = MonsterGroup.specialVersion(n) ? special : normal;
+			Summary[] candidates = MonsterGroup.specialVersion(n) ? special : normal;
 			if (candidates[tier] == null)
 			{
 				candidates[tier] = m;
 			}
 		}
-		for (MonsterSummary candidate : normal)
+		for (Summary candidate : normal)
 		{
 			if (candidate != null)
 			{
 				return candidate;
 			}
 		}
-		for (MonsterSummary candidate : special)
+		for (Summary candidate : special)
 		{
 			if (candidate != null)
 			{
@@ -453,7 +453,7 @@ public class GameData
 		for (MonsterGroup group : bossesOnly ? bossGroups : groups)
 		{
 			int rank = matchRank(group.getName(), q);
-			for (MonsterSummary variant : group.getVariants())
+			for (Summary variant : group.getVariants())
 			{
 				rank = Math.min(rank, matchRank(variant.getName(), q));
 			}
@@ -485,7 +485,7 @@ public class GameData
 	 * The group a variant belongs to, restricted to bosses when asked and the variant is one; a target outside
 	 * the bundled list forms a group of its own.
 	 */
-	public MonsterGroup groupOf(MonsterSummary monster, boolean bossesOnly)
+	public MonsterGroup groupOf(Summary monster, boolean bossesOnly)
 	{
 		if (bossesOnly)
 		{

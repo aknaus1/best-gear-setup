@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import com.bestgearsetup.calc.SearchMode;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.Collections;
@@ -105,7 +105,7 @@ public class SearchInvalidationTest
 		plugin.searchOwned = owned.snapshot();
 		plugin.searchQuantities = owned.quantitySnapshot();
 		plugin.searchAmmoCount = 100_000;
-		plugin.lastSearched = new MonsterSummary();
+		plugin.lastSearched = new Summary();
 		plugin.gearIds = ids(9242);
 		plugin.consumableIds = ids(9242);
 	}
@@ -185,7 +185,7 @@ public class SearchInvalidationTest
 		plugin.searchMode = SearchMode.INVENTORY_ONLY;
 		plugin.searchOwned = owned.snapshot(SearchMode.INVENTORY_ONLY);
 		plugin.searchQuantities = owned.quantitySnapshot(SearchMode.INVENTORY_ONLY);
-		plugin.lastSearched = new MonsterSummary();
+		plugin.lastSearched = new Summary();
 		plugin.gearIds = ids(4151, 11840);
 
 		owned.bank = Collections.singletonMap(11840, 1L);
@@ -229,7 +229,7 @@ public class SearchInvalidationTest
 		plugin.ownedItems = owned;
 		plugin.searchOwned = owned.snapshot();
 		plugin.searchQuantities = owned.quantitySnapshot();
-		plugin.lastSearched = new MonsterSummary();
+		plugin.lastSearched = new Summary();
 		plugin.gearIds = ids(4151);
 	}
 

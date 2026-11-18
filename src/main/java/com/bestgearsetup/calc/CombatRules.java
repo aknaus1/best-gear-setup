@@ -1,7 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.*;
-import static com.bestgearsetup.calc.EncounterDamage.*;
+import static com.bestgearsetup.calc.Encounter.*;
 
 /** Static encounter identity rules from the OSRS Wiki calculator; phases remain separate targets. */
 final class CombatRules
@@ -104,13 +104,13 @@ final class CombatRules
 			|| m.getId() >= 9021 && m.getId() <= 9048;
 	}
 
-	static boolean equipmentAllowed(Monster m, GearItem item)
+	static boolean equipmentAllowed(Monster m, Gear item)
 	{
 		return equipmentAllowed(m, gauntlet(m), item);
 	}
 
 	/** @param gauntlet {@link #gauntlet(Monster)}, worked out once when checking every slot of a setup */
-	static boolean equipmentAllowed(Monster m, boolean gauntlet, GearItem item)
+	static boolean equipmentAllowed(Monster m, boolean gauntlet, Gear item)
 	{
 		String name = lower(item);
 		boolean activity = (name.startsWith("crystal ") || name.startsWith("corrupted "))
@@ -230,21 +230,21 @@ final class CombatRules
 	 * Void flares always take a maximum hit from magic and from standard ranged weapons (Wiki); melee and light or
 	 * heavy ranged attacks roll normally.
 	 */
-	static boolean flareMax(Monster m, Loadout loadout)
+	static boolean flareMax(Monster m, Outfit loadout)
 	{
 		if (!voidFlare(m))
 		{
 			return false;
 		}
-		CombatClass cls = WeaponRules.classOf(loadout.getStyle());
-		return cls == CombatClass.MAGIC || cls == CombatClass.RANGED && standardRanged(loadout.getWeapon());
+		Combat cls = Weapons.classOf(loadout.getStyle());
+		return cls == Combat.MAGIC || cls == Combat.RANGED && standardRanged(loadout.getWeapon());
 	}
 
 	/**
 	 * Standard ranged weapons: bows (the eclipse atlatl is one), and salamanders' ranged attack (Wiki: Ranged). Crossbows, including
 	 * Karil's, and chinchompas are heavy; thrown weapons are light.
 	 */
-	static boolean standardRanged(GearItem weapon)
+	static boolean standardRanged(Gear weapon)
 	{
 		String sub = weapon.getSubcategory();
 		return sub.equals("bow") || sub.equals("salamander");
@@ -255,7 +255,7 @@ final class CombatRules
 		return percent * demonVulnerability(m) / 100;
 	}
 
-	static boolean alwaysMax(Monster m, CombatClass cls)
+	static boolean alwaysMax(Monster m, Combat cls)
 	{
 		int id = m.getId();
 		if (id == 14180)
@@ -278,9 +278,9 @@ final class CombatRules
 		return m.getId() == 7223 || m.getId() == 8584 || m.getId() == 11193;
 	}
 
-	static double accuracy(Monster m, Loadout l, double normal)
+	static double accuracy(Monster m, Outfit l, double normal)
 	{
-		return alwaysMax(m, WeaponRules.classOf(l.getStyle())) || oneHit(m) || m.getId() == 5916 || wardenP2(m)
+		return alwaysMax(m, Weapons.classOf(l.getStyle())) || oneHit(m) || m.getId() == 5916 || wardenP2(m)
 			|| m.getLowerName().contains("(100% accuracy)")
 			|| phase(m, EncounterPhase.MOKHAIOTL_SHIELDED) || phase(m, EncounterPhase.MOKHAIOTL_BURROWING)
 			|| phase(m, EncounterPhase.TD_DEFENCELESS)
@@ -295,7 +295,7 @@ final class CombatRules
 		return named(m, "eclipse moon") && m.getLowerName().contains("clone");
 	}
 
-	static boolean araxyteMax(Monster m, Loadout l)
+	static boolean araxyteMax(Monster m, Outfit l)
 	{
 		if (!named(m, "acidic araxyte") && !named(m, "mirrorback araxyte"))
 		{
@@ -306,22 +306,22 @@ final class CombatRules
 			return true;
 		}
 		DpsCalculator.Bonuses b = DpsCalculator.Bonuses.of(l);
-		return l.getStyle().getType() == AttackStyle.Type.CRUSH && b.crush > b.stab && b.crush > b.slash
+		return l.getStyle().getType() == Style.Type.CRUSH && b.crush > b.stab && b.crush > b.slash
 			&& b.crush >= b.magic && b.crush >= b.ranged
-			|| l.getStyle().getType() == AttackStyle.Type.RANGED && l.getWeapon().getSubcategory().equals("crossbow")
+			|| l.getStyle().getType() == Style.Type.RANGED && l.getWeapon().getSubcategory().equals("crossbow")
 			&& b.ranged > b.stab && b.ranged > b.slash && b.ranged > b.crush && b.ranged > b.magic;
 	}
 
-	static boolean tormentedBonus(Monster m, Loadout l)
+	static boolean tormentedBonus(Monster m, Outfit l)
 	{
 		if (!unshielded(m))
 		{
 			return false;
 		}
 		String category = l.getWeapon().getSubcategory();
-		return l.getStyle().getType() == AttackStyle.Type.CRUSH
-			|| l.getStyle().getType() == AttackStyle.Type.MAGIC && l.getSpell() != null
-			|| l.getStyle().getType() == AttackStyle.Type.RANGED && (category.equals("chinchompa")
+		return l.getStyle().getType() == Style.Type.CRUSH
+			|| l.getStyle().getType() == Style.Type.MAGIC && l.getSpell() != null
+			|| l.getStyle().getType() == Style.Type.RANGED && (category.equals("chinchompa")
 			|| category.equals("crossbow"));
 	}
 }

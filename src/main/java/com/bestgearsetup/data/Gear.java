@@ -12,10 +12,10 @@ import net.runelite.api.gameval.ItemID;
  * weapon-only fields (speed, styles, ammunition); armour leaves them at their defaults.
  */
 @Data
-public class GearItem
+public class Gear
 {
 	/** Historical Leagues rewards, by name; Gson skips static fields. */
-	private static final NameLists.NameList LEAGUE_EQUIPMENT = NameLists.list("league equipment");
+	private static final Names.NameList LEAGUE_EQUIPMENT = Names.list("league equipment");
 
 	private int id;
 	private String name;

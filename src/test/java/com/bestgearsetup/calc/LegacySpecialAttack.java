@@ -1,7 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import java.util.Locale;
 
 /**
@@ -178,17 +178,17 @@ final class LegacySpecialAttack
 	}
 
 	/** Spec for the loadout's weapon and attack class, or null when it has no damaging special attack. */
-	static LegacySpecialAttack of(Loadout l, CombatContext ctx)
+	static LegacySpecialAttack of(Outfit l, CombatContext ctx)
 	{
-		GearItem weapon = l.getWeapon();
+		Gear weapon = l.getWeapon();
 		if (weapon == null || l.getStyle() == null)
 		{
 			return null;
 		}
-		String n = EncounterDamage.lower(weapon);
-		AttackStyle.Type type = l.getStyle().getType();
+		String n = Encounter.lower(weapon);
+		Style.Type type = l.getStyle().getType();
 		boolean melee = l.getStyle().isMelee();
-		boolean ranged = type == AttackStyle.Type.RANGED;
+		boolean ranged = type == Style.Type.RANGED;
 		if (ranged && n.startsWith("scorching bow") && !ctx.getMonster().hasAttribute("demon"))
 		{
 			// Scorching shackles fail against non-demons.
@@ -197,7 +197,7 @@ final class LegacySpecialAttack
 		return melee ? melee(n, l, ctx) : ranged ? ranged(n, weapon) : magic(n);
 	}
 
-	private static LegacySpecialAttack melee(String n, Loadout l, CombatContext ctx)
+	private static LegacySpecialAttack melee(String n, Outfit l, CombatContext ctx)
 	{
 		if (n.startsWith("abyssal dagger"))
 		{
@@ -220,7 +220,7 @@ final class LegacySpecialAttack
 			// The ordinary 15% minimum remains but the maximum is not reduced; accuracy still rolls twice.
 			return spec("Osmumten's fang", 25, Kind.FANG, 1, 3, 2, null);
 		}
-		if (n.equals("dual macuahuitl") && EquipmentEffects.bloodMoon(l))
+		if (n.equals("dual macuahuitl") && Effects.bloodMoon(l))
 		{
 			return spec("Dual macuahuitl", 25, Kind.BLOOD_MOON, 2, 1, 1, null, 1, 1);
 		}
@@ -355,7 +355,7 @@ final class LegacySpecialAttack
 		return null;
 	}
 
-	private static LegacySpecialAttack ranged(String n, GearItem weapon)
+	private static LegacySpecialAttack ranged(String n, Gear weapon)
 	{
 		if (n.startsWith("armadyl crossbow"))
 		{

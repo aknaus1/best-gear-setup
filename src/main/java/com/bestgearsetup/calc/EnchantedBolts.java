@@ -11,20 +11,20 @@ final class EnchantedBolts
 	{
 	}
 
-	static Result calculate(Loadout l, CombatContext ctx, EncounterDamage.Rule rule, double accuracy, long min, long max)
+	static Result calculate(Outfit l, CombatContext ctx, Encounter.Rule rule, double accuracy, long min, long max)
 	{
-		String ammo = EncounterDamage.lower(l.get(Slot.AMMO));
+		String ammo = Encounter.lower(l.get(Slot.AMMO));
 		if (!ammo.endsWith("(e)"))
 		{
 			return null;
 		}
 		Monster monster = ctx.getMonster();
-		boolean zaryte = EncounterDamage.lower(l.getWeapon()).startsWith("zaryte crossbow");
+		boolean zaryte = Encounter.lower(l.getWeapon()).startsWith("zaryte crossbow");
 		// The Zaryte crossbow special guarantees the effect on every accurate hit; misses keep the usual chance.
 		boolean guaranteed = zaryte && ctx.getModifiers().isSpecialAttack();
 		double diary = ctx.getModifiers().isKandarinDiary() ? 1.1 : 1;
-		double normal = EquipmentEffects.average(rule, l, ctx, min, max);
-		int normalMax = EquipmentEffects.maximum(rule, l, ctx, max);
+		double normal = Effects.average(rule, l, ctx, min, max);
+		int normalMax = Effects.maximum(rule, l, ctx, max);
 		double chance;
 		double effectHit;
 		// Expected effect damage when it procs on a miss; negative when misses cannot proc.
@@ -35,11 +35,11 @@ final class EnchantedBolts
 			&& ctx.getModifiers().targetHp(monster) > 0)
 		{
 			chance = 0.06 * diary;
-			boolean infinite = EncounterDamage.gemstoneCrab(monster);
+			boolean infinite = Encounter.gemstoneCrab(monster);
 			int cap = infinite ? zaryte ? 66 : 60 : zaryte ? 110 : 100;
 			int damage = Math.min(cap, ctx.getModifiers().targetHp(monster) * (zaryte ? 22 : 20) / 100);
 			// Corp's reduction precedes ruby replacement, so ruby effect damage bypasses it.
-			EncounterDamage.Rule rubyRule = EncounterDamage.corp(monster) ? EncounterDamage.unmitigated() : rule;
+			Encounter.Rule rubyRule = Encounter.corp(monster) ? Encounter.unmitigated() : rule;
 			effectHit = rubyRule.mean(Math.max(1, damage));
 			effectMiss = effectHit;
 			missBecomesAccurate = true;
@@ -90,10 +90,10 @@ final class EnchantedBolts
 			{
 				return null;
 			}
-			effectHit = HitDamage.average(rule, min, max, h -> EquipmentEffects.damage(l, ctx, h) + bonus);
+			effectHit = HitDamage.average(rule, min, max, h -> Effects.damage(l, ctx, h) + bonus);
 			// A miss that procs stays inaccurate, so flat armour does not reduce it.
 			effectMiss = missProc ? rule.meanInaccurate(bonus) : -1;
-			effectMax = rule.maximum(EquipmentEffects.damage(l, ctx, max) + bonus);
+			effectMax = rule.maximum(Effects.damage(l, ctx, max) + bonus);
 		}
 		double onHit = guaranteed ? 1 : chance;
 		double average = accuracy * (onHit * effectHit + (1 - onHit) * normal)

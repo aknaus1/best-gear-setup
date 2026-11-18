@@ -4,7 +4,7 @@ import static com.bestgearsetup.calc.TestData.item;
 import static com.bestgearsetup.calc.TestData.monster;
 import static com.bestgearsetup.calc.TestData.weapon;
 import static org.junit.Assert.assertEquals;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import org.junit.Test;
@@ -22,12 +22,12 @@ public class ReferenceParityTest
 	@Test
 	public void huntersSpearScalesWithStrengthAndMeleeStrengthBonus()
 	{
-		GearItem spear = weapon(29305, "hunter's spear", "thrown", 6, "accurate,ranged,accurate", "rapid,ranged,rapid");
+		Gear spear = weapon(29305, "hunter's spear", "thrown", 6, "accurate,ranged,accurate", "rapid,ranged,rapid");
 		spear.setRangedBonus(73);
 		spear.setMeleeStr(48);
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, spear);
-		l.setStyle(AttackStyle.parse("rapid,ranged,rapid"));
+		l.setStyle(Style.parse("rapid,ranged,rapid"));
 		CombatContext ctx = new CombatContext(monster(1, 0), PlayerLevels.maxed(), false, 99, 70, 99, 99, null, false);
 		// Visible Strength 70 + 8, melee strength 48: (78 * 112 + 320) / 640 = 14.
 		assertEquals(14, DpsCalculator.calculate(l, ctx).getMaxHit());
@@ -35,18 +35,18 @@ public class ReferenceParityTest
 		l.set(Slot.HEAD, item(11864, "slayer helmet", Slot.HEAD));
 		ctx = new CombatContext(monster(1, 0), PlayerLevels.maxed(), true, 99, 70, 99, 99, null, false);
 		assertEquals(16, DpsCalculator.calculate(l, ctx).getMaxHit());
-		assertEquals(AttackStyle.Type.RANGED, WeaponRules.tabType(spear, l.getStyle()));
+		assertEquals(Style.Type.RANGED, Weapons.tabType(spear, l.getStyle()));
 	}
 
 	@Test
 	public void forinthrySurgeRaisesAvariceAgainstRevenantsOnly()
 	{
-		GearItem sword = weapon(50000, "test sword", "slash sword", 4, "slash,slash,aggressive");
+		Gear sword = weapon(50000, "test sword", "slash sword", 4, "slash,slash,aggressive");
 		sword.setMeleeStr(100);
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, sword);
 		l.set(Slot.NECK, item(22557, "amulet of avarice", Slot.NECK));
-		l.setStyle(AttackStyle.parse("slash,slash,aggressive"));
+		l.setStyle(Style.parse("slash,slash,aggressive"));
 		Monster revenant = monster(1, 0);
 		revenant.setName("revenant knight");
 		// Effective strength 110; base max (110 * 164 + 320) / 640 = 28.

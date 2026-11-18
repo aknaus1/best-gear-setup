@@ -12,7 +12,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import com.bestgearsetup.calc.SearchMode;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.List;
@@ -77,7 +77,7 @@ public class StoredItemsIntegrationTest
 		when(notPlaceholder.getPlaceholderTemplateId()).thenReturn(-1);
 		when(items.getItemComposition(anyInt())).thenReturn(notPlaceholder);
 		plugin.ownedItems = new OwnedItems(config, items);
-		plugin.config = new BestGearSetupConfig() { };
+		plugin.config = new Options() { };
 		Client client = mock(Client.class);
 		when(client.getGameState()).thenReturn(GameState.LOGGED_IN);
 		plugin.client = client;
@@ -112,7 +112,7 @@ public class StoredItemsIntegrationTest
 		plugin.searchMode = mode;
 		plugin.searchOwned = plugin.ownedItems.snapshot(mode);
 		plugin.searchQuantities = plugin.ownedItems.quantitySnapshot(mode);
-		plugin.lastSearched = new MonsterSummary();
+		plugin.lastSearched = new Summary();
 	}
 
 	@Test public void withdrawingAndDepositingStorageGearAndAmmoNeverRestartsSearch() throws Exception

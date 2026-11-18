@@ -46,15 +46,15 @@ final class SpellRunes
 
 	static
 	{
-		for (JsonElement row : NameLists.rows("spell runes"))
+		for (JsonElement row : Names.rows("spell runes"))
 		{
 			SPELLS.put(row.getAsJsonArray().get(0).getAsString(), cost(row.getAsJsonArray()));
 		}
-		for (JsonElement row : NameLists.rows("support spell runes"))
+		for (JsonElement row : Names.rows("support spell runes"))
 		{
 			SUPPORT.put(row.getAsJsonArray().get(0).getAsString(), cost(row.getAsJsonArray()));
 		}
-		for (JsonElement row : NameLists.rows("staff runes"))
+		for (JsonElement row : Names.rows("staff runes"))
 		{
 			List<Integer> runes = new ArrayList<>();
 			for (int i = 1; i < row.getAsJsonArray().size(); i++)
@@ -169,7 +169,7 @@ final class SpellRunes
 	}
 
 	/** Duration in seconds of one support spell cast, without Master Combat Achievements rewards. */
-	static double supportDurationSeconds(SupportSpell spell, Loadout loadout, int baseMagic, int boostedMagic)
+	static double supportDurationSeconds(SupportSpell spell, Outfit loadout, int baseMagic, int boostedMagic)
 	{
 		switch (spell)
 		{
@@ -186,7 +186,7 @@ final class SpellRunes
 	}
 
 	/** Expected fraction of attack casts whose runes are saved by the weapon. */
-	static double runeSaveChance(Loadout loadout)
+	static double runeSaveChance(Outfit loadout)
 	{
 		String weapon = name(loadout == null ? null : loadout.get(Slot.WEAPON));
 		if ("kodai wand".equals(weapon))
@@ -213,13 +213,13 @@ final class SpellRunes
 	}
 
 	/** Item ids to bring for the setup's spells: the attack spell's runes first, then its support spells'. */
-	static List<Integer> required(SetupResult setup)
+	static List<Integer> required(Setup setup)
 	{
 		return setup == null ? Collections.emptyList()
 			: required(setup.getLoadout(), setup.getSupportSpells(), setup.getThrall());
 	}
 
-	static List<Integer> required(Loadout loadout, Set<SupportSpell> support, Thrall tier)
+	static List<Integer> required(Outfit loadout, Set<SupportSpell> support, Thrall tier)
 	{
 		if (loadout == null)
 		{
@@ -249,7 +249,7 @@ final class SpellRunes
 	}
 
 	/** Elemental runes the equipped staff or tome provides without limit. */
-	static Set<Integer> supplied(Loadout loadout)
+	static Set<Integer> supplied(Outfit loadout)
 	{
 		Set<Integer> runes = new HashSet<>();
 		String weapon = name(loadout.get(Slot.WEAPON));
@@ -280,7 +280,7 @@ final class SpellRunes
 		}
 	}
 
-	private static String name(GearItem item)
+	private static String name(Gear item)
 	{
 		return item == null ? "" : item.getName().toLowerCase(Locale.ROOT);
 	}

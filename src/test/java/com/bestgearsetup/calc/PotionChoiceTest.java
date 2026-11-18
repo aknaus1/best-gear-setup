@@ -4,11 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Prayer;
 import com.bestgearsetup.data.Slot;
@@ -39,8 +39,8 @@ public class PotionChoiceTest
 			potion("overload (+)", 6, 16, "xerician"),
 			potion("smelling salts", 11, 16, "tombs of amascut")));
 		potions.put("strength", Collections.singletonList(potion("dragon battleaxe", 10, 0)));
-		return new GameData(Collections.<MonsterSummary>emptyList(), Collections.<String, List<GearItem>>emptyMap(),
-			Collections.<GearItem>emptyList(), Collections.emptyList(), Collections.<String, List<Prayer>>emptyMap(), potions);
+		return new GameData(Collections.<Summary>emptyList(), Collections.<String, List<Gear>>emptyMap(),
+			Collections.<Gear>emptyList(), Collections.emptyList(), Collections.<String, List<Prayer>>emptyMap(), potions);
 	}
 
 	@Test
@@ -73,13 +73,13 @@ public class PotionChoiceTest
 		// 99 + 11 + 15 = 125
 		assertEquals(125, PotionChoice.boostedLevel(data(), "ranged", 99, "smelling salts", p -> true, null));
 		assertEquals(99, PotionChoice.boostedLevel(data(), "ranged", 99, PotionChoice.NONE, p -> true, null));
-		assertTrue(PotionNames.namesFor(data(), CombatClass.RANGED).contains("overload (+)"));
+		assertTrue(PotionNames.namesFor(data(), Combat.RANGED).contains("overload (+)"));
 	}
 
 	@Test
 	public void dragonBattleaxeIsNotOffered()
 	{
-		assertTrue(PotionNames.namesFor(data(), CombatClass.MELEE).isEmpty());
+		assertTrue(PotionNames.namesFor(data(), Combat.MELEE).isEmpty());
 	}
 
 	@Test

@@ -4,108 +4,108 @@ import java.util.*;
 import java.util.function.Function;
 
 /**
- * Every setting's getter, in one table shared by search snapshots ({@link SearchAssumptions}) and both settings
+ * Every setting's getter, in one table shared by search snapshots ({@link Assumptions}) and both settings
  * editors. Bindings are method references, so a renamed or removed getter fails to compile; SearchAssumptionsTest
  * fails until a new config item is added here.
  */
 public final class ConfigSettings
 {
 	private static final Map<String, Integer> INDICES = new LinkedHashMap<>();
-	private static final List<Function<BestGearSetupConfig, Object>> GETTERS = new ArrayList<>();
+	private static final List<Function<Options, Object>> GETTERS = new ArrayList<>();
 	/** Each setting's value type, taken from its declared default, so overrides are checked when captured. */
 	private static final List<Class<?>> TYPES = new ArrayList<>();
 
 	static
 	{
-		add("showMenuOption", BestGearSetupConfig::showMenuOption);
-		add("highlightBankGear", BestGearSetupConfig::highlightBankGear);
-		add("bankHighlightColor", BestGearSetupConfig::bankHighlightColor);
-		add("highlightInventoryGear", BestGearSetupConfig::highlightInventoryGear);
-		add("inventoryHighlightColor", BestGearSetupConfig::inventoryHighlightColor);
-		add("fillFood", BestGearSetupConfig::fillFood);
-		add("mode", BestGearSetupConfig::mode);
-		add("budget", BestGearSetupConfig::budget);
-		add("bossesOnly", BestGearSetupConfig::bossesOnly);
-		add("onSlayerTask", BestGearSetupConfig::onSlayerTask);
-		add("ancientMagicks", BestGearSetupConfig::ancientMagicks);
-		add("arceuusSpellbook", BestGearSetupConfig::arceuusSpellbook);
-		add("preventManualCast", BestGearSetupConfig::preventManualCast);
-		add("membersItems", BestGearSetupConfig::membersItems);
-		add("ammoCount", BestGearSetupConfig::ammoCount);
-		add("killsPerTrip", BestGearSetupConfig::killsPerTrip);
-		add("currentHitpoints", BestGearSetupConfig::currentHitpoints);
-		add("wilderness", BestGearSetupConfig::wilderness);
-		add("limitWildernessRisk", BestGearSetupConfig::limitWildernessRisk);
-		add("maxExpensiveItems", BestGearSetupConfig::maxExpensiveItems);
-		add("expensiveItemThreshold", BestGearSetupConfig::expensiveItemThreshold);
-		add("charge", BestGearSetupConfig::charge);
-		add("markOfDarkness", BestGearSetupConfig::markOfDarkness);
-		add("sunfireRunes", BestGearSetupConfig::sunfireRunes);
-		add("kandarinDiary", BestGearSetupConfig::kandarinDiary);
-		add("killSpecials", BestGearSetupConfig::killSpecials);
-		add("specEnergy", BestGearSetupConfig::specEnergy);
-		add("drainSpecs", BestGearSetupConfig::drainSpecs);
-		add("weaponPoison", BestGearSetupConfig::weaponPoison);
-		add("forinthrySurge", BestGearSetupConfig::forinthrySurge);
-		add("soulreaperStacks", BestGearSetupConfig::soulreaperStacks);
-		add("miningLevel", BestGearSetupConfig::miningLevel);
-		add("raidPartySize", BestGearSetupConfig::raidPartySize);
-		add("toaRaidLevel", BestGearSetupConfig::toaRaidLevel);
-		add("toaPathLevel", BestGearSetupConfig::toaPathLevel);
-		add("coxChallengeMode", BestGearSetupConfig::coxChallengeMode);
-		add("encounterPhase", BestGearSetupConfig::encounterPhase);
-		add("aoe", BestGearSetupConfig::aoe);
-		add("aoeTargets", BestGearSetupConfig::aoeTargets);
-		add("requireFireProtection", BestGearSetupConfig::requireFireProtection);
-		add("antifire", BestGearSetupConfig::antifire);
-		add("protectMagic", BestGearSetupConfig::protectMagic);
-		add("dmmItems", BestGearSetupConfig::dmmItems);
-		add("betaItems", BestGearSetupConfig::betaItems);
-		add("bountyHunterItems", BestGearSetupConfig::bountyHunterItems);
-		add("requireAtlatlAmmoRecovery", BestGearSetupConfig::requireAtlatlAmmoRecovery);
-		add("styleStab", BestGearSetupConfig::styleStab);
-		add("styleSlash", BestGearSetupConfig::styleSlash);
-		add("styleCrush", BestGearSetupConfig::styleCrush);
-		add("styleRanged", BestGearSetupConfig::styleRanged);
-		add("styleMagic", BestGearSetupConfig::styleMagic);
-		add("styleAtlatl", BestGearSetupConfig::styleAtlatl);
-		add("weaponHands", BestGearSetupConfig::weaponHands);
-		add("calcMode", BestGearSetupConfig::calcMode);
-		add("attackXp", BestGearSetupConfig::attackXp);
-		add("strengthXp", BestGearSetupConfig::strengthXp);
-		add("defenceXp", BestGearSetupConfig::defenceXp);
-		add("fillMode", BestGearSetupConfig::fillMode);
-		add("defenceFocus", BestGearSetupConfig::defenceFocus);
-		add("fillMargin", BestGearSetupConfig::fillMargin);
-		add("specVulnerability", BestGearSetupConfig::specVulnerability);
-		add("specTomeOfWater", BestGearSetupConfig::specTomeOfWater);
-		add("specElderMaul", BestGearSetupConfig::specElderMaul);
-		add("specDwh", BestGearSetupConfig::specDwh);
-		add("specEmberlight", BestGearSetupConfig::specEmberlight);
-		add("specArclight", BestGearSetupConfig::specArclight);
-		add("specTonalztics", BestGearSetupConfig::specTonalztics);
-		add("specBgsDamage", BestGearSetupConfig::specBgsDamage);
-		add("specSeercullDamage", BestGearSetupConfig::specSeercullDamage);
-		add("specAyakDamage", BestGearSetupConfig::specAyakDamage);
-		add("usePrayers", BestGearSetupConfig::usePrayers);
-		add("thrall", BestGearSetupConfig::thrall);
-		add("raidPotions", BestGearSetupConfig::raidPotions);
-		add("taskMode", BestGearSetupConfig::taskMode);
-		add("autoRaid", BestGearSetupConfig::autoRaid);
-		add("autoSpecs", BestGearSetupConfig::autoSpecs);
-		add("meleePotionChoice", BestGearSetupConfig::meleePotion);
-		add("rangedPotionChoice", BestGearSetupConfig::rangedPotion);
-		add("magicPotionChoice", BestGearSetupConfig::magicPotion);
-		add(BestGearSetupConfig.POTION_KEY_PREFIX + "MELEE", BestGearSetupConfig::potionMelee);
-		add(BestGearSetupConfig.POTION_KEY_PREFIX + "RANGED", BestGearSetupConfig::potionRanged);
-		add(BestGearSetupConfig.POTION_KEY_PREFIX + "MAGIC", BestGearSetupConfig::potionMagic);
-		add("locks", BestGearSetupConfig::locks);
-		add("excluded", BestGearSetupConfig::excluded);
-		add("blockedSpells", BestGearSetupConfig::blockedSpells);
-		add("forcedSpells", BestGearSetupConfig::forcedSpells);
-		add("excludedPrayers", BestGearSetupConfig::excludedPrayers);
-		BestGearSetupConfig defaults = new BestGearSetupConfig() { };
-		for (Function<BestGearSetupConfig, Object> getter : GETTERS)
+		add("showMenuOption", Options::showMenuOption);
+		add("highlightBankGear", Options::highlightBankGear);
+		add("bankHighlightColor", Options::bankHighlightColor);
+		add("highlightInventoryGear", Options::highlightInventoryGear);
+		add("inventoryHighlightColor", Options::inventoryHighlightColor);
+		add("fillFood", Options::fillFood);
+		add("mode", Options::mode);
+		add("budget", Options::budget);
+		add("bossesOnly", Options::bossesOnly);
+		add("onSlayerTask", Options::onSlayerTask);
+		add("ancientMagicks", Options::ancientMagicks);
+		add("arceuusSpellbook", Options::arceuusSpellbook);
+		add("preventManualCast", Options::preventManualCast);
+		add("membersItems", Options::membersItems);
+		add("ammoCount", Options::ammoCount);
+		add("killsPerTrip", Options::killsPerTrip);
+		add("currentHitpoints", Options::currentHitpoints);
+		add("wilderness", Options::wilderness);
+		add("limitWildernessRisk", Options::limitWildernessRisk);
+		add("maxExpensiveItems", Options::maxExpensiveItems);
+		add("expensiveItemThreshold", Options::expensiveItemThreshold);
+		add("charge", Options::charge);
+		add("markOfDarkness", Options::markOfDarkness);
+		add("sunfireRunes", Options::sunfireRunes);
+		add("kandarinDiary", Options::kandarinDiary);
+		add("killSpecials", Options::killSpecials);
+		add("specEnergy", Options::specEnergy);
+		add("drainSpecs", Options::drainSpecs);
+		add("weaponPoison", Options::weaponPoison);
+		add("forinthrySurge", Options::forinthrySurge);
+		add("soulreaperStacks", Options::soulreaperStacks);
+		add("miningLevel", Options::miningLevel);
+		add("raidPartySize", Options::raidPartySize);
+		add("toaRaidLevel", Options::toaRaidLevel);
+		add("toaPathLevel", Options::toaPathLevel);
+		add("coxChallengeMode", Options::coxChallengeMode);
+		add("encounterPhase", Options::encounterPhase);
+		add("aoe", Options::aoe);
+		add("aoeTargets", Options::aoeTargets);
+		add("requireFireProtection", Options::requireFireProtection);
+		add("antifire", Options::antifire);
+		add("protectMagic", Options::protectMagic);
+		add("dmmItems", Options::dmmItems);
+		add("betaItems", Options::betaItems);
+		add("bountyHunterItems", Options::bountyHunterItems);
+		add("requireAtlatlAmmoRecovery", Options::requireAtlatlAmmoRecovery);
+		add("styleStab", Options::styleStab);
+		add("styleSlash", Options::styleSlash);
+		add("styleCrush", Options::styleCrush);
+		add("styleRanged", Options::styleRanged);
+		add("styleMagic", Options::styleMagic);
+		add("styleAtlatl", Options::styleAtlatl);
+		add("weaponHands", Options::weaponHands);
+		add("calcMode", Options::calcMode);
+		add("attackXp", Options::attackXp);
+		add("strengthXp", Options::strengthXp);
+		add("defenceXp", Options::defenceXp);
+		add("fillMode", Options::fillMode);
+		add("defenceFocus", Options::defenceFocus);
+		add("fillMargin", Options::fillMargin);
+		add("specVulnerability", Options::specVulnerability);
+		add("specTomeOfWater", Options::specTomeOfWater);
+		add("specElderMaul", Options::specElderMaul);
+		add("specDwh", Options::specDwh);
+		add("specEmberlight", Options::specEmberlight);
+		add("specArclight", Options::specArclight);
+		add("specTonalztics", Options::specTonalztics);
+		add("specBgsDamage", Options::specBgsDamage);
+		add("specSeercullDamage", Options::specSeercullDamage);
+		add("specAyakDamage", Options::specAyakDamage);
+		add("usePrayers", Options::usePrayers);
+		add("thrall", Options::thrall);
+		add("raidPotions", Options::raidPotions);
+		add("taskMode", Options::taskMode);
+		add("autoRaid", Options::autoRaid);
+		add("autoSpecs", Options::autoSpecs);
+		add("meleePotionChoice", Options::meleePotion);
+		add("rangedPotionChoice", Options::rangedPotion);
+		add("magicPotionChoice", Options::magicPotion);
+		add(Options.POTION_KEY_PREFIX + "MELEE", Options::potionMelee);
+		add(Options.POTION_KEY_PREFIX + "RANGED", Options::potionRanged);
+		add(Options.POTION_KEY_PREFIX + "MAGIC", Options::potionMagic);
+		add("locks", Options::locks);
+		add("excluded", Options::excluded);
+		add("blockedSpells", Options::blockedSpells);
+		add("forcedSpells", Options::forcedSpells);
+		add("excludedPrayers", Options::excludedPrayers);
+		Options defaults = new Options() { };
+		for (Function<Options, Object> getter : GETTERS)
 		{
 			Object value = getter.apply(defaults);
 			TYPES.add(value instanceof Enum ? ((Enum<?>) value).getDeclaringClass() : value.getClass());
@@ -116,7 +116,7 @@ public final class ConfigSettings
 	{
 	}
 
-	private static void add(String name, Function<BestGearSetupConfig, Object> getter)
+	private static void add(String name, Function<Options, Object> getter)
 	{
 		INDICES.put(name, GETTERS.size());
 		GETTERS.add(getter);
@@ -147,13 +147,13 @@ public final class ConfigSettings
 	}
 
 	/** Getter for a stored config key. A key without a binding fails before an editor is half built. */
-	public static Function<BestGearSetupConfig, Object> getter(String key)
+	public static Function<Options, Object> getter(String key)
 	{
 		return GETTERS.get(index(key));
 	}
 
 	/** Every setting's current value, in table order; each getter is called once. */
-	static Object[] capture(BestGearSetupConfig config)
+	static Object[] capture(Options config)
 	{
 		Object[] values = new Object[GETTERS.size()];
 		for (int i = 0; i < values.length; i++)

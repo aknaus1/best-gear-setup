@@ -1,29 +1,29 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.*;
-import static com.bestgearsetup.calc.EncounterDamage.*;
+import static com.bestgearsetup.calc.Encounter.*;
 
 /** Equipment predicates shared by calculation and optimizer set seeds. */
-final class EquipmentEffects
+final class Effects
 {
-	private static final NameLists.NameList TWO_HIT = NameLists.list("two-hit weapons");
-	private static final NameLists.NameList RAT_WEAPONS = NameLists.list("rat weapons");
-	private static final NameLists.NameList WILDERNESS_MELEE = NameLists.list("wilderness melee weapons");
-	private static final NameLists.NameList WILDERNESS_RANGED = NameLists.list("wilderness ranged weapons");
-	private static final NameLists.NameList WILDERNESS_MAGIC = NameLists.list("wilderness magic weapons");
-	private static final NameLists.NameTable PICKAXE_BONUS = NameLists.table("guardian pickaxe bonus");
-	private static final NameLists.NameTable VAMPYREBANE_DAMAGE = NameLists.table("vampyrebane damage percent");
+	private static final Names.NameList TWO_HIT = Names.list("two-hit weapons");
+	private static final Names.NameList RAT_WEAPONS = Names.list("rat weapons");
+	private static final Names.NameList WILDERNESS_MELEE = Names.list("wilderness melee weapons");
+	private static final Names.NameList WILDERNESS_RANGED = Names.list("wilderness ranged weapons");
+	private static final Names.NameList WILDERNESS_MAGIC = Names.list("wilderness magic weapons");
+	private static final Names.NameTable PICKAXE_BONUS = Names.table("guardian pickaxe bonus");
+	private static final Names.NameTable VAMPYREBANE_DAMAGE = Names.table("vampyrebane damage percent");
 
-	private EquipmentEffects()
+	private Effects()
 	{
 	}
 
-	static boolean named(Loadout l, Slot slot, String name)
+	static boolean named(Outfit l, Slot slot, String name)
 	{
 		return namedWeapon(l.get(slot), name);
 	}
 
-	static boolean namedWeapon(GearItem item, String name)
+	static boolean namedWeapon(Gear item, String name)
 	{
 		String actual = lower(item);
 		// "name (" is a case of "name ": test the prefix first, without building strings.
@@ -31,63 +31,63 @@ final class EquipmentEffects
 			&& !actual.contains("uncharged") && !actual.contains("inactive") && !actual.contains("broken");
 	}
 
-	static boolean set(Loadout l, String head, String body, String legs, String weapon)
+	static boolean set(Outfit l, String head, String body, String legs, String weapon)
 	{
 		return named(l, Slot.HEAD, head) && named(l, Slot.BODY, body) && named(l, Slot.LEGS, legs)
 			&& named(l, Slot.WEAPON, weapon);
 	}
 
-	static boolean damned(Loadout l)
+	static boolean damned(Outfit l)
 	{
 		return named(l, Slot.NECK, "amulet of the damned");
 	}
 
-	static boolean verac(Loadout l)
+	static boolean verac(Outfit l)
 	{
 		return set(l, "verac's helm", "verac's brassard", "verac's plateskirt", "verac's flail");
 	}
 
-	static boolean dharok(Loadout l)
+	static boolean dharok(Outfit l)
 	{
 		return set(l, "dharok's helm", "dharok's platebody", "dharok's platelegs", "dharok's greataxe");
 	}
 
-	static boolean ahrim(Loadout l)
+	static boolean ahrim(Outfit l)
 	{
 		return damned(l) && set(l, "ahrim's hood", "ahrim's robetop", "ahrim's robeskirt", "ahrim's staff");
 	}
 
-	static boolean karil(Loadout l)
+	static boolean karil(Outfit l)
 	{
 		return damned(l) && set(l, "karil's coif", "karil's leathertop", "karil's leatherskirt", "karil's crossbow");
 	}
 
-	static boolean bloodMoon(Loadout l)
+	static boolean bloodMoon(Outfit l)
 	{
 		return set(l, "blood moon helm", "blood moon chestplate", "blood moon tassets", "dual macuahuitl");
 	}
 
-	static boolean twoHit(GearItem w)
+	static boolean twoHit(Gear w)
 	{
 		String name = lower(w);
 		return TWO_HIT.matches(name);
 	}
 
-	static boolean ratWeapon(GearItem w)
+	static boolean ratWeapon(Gear w)
 	{
 		String name = lower(w);
 		return RAT_WEAPONS.matches(name);
 	}
 
-	static boolean wildernessWeapon(Loadout l, CombatContext ctx)
+	static boolean wildernessWeapon(Outfit l, CombatContext ctx)
 	{
 		String name = lower(l.getWeapon());
 		if (!ctx.getModifiers().isWilderness() || name.contains("uncharged") || name.endsWith("(u)"))
 		{
 			return false;
 		}
-		CombatClass cls = WeaponRules.classOf(l.getStyle());
-		return (cls == CombatClass.MELEE ? WILDERNESS_MELEE : cls == CombatClass.RANGED ? WILDERNESS_RANGED
+		Combat cls = Weapons.classOf(l.getStyle());
+		return (cls == Combat.MELEE ? WILDERNESS_MELEE : cls == Combat.RANGED ? WILDERNESS_RANGED
 			: WILDERNESS_MAGIC).matches(name);
 	}
 
@@ -98,7 +98,7 @@ final class EquipmentEffects
 	}
 
 	/** Effects that scale each rolled hit, rather than increasing the roll's maximum. */
-	static long damage(Loadout l, CombatContext ctx, long hit)
+	static long damage(Outfit l, CombatContext ctx, long hit)
 	{
 		String weapon = lower(l.getWeapon());
 		if (l.getStyle().isMelee())
@@ -134,7 +134,7 @@ final class EquipmentEffects
 		}
 		if (CombatRules.tormentedBonus(ctx.getMonster(), l))
 		{
-			int speed = l.getSpell() != null ? l.getSpell().getAttackSpeed() : WeaponRules.attackSpeed(l.getWeapon(), l.getStyle());
+			int speed = l.getSpell() != null ? l.getSpell().getAttackSpeed() : Weapons.attackSpeed(l.getWeapon(), l.getStyle());
 			if (l.getSpell() != null && weapon.startsWith("harmonised nightmare staff") && !l.getStyle().isManualCast()
 				&& "standard".equalsIgnoreCase(l.getSpell().getSpellbook()))
 			{
@@ -154,13 +154,13 @@ final class EquipmentEffects
 		return hit;
 	}
 
-	static boolean seeking(Loadout l)
+	static boolean seeking(Outfit l)
 	{
-		return l.getStyle().getType() == AttackStyle.Type.RANGED && WeaponRules.firesAmmoSlot(l.getWeapon())
+		return l.getStyle().getType() == Style.Type.RANGED && Weapons.firesAmmoSlot(l.getWeapon())
 			&& lower(l.get(Slot.AMMO)).startsWith("seeking broad");
 	}
 
-	static boolean rolledEffect(Loadout l, CombatContext ctx)
+	static boolean rolledEffect(Outfit l, CombatContext ctx)
 	{
 		String weapon = lower(l.getWeapon());
 		return vampyre(ctx) || CombatRules.tormentedBonus(ctx.getMonster(), l) || seeking(l)
@@ -169,13 +169,13 @@ final class EquipmentEffects
 			&& named(l, Slot.NECK, "berserker necklace"));
 	}
 
-	static double average(EncounterDamage.Rule rule, Loadout l, CombatContext ctx, long min, long max)
+	static double average(Encounter.Rule rule, Outfit l, CombatContext ctx, long min, long max)
 	{
 		return rolledEffect(l, ctx) ? HitDamage.average(rule, min, max, h -> damage(l, ctx, h))
 			: HitDamage.average(rule, min, max);
 	}
 
-	static int maximum(EncounterDamage.Rule rule, Loadout l, CombatContext ctx, long max)
+	static int maximum(Encounter.Rule rule, Outfit l, CombatContext ctx, long max)
 	{
 		return rule.maximum(Math.max(1, damage(l, ctx, max)));
 	}

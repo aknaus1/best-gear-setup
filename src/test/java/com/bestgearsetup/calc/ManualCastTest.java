@@ -8,9 +8,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
 import java.util.Arrays;
@@ -27,8 +27,8 @@ import org.junit.Test;
 public class ManualCastTest
 {
 	private final CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
-	private GearItem bow;
-	private GearItem staff;
+	private Gear bow;
+	private Gear staff;
 	private Spell fireBolt;
 	private Spell iceBarrage;
 
@@ -66,13 +66,13 @@ public class ManualCastTest
 		return s;
 	}
 
-	private List<SetupResult> magic(OptimizerSettings.OptimizerSettingsBuilder settings, IntPredicate owned,
-		GearItem... weapons)
+	private List<Setup> magic(OptimizerSettings.OptimizerSettingsBuilder settings, IntPredicate owned,
+		Gear... weapons)
 	{
 		return com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(weapons), Arrays.asList(fireBolt, iceBarrage)), ctx,
 			settings.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient")))
-				.styles(EnumSet.allOf(AttackStyle.Type.class)).build(), owned, GearItem::getPrice)
-			.optimize(CombatClass.MAGIC, () -> false, done -> { });
+				.styles(EnumSet.allOf(Style.Type.class)).build(), owned, Gear::getPrice)
+			.optimize(Combat.MAGIC, () -> false, done -> { });
 	}
 
 	private static OptimizerSettings.OptimizerSettingsBuilder settings()
@@ -83,10 +83,10 @@ public class ManualCastTest
 	@Test
 	public void weaponLockedToABowStillCastsByHand()
 	{
-		List<SetupResult> results = magic(settings().locks(Collections.singletonMap(Slot.WEAPON,
+		List<Setup> results = magic(settings().locks(Collections.singletonMap(Slot.WEAPON,
 			SlotLock.item(bow.getId()))), id -> true, bow, staff);
 		assertFalse(results.isEmpty());
-		Loadout l = results.get(0).getLoadout();
+		Outfit l = results.get(0).getLoadout();
 		assertSame(bow, l.getWeapon());
 		assertTrue(l.getStyle().isManualCast());
 		assertEquals(iceBarrage, l.getSpell());
@@ -95,7 +95,7 @@ public class ManualCastTest
 	@Test
 	public void allowedSpellTheStaffCannotAutocastIsCastByHand()
 	{
-		Loadout l = magic(settings().spellFilter(SpellFilter.of(Collections.emptySet(),
+		Outfit l = magic(settings().spellFilter(SpellFilter.of(Collections.emptySet(),
 			Collections.singleton("ice barrage"))), id -> true, bow, staff).get(0).getLoadout();
 		assertSame(staff, l.getWeapon());
 		assertTrue(l.getStyle().isManualCast());
@@ -105,7 +105,7 @@ public class ManualCastTest
 	@Test
 	public void autocastableSpellStaysAutocast()
 	{
-		Loadout l = magic(settings().spellFilter(SpellFilter.of(Collections.emptySet(),
+		Outfit l = magic(settings().spellFilter(SpellFilter.of(Collections.emptySet(),
 			Collections.singleton("fire bolt"))), id -> true, bow, staff).get(0).getLoadout();
 		assertSame(staff, l.getWeapon());
 		assertFalse(l.getStyle().isManualCast());
@@ -117,7 +117,7 @@ public class ManualCastTest
 	{
 		assertTrue(magic(settings().preventManualCast(true).locks(Collections.singletonMap(Slot.WEAPON,
 			SlotLock.item(bow.getId()))), id -> true, bow, staff).isEmpty());
-		Loadout l = magic(settings().preventManualCast(true), id -> true, bow, staff).get(0).getLoadout();
+		Outfit l = magic(settings().preventManualCast(true), id -> true, bow, staff).get(0).getLoadout();
 		assertSame(staff, l.getWeapon());
 		assertEquals(fireBolt, l.getSpell());
 		assertFalse(l.getStyle().isManualCast());
@@ -126,18 +126,18 @@ public class ManualCastTest
 	@Test
 	public void staffBoundSpellIsOnlyCastWithItsStaff()
 	{
-		GearItem ibans = weapon(1409, "iban's staff", "staff", 5, "bash,crush,accurate", "spell,magic,magic");
+		Gear ibans = weapon(1409, "iban's staff", "staff", 5, "bash,crush,accurate", "spell,magic,magic");
 		Spell ibanBlast = spell("Iban Blast", "standard", 25, 50, ibans.getId());
 		OptimizerSettings s = settings().spellbooks(new HashSet<>(Arrays.asList("standard", "ancient")))
-			.styles(EnumSet.allOf(AttackStyle.Type.class)).resultsPerClass(10).build();
+			.styles(EnumSet.allOf(Style.Type.class)).resultsPerClass(10).build();
 		// The staff of air has the higher Magic bonus, but can't cast Iban Blast by hand.
-		List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(bow, staff, ibans),
-			Arrays.asList(fireBolt, ibanBlast)), ctx, s, id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MAGIC, () -> false, done -> { });
+		List<Setup> results = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(bow, staff, ibans),
+			Arrays.asList(fireBolt, ibanBlast)), ctx, s, id -> true, Gear::getPrice)
+			.optimize(Combat.MAGIC, () -> false, done -> { });
 		assertFalse(results.isEmpty());
-		for (SetupResult r : results)
+		for (Setup r : results)
 		{
-			Loadout l = r.getLoadout();
+			Outfit l = r.getLoadout();
 			if (ibanBlast.equals(l.getSpell()))
 			{
 				assertSame(ibans, l.getWeapon());
@@ -146,9 +146,9 @@ public class ManualCastTest
 		}
 		assertSame(ibans, results.get(0).getLoadout().getWeapon());
 		// With no staff that casts it, the spell is not offered at all.
-		for (SetupResult r : com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(bow, staff),
-			Arrays.asList(fireBolt, ibanBlast)), ctx, s, id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MAGIC, () -> false, done -> { }))
+		for (Setup r : com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(bow, staff),
+			Arrays.asList(fireBolt, ibanBlast)), ctx, s, id -> true, Gear::getPrice)
+			.optimize(Combat.MAGIC, () -> false, done -> { }))
 		{
 			assertEquals(fireBolt, r.getLoadout().getSpell());
 		}
@@ -157,20 +157,20 @@ public class ManualCastTest
 	@Test
 	public void plainGodStaffCastsItsGodSpellByHandOnly()
 	{
-		GearItem zamorak = weapon(2417, "zamorak staff", "staff", 5, "bash,crush,accurate", "spell,magic,magic");
+		Gear zamorak = weapon(2417, "zamorak staff", "staff", 5, "bash,crush,accurate", "spell,magic,magic");
 		Spell flames = spell("Flames of Zamorak", "standard", 20, 60, zamorak.getId());
 		fireBolt = spell("Fire Bolt", "standard", 12, 35, staff.getId(), zamorak.getId());
 		OptimizerSettings.OptimizerSettingsBuilder s = settings().locks(Collections.singletonMap(Slot.WEAPON,
 			SlotLock.item(zamorak.getId()))).spellbooks(new HashSet<>(Arrays.asList("standard", "ancient")))
-			.styles(EnumSet.allOf(AttackStyle.Type.class));
+			.styles(EnumSet.allOf(Style.Type.class));
 		GameData data = TestData.gameData(Arrays.asList(bow, staff, zamorak), Arrays.asList(fireBolt, flames));
-		Loadout l = com.bestgearsetup.calc.Optimizers.of(data, ctx, s.build(), id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MAGIC, () -> false, done -> { }).get(0).getLoadout();
+		Outfit l = com.bestgearsetup.calc.Optimizers.of(data, ctx, s.build(), id -> true, Gear::getPrice)
+			.optimize(Combat.MAGIC, () -> false, done -> { }).get(0).getLoadout();
 		assertEquals(flames, l.getSpell());
 		assertTrue(l.getStyle().isManualCast());
 		// Autocast only: the staff still autocasts ordinary spells, but not its god spell.
-		l = com.bestgearsetup.calc.Optimizers.of(data, ctx, s.preventManualCast(true).build(), id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MAGIC, () -> false, done -> { }).get(0).getLoadout();
+		l = com.bestgearsetup.calc.Optimizers.of(data, ctx, s.preventManualCast(true).build(), id -> true, Gear::getPrice)
+			.optimize(Combat.MAGIC, () -> false, done -> { }).get(0).getLoadout();
 		assertEquals(fireBolt, l.getSpell());
 		assertFalse(l.getStyle().isManualCast());
 	}
@@ -178,22 +178,22 @@ public class ManualCastTest
 	@Test
 	public void harmonisedStaffCastsByHandAtTheSpellsSpeed()
 	{
-		GearItem harmonised = weapon(24423, "harmonised nightmare staff", "staff", 5, "bash,crush,accurate",
+		Gear harmonised = weapon(24423, "harmonised nightmare staff", "staff", 5, "bash,crush,accurate",
 			"spell,magic,magic");
 		Spell crumble = spell("Crumble Undead", "standard", 15, 39);
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, harmonised);
 		l.setSpell(crumble);
-		l.setStyle(AttackStyle.MANUAL_CAST);
+		l.setStyle(Style.MANUAL_CAST);
 		assertEquals(5, DpsCalculator.calculate(l, ctx).getAttackSpeedTicks());
-		l.setStyle(AttackStyle.parse("spell,magic,magic"));
+		l.setStyle(Style.parse("spell,magic,magic"));
 		assertEquals(4, DpsCalculator.calculate(l, ctx).getAttackSpeedTicks());
 	}
 
 	@Test
 	public void noMagicWeaponHeldStillCastsByHand()
 	{
-		Loadout l = magic(settings().mode(SearchMode.OWNED_ONLY), id -> id == bow.getId(), bow, staff)
+		Outfit l = magic(settings().mode(SearchMode.OWNED_ONLY), id -> id == bow.getId(), bow, staff)
 			.get(0).getLoadout();
 		assertSame(bow, l.getWeapon());
 		assertTrue(l.getStyle().isManualCast());

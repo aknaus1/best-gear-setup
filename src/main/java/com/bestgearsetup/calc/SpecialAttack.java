@@ -1,7 +1,7 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.NameLists;
+import com.bestgearsetup.data.Gear;
+import com.bestgearsetup.data.Names;
 import com.google.gson.*;
 import java.util.*;
 import lombok.*;
@@ -95,7 +95,7 @@ public final class SpecialAttack
 	private final int extraTicks;
 	private final Drain drain;
 
-	private static final JsonObject TABLE = NameLists.load("/com/bestgearsetup/special-attacks.json");
+	private static final JsonObject TABLE = Names.load("/com/bestgearsetup/special-attacks.json");
 	private static final List<Entry> MELEE = entries(TABLE.getAsJsonArray("melee"));
 	private static final List<Entry> RANGED = entries(TABLE.getAsJsonArray("ranged"));
 	private static final List<Entry> MAGIC = entries(TABLE.getAsJsonArray("magic"));
@@ -128,17 +128,17 @@ public final class SpecialAttack
 	}
 
 	/** Spec for the loadout's weapon and attack class, or null when it has no damaging special attack. */
-	public static SpecialAttack of(Loadout l, CombatContext ctx)
+	public static SpecialAttack of(Outfit l, CombatContext ctx)
 	{
-		GearItem weapon = l.getWeapon();
+		Gear weapon = l.getWeapon();
 		if (weapon == null || l.getStyle() == null)
 		{
 			return null;
 		}
-		String n = EncounterDamage.lower(weapon);
-		AttackStyle.Type type = l.getStyle().getType();
+		String n = Encounter.lower(weapon);
+		Style.Type type = l.getStyle().getType();
 		boolean melee = l.getStyle().isMelee();
-		boolean ranged = type == AttackStyle.Type.RANGED;
+		boolean ranged = type == Style.Type.RANGED;
 		if (ranged && n.startsWith("scorching bow") && !ctx.getMonster().hasAttribute("demon"))
 		{
 			// Scorching shackles fail against non-demons.
@@ -153,7 +153,7 @@ public final class SpecialAttack
 		}
 		for (Entry entry : melee ? MELEE : ranged ? RANGED : MAGIC)
 		{
-			if (entry.match.matches(n) && (!entry.bloodMoon || EquipmentEffects.bloodMoon(l)))
+			if (entry.match.matches(n) && (!entry.bloodMoon || Effects.bloodMoon(l)))
 			{
 				return entry.spec;
 			}
@@ -165,7 +165,7 @@ public final class SpecialAttack
 	@AllArgsConstructor
 	private static final class Entry
 	{
-		final NameLists.NameList match;
+		final Names.NameList match;
 		final boolean bloodMoon;
 		final SpecialAttack spec;
 	}
@@ -181,7 +181,7 @@ public final class SpecialAttack
 				Kind.valueOf(string(row, "kind", "SINGLE")), integer(row, "hits", 1), accuracy[0], accuracy[1],
 				ints(row, "damage"), string(row, "defence", null), flag(row, "alwaysHits"), integer(row, "minimum", 0),
 				integer(row, "delay", 0), Drain.valueOf(string(row, "drain", "NONE")));
-			entries.add(new Entry(NameLists.NameList.of(row.get("match")), flag(row, "bloodMoon"), spec));
+			entries.add(new Entry(Names.NameList.of(row.get("match")), flag(row, "bloodMoon"), spec));
 		}
 		return Collections.unmodifiableList(entries);
 	}

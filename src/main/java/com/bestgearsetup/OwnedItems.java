@@ -99,7 +99,7 @@ public class OwnedItems
 		inventory = readQuantities(INVENTORY_KEY);
 		worn = readQuantities(WORN_KEY);
 		manual = read(MANUAL_KEY);
-		bankKnown = configManager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, BANK_KEY) != null;
+		bankKnown = configManager.getRSProfileConfiguration(Options.GROUP, BANK_KEY) != null;
 		rebuild();
 	}
 
@@ -160,7 +160,7 @@ public class OwnedItems
 		{
 			worn = ids;
 		}
-		configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, key, serialize(ids));
+		configManager.setRSProfileConfiguration(Options.GROUP, key, serialize(ids));
 		moved = true;
 		// Location and worn markers update now; settle() publishes the combined ownership once transfers land.
 		return itemsChanged;
@@ -194,7 +194,7 @@ public class OwnedItems
 			return;
 		}
 		manual = next;
-		configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, MANUAL_KEY,
+		configManager.setRSProfileConfiguration(Options.GROUP, MANUAL_KEY,
 			next.stream().map(String::valueOf).collect(Collectors.joining(",")));
 		rebuild();
 	}
@@ -446,12 +446,12 @@ public class OwnedItems
 
 	private Map<Integer, Long> readQuantities(String key)
 	{
-		return parseQuantities(configManager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, key));
+		return parseQuantities(configManager.getRSProfileConfiguration(Options.GROUP, key));
 	}
 
 	private Set<Integer> read(String key)
 	{
-		String value = configManager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, key);
+		String value = configManager.getRSProfileConfiguration(Options.GROUP, key);
 		if (value == null || value.isEmpty())
 		{
 			return Collections.emptySet();

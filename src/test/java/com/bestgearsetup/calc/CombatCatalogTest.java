@@ -3,11 +3,11 @@ package com.bestgearsetup.calc;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
 import com.bestgearsetup.data.WikiGameData;
@@ -26,7 +26,7 @@ public class CombatCatalogTest
 {
 	private static final Gson GSON = RuneLiteAPI.GSON;
 	/** Offline stand-in for live prices: every tradeable item costs 1m. */
-	private static final ToLongFunction<GearItem> PRICE = item -> item.isTradeable() ? 1_000_000L : 0;
+	private static final ToLongFunction<Gear> PRICE = item -> item.isTradeable() ? 1_000_000L : 0;
 	private static GameData data;
 	private static WikiMonsters monsters;
 
@@ -39,14 +39,14 @@ public class CombatCatalogTest
 
 	private static Monster target(int npcId)
 	{
-		MonsterSummary summary = data.matchNpc(npcId, null, 0);
+		Summary summary = data.matchNpc(npcId, null, 0);
 		assertNotNull("Missing bundled monster " + npcId, summary);
 		return monsters.monster(summary.getName());
 	}
 
-	private static GearItem weapon(String name)
+	private static Gear weapon(String name)
 	{
-		for (GearItem w : data.getItems(Slot.WEAPON))
+		for (Gear w : data.getItems(Slot.WEAPON))
 		{
 			if (w.getName().equals(name))
 			{
@@ -56,7 +56,7 @@ public class CombatCatalogTest
 		throw new AssertionError("Missing bundled weapon " + name);
 	}
 
-	private static void sane(DpsResult result)
+	private static void sane(Dps result)
 	{
 		assertTrue(Double.isFinite(result.getDps()));
 		assertTrue(Double.isFinite(result.getAverageHit()));
@@ -67,17 +67,17 @@ public class CombatCatalogTest
 		assertTrue(result.getAverageHit() <= result.getMaxHit() + 1e-8);
 	}
 
-	private static Loadout loadout(GearItem weapon, AttackStyle style)
+	private static Outfit loadout(Gear weapon, Style style)
 	{
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, weapon);
 		l.setStyle(style);
 		for (int id : weapon.getAmmunition())
 		{
-			GearItem ammo = data.getItem(Slot.AMMO, id);
+			Gear ammo = data.getItem(Slot.AMMO, id);
 			if (ammo != null)
 			{
-				if (WeaponRules.loadsAmmo(weapon))
+				if (Weapons.loadsAmmo(weapon))
 				{
 					l.setLoadedAmmo(ammo);
 				}
@@ -112,21 +112,21 @@ public class CombatCatalogTest
 	@Test
 	public void everyWeaponStyleScoresAcrossRepresentativeTargets()
 	{
-		List<GearItem> weapons = data.getItems(Slot.WEAPON);
+		List<Gear> weapons = data.getItems(Slot.WEAPON);
 		assertTrue(weapons.size() > 600);
 		int calculations = 0;
-		for (GearItem weapon : weapons)
+		for (Gear weapon : weapons)
 		{
 			for (String raw : weapon.getStyles())
 			{
-				AttackStyle style = AttackStyle.parse(raw);
+				Style style = Style.parse(raw);
 				if (style == null)
 				{
 					// Only the bulwark's block stance has no attack.
 					assertTrue(raw, raw.startsWith("block,"));
 					continue;
 				}
-				Loadout l = loadout(weapon, style);
+				Outfit l = loadout(weapon, style);
 				for (int id : new int[]{13011, 13012, 13013, 11753, 11755, 7223, 7550, 7584, 12223})
 				{
 					CombatContext ctx = TestFactories.combatContext(target(id), PlayerLevels.maxed(), false, false, null);
@@ -141,18 +141,18 @@ public class CombatCatalogTest
 	@Test
 	public void everyMonsterVariantProducesFiniteBoundedResults()
 	{
-		List<MonsterSummary> all = data.getMonsters();
+		List<Summary> all = data.getMonsters();
 		assertTrue(all.size() > 3000);
-		GearItem[] weapons = {weapon("abyssal whip"), weapon("rune crossbow"), weapon("trident of the seas"),
+		Gear[] weapons = {weapon("abyssal whip"), weapon("rune crossbow"), weapon("trident of the seas"),
 			weapon("magic shortbow"), weapon("osmumten's fang")};
-		for (MonsterSummary summary : all)
+		for (Summary summary : all)
 		{
 			Monster monster = monsters.monster(summary.getName());
 			assertNotNull(summary.getName(), monster);
 			CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, false, null);
-			for (GearItem weapon : weapons)
+			for (Gear weapon : weapons)
 			{
-				AttackStyle style = AttackStyle.parse(weapon.getStyles().get(0));
+				Style style = Style.parse(weapon.getStyles().get(0));
 				sane(DpsCalculator.calculate(loadout(weapon, style), ctx));
 			}
 		}
@@ -165,17 +165,17 @@ public class CombatCatalogTest
 		{
 			Monster monster = target(id);
 			CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, true, null);
-			for (CombatClass cls : CombatClass.values())
+			for (Combat cls : Combat.values())
 			{
-				List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(20_000_000, 1), itemId -> false, PRICE)
+				List<Setup> results = com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(20_000_000, 1), itemId -> false, PRICE)
 					.optimize(cls, () -> false, done -> { });
-				for (SetupResult result : results)
+				for (Setup result : results)
 				{
 					sane(result.getDps());
 					assertTrue(result.getBuyCost() <= 20_000_000);
 					for (Slot slot : Slot.values())
 					{
-						GearItem item = result.getLoadout().get(slot);
+						Gear item = result.getLoadout().get(slot);
 						if (item != null)
 						{
 							assertTrue(CombatRules.equipmentAllowed(monster, item));
@@ -200,9 +200,9 @@ public class CombatCatalogTest
 		{
 			CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, true, null)
 				.withHealthStates(hp -> MonsterStates.atHealth(monster, hp));
-			for (CombatClass cls : CombatClass.values())
+			for (Combat cls : Combat.values())
 			{
-				for (SetupResult result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(50_000_000, 1), itemId -> false, PRICE)
+				for (Setup result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(50_000_000, 1), itemId -> false, PRICE)
 					.optimize(cls, () -> false, done -> { }))
 				{
 					sane(result.getDps());
@@ -217,21 +217,21 @@ public class CombatCatalogTest
 	{
 		CombatModifiers spec = CombatModifiers.builder().specialAttack(true).soulreaperStacks(5).build();
 		java.util.Set<String> scored = new java.util.TreeSet<>();
-		for (GearItem weapon : data.getItems(Slot.WEAPON))
+		for (Gear weapon : data.getItems(Slot.WEAPON))
 		{
 			for (String raw : weapon.getStyles())
 			{
-				AttackStyle style = AttackStyle.parse(raw);
+				Style style = Style.parse(raw);
 				if (style == null)
 				{
 					continue;
 				}
-				Loadout l = loadout(weapon, style);
+				Outfit l = loadout(weapon, style);
 				for (int id : new int[]{13011, 11753, 7584, 12223, 7550})
 				{
 					CombatContext ctx = TestFactories.combatContext(target(id), PlayerLevels.maxed(), false, true, null)
 						.withModifiers(spec);
-					DpsResult r = DpsCalculator.calculate(l, ctx);
+					Dps r = DpsCalculator.calculate(l, ctx);
 					sane(r);
 					if (r.getDps() > 0)
 					{
@@ -246,9 +246,9 @@ public class CombatCatalogTest
 		assertFalse(scored.contains("scythe of vitur"));
 
 		CombatContext ctx = TestFactories.combatContext(target(12223), PlayerLevels.maxed(), false, true, null).withModifiers(spec);
-		for (CombatClass cls : CombatClass.values())
+		for (Combat cls : Combat.values())
 		{
-			for (SetupResult result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(200_000_000, 3), itemId -> false, PRICE)
+			for (Setup result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(200_000_000, 3), itemId -> false, PRICE)
 				.optimize(cls, () -> false, done -> { }))
 			{
 				sane(result.getDps());
@@ -264,9 +264,9 @@ public class CombatCatalogTest
 		for (int id : new int[]{415, 2267, 12223})
 		{
 			CombatContext ctx = TestFactories.combatContext(target(id), PlayerLevels.maxed(), false, true, null).withModifiers(poison);
-			for (CombatClass cls : CombatClass.values())
+			for (Combat cls : Combat.values())
 			{
-				for (SetupResult result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(100_000_000, 1), itemId -> false, PRICE)
+				for (Setup result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(100_000_000, 1), itemId -> false, PRICE)
 					.optimize(cls, () -> false, done -> { }))
 				{
 					sane(result.getDps());

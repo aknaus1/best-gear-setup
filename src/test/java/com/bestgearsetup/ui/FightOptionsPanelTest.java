@@ -3,11 +3,11 @@ package com.bestgearsetup.ui;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
-import com.bestgearsetup.BestGearSetupConfig;
+import com.bestgearsetup.Options;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.calc.Antifire;
 import com.bestgearsetup.data.EncounterPhase;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import java.util.Arrays;
 import java.awt.Component;
 import java.awt.Container;
@@ -40,7 +40,7 @@ public class FightOptionsPanelTest
 		};
 		SwingUtilities.invokeAndWait(() ->
 		{
-			FightOptionsPanel panel = new FightOptionsPanel(plugin, new BestGearSetupConfig() {},
+			FightOptionsPanel panel = new FightOptionsPanel(plugin, new Options() {},
 				com.bestgearsetup.ConfigItemsForTests.items());
 			assertFalse(control(panel, "limitWildernessRiskRow").isVisible());
 			assertFalse(control(panel, "maxExpensiveItemsRow").isVisible());
@@ -86,7 +86,7 @@ public class FightOptionsPanelTest
 				writes.put(key, value);
 			}
 		};
-		BestGearSetupConfig config = new BestGearSetupConfig()
+		Options config = new Options()
 		{
 			@Override
 			public EncounterPhase encounterPhase()
@@ -130,9 +130,9 @@ public class FightOptionsPanelTest
 		});
 	}
 
-	private static MonsterSummary target(String name, String... attributes)
+	private static Summary target(String name, String... attributes)
 	{
-		MonsterSummary target = new MonsterSummary();
+		Summary target = new Summary();
 		target.setName(name);
 		target.setAttributes(Arrays.asList(attributes));
 		return target;
@@ -165,7 +165,7 @@ public class FightOptionsPanelTest
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin() {
 			@Override public void setConfig(String key, Object value) { writes.put(key, value); }
 		};
-		BestGearSetupConfig config = new BestGearSetupConfig() { @Override public int specDwh() { return 2; } };
+		Options config = new Options() { @Override public int specDwh() { return 2; } };
 		SwingUtilities.invokeAndWait(() -> {
 			FightOptionsPanel panel = new FightOptionsPanel(plugin, config, com.bestgearsetup.ConfigItemsForTests.items());
 			assertFalse("Collapsed by default", control(panel, "preparationContent").isVisible());
@@ -208,7 +208,7 @@ public class FightOptionsPanelTest
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin() {
 			@Override public void setConfig(String key, Object value) { writes.put(key, value); }
 		};
-		BestGearSetupConfig config = new BestGearSetupConfig() { @Override public int soulreaperStacks() { return 3; } };
+		Options config = new Options() { @Override public int soulreaperStacks() { return 3; } };
 		SwingUtilities.invokeAndWait(() -> {
 			FightOptionsPanel panel = new FightOptionsPanel(plugin, config, com.bestgearsetup.ConfigItemsForTests.items());
 			assertEquals(3, ((JSpinner) control(panel, "soulreaperStacks")).getValue());
@@ -236,7 +236,7 @@ public class FightOptionsPanelTest
 			@Override public void setConfig(String key, Object value) { writes.put(key, value); }
 		};
 		SwingUtilities.invokeAndWait(() -> {
-			FightOptionsPanel panel = new FightOptionsPanel(plugin, new BestGearSetupConfig() {},
+			FightOptionsPanel panel = new FightOptionsPanel(plugin, new Options() {},
 				com.bestgearsetup.ConfigItemsForTests.items());
 			JCheckBox wilderness = (JCheckBox) control(panel, "wilderness");
 			panel.setTarget(target("mammoth"));

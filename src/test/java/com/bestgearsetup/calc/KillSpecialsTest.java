@@ -9,9 +9,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.google.gson.Gson;
@@ -35,9 +35,9 @@ public class KillSpecialsTest
 		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
-	private final GearItem sword = weapon(100, "sword", "slash sword", 4, "chop,slash,aggressive");
-	private final GearItem claws = weapon(13652, "dragon claws", "claw", 4, "slash,slash,aggressive");
-	private final GearItem helm = item(200, "helm", Slot.HEAD);
+	private final Gear sword = weapon(100, "sword", "slash sword", 4, "chop,slash,aggressive");
+	private final Gear claws = weapon(13652, "dragon claws", "claw", 4, "slash,slash,aggressive");
+	private final Gear helm = item(200, "helm", Slot.HEAD);
 	private final Set<Integer> owned = new HashSet<>(Arrays.asList(100, 200));
 
 	public KillSpecialsTest()
@@ -50,19 +50,19 @@ public class KillSpecialsTest
 		helm.setMeleeStr(5);
 	}
 
-	private List<SetupResult> run(OptimizerSettings.OptimizerSettingsBuilder settings, CombatModifiers modifiers)
+	private List<Setup> run(OptimizerSettings.OptimizerSettingsBuilder settings, CombatModifiers modifiers)
 	{
 		Monster target = monster(100, 20);
 		target.setHitpoints(300);
 		GameData data = TestData.gameData(Arrays.asList(sword, claws, helm), Collections.emptyList());
 		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety()).withModifiers(modifiers);
 		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.spellbooks(Collections.singleton("standard")).build(),
-			owned::contains, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { });
+			owned::contains, Gear::getPrice).optimize(Combat.MELEE, () -> false, done -> { });
 	}
 
-	private static SetupResult withWeapon(List<SetupResult> results, GearItem weapon)
+	private static Setup withWeapon(List<Setup> results, Gear weapon)
 	{
-		for (SetupResult r : results)
+		for (Setup r : results)
 		{
 			if (r.getLoadout().getWeapon() == weapon)
 			{
@@ -80,15 +80,15 @@ public class KillSpecialsTest
 	@Test
 	public void specsAreOffUnlessEnabled()
 	{
-		SetupResult r = withWeapon(run(unlimited(), CombatModifiers.NONE), sword);
+		Setup r = withWeapon(run(unlimited(), CombatModifiers.NONE), sword);
 		assertNull(r.getSpecial());
 	}
 
 	@Test
 	public void mainSetupSwitchesToTheSpecWeaponAndCountsItsDamage()
 	{
-		SetupResult plain = withWeapon(run(unlimited(), CombatModifiers.NONE), sword);
-		SetupResult specced = withWeapon(run(unlimited().killSpecials(true), CombatModifiers.NONE), sword);
+		Setup plain = withWeapon(run(unlimited(), CombatModifiers.NONE), sword);
+		Setup specced = withWeapon(run(unlimited().killSpecials(true), CombatModifiers.NONE), sword);
 		SpecialPlan plan = specced.getSpecial();
 		assertNotNull(plan);
 		assertEquals(claws, plan.getWeapon());
@@ -117,7 +117,7 @@ public class KillSpecialsTest
 	{
 		// An owned stab amulet changes nothing for the slash sword but is expensive: once it comes off, the claws carried
 		// for the spec are the one expensive item allowed.
-		GearItem amulet = item(201, "stab amulet", Slot.NECK);
+		Gear amulet = item(201, "stab amulet", Slot.NECK);
 		amulet.setStabBonus(10);
 		amulet.setPrice(2_000_000);
 		owned.add(201);
@@ -125,9 +125,9 @@ public class KillSpecialsTest
 		target.setHitpoints(300);
 		GameData data = TestData.gameData(Arrays.asList(sword, claws, amulet), Collections.emptyList());
 		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety());
-		SetupResult r = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, unlimited().killSpecials(true).wildernessRiskLimited(true)
+		Setup r = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, unlimited().killSpecials(true).wildernessRiskLimited(true)
 			.expensiveItemThreshold(1_000_000).maxExpensiveItems(1).spellbooks(Collections.singleton("standard")).build(),
-			owned::contains, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { }), sword);
+			owned::contains, Gear::getPrice).optimize(Combat.MELEE, () -> false, done -> { }), sword);
 		assertNull(r.getLoadout().get(Slot.NECK));
 		assertNotNull(r.getSpecial());
 		assertEquals(claws, r.getSpecial().getWeapon());
@@ -136,27 +136,27 @@ public class KillSpecialsTest
 	@Test
 	public void onlyReturnedSetupsArePrunedAndTheirRankingHolds()
 	{
-		GearItem amulet = item(201, "stab amulet", Slot.NECK);
+		Gear amulet = item(201, "stab amulet", Slot.NECK);
 		amulet.setStabBonus(10);
 		amulet.setPrice(2_000_000);
 		Monster target = monster(100, 20);
 		target.setHitpoints(300);
 		GameData data = TestData.gameData(Arrays.asList(sword, claws, helm, amulet), Collections.emptyList());
 		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety());
-		List<List<SetupResult>> runs = new java.util.ArrayList<>();
+		List<List<Setup>> runs = new java.util.ArrayList<>();
 		for (int results : new int[]{1, 2})
 		{
 			runs.add(com.bestgearsetup.calc.Optimizers.of(data, ctx, unlimited().killSpecials(true).resultsPerClass(results)
-				.spellbooks(Collections.singleton("standard")).build(), owned::contains, GearItem::getPrice)
-				.optimize(CombatClass.MELEE, () -> false, done -> { }));
+				.spellbooks(Collections.singleton("standard")).build(), owned::contains, Gear::getPrice)
+				.optimize(Combat.MELEE, () -> false, done -> { }));
 		}
 		assertEquals(1, runs.get(0).size());
 		assertEquals(2, runs.get(1).size());
-		SetupResult first = runs.get(1).get(0);
+		Setup first = runs.get(1).get(0);
 		assertEquals(runs.get(0).get(0).getLoadout(), first.getLoadout());
 		assertEquals(runs.get(0).get(0).getBuyCost(), first.getBuyCost());
 		assertTrue(first.getDps().getDps() >= runs.get(1).get(1).getDps().getDps());
-		for (SetupResult r : runs.get(1))
+		for (Setup r : runs.get(1))
 		{
 			// The amulet's stab bonus changes no rate, so it is neither worn nor bought.
 			assertNull(r.getLoadout().get(Slot.NECK));
@@ -166,19 +166,19 @@ public class KillSpecialsTest
 	@Test
 	public void specWeaponIsBoughtWithinTheBudget()
 	{
-		SetupResult affordable = withWeapon(run(OptimizerSettings.builder().mode(SearchMode.BUDGET)
+		Setup affordable = withWeapon(run(OptimizerSettings.builder().mode(SearchMode.BUDGET)
 			.budget(50_000_000).killSpecials(true), CombatModifiers.NONE), sword);
 		assertEquals(claws, affordable.getSpecial().getWeapon());
 		assertEquals(40_000_000, affordable.getBuyCost());
 		assertEquals(40_000_000, affordable.getSpecial().getExtraCost());
 
-		SetupResult tooDear = withWeapon(run(OptimizerSettings.builder().mode(SearchMode.BUDGET)
+		Setup tooDear = withWeapon(run(OptimizerSettings.builder().mode(SearchMode.BUDGET)
 			.budget(10_000_000).killSpecials(true), CombatModifiers.NONE), sword);
 		assertNull(tooDear.getSpecial());
 		assertEquals(0, tooDear.getBuyCost());
 
 		owned.add(claws.getId());
-		SetupResult ownedClaws = withWeapon(run(OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
+		Setup ownedClaws = withWeapon(run(OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.killSpecials(true), CombatModifiers.NONE), sword);
 		assertEquals(claws, ownedClaws.getSpecial().getWeapon());
 		assertEquals(0, ownedClaws.getBuyCost());
@@ -188,7 +188,7 @@ public class KillSpecialsTest
 	public void aWeaponWithItsOwnSpecNeedsNoSwitch()
 	{
 		owned.add(claws.getId());
-		SetupResult r = withWeapon(run(OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY).killSpecials(true),
+		Setup r = withWeapon(run(OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY).killSpecials(true),
 			CombatModifiers.NONE), claws);
 		assertEquals(claws, r.getSpecial().getWeapon());
 		assertTrue(!r.getSpecial().isSwitch(r.getLoadout()));
@@ -199,7 +199,7 @@ public class KillSpecialsTest
 	public void aFullBarUsesMoreSpecsPerKillThanRegeneration()
 	{
 		SpecialPlan regen = withWeapon(run(unlimited().killSpecials(true), CombatModifiers.NONE), sword).getSpecial();
-		SetupResult full = withWeapon(run(unlimited().killSpecials(true).specEnergy(SpecEnergy.FULL_BAR),
+		Setup full = withWeapon(run(unlimited().killSpecials(true).specEnergy(SpecEnergy.FULL_BAR),
 			CombatModifiers.NONE), sword);
 		assertTrue(full.getSpecial().getSpecsPerKill() > regen.getSpecsPerKill() + 1);
 		assertTrue(full.getDps().getDps() > regen.getOrdinary().getDps());
@@ -208,10 +208,10 @@ public class KillSpecialsTest
 	@Test
 	public void onlySpecialAttacksModeIgnoresKillSpecials()
 	{
-		List<SetupResult> results = run(unlimited().killSpecials(true),
+		List<Setup> results = run(unlimited().killSpecials(true),
 			CombatModifiers.builder().specialAttack(true).build());
 		assertTrue(!results.isEmpty());
-		for (SetupResult r : results)
+		for (Setup r : results)
 		{
 			assertNull(r.getSpecial());
 		}
@@ -220,11 +220,11 @@ public class KillSpecialsTest
 	@Test
 	public void twoHandedSpecWeaponCannotDropAMandatoryShield()
 	{
-		GearItem godsword = weapon(11802, "armadyl godsword", "2h sword", 6, "slash,slash,aggressive");
+		Gear godsword = weapon(11802, "armadyl godsword", "2h sword", 6, "slash,slash,aggressive");
 		godsword.setTwoHanded(true);
 		godsword.setSlashBonus(132);
 		godsword.setMeleeStr(132);
-		GearItem shield = item(11283, "dragonfire shield", Slot.SHIELD);
+		Gear shield = item(11283, "dragonfire shield", Slot.SHIELD);
 		owned.addAll(Arrays.asList(godsword.getId(), shield.getId()));
 		Monster wyvern = monster(100, 20);
 		wyvern.setName("test wyvern");
@@ -235,28 +235,28 @@ public class KillSpecialsTest
 			.killSpecials(true).spellbooks(Collections.singleton("standard"));
 
 		// Wyvern breath needs the shield, which the godsword would take off.
-		SetupResult protectedSetup = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.build(), owned::contains,
-			GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { }), sword);
+		Setup protectedSetup = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.build(), owned::contains,
+			Gear::getPrice).optimize(Combat.MELEE, () -> false, done -> { }), sword);
 		assertEquals(shield, protectedSetup.getLoadout().get(Slot.SHIELD));
 		assertNull(protectedSetup.getSpecial());
 
-		SetupResult unprotected = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.requireFireProtection(false).build(),
-			owned::contains, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { }), sword);
+		Setup unprotected = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.requireFireProtection(false).build(),
+			owned::contains, Gear::getPrice).optimize(Combat.MELEE, () -> false, done -> { }), sword);
 		assertEquals(godsword, unprotected.getSpecial().getWeapon());
 	}
 
-	private List<SetupResult> run(Monster target, SpecEnergy energy, GearItem... items)
+	private List<Setup> run(Monster target, SpecEnergy energy, Gear... items)
 	{
 		return run(target, energy, DrainSpecs.EXPECTED, items);
 	}
 
-	private List<SetupResult> run(Monster target, SpecEnergy energy, DrainSpecs drains, GearItem... items)
+	private List<Setup> run(Monster target, SpecEnergy energy, DrainSpecs drains, Gear... items)
 	{
 		GameData data = TestData.gameData(Arrays.asList(items), Collections.emptyList());
 		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY).killSpecials(true)
 			.specEnergy(energy).drainSpecs(drains).spellbooks(Collections.singleton("standard")).build();
-		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, GearItem::getPrice).optimize(CombatClass.MELEE,
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, Gear::getPrice).optimize(Combat.MELEE,
 			() -> false, done -> { });
 	}
 
@@ -270,20 +270,20 @@ public class KillSpecialsTest
 	@Test
 	public void oneHandedSpecWeaponAfterATwoHandedMainTakesAnOffHand()
 	{
-		GearItem scythe = weapon(22325, "scythe of vitur", "2h sword", 5, "chop,slash,aggressive");
+		Gear scythe = weapon(22325, "scythe of vitur", "2h sword", 5, "chop,slash,aggressive");
 		scythe.setTwoHanded(true);
 		scythe.setSlashBonus(110);
 		scythe.setMeleeStr(75);
-		GearItem defender = item(22322, "avernic defender", Slot.SHIELD);
+		Gear defender = item(22322, "avernic defender", Slot.SHIELD);
 		defender.setSlashBonus(29);
 		defender.setMeleeStr(8);
 		owned.addAll(Arrays.asList(scythe.getId(), claws.getId(), defender.getId()));
-		SetupResult r = withWeapon(run(target(100, 300), SpecEnergy.FULL_BAR, scythe, claws, defender), scythe);
+		Setup r = withWeapon(run(target(100, 300), SpecEnergy.FULL_BAR, scythe, claws, defender), scythe);
 		assertNull(r.getLoadout().get(Slot.SHIELD));
 		assertEquals(claws, r.getSpecial().getWeapon());
 		assertEquals(defender, r.getSpecial().getOffhand());
 		// The defender's bonuses are in the spec.
-		Loadout held = r.getLoadout().copy();
+		Outfit held = r.getLoadout().copy();
 		held.set(Slot.WEAPON, claws);
 		held.setStyle(r.getSpecial().getStyle());
 		CombatContext spec = TestFactories.combatContext(target(100, 300), PlayerLevels.maxed(), false, true, piety())
@@ -291,7 +291,7 @@ public class KillSpecialsTest
 		assertTrue(r.getSpecial().getSpec().getMaxHit() > DpsCalculator.calculate(held, spec).getMaxHit());
 
 		// A one-handed main keeps its own off-hand.
-		SetupResult sword1h = withWeapon(run(target(100, 300), SpecEnergy.FULL_BAR, sword, claws, defender), sword);
+		Setup sword1h = withWeapon(run(target(100, 300), SpecEnergy.FULL_BAR, sword, claws, defender), sword);
 		assertEquals(defender, sword1h.getLoadout().get(Slot.SHIELD));
 		assertNull(sword1h.getSpecial().getOffhand());
 	}
@@ -299,10 +299,10 @@ public class KillSpecialsTest
 	@Test
 	public void lightbearerReplacesAnEmptyRingWhenSpecsPay()
 	{
-		GearItem lightbearer = item(ItemID.LIGHTBEARER, "lightbearer", Slot.RING);
+		Gear lightbearer = item(ItemID.LIGHTBEARER, "lightbearer", Slot.RING);
 		owned.addAll(Arrays.asList(claws.getId(), lightbearer.getId()));
-		SetupResult without = withWeapon(run(target(100, 3000), SpecEnergy.REGENERATION, sword, claws, helm), sword);
-		SetupResult with = withWeapon(run(target(100, 3000), SpecEnergy.REGENERATION, sword, claws, helm, lightbearer),
+		Setup without = withWeapon(run(target(100, 3000), SpecEnergy.REGENERATION, sword, claws, helm), sword);
+		Setup with = withWeapon(run(target(100, 3000), SpecEnergy.REGENERATION, sword, claws, helm, lightbearer),
 			sword);
 		assertNull(without.getLoadout().get(Slot.RING));
 		assertEquals(lightbearer, with.getLoadout().get(Slot.RING));
@@ -313,11 +313,11 @@ public class KillSpecialsTest
 	@Test
 	public void lightbearerIsNotWornAtTheCostOfAStrongerRing()
 	{
-		GearItem lightbearer = item(ItemID.LIGHTBEARER, "lightbearer", Slot.RING);
-		GearItem ring = item(301, "strength ring", Slot.RING);
+		Gear lightbearer = item(ItemID.LIGHTBEARER, "lightbearer", Slot.RING);
+		Gear ring = item(301, "strength ring", Slot.RING);
 		ring.setMeleeStr(30);
 		owned.addAll(Arrays.asList(claws.getId(), lightbearer.getId(), ring.getId()));
-		SetupResult r = withWeapon(run(target(100, 3000), SpecEnergy.REGENERATION, sword, claws, lightbearer, ring),
+		Setup r = withWeapon(run(target(100, 3000), SpecEnergy.REGENERATION, sword, claws, lightbearer, ring),
 			sword);
 		assertEquals(ring, r.getLoadout().get(Slot.RING));
 	}
@@ -325,12 +325,12 @@ public class KillSpecialsTest
 	@Test
 	public void drainingSpecOpensTheKillAndRaisesTheRestOfIt()
 	{
-		GearItem warhammer = weapon(13576, "dragon warhammer", "blunt", 6, "pound,crush,accurate");
+		Gear warhammer = weapon(13576, "dragon warhammer", "blunt", 6, "pound,crush,accurate");
 		warhammer.setCrushBonus(95);
 		warhammer.setMeleeStr(85);
 		owned.add(warhammer.getId());
 		Monster armoured = target(300, 2000);
-		SetupResult r = withWeapon(run(armoured, SpecEnergy.FULL_BAR, sword, warhammer), sword);
+		Setup r = withWeapon(run(armoured, SpecEnergy.FULL_BAR, sword, warhammer), sword);
 		SpecialPlan plan = r.getSpecial();
 		assertEquals(warhammer, plan.getWeapon());
 		assertEquals(SpecialAttack.Drain.DRAGON_WARHAMMER, plan.getSpecial().getDrain());
@@ -347,16 +347,16 @@ public class KillSpecialsTest
 	@Test
 	public void drainSettingChoosesBetweenTheAverageTheDamageAndTheWorstCase()
 	{
-		GearItem warhammer = weapon(13576, "dragon warhammer", "blunt", 6, "pound,crush,accurate");
+		Gear warhammer = weapon(13576, "dragon warhammer", "blunt", 6, "pound,crush,accurate");
 		warhammer.setCrushBonus(95);
 		warhammer.setMeleeStr(85);
 		owned.addAll(Arrays.asList(warhammer.getId(), claws.getId()));
 		Monster armoured = target(300, 2000);
-		SetupResult expected = withWeapon(run(armoured, SpecEnergy.FULL_BAR, DrainSpecs.EXPECTED, sword, warhammer, claws),
+		Setup expected = withWeapon(run(armoured, SpecEnergy.FULL_BAR, DrainSpecs.EXPECTED, sword, warhammer, claws),
 			sword);
-		SetupResult damage = withWeapon(run(armoured, SpecEnergy.FULL_BAR, DrainSpecs.DAMAGE_ONLY, sword, warhammer, claws),
+		Setup damage = withWeapon(run(armoured, SpecEnergy.FULL_BAR, DrainSpecs.DAMAGE_ONLY, sword, warhammer, claws),
 			sword);
-		SetupResult worst = withWeapon(run(armoured, SpecEnergy.FULL_BAR, DrainSpecs.ALL_MISS, sword, warhammer, claws),
+		Setup worst = withWeapon(run(armoured, SpecEnergy.FULL_BAR, DrainSpecs.ALL_MISS, sword, warhammer, claws),
 			sword);
 		assertEquals(warhammer, expected.getSpecial().getWeapon());
 		// Without credit for its drain, the warhammer loses to the claws' damage.
@@ -370,11 +370,11 @@ public class KillSpecialsTest
 	@Test
 	public void worstCaseNeverUsesADrainThatOnlyPaysWhenItLands()
 	{
-		GearItem warhammer = weapon(13576, "dragon warhammer", "blunt", 6, "pound,crush,accurate");
+		Gear warhammer = weapon(13576, "dragon warhammer", "blunt", 6, "pound,crush,accurate");
 		warhammer.setCrushBonus(95);
 		warhammer.setMeleeStr(85);
 		owned.add(warhammer.getId());
-		SetupResult r = withWeapon(run(target(300, 2000), SpecEnergy.FULL_BAR, DrainSpecs.ALL_MISS, sword, warhammer),
+		Setup r = withWeapon(run(target(300, 2000), SpecEnergy.FULL_BAR, DrainSpecs.ALL_MISS, sword, warhammer),
 			sword);
 		assertNull(r.getSpecial());
 	}
@@ -382,7 +382,7 @@ public class KillSpecialsTest
 	@Test
 	public void everyDrainSettingHonoursTheSpecEnergyPerKill()
 	{
-		GearItem warhammer = weapon(13576, "dragon warhammer", "blunt", 6, "pound,crush,accurate");
+		Gear warhammer = weapon(13576, "dragon warhammer", "blunt", 6, "pound,crush,accurate");
 		warhammer.setCrushBonus(95);
 		warhammer.setMeleeStr(85);
 		owned.addAll(Arrays.asList(warhammer.getId(), claws.getId()));
@@ -403,15 +403,15 @@ public class KillSpecialsTest
 	@Test
 	public void ammoSlotSpecWeaponBringsItsOwnAmmunition()
 	{
-		GearItem bow = weapon(25865, "test longbow", "bow", 5, "rapid,ranged,rapid");
+		Gear bow = weapon(25865, "test longbow", "bow", 5, "rapid,ranged,rapid");
 		bow.setTwoHanded(true);
 		bow.setRangedBonus(100);
-		GearItem arrows = item(11212, "dragon arrow", Slot.AMMO);
+		Gear arrows = item(11212, "dragon arrow", Slot.AMMO);
 		arrows.setRangedStr(60);
 		bow.setAmmunition(Collections.singletonList(arrows.getId()));
-		GearItem crossbow = weapon(26374, "zaryte crossbow", "crossbow", 5, "rapid,ranged,rapid");
+		Gear crossbow = weapon(26374, "zaryte crossbow", "crossbow", 5, "rapid,ranged,rapid");
 		crossbow.setRangedBonus(110);
-		GearItem bolts = item(21905, "dragon bolts", Slot.AMMO);
+		Gear bolts = item(21905, "dragon bolts", Slot.AMMO);
 		bolts.setRangedStr(122);
 		bolts.setPrice(2_000);
 		crossbow.setAmmunition(Collections.singletonList(bolts.getId()));
@@ -422,8 +422,8 @@ public class KillSpecialsTest
 			.specEnergy(SpecEnergy.FULL_BAR).spellbooks(Collections.singleton("standard"));
 
 		// The worn arrows don't fit the crossbow; its bolts go on with it, and are bought for the ammo count.
-		SetupResult bought = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.mode(SearchMode.BUDGET).budget(100_000_000)
-			.ammoCount(100).build(), owned::contains, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false, done -> { }), bow);
+		Setup bought = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.mode(SearchMode.BUDGET).budget(100_000_000)
+			.ammoCount(100).build(), owned::contains, Gear::getPrice).optimize(Combat.RANGED, () -> false, done -> { }), bow);
 		assertEquals(arrows, bought.getLoadout().get(Slot.AMMO));
 		SpecialPlan plan = bought.getSpecial();
 		assertEquals(crossbow, plan.getWeapon());
@@ -433,8 +433,8 @@ public class KillSpecialsTest
 		assertEquals(200_000, bought.getBuyCost());
 
 		// Unaffordable spec ammunition rules the switch out.
-		SetupResult tooDear = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.budget(100_000).build(), owned::contains,
-			GearItem::getPrice).optimize(CombatClass.RANGED, () -> false, done -> { }), bow);
+		Setup tooDear = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.budget(100_000).build(), owned::contains,
+			Gear::getPrice).optimize(Combat.RANGED, () -> false, done -> { }), bow);
 		assertNull(tooDear.getSpecial());
 	}
 }

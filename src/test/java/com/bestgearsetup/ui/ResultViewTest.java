@@ -7,18 +7,18 @@ import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.calc.TestFactories;
 import com.bestgearsetup.RuneUse;
 import com.bestgearsetup.SearchResults;
-import com.bestgearsetup.calc.AttackStyle;
+import com.bestgearsetup.calc.Style;
 import com.bestgearsetup.calc.CombatContext;
 import com.bestgearsetup.calc.CombatModifiers;
-import com.bestgearsetup.calc.DpsResult;
-import com.bestgearsetup.calc.Loadout;
-import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.Dps;
+import com.bestgearsetup.calc.Outfit;
+import com.bestgearsetup.calc.Setup;
 import com.bestgearsetup.calc.SupportSpell;
 import com.bestgearsetup.calc.Thrall;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
 import java.awt.Component;
@@ -37,7 +37,7 @@ public class ResultViewTest
 	@Test
 	public void runesRowListsExpectedCountsPerKill() throws Exception
 	{
-		SetupResult setup = setup("ice barrage", "kodai wand", 4, Collections.emptySet());
+		Setup setup = setup("ice barrage", "kodai wand", 4, Collections.emptySet());
 		RuneUse runes = RuneUse.of(setup, 200, 99, 99);
 		SwingUtilities.invokeAndWait(() ->
 		{
@@ -51,7 +51,7 @@ public class ResultViewTest
 	@Test
 	public void supportRowIsSeparate() throws Exception
 	{
-		SetupResult setup = setup(null, "abyssal whip", 2, EnumSet.of(SupportSpell.THRALL));
+		Setup setup = setup(null, "abyssal whip", 2, EnumSet.of(SupportSpell.THRALL));
 		RuneUse runes = RuneUse.of(setup, 100, 99, 99);
 		SwingUtilities.invokeAndWait(() ->
 		{
@@ -67,7 +67,7 @@ public class ResultViewTest
 	@Test
 	public void tinyCountsShowAsLessThanATenth() throws Exception
 	{
-		SetupResult setup = setup("dark demonbane", "purging staff", 5,
+		Setup setup = setup("dark demonbane", "purging staff", 5,
 			EnumSet.of(SupportSpell.MARK_OF_DARKNESS));
 		RuneUse runes = RuneUse.of(setup, 200, 99, 99);
 		SwingUtilities.invokeAndWait(() -> assertEquals("<html>Support/kill: <0.1 soul, <0.1 cosmic</html>",
@@ -77,7 +77,7 @@ public class ResultViewTest
 	@Test
 	public void sunfireLabelsFire() throws Exception
 	{
-		SetupResult setup = setup("fire surge", "magic staff", 5, Collections.emptySet());
+		Setup setup = setup("fire surge", "magic staff", 5, Collections.emptySet());
 		RuneUse runes = RuneUse.of(setup, 200, 99, 99);
 		SwingUtilities.invokeAndWait(() -> assertTrue(named(view(200).statsBox(setup.getDps(), null,
 			runes, true, false), "runesPerKill").getText().contains("fire/sunfire")));
@@ -86,7 +86,7 @@ public class ResultViewTest
 	@Test
 	public void poweredStaffSaysChargesAreNotCounted() throws Exception
 	{
-		DpsResult dps = dps(5);
+		Dps dps = dps(5);
 		SwingUtilities.invokeAndWait(() -> assertEquals("<html>Runes/kill: uses charges, not counted</html>",
 			named(view(100).statsBox(dps, null, RuneUse.of(null, 100, 99, 99), false, true),
 				"runesPerKill").getText()));
@@ -95,7 +95,7 @@ public class ResultViewTest
 	@Test
 	public void noRowsWithoutRunes() throws Exception
 	{
-		DpsResult dps = dps(5);
+		Dps dps = dps(5);
 		SwingUtilities.invokeAndWait(() ->
 		{
 			ResultView view = view(100);
@@ -110,8 +110,8 @@ public class ResultViewTest
 	@Test
 	public void tripLinesShowCombatTimePrayerAndSupplies() throws Exception
 	{
-		Loadout loadout = new Loadout();
-		SetupResult setup = new SetupResult(CombatClass.MELEE, loadout, dps(5), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
+		Outfit loadout = new Outfit();
+		Setup setup = new Setup(Combat.MELEE, loadout, dps(5), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 		java.util.List<com.bestgearsetup.TripSupplies.Supply> supplies = Collections.singletonList(
 			new com.bestgearsetup.TripSupplies.Supply("Prayer potion", Collections.singletonList(2434), 3));
 		SwingUtilities.invokeAndWait(() ->
@@ -138,7 +138,7 @@ public class ResultViewTest
 			// A note opening with the summary continues it rather than repeating "None needed" on a second line.
 			ResultView dragon = view(100, "steel dragon (level 246 (task only))");
 			JPanel magic = dragon.statsBox(dps(5), null, null, false, false);
-			dragon.addTripLines(magic, new SetupResult(CombatClass.MAGIC, loadout, dps(5), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), 1, Collections.emptyList());
+			dragon.addTripLines(magic, new Setup(Combat.MAGIC, loadout, dps(5), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), 1, Collections.emptyList());
 			assertTrue(named(magic, "protectionPrayer").getText(),
 				named(magic, "protectionPrayer").getText().contains("Overhead: None needed at range: "));
 			ResultView bloat = view(100, "pestilent bloat (normal)");
@@ -189,10 +189,10 @@ public class ResultViewTest
 		return new ResultView(results, null, null, null, null, 0, null, style -> { });
 	}
 
-	private static SetupResult setup(String spellName, String weapon, double dps, java.util.Set<SupportSpell> support)
+	private static Setup setup(String spellName, String weapon, double dps, java.util.Set<SupportSpell> support)
 	{
-		Loadout loadout = new Loadout();
-		GearItem item = new GearItem();
+		Outfit loadout = new Outfit();
+		Gear item = new Gear();
 		item.setName(weapon);
 		loadout.set(Slot.WEAPON, item);
 		if (spellName != null)
@@ -201,14 +201,14 @@ public class ResultViewTest
 			spell.setName(spellName);
 			loadout.setSpell(spell);
 		}
-		return new SetupResult(spellName == null ? CombatClass.MELEE : CombatClass.MAGIC,
+		return new Setup(spellName == null ? Combat.MELEE : Combat.MAGIC,
 			loadout, dps(dps), 0, 0, Collections.emptySet(), support, null,
 			support.contains(SupportSpell.THRALL) ? Thrall.GREATER : null);
 	}
 
-	private static DpsResult dps(double value)
+	private static Dps dps(double value)
 	{
-		return new DpsResult(value, 10, 0.5, 5, 4.8, null, value, 1, 5);
+		return new Dps(value, 10, 0.5, 5, 4.8, null, value, 1, 5);
 	}
 
 	private static JLabel named(JPanel box, String name)
@@ -239,7 +239,7 @@ public class ResultViewTest
 			SwingUtilities.invokeAndWait(() ->
 			{
 				ResultView view = new ResultView(results, null, null, null, null, 0, null, style -> { });
-				JPanel box = view.statsBox(new DpsResult(2, 10, 0.5, 4, 4.8, null), null, null, false, false);
+				JPanel box = view.statsBox(new Dps(2, 10, 0.5, 4, 4.8, null), null, null, false, false);
 				boolean found = false;
 				for (Component component : box.getComponents())
 				{
@@ -251,7 +251,7 @@ public class ResultViewTest
 				}
 				assertTrue(found);
 				assertTrue("No thrall line unless the setup includes one", label(box, "Incl. thrall") == null);
-				JPanel withThrall = view.statsBox(new DpsResult(2, 10, 0.5, 4, 4.8, null), Thrall.SUPERIOR, null, false, false);
+				JPanel withThrall = view.statsBox(new Dps(2, 10, 0.5, 4, 4.8, null), Thrall.SUPERIOR, null, false, false);
 				assertEquals("<html>Incl. thrall: +0.42</html>", label(withThrall, "Incl. thrall").getText());
 				assertTrue(label(withThrall, "Incl. thrall").getToolTipText().startsWith("Superior ghostly thrall"));
 			});
@@ -276,7 +276,7 @@ public class ResultViewTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			JPanel box = view(100).costBox(new Loadout(), null);
+			JPanel box = view(100).costBox(new Outfit(), null);
 			String text = ((JLabel) box.getComponent(0)).getText();
 			assertTrue(text, text.contains(" (own <font color='#6BD56B'>0</font>)<br>To buy: "));
 		});
@@ -302,23 +302,23 @@ public class ResultViewTest
 		net.runelite.client.game.ItemManager images = org.mockito.Mockito.mock(net.runelite.client.game.ItemManager.class);
 		org.mockito.Mockito.when(images.getImage(org.mockito.ArgumentMatchers.anyInt()))
 			.thenReturn(org.mockito.Mockito.mock(net.runelite.client.util.AsyncBufferedImage.class));
-		java.util.List<AttackStyle.Type> picked = new java.util.ArrayList<>();
+		java.util.List<Style.Type> picked = new java.util.ArrayList<>();
 		SwingUtilities.invokeAndWait(() ->
 		{
 			SearchResults results = styles();
 			ResultView view = new ResultView(results, plugin, images, null, null, 0, null, picked::add);
-			assertEquals(best(results, AttackStyle.Type.CRUSH), highlighted(plugin));
+			assertEquals(best(results, Style.Type.CRUSH), highlighted(plugin));
 			Component stab = all(view).stream().filter(c -> c instanceof javax.swing.JComponent
 				&& String.valueOf(((javax.swing.JComponent) c).getToolTipText()).startsWith("Stab:")).findFirst().get();
 			stab.dispatchEvent(new java.awt.event.MouseEvent(stab, java.awt.event.MouseEvent.MOUSE_CLICKED, 0, 0, 1, 1, 1, false));
-			assertEquals(Collections.singletonList(AttackStyle.Type.STAB), picked);
-			assertEquals(best(results, AttackStyle.Type.STAB), highlighted(plugin));
+			assertEquals(Collections.singletonList(Style.Type.STAB), picked);
+			assertEquals(best(results, Style.Type.STAB), highlighted(plugin));
 
 			SearchResults recalculated = styles();
-			new ResultView(recalculated, plugin, images, null, null, 0, AttackStyle.Type.STAB, picked::add);
-			assertEquals(best(recalculated, AttackStyle.Type.STAB), highlighted(plugin));
-			new ResultView(recalculated, plugin, images, null, null, 0, AttackStyle.Type.MAGIC, picked::add);
-			assertEquals("A kept style these results lack opens on the best one", best(recalculated, AttackStyle.Type.CRUSH),
+			new ResultView(recalculated, plugin, images, null, null, 0, Style.Type.STAB, picked::add);
+			assertEquals(best(recalculated, Style.Type.STAB), highlighted(plugin));
+			new ResultView(recalculated, plugin, images, null, null, 0, Style.Type.MAGIC, picked::add);
+			assertEquals("A kept style these results lack opens on the best one", best(recalculated, Style.Type.CRUSH),
 				highlighted(plugin));
 		});
 	}
@@ -326,33 +326,33 @@ public class ResultViewTest
 	/** Crush beats stab; each call builds new setups. */
 	private static SearchResults styles()
 	{
-		java.util.Map<AttackStyle.Type, java.util.List<SetupResult>> byType = new java.util.EnumMap<>(AttackStyle.Type.class);
-		byType.put(AttackStyle.Type.CRUSH, Collections.singletonList(styleSetup("mace", 5)));
-		byType.put(AttackStyle.Type.STAB, Collections.singletonList(styleSetup("spear", 3)));
+		java.util.Map<Style.Type, java.util.List<Setup>> byType = new java.util.EnumMap<>(Style.Type.class);
+		byType.put(Style.Type.CRUSH, Collections.singletonList(styleSetup("mace", 5)));
+		byType.put(Style.Type.STAB, Collections.singletonList(styleSetup("spear", 3)));
 		return com.bestgearsetup.TestResults.of(new Monster(), 100, byType, Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false);
 	}
 
-	private static SetupResult styleSetup(String weaponName, double dps)
+	private static Setup styleSetup(String weaponName, double dps)
 	{
-		GearItem weapon = new GearItem();
+		Gear weapon = new Gear();
 		weapon.setId(100);
 		weapon.setName(weaponName);
 		weapon.setSlot(Slot.WEAPON);
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		loadout.set(Slot.WEAPON, weapon);
-		loadout.setStyle(AttackStyle.parse("pound,crush,aggressive"));
-		return new SetupResult(CombatClass.MELEE, loadout, new DpsResult(dps, 0, 1, 4, 12, null), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
+		loadout.setStyle(Style.parse("pound,crush,aggressive"));
+		return new Setup(Combat.MELEE, loadout, new Dps(dps, 0, 1, 4, 12, null), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 	}
 
-	private static SetupResult best(SearchResults results, AttackStyle.Type type)
+	private static Setup best(SearchResults results, Style.Type type)
 	{
 		return results.getByType().get(type).get(0);
 	}
 
-	/** The setup last laid out in the bank; SetupResult is a value class, so this captures rather than counts calls. */
-	private static SetupResult highlighted(com.bestgearsetup.BestGearSetupPlugin plugin)
+	/** The setup last laid out in the bank; Setup is a value class, so this captures rather than counts calls. */
+	private static Setup highlighted(com.bestgearsetup.BestGearSetupPlugin plugin)
 	{
-		org.mockito.ArgumentCaptor<SetupResult> setup = org.mockito.ArgumentCaptor.forClass(SetupResult.class);
+		org.mockito.ArgumentCaptor<Setup> setup = org.mockito.ArgumentCaptor.forClass(Setup.class);
 		org.mockito.Mockito.verify(plugin, org.mockito.Mockito.atLeastOnce())
 			.setBankHighlightedSetup(setup.capture(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
 		org.mockito.Mockito.clearInvocations(plugin);

@@ -2,10 +2,10 @@ package com.bestgearsetup;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.calc.Loadout;
-import com.bestgearsetup.calc.SetupResult;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.calc.Outfit;
+import com.bestgearsetup.calc.Setup;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.google.gson.Gson;
 import java.awt.Graphics2D;
@@ -32,17 +32,17 @@ public class BankHighlightTest
 	public void selectedSetupIncludesVariantsAndLoadedAmmoAndReplacesPreviousSelection()
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
-		Loadout ranged = new Loadout();
+		Outfit ranged = new Outfit();
 		ranged.set(Slot.WEAPON, item(12926, 12924));
 		ranged.set(Slot.HEAD, item(11826, 11827));
 		ranged.setLoadedAmmo(item(11230, 11231));
-		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.RANGED, ranged, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
+		plugin.setBankHighlightedSetup(new Setup(Combat.RANGED, ranged, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 		Set<Integer> first = plugin.getBankHighlightIds();
 		assertEquals(new HashSet<>(Arrays.asList(12926, 12924, 11826, 11230)), first);
 
-		Loadout melee = new Loadout();
+		Outfit melee = new Outfit();
 		melee.set(Slot.WEAPON, item(4151));
-		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, melee, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
+		plugin.setBankHighlightedSetup(new Setup(Combat.MELEE, melee, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 		assertEquals(new HashSet<>(Arrays.asList(4151)), plugin.getBankHighlightIds());
 		// Rendering can still hold an older snapshot while the sidebar changes its selection.
 		assertEquals(4, first.size());
@@ -60,16 +60,16 @@ public class BankHighlightTest
 	public void emptyPlaceholdersAndDisabledHighlightsDoNotReadItemSprites()
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		loadout.set(Slot.WEAPON, item(4151));
-		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
+		plugin.setBankHighlightedSetup(new Setup(Combat.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 		// No ItemManager is installed: these paths must stop before any cache or sprite lookup.
-		BestGearSetupBankOverlay overlay = new BestGearSetupBankOverlay(plugin, new BestGearSetupConfig() {}, null);
+		BestGearSetupBankOverlay overlay = new BestGearSetupBankOverlay(plugin, new Options() {}, null);
 		Graphics2D graphics = new BufferedImage(40, 40, BufferedImage.TYPE_INT_ARGB).createGraphics();
 		try
 		{
 			overlay.renderItemOverlay(graphics, 4151, new WidgetItem(4151, 0, new Rectangle(0, 0, 36, 32), null, null));
-			BestGearSetupConfig disabled = new BestGearSetupConfig()
+			Options disabled = new Options()
 			{
 				@Override
 				public boolean highlightBankGear()
@@ -88,9 +88,9 @@ public class BankHighlightTest
 		}
 	}
 
-	private static GearItem item(int id, Integer... variants)
+	private static Gear item(int id, Integer... variants)
 	{
-		GearItem item = new GearItem();
+		Gear item = new Gear();
 		item.setId(id);
 		item.setVariants(Arrays.asList(variants));
 		return item;

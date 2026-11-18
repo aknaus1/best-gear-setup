@@ -1,7 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import java.util.*;
 
 /**
@@ -16,7 +16,7 @@ public final class CosmeticVariants
 	}
 
 	/** Whether the two items share a combat identity and everything the search scores. */
-	public static boolean equivalent(GearItem a, GearItem b)
+	public static boolean equivalent(Gear a, Gear b)
 	{
 		if (a == b)
 		{
@@ -38,14 +38,14 @@ public final class CosmeticVariants
 	}
 
 	/** The item's other cosmetic variants in the catalogue, in catalogue order. */
-	public static List<GearItem> others(GameData data, GearItem item)
+	public static List<Gear> others(GameData data, Gear item)
 	{
 		if (data == null || item == null || item.getSlot() == null)
 		{
 			return Collections.emptyList();
 		}
-		List<GearItem> out = new ArrayList<>();
-		for (GearItem other : data.getItems(item.getSlot()))
+		List<Gear> out = new ArrayList<>();
+		for (Gear other : data.getItems(item.getSlot()))
 		{
 			if (other.getId() != item.getId() && equivalent(item, other))
 			{

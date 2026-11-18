@@ -6,9 +6,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
@@ -57,30 +57,30 @@ public class CosmeticVariantTest
 		monsters = WikiMonsters.get(gson);
 	}
 
-	private static List<SetupResult> ranged(SearchMode mode, ToLongFunction<GearItem> price, Integer... held)
+	private static List<Setup> ranged(SearchMode mode, ToLongFunction<Gear> price, Integer... held)
 	{
 		CombatContext context = TestFactories.combatContext(monsters.monster("general graardor"), PlayerLevels.maxed(), false,
 			false, null);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).resultsPerClass(100).build();
 		Set<Integer> owned = new HashSet<>(Arrays.asList(held));
-		return com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, price).optimize(CombatClass.RANGED, () -> false, done -> { });
+		return com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, price).optimize(Combat.RANGED, () -> false, done -> { });
 	}
 
 	/** The results' weapons from the bow's recolour family. */
-	private static List<Integer> bows(List<SetupResult> results)
+	private static List<Integer> bows(List<Setup> results)
 	{
 		return results.stream().map(r -> r.getLoadout().get(Slot.WEAPON).getId())
 			.filter(id -> id == BOF || id == BOF_HEFIN || id == BOF_ITHELL).collect(Collectors.toList());
 	}
 
-	private static SetupResult best(String monster, CombatClass cls, SearchMode mode, Integer... held)
+	private static Setup best(String monster, Combat cls, SearchMode mode, Integer... held)
 	{
 		Monster target = monsters.monster(monster);
 		CombatContext context = TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).killSpecials(true)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient"))).build();
 		Set<Integer> owned = new HashSet<>(Arrays.asList(held));
-		List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, item -> 0L)
+		List<Setup> results = com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, item -> 0L)
 			.optimize(cls, () -> false, done -> { });
 		assertFalse("no " + cls + " setup holding " + owned, results.isEmpty());
 		return results.get(0);
@@ -89,9 +89,9 @@ public class CosmeticVariantTest
 	@Test
 	public void deadmanVolatileStaffCastsSpellsAndSpecsLikeTheOriginal()
 	{
-		SetupResult original = best("general graardor", CombatClass.MAGIC, SearchMode.OWNED_ONLY,
+		Setup original = best("general graardor", Combat.MAGIC, SearchMode.OWNED_ONLY,
 			ItemID.NIGHTMARE_STAFF_VOLATILE);
-		SetupResult deadman = best("general graardor", CombatClass.MAGIC, SearchMode.OWNED_ONLY,
+		Setup deadman = best("general graardor", Combat.MAGIC, SearchMode.OWNED_ONLY,
 			ItemID.DEADMAN_NIGHTMARE_STAFF_VOLATILE);
 		assertEquals(ItemID.DEADMAN_NIGHTMARE_STAFF_VOLATILE, deadman.getLoadout().get(Slot.WEAPON).getId());
 		assertEquals(original.getLoadout().getSpell(), deadman.getLoadout().getSpell());
@@ -104,9 +104,9 @@ public class CosmeticVariantTest
 	public void twistedBowFiresPoisonedDragonArrows()
 	{
 		String nylocas = "nylocas vasilias (ranged) (normal)";
-		SetupResult plain = best(nylocas, CombatClass.RANGED, SearchMode.INVENTORY_ONLY, ItemID.TWISTED_BOW,
+		Setup plain = best(nylocas, Combat.RANGED, SearchMode.INVENTORY_ONLY, ItemID.TWISTED_BOW,
 			ItemID.DRAGON_ARROW);
-		SetupResult poisoned = best(nylocas, CombatClass.RANGED, SearchMode.INVENTORY_ONLY, ItemID.TWISTED_BOW,
+		Setup poisoned = best(nylocas, Combat.RANGED, SearchMode.INVENTORY_ONLY, ItemID.TWISTED_BOW,
 			ItemID.DRAGON_ARROW_P);
 		assertEquals(ItemID.TWISTED_BOW, poisoned.getLoadout().get(Slot.WEAPON).getId());
 		assertEquals(ItemID.DRAGON_ARROW_P, poisoned.getLoadout().get(Slot.AMMO).getId());
@@ -116,8 +116,8 @@ public class CosmeticVariantTest
 	@Test
 	public void leagueOrnamentedSoulreaperAxeFightsLikeTheAxe()
 	{
-		SetupResult plain = best("general graardor", CombatClass.MELEE, SearchMode.OWNED_ONLY, ItemID.SOULREAPER);
-		SetupResult ornamented = best("general graardor", CombatClass.MELEE, SearchMode.OWNED_ONLY,
+		Setup plain = best("general graardor", Combat.MELEE, SearchMode.OWNED_ONLY, ItemID.SOULREAPER);
+		Setup ornamented = best("general graardor", Combat.MELEE, SearchMode.OWNED_ONLY,
 			ItemID.SOULREAPER_AXE_ORN);
 		assertEquals(ItemID.SOULREAPER_AXE_ORN, ornamented.getLoadout().get(Slot.WEAPON).getId());
 		assertEquals(plain.getDps().getDps(), ornamented.getDps().getDps(), 1e-9);
@@ -127,7 +127,7 @@ public class CosmeticVariantTest
 	public void recoloursAreSearchedOnceAsTheSnapshotItem()
 	{
 		assertTrue(CosmeticVariants.equivalent(data.getItem(Slot.WEAPON, BOF), data.getItem(Slot.WEAPON, BOF_HEFIN)));
-		List<SetupResult> results = ranged(SearchMode.UNLIMITED, item -> 0L);
+		List<Setup> results = ranged(SearchMode.UNLIMITED, item -> 0L);
 		for (int i = 0; i < results.size(); i++)
 		{
 			for (int j = i + 1; j < results.size(); j++)
@@ -148,7 +148,7 @@ public class CosmeticVariantTest
 	@Test
 	public void aPricedRecolourStandsForAnUnpricedOne()
 	{
-		List<SetupResult> results = ranged(SearchMode.UNLIMITED, item -> item.getId() == BOF ? ItemCosts.UNKNOWN : 0L);
+		List<Setup> results = ranged(SearchMode.UNLIMITED, item -> item.getId() == BOF ? ItemCosts.UNKNOWN : 0L);
 		assertEquals(Collections.singletonList(BOF_HEFIN), bows(results));
 	}
 
@@ -156,9 +156,9 @@ public class CosmeticVariantTest
 	public void theUnchargedTonalzticsIsNotACosmetic()
 	{
 		// Folded as a charge state today; were it shown separately, its shorter throw keeps it apart.
-		GearItem charged = data.getItem(Slot.WEAPON, TONALZTICS);
+		Gear charged = data.getItem(Slot.WEAPON, TONALZTICS);
 		Gson gson = RuneLiteAPI.GSON;
-		GearItem uncharged = gson.fromJson(gson.toJson(charged), GearItem.class);
+		Gear uncharged = gson.fromJson(gson.toJson(charged), Gear.class);
 		uncharged.setSlot(Slot.WEAPON);
 		uncharged.setId(TONALZTICS_UNCHARGED);
 		uncharged.setCombatId(TONALZTICS);

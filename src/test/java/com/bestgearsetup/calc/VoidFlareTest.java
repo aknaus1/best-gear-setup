@@ -6,7 +6,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiMonsters;
@@ -32,17 +32,17 @@ public class VoidFlareTest
 		assertEquals(14179, flare.getId());
 	}
 
-	private static Loadout loadout(String name, String subcategory, String style)
+	private static Outfit loadout(String name, String subcategory, String style)
 	{
-		GearItem w = weapon(40000, name, subcategory, 5, style);
+		Gear w = weapon(40000, name, subcategory, 5, style);
 		w.setMeleeStr(80);
 		w.setRangedStr(80);
 		w.setSlashBonus(80);
 		w.setRangedBonus(80);
 		w.setMagicBonus(20);
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, w);
-		l.setStyle(AttackStyle.parse(style));
+		l.setStyle(Style.parse(style));
 		return l;
 	}
 
@@ -53,20 +53,20 @@ public class VoidFlareTest
 		target.setId(14179);
 		target.setName("void flare (shadow)");
 		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null);
-		DpsResult bow = DpsCalculator.calculate(loadout("magic shortbow", "bow", "rapid,ranged,rapid"), ctx);
-		DpsResult salamander = DpsCalculator.calculate(loadout("black salamander", "salamander", "flare,ranged,accurate"), ctx);
-		DpsResult staff = DpsCalculator.calculate(loadout("trident of the seas", "powered staff", "accurate,magic,accurate"), ctx);
-		DpsResult crossbow = DpsCalculator.calculate(loadout("rune crossbow", "crossbow", "rapid,ranged,rapid"), ctx);
+		Dps bow = DpsCalculator.calculate(loadout("magic shortbow", "bow", "rapid,ranged,rapid"), ctx);
+		Dps salamander = DpsCalculator.calculate(loadout("black salamander", "salamander", "flare,ranged,accurate"), ctx);
+		Dps staff = DpsCalculator.calculate(loadout("trident of the seas", "powered staff", "accurate,magic,accurate"), ctx);
+		Dps crossbow = DpsCalculator.calculate(loadout("rune crossbow", "crossbow", "rapid,ranged,rapid"), ctx);
 		// Karil's crossbow is a heavy weapon on the Wiki (Attack type "Heavy"; bolt racks are bolts).
-		DpsResult karil = DpsCalculator.calculate(loadout("karil's crossbow", "crossbow", "rapid,ranged,rapid"), ctx);
-		DpsResult knife = DpsCalculator.calculate(loadout("rune knife", "thrown", "accurate,ranged,accurate"), ctx);
-		DpsResult whip = DpsCalculator.calculate(loadout("abyssal whip", "whip", "lash,slash,aggressive"), ctx);
-		for (DpsResult max : Arrays.asList(bow, salamander, staff))
+		Dps karil = DpsCalculator.calculate(loadout("karil's crossbow", "crossbow", "rapid,ranged,rapid"), ctx);
+		Dps knife = DpsCalculator.calculate(loadout("rune knife", "thrown", "accurate,ranged,accurate"), ctx);
+		Dps whip = DpsCalculator.calculate(loadout("abyssal whip", "whip", "lash,slash,aggressive"), ctx);
+		for (Dps max : Arrays.asList(bow, salamander, staff))
 		{
 			assertEquals(1, max.getAccuracy(), 0);
 			assertEquals(max.getMaxHit(), max.getAverageHit(), 1e-9);
 		}
-		for (DpsResult rolled : Arrays.asList(crossbow, karil, knife, whip))
+		for (Dps rolled : Arrays.asList(crossbow, karil, knife, whip))
 		{
 			assertTrue(rolled.getAccuracy() < 1);
 			assertTrue(rolled.getAverageHit() < rolled.getMaxHit());

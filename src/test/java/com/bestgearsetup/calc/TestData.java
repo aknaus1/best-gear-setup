@@ -1,10 +1,10 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import com.bestgearsetup.data.OffensivePrayer;
 import com.bestgearsetup.data.Prayer;
 import com.bestgearsetup.data.Slot;
@@ -24,9 +24,9 @@ final class TestData
 	{
 	}
 
-	static GearItem item(int id, String name, Slot slot)
+	static Gear item(int id, String name, Slot slot)
 	{
-		GearItem i = new GearItem();
+		Gear i = new Gear();
 		i.setId(id);
 		i.setName(name);
 		i.setSlot(slot);
@@ -34,9 +34,9 @@ final class TestData
 		return i;
 	}
 
-	static GearItem weapon(int id, String name, String subcategory, int speed, String... styles)
+	static Gear weapon(int id, String name, String subcategory, int speed, String... styles)
 	{
-		GearItem w = item(id, name, Slot.WEAPON);
+		Gear w = item(id, name, Slot.WEAPON);
 		w.setSubcategory(subcategory);
 		w.setAttackSpeed(speed);
 		w.setStyles(Arrays.asList(styles));
@@ -66,20 +66,20 @@ final class TestData
 		return m;
 	}
 
-	static Map<CombatClass, OffensivePrayer> piety()
+	static Map<Combat, OffensivePrayer> piety()
 	{
-		Map<CombatClass, OffensivePrayer> p = new EnumMap<>(CombatClass.class);
-		p.put(CombatClass.MELEE, new OffensivePrayer("piety", 20, 23, 70, 70));
-		p.put(CombatClass.RANGED, new OffensivePrayer("rigour", 20, 23, 74, 70));
-		p.put(CombatClass.MAGIC, new OffensivePrayer("augury", 25, 4, 77, 70));
+		Map<Combat, OffensivePrayer> p = new EnumMap<>(Combat.class);
+		p.put(Combat.MELEE, new OffensivePrayer("piety", 20, 23, 70, 70));
+		p.put(Combat.RANGED, new OffensivePrayer("rigour", 20, 23, 74, 70));
+		p.put(Combat.MAGIC, new OffensivePrayer("augury", 25, 4, 77, 70));
 		return p;
 	}
 
-	static GameData gameData(List<GearItem> items, List<Spell> spells)
+	static GameData gameData(List<Gear> items, List<Spell> spells)
 	{
-		Map<String, List<GearItem>> bySlot = new HashMap<>();
-		List<GearItem> weapons = new ArrayList<>();
-		for (GearItem i : items)
+		Map<String, List<Gear>> bySlot = new HashMap<>();
+		List<Gear> weapons = new ArrayList<>();
+		for (Gear i : items)
 		{
 			if (i.getSlot() == Slot.WEAPON)
 			{
@@ -90,7 +90,7 @@ final class TestData
 				bySlot.computeIfAbsent(i.getSlot().getApiKey(), k -> new ArrayList<>()).add(i);
 			}
 		}
-		return new GameData(Collections.<MonsterSummary>emptyList(), bySlot, weapons, spells,
+		return new GameData(Collections.<Summary>emptyList(), bySlot, weapons, spells,
 			Collections.<String, List<Prayer>>emptyMap(), null);
 	}
 }
