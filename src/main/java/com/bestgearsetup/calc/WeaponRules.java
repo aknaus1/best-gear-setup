@@ -5,6 +5,7 @@ import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
+import static com.bestgearsetup.calc.EncounterDamage.*;
 
 /**
  * Weapon classification helpers shared by the calculator and the optimiser.
@@ -33,7 +34,7 @@ public final class WeaponRules
 	/** Built-in magic damage of a salamander; tar is required separately by the optimizer. */
 	public static int salamanderMaxHit(GearItem weapon, int magic)
 	{
-		String name = EncounterDamage.lower(weapon);
+		String name = lower(weapon);
 		int bonus = SALAMANDER_BONUS.get(name, -1);
 		return bonus < 0 ? -1 : (magic * (bonus + 64) + 320) / 640;
 	}
@@ -41,7 +42,7 @@ public final class WeaponRules
 	/** Blowpipes hold darts internally; the ammo slot stays free. */
 	public static boolean loadsAmmo(GearItem weapon)
 	{
-		return weapon != null && EncounterDamage.lower(weapon).contains("blowpipe") && !weapon.getAmmunition().isEmpty();
+		return weapon != null && lower(weapon).contains("blowpipe") && !weapon.getAmmunition().isEmpty();
 	}
 
 	/** Consumable ammunition includes zero-bonus atlatl darts and salamander tar. */
@@ -51,7 +52,7 @@ public final class WeaponRules
 		{
 			return false;
 		}
-		String name = EncounterDamage.lower(item);
+		String name = lower(item);
 		return item.getRangedStr() > 0 || item.getRangedBonus() > 0 || name.equals("atlatl dart")
 			|| name.endsWith(" tar");
 	}
@@ -75,7 +76,7 @@ public final class WeaponRules
 		{
 			return false;
 		}
-		String name = EncounterDamage.lower(item);
+		String name = lower(item);
 		return item.getSubcategory().equals("chinchompa") || item.getSubcategory().equals("thrown")
 			&& !name.contains("blowpipe") && !name.startsWith("tonalztics of ralos") && !name.equals("hunter's spear");
 	}
@@ -87,7 +88,7 @@ public final class WeaponRules
 	public static int attackSpeed(GearItem weapon, AttackStyle style)
 	{
 		return weapon.getAttackSpeed() - (style.getStance().equals("rapid") ? 1 : 0)
-			- (style.getName().equals("smash") && EncounterDamage.lower(weapon).startsWith("obligator") ? 2 : 0);
+			- (style.getName().equals("smash") && lower(weapon).startsWith("obligator") ? 2 : 0);
 	}
 
 	/**
@@ -96,7 +97,7 @@ public final class WeaponRules
 	 */
 	static int obligatorRolls(GearItem weapon, AttackStyle style, Monster m)
 	{
-		if (!style.getName().equals("thrust") || !EncounterDamage.lower(weapon).startsWith("obligator"))
+		if (!style.getName().equals("thrust") || !lower(weapon).startsWith("obligator"))
 		{
 			return 1;
 		}
@@ -121,7 +122,7 @@ public final class WeaponRules
 	 */
 	public static int poweredStaffMaxHit(GearItem weapon, int magic)
 	{
-		String name = EncounterDamage.lower(weapon);
+		String name = lower(weapon);
 		int third = magic / 3;
 		if (name.contains("uncharged"))
 		{
@@ -208,7 +209,7 @@ public final class WeaponRules
 		{
 			return false;
 		}
-		String name = EncounterDamage.lower(weapon);
+		String name = lower(weapon);
 		return name.contains(" dart") || name.contains(" knife") || name.contains(" thrownaxe")
 			|| name.startsWith("toktz-xil-ul") || name.startsWith("blisterwood stake");
 	}
@@ -249,7 +250,7 @@ public final class WeaponRules
 
 	public static boolean isShadow(GearItem weapon)
 	{
-		return weapon != null && EncounterDamage.lower(weapon).startsWith("tumeken's shadow");
+		return weapon != null && lower(weapon).startsWith("tumeken's shadow");
 	}
 
 	/** Which class a weapon style belongs to, from the style list. */

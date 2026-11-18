@@ -4,6 +4,7 @@ import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
+import static com.bestgearsetup.calc.EncounterDamage.*;
 
 /** Equipment predicates shared by calculation and optimizer set seeds. */
 final class EquipmentEffects
@@ -27,7 +28,7 @@ final class EquipmentEffects
 
 	static boolean namedWeapon(GearItem item, String name)
 	{
-		String actual = EncounterDamage.lower(item);
+		String actual = lower(item);
 		// "name (" is a case of "name ": test the prefix first, without building strings.
 		return actual.startsWith(name) && (actual.length() == name.length() || actual.charAt(name.length()) == ' ')
 			&& !actual.contains("uncharged") && !actual.contains("inactive") && !actual.contains("broken");
@@ -71,19 +72,19 @@ final class EquipmentEffects
 
 	static boolean twoHit(GearItem w)
 	{
-		String name = EncounterDamage.lower(w);
+		String name = lower(w);
 		return TWO_HIT.matches(name);
 	}
 
 	static boolean ratWeapon(GearItem w)
 	{
-		String name = EncounterDamage.lower(w);
+		String name = lower(w);
 		return RAT_WEAPONS.matches(name);
 	}
 
 	static boolean wildernessWeapon(Loadout l, CombatContext ctx)
 	{
-		String name = EncounterDamage.lower(l.getWeapon());
+		String name = lower(l.getWeapon());
 		if (!ctx.getModifiers().isWilderness() || name.contains("uncharged") || name.endsWith("(u)"))
 		{
 			return false;
@@ -102,7 +103,7 @@ final class EquipmentEffects
 	/** Effects that scale each rolled hit, rather than increasing the roll's maximum. */
 	static long damage(Loadout l, CombatContext ctx, long hit)
 	{
-		String weapon = EncounterDamage.lower(l.getWeapon());
+		String weapon = lower(l.getWeapon());
 		if (l.getStyle().isMelee())
 		{
 			if (dharok(l))
@@ -115,7 +116,7 @@ final class EquipmentEffects
 			{
 				hit = hit * 6 / 5;
 			}
-			if (EncounterDamage.guardian(ctx.getMonster()))
+			if (guardian(ctx.getMonster()))
 			{
 				int pick = PICKAXE_BONUS.get(weapon, 61);
 				hit = hit * (50 + Math.max(1, Math.min(99, ctx.getModifiers().getMiningLevel())) + pick) / 150;
@@ -159,14 +160,14 @@ final class EquipmentEffects
 	static boolean seeking(Loadout l)
 	{
 		return l.getStyle().getType() == AttackStyle.Type.RANGED && WeaponRules.firesAmmoSlot(l.getWeapon())
-			&& EncounterDamage.lower(l.get(Slot.AMMO)).startsWith("seeking broad");
+			&& lower(l.get(Slot.AMMO)).startsWith("seeking broad");
 	}
 
 	static boolean rolledEffect(Loadout l, CombatContext ctx)
 	{
-		String weapon = EncounterDamage.lower(l.getWeapon());
+		String weapon = lower(l.getWeapon());
 		return vampyre(ctx) || CombatRules.tormentedBonus(ctx.getMonster(), l) || seeking(l)
-			|| l.getStyle().isMelee() && (dharok(l) || EncounterDamage.guardian(ctx.getMonster())
+			|| l.getStyle().isMelee() && (dharok(l) || guardian(ctx.getMonster())
 			|| (weapon.startsWith("toktz-") || weapon.startsWith("tzhaar-ket-"))
 			&& named(l, Slot.NECK, "berserker necklace"));
 	}

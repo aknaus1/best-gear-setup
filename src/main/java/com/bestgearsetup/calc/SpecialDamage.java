@@ -7,6 +7,7 @@ import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.StatusImmunities;
 import java.util.function.LongFunction;
 import lombok.RequiredArgsConstructor;
+import static com.bestgearsetup.calc.EquipmentEffects.*;
 
 /**
  * Expected damage of one special attack, from its accuracy and min/max roll. Hit structures follow each
@@ -21,7 +22,7 @@ final class SpecialDamage
 	/** One ordinary roll: accurate damage with equipment effects, or a miss. */
 	private static double single(EncounterDamage.Rule rule, Loadout l, CombatContext ctx, double acc, long min, long max)
 	{
-		return acc * EquipmentEffects.average(rule, l, ctx, min, max) + (1 - acc) * rule.missDamage();
+		return acc * average(rule, l, ctx, min, max) + (1 - acc) * rule.missDamage();
 	}
 
 	static DpsResult melee(SpecialAttack s, Loadout l, CombatContext ctx, EncounterDamage.Rule rule, double acc,
@@ -29,7 +30,7 @@ final class SpecialDamage
 	{
 		Monster m = ctx.getMonster();
 		double average;
-		int shown = EquipmentEffects.maximum(rule, l, ctx, max);
+		int shown = maximum(rule, l, ctx, max);
 		double shownAccuracy = acc;
 		double interval = speed;
 		switch (s.getKind())
@@ -40,7 +41,7 @@ final class SpecialDamage
 				break;
 			case ABYSSAL_DAGGER:
 				// The second hit always lands when the first does.
-				average = acc * 2 * EquipmentEffects.average(rule, l, ctx, min, max) + (1 - acc) * rule.missDamage();
+				average = acc * 2 * average(rule, l, ctx, min, max) + (1 - acc) * rule.missDamage();
 				shown *= 2;
 				break;
 			case DRAGON_CLAWS:
@@ -62,10 +63,10 @@ final class SpecialDamage
 				for (int passes = 1; passes <= 4; passes++)
 				{
 					int i = passes - 1;
-					average += binomial(acc, passes, 4) * EquipmentEffects.average(rule, l, ctx,
+					average += binomial(acc, passes, 4) * average(rule, l, ctx,
 						max * (70 + 20 * i) / 100, max * (110 + 20 * i) / 100);
 				}
-				shown = EquipmentEffects.maximum(rule, l, ctx, max * 170 / 100);
+				shown = maximum(rule, l, ctx, max * 170 / 100);
 				shownAccuracy = 1 - Math.pow(1 - acc, 4);
 				break;
 			case HALBERD:
@@ -94,18 +95,18 @@ final class SpecialDamage
 				break;
 			}
 			case GRANITE_HAMMER:
-				average = acc * HitDamage.averageTransformed(rule, min, max, h -> EquipmentEffects.damage(l, ctx, h) + 5)
+				average = acc * HitDamage.averageTransformed(rule, min, max, h -> damage(l, ctx, h) + 5)
 					+ (1 - acc) * rule.meanInaccurate(5);
-				shown = rule.maximum(EquipmentEffects.damage(l, ctx, max) + 5);
+				shown = rule.maximum(damage(l, ctx, max) + 5);
 				break;
 			case SUNSPEAR:
-				average = acc * rule.mean(Math.max(1, EquipmentEffects.damage(l, ctx, max)));
+				average = acc * rule.mean(Math.max(1, damage(l, ctx, max)));
 				break;
 			case VOIDWAKER:
 			{
 				EncounterDamage.Rule magic = EncounterDamage.rule(m, l, CombatClass.MAGIC);
-				average = EquipmentEffects.average(magic, l, ctx, min, max);
-				shown = EquipmentEffects.maximum(magic, l, ctx, max);
+				average = average(magic, l, ctx, min, max);
+				shown = maximum(magic, l, ctx, max);
 				shownAccuracy = 1;
 				break;
 			}
@@ -114,9 +115,9 @@ final class SpecialDamage
 				// Dual macuahuitl: the second half lands only after the first; the set shortens the attack.
 				long first = max / 2;
 				long second = max - first;
-				average = acc * EquipmentEffects.average(rule, l, ctx, min, Math.max(min, first))
+				average = acc * average(rule, l, ctx, min, Math.max(min, first))
 					+ (1 - acc) * rule.missDamage() + acc * single(rule, l, ctx, acc, min, Math.max(min, second));
-				shown = EquipmentEffects.maximum(rule, l, ctx, first) + EquipmentEffects.maximum(rule, l, ctx, second);
+				shown = maximum(rule, l, ctx, first) + maximum(rule, l, ctx, second);
 				interval = speed - (1 - (1 - acc) * (1 - acc));
 				break;
 			}
@@ -146,7 +147,7 @@ final class SpecialDamage
 				// Each arrow deals at least the minimum even on a miss, and at most 48.
 				long low = min;
 				double hit = acc * HitDamage.averageTransformed(rule, min, max,
-					h -> Math.max(low, Math.min(48, EquipmentEffects.damage(l, ctx, h))))
+					h -> Math.max(low, Math.min(48, damage(l, ctx, h))))
 					+ (1 - acc) * rule.meanInaccurate(min);
 				average = 2 * hit;
 				shown = 2 * rule.maximum(Math.max(min, Math.min(48, max)));
@@ -160,13 +161,13 @@ final class SpecialDamage
 				double afterHit = CombatRules.accuracy(m, l, HitChance.single(attRoll, defence));
 				double first = single(rule, l, ctx, acc, min, max);
 				average = first + acc * single(rule, l, ctx, afterHit, min, max) + (1 - acc) * first;
-				shown = 2 * EquipmentEffects.maximum(rule, l, ctx, max);
+				shown = 2 * maximum(rule, l, ctx, max);
 				break;
 			}
 			default:
 			{
 				double hit = single(rule, l, ctx, acc, min, max);
-				int hitMax = EquipmentEffects.maximum(rule, l, ctx, max);
+				int hitMax = maximum(rule, l, ctx, max);
 				if (l.getWeapon().getSubcategory().equals("crossbow") && WeaponRules.firesAmmoSlot(l.getWeapon()))
 				{
 					EnchantedBolts.Result bolts = EnchantedBolts.calculate(l, ctx, rule, acc, min, max);

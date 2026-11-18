@@ -105,6 +105,42 @@ final class EncounterDamage
 		return monster.getId() >= 7569 && monster.getId() <= 7572;
 	}
 
+	static boolean zulrah(Monster monster)
+	{
+		return monster.getId() >= 2042 && monster.getId() <= 2044 || named(monster, "zulrah");
+	}
+
+	static boolean seren(Monster monster)
+	{
+		return monster.getId() >= 8917 && monster.getId() <= 8920 || named(monster, "fragment of seren");
+	}
+
+	static boolean iceDemon(Monster monster)
+	{
+		return monster.getId() == 7584 || monster.getId() == 7585 || named(monster, "ice demon");
+	}
+
+	static boolean corp(Monster monster)
+	{
+		return monster.getId() == 319 || named(monster, "corporeal beast");
+	}
+
+	static boolean gemstoneCrab(Monster monster)
+	{
+		return monster.getId() == 14779 || named(monster, "gemstone crab");
+	}
+
+	static boolean hueyTail(Monster monster)
+	{
+		return monster.getId() == 14014 || named(monster, "the hueycoatl") && monster.getLowerName().contains("tail");
+	}
+
+	/** Leaf-bladed, broad or Magic Dart attacks only: leafy, kurask and turoth. */
+	static boolean leafy(Monster monster)
+	{
+		return monster.hasAttribute("leafy") || named(monster, "kurask") || named(monster, "turoth");
+	}
+
 	static boolean verzikP1(Monster monster)
 	{
 		int id = monster.getId();
@@ -203,7 +239,7 @@ final class EncounterDamage
 	{
 		String weapon = lower(loadout.getWeapon());
 		int id = monster.getId();
-		if (id == 14014 || named(monster, "the hueycoatl") && monster.getLowerName().contains("tail"))
+		if (hueyTail(monster))
 		{
 			DpsCalculator.Bonuses bonuses = DpsCalculator.Bonuses.of(loadout);
 			boolean crush = loadout.getStyle().getType() == AttackStyle.Type.CRUSH
@@ -216,11 +252,11 @@ final class EncounterDamage
 		{
 			return TOTEM;
 		}
-		if (id >= 2042 && id <= 2044 || named(monster, "zulrah"))
+		if (zulrah(monster))
 		{
 			return ZULRAH;
 		}
-		if (id >= 8917 && id <= 8920 || named(monster, "fragment of seren"))
+		if (seren(monster))
 		{
 			return SEREN;
 		}
@@ -236,7 +272,7 @@ final class EncounterDamage
 		{
 			return THIRD;
 		}
-		if ((id == 7584 || id == 7585 || named(monster, "ice demon"))
+		if (iceDemon(monster)
 			&& !(cls == CombatClass.MAGIC && spell(loadout).startsWith("fire ")) && !demonbane(loadout))
 		{
 			return THIRD;
@@ -249,7 +285,7 @@ final class EncounterDamage
 		{
 			return SIRE_TRANSITION;
 		}
-		if (id == 319 || named(monster, "corporeal beast"))
+		if (corp(monster))
 		{
 			boolean stab = loadout.getStyle().getType() == AttackStyle.Type.STAB;
 			boolean suitable = cls == CombatClass.MAGIC || stab && (weapon.startsWith("osmumten's fang")
@@ -285,12 +321,11 @@ final class EncounterDamage
 
 	static String encounterNote(Monster monster)
 	{
-		int id = monster.getId();
-		if (id >= 2042 && id <= 2044 || named(monster, "zulrah"))
+		if (zulrah(monster))
 		{
 			return "Zulrah: hits above 50 reroll to 45-50; the reroll is included in expected DPS.";
 		}
-		if (id >= 8917 && id <= 8920 || named(monster, "fragment of seren"))
+		if (seren(monster))
 		{
 			return "Seren: each hit is limited by a random 22-24 cap.";
 		}
@@ -306,7 +341,7 @@ final class EncounterDamage
 		{
 			return "Vasa crystal: ranged immune; Magic damage divided by 3.";
 		}
-		if (id == 7584 || id == 7585 || named(monster, "ice demon"))
+		if (iceDemon(monster))
 		{
 			return "Ice Demon: damage divided by 3 except fire spells and demonbane attacks.";
 		}
@@ -315,7 +350,7 @@ final class EncounterDamage
 			return unshielded(monster) ? "Tormented Demon: unshielded target; no fire-shield reduction."
 				: "Tormented Demon: fire shield reduces damage by 20%; demonbane and abyssal attacks bypass it.";
 		}
-		if (id == 319 || named(monster, "corporeal beast"))
+		if (corp(monster))
 		{
 			return "Corp: half damage except Magic and qualifying stab weapons.";
 		}

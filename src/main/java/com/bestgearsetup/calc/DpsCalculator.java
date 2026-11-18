@@ -8,6 +8,10 @@ import com.bestgearsetup.data.OffensivePrayer;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.StatusImmunities;
 import java.util.function.LongUnaryOperator;
+import static com.bestgearsetup.calc.EquipmentEffects.*;
+import static com.bestgearsetup.calc.CombatRules.*;
+import static com.bestgearsetup.calc.WeaponRules.*;
+import static com.bestgearsetup.calc.EncounterDamage.*;
 
 /**
  * Expected-DPS calculator following the OSRS Wiki combat formulas. Covers the common gear
@@ -82,16 +86,16 @@ public final class DpsCalculator
 	static int[] hpBreakpoints(Loadout l, CombatContext ctx)
 	{
 		Monster m = ctx.getMonster();
-		if (CombatRules.oneHit(m) || m.getId() == 14779 || EncounterDamage.named(m, "gemstone crab"))
+		if (oneHit(m) || gemstoneCrab(m))
 		{
 			return null;
 		}
 		String weapon = lower(l.getWeapon());
 		String ammo = lower(l.get(Slot.AMMO));
-		boolean ruby = WeaponRules.classOf(l.getStyle()) == CombatClass.RANGED
+		boolean ruby = classOf(l.getStyle()) == CombatClass.RANGED
 			&& l.getWeapon() != null && l.getWeapon().getSubcategory().equals("crossbow")
-			&& WeaponRules.firesAmmoSlot(l.getWeapon()) && ammo.startsWith("ruby ");
-		boolean sun = weapon.equals("keris partisan of the sun") && l.getStyle().isMelee() && CombatRules.toa(m);
+			&& firesAmmoSlot(l.getWeapon()) && ammo.startsWith("ruby ");
+		boolean sun = weapon.equals("keris partisan of the sun") && l.getStyle().isMelee() && toa(m);
 		boolean vardorvis = ctx.getHealthStates() != null && EncounterDamage.named(m, "vardorvis");
 		if (!ruby && !sun && !vardorvis)
 		{
@@ -122,7 +126,7 @@ public final class DpsCalculator
 			return DpsResult.ZERO;
 		}
 		DpsResult r;
-		switch (WeaponRules.classOf(style))
+		switch (classOf(style))
 		{
 			case RANGED:
 				r = ranged(loadout, weapon, style, b, ctx, spec);
@@ -134,18 +138,18 @@ public final class DpsCalculator
 				r = melee(loadout, weapon, style, b, ctx, spec);
 				break;
 		}
-		if (CombatRules.oneHit(ctx.getMonster()) && r.getMaxHit() > 0)
+		if (oneHit(ctx.getMonster()) && r.getMaxHit() > 0)
 		{
 			int hp = ctx.getModifiers().targetHp(ctx.getMonster());
-			int speed = EquipmentEffects.ratWeapon(weapon) ? 1 : r.getAttackSpeedTicks();
+			int speed = ratWeapon(weapon) ? 1 : r.getAttackSpeedTicks();
 			r = result(hp, hp, 1, speed).withDetail("Target dies in one successful attack");
 		}
-		else if (EncounterDamage.named(ctx.getMonster(), "respiratory system") && EncounterDamage.demonbane(loadout))
+		else if (EncounterDamage.named(ctx.getMonster(), "respiratory system") && demonbane(loadout))
 		{
 			int hp = ctx.getMonster().getHitpoints();
 			r = result(hp * r.getAccuracy(), hp, r.getAccuracy(), r.getAttackSpeedTicks()).withDetail("Demonbane one-hit kill");
 		}
-		else if (CombatRules.titanElemental(ctx.getMonster()) && WeaponRules.classOf(style) == CombatClass.MAGIC)
+		else if (titanElemental(ctx.getMonster()) && classOf(style) == CombatClass.MAGIC)
 		{
 			// Royal Titans elementals: accuracy from the Magic attack bonus alone; successful hits are maximum.
 			double accuracy = Math.min(1.0, Math.max(0, b.magic) / 100.0 + 0.3);
@@ -156,12 +160,12 @@ public final class DpsCalculator
 			r = result(r.getMaxHit() * accuracy, r.getMaxHit(), accuracy, r.getAttackSpeedTicks())
 				.withDetail("Bonus-based accuracy; guaranteed maximum damage");
 		}
-		else if (CombatRules.alwaysMax(ctx.getMonster(), WeaponRules.classOf(style))
-			|| CombatRules.flareMax(ctx.getMonster(), loadout) || CombatRules.araxyteMax(ctx.getMonster(), loadout))
+		else if (alwaysMax(ctx.getMonster(), classOf(style))
+			|| flareMax(ctx.getMonster(), loadout) || araxyteMax(ctx.getMonster(), loadout))
 		{
 			r = result(r.getMaxHit(), r.getMaxHit(), 1, r.getAttackSpeedTicks()).withDetail("Guaranteed maximum damage");
 		}
-		if (CombatRules.tormentedBonus(ctx.getMonster(), loadout))
+		if (tormentedBonus(ctx.getMonster(), loadout))
 		{
 			r = r.withExpectedSpeed(Math.max(1, r.getExpectedSpeedTicks() - 1));
 		}
@@ -182,12 +186,8 @@ public final class DpsCalculator
 		int attStance = stance.equals("accurate") ? 3 : stance.equals("controlled") ? 1 : 0;
 		int strStance = stance.equals("aggressive") ? 3 : stance.equals("controlled") ? 1 : 0;
 
-		OffensivePrayer prayer = ctx.getPrayer(CombatClass.MELEE);
-		double pAtt = prayer == null ? 1 : 1 + prayer.getAccuracyPercent() / 100;
-		double pStr = prayer == null ? 1 : 1 + prayer.getDamagePercent() / 100;
-
-		int effAtt = (int) Math.floor(ctx.getAttack() * pAtt) + attStance + 8;
-		int effStr = (int) Math.floor(ctx.getStrength() * pStr) + strStance + 8;
+		int effAtt = effective(ctx, CombatClass.MELEE, ctx.getAttack(), false, attStance + 8);
+		int effStr = effective(ctx, CombatClass.MELEE, ctx.getStrength(), true, strStance + 8);
 		String wName = lower(weapon);
 		if (wName.startsWith("soulreaper axe") && spec == null)
 		{
@@ -221,7 +221,7 @@ public final class DpsCalculator
 		{
 			// Many specs roll against a fixed defence style regardless of the selected stance.
 			defBonus = specDefenceBonus(m, spec.getDefence());
-			if (spec.getDefence().equals("magic") && !CombatRules.defenceBasedMagic(m))
+			if (spec.getDefence().equals("magic") && !defenceBasedMagic(m))
 			{
 				defLevel = m.getMagicLevel();
 			}
@@ -237,25 +237,9 @@ public final class DpsCalculator
 			maxHit = frac(maxHit, 40 + pieces, 40);
 		}
 
-		// Salve and slayer helmet do not stack; salve takes priority.
-		int salve = salveTier(l.get(Slot.NECK));
-		if (named(l, Slot.NECK, "amulet of avarice") && m.getLowerName().startsWith("revenant"))
-		{
-			int avarice = ctx.getModifiers().isForinthrySurge() ? 27 : 24;
-			attRoll = frac(attRoll, avarice, 20);
-			maxHit = frac(maxHit, avarice, 20);
-		}
-		else if (m.hasAttribute("undead") && salve != SALVE_NONE)
-		{
-			boolean enchanted = salve == SALVE_E || salve == SALVE_EI;
-			attRoll = frac(attRoll, enchanted ? 6 : 7, enchanted ? 5 : 6);
-			maxHit = frac(maxHit, enchanted ? 6 : 7, enchanted ? 5 : 6);
-		}
-		else if (ctx.isOnTask() && isSlayerHelm(l.get(Slot.HEAD)))
-		{
-			attRoll = frac(attRoll, 7, 6);
-			maxHit = frac(maxHit, 7, 6);
-		}
+		int tier = targetBonus(l, m, ctx, false, false);
+		attRoll = applyBonus(attRoll, tier, ctx, 7, 6);
+		maxHit = applyBonus(maxHit, tier, ctx, 7, 6);
 
 		boolean tzhaar = wName.startsWith("toktz-") || wName.startsWith("tzhaar-ket-");
 		if (tzhaar && named(l, Slot.HEAD, "obsidian helmet") && named(l, Slot.BODY, "obsidian platebody")
@@ -274,7 +258,7 @@ public final class DpsCalculator
 			int bonus = wName.startsWith("arclight") || wName.startsWith("emberlight") ? 70
 				: wName.startsWith("silverlight") || wName.startsWith("darklight") ? 60
 				: wName.startsWith("burning claws") || wName.startsWith("bone claws") ? 5 : 0;
-			bonus = CombatRules.demonBonus(m, bonus);
+			bonus = demonBonus(m, bonus);
 			attRoll = frac(attRoll, 100 + bonus, 100);
 			maxHit = frac(maxHit, 100 + bonus, 100);
 		}
@@ -286,12 +270,12 @@ public final class DpsCalculator
 			}
 			maxHit = frac(maxHit, wName.contains("amascut") ? 115 : 133, 100);
 		}
-		if (wName.equals("keris partisan of the sun") && CombatRules.toa(m)
+		if (wName.equals("keris partisan of the sun") && toa(m)
 			&& ctx.getModifiers().targetHp(m) < m.getHitpoints() / 4)
 		{
 			attRoll = frac(attRoll, 5, 4);
 		}
-		if (EquipmentEffects.vampyre(ctx))
+		if (vampyre(ctx))
 		{
 			if (wName.startsWith("blisterwood flail") || wName.startsWith("blisterwood sickle"))
 			{
@@ -311,13 +295,12 @@ public final class DpsCalculator
 			attRoll = frac(attRoll, 7, 4);
 			maxHit = frac(maxHit, 7, 5);
 		}
-		if (EquipmentEffects.wildernessWeapon(l, ctx))
+		if (wildernessWeapon(l, ctx))
 		{
 			attRoll = frac(attRoll, 3, 2);
 			maxHit = frac(maxHit, 3, 2);
 		}
-		if (wName.equals("leaf-bladed battleaxe") && (m.hasAttribute("leafy")
-			|| EncounterDamage.named(m, "kurask") || EncounterDamage.named(m, "turoth")))
+		if (wName.equals("leaf-bladed battleaxe") && leafy(m))
 		{
 			maxHit = frac(maxHit, 47, 40);
 		}
@@ -334,7 +317,7 @@ public final class DpsCalculator
 		{
 			maxHit += Math.min(10, Math.max(1, m.getSize()) * 2);
 		}
-		if (EquipmentEffects.ratWeapon(weapon) && m.hasAttribute("rat"))
+		if (ratWeapon(weapon) && m.hasAttribute("rat"))
 		{
 			maxHit += 10;
 		}
@@ -385,16 +368,16 @@ public final class DpsCalculator
 		{
 			return DpsResult.ZERO;
 		}
-		long defRoll = CombatRules.defenceRoll(m, defLevel, defBonus);
+		long defRoll = defenceRoll(m, defLevel, defBonus);
 		boolean fang = wName.startsWith("osmumten's fang");
 		double accuracy = HitChance.single(attRoll, defRoll);
 		if (fang && style.getType() == AttackStyle.Type.STAB)
 		{
-			accuracy = CombatRules.toa(m) ? 1 - (1 - accuracy) * (1 - accuracy) : HitChance.twoAttackRolls(attRoll, defRoll);
+			accuracy = toa(m) ? 1 - (1 - accuracy) * (1 - accuracy) : HitChance.twoAttackRolls(attRoll, defRoll);
 		}
-		accuracy = CombatRules.accuracy(m, l, accuracy);
-		int speed = WeaponRules.attackSpeed(weapon, style);
-		EncounterDamage.Rule rule = EncounterDamage.rule(m, l);
+		accuracy = accuracy(m, l, accuracy);
+		int speed = attackSpeed(weapon, style);
+		EncounterDamage.Rule rule = rule(m, l);
 		long minimum = EncounterDamage.named(m, "respiratory system") ? maxHit / 2 : 0;
 		if (spec != null)
 		{
@@ -423,12 +406,12 @@ public final class DpsCalculator
 			}
 			detail = hits > 1 ? sb.toString() : null;
 		}
-		else if (WeaponRules.obligatorRolls(weapon, style, m) > 1)
+		else if (obligatorRolls(weapon, style, m) > 1)
 		{
-			int rolls = WeaponRules.obligatorRolls(weapon, style, m);
-			int bonus = WeaponRules.obligatorSizeBonus(m);
-			boolean effect = EquipmentEffects.rolledEffect(l, ctx);
-			LongUnaryOperator hit = h -> effect ? EquipmentEffects.damage(l, ctx, h * (100 + bonus) / 100)
+			int rolls = obligatorRolls(weapon, style, m);
+			int bonus = obligatorSizeBonus(m);
+			boolean effect = rolledEffect(l, ctx);
+			LongUnaryOperator hit = h -> effect ? damage(l, ctx, h * (100 + bonus) / 100)
 				: h * (100 + bonus) / 100;
 			avgDamage = accuracy * HitDamage.bestOf(rule, maxHit, rolls, hit) + (1 - accuracy) * rule.missDamage();
 			displayMax = EquipmentEffects.maximum(rule, l, ctx, maxHit * (100 + bonus) / 100);
@@ -448,7 +431,7 @@ public final class DpsCalculator
 				displayMax = EquipmentEffects.maximum(rule, l, ctx, displayMax);
 			}
 		}
-		if (EquipmentEffects.twoHit(weapon) || wName.equals("dual macuahuitl"))
+		if (twoHit(weapon) || wName.equals("dual macuahuitl"))
 		{
 			long first = maxHit / 2;
 			long second = maxHit - first;
@@ -462,18 +445,18 @@ public final class DpsCalculator
 		if (wName.startsWith("keris") && m.hasAttribute("kalphite"))
 		{
 			avgDamage = (50 * avgDamage + accuracy * HitDamage.average(rule, 0, maxHit,
-				h -> EquipmentEffects.damage(l, ctx, h * 3))) / 51;
+				h -> damage(l, ctx, h * 3))) / 51;
 			displayMax = EquipmentEffects.maximum(rule, l, ctx, maxHit * 3);
 			detail = "1/51 triple-damage roll";
 		}
 		if (wName.equals("gadderhammer") && m.hasAttribute("shade"))
 		{
 			avgDamage = accuracy * (0.95 * HitDamage.average(rule, 0, maxHit,
-				h -> EquipmentEffects.damage(l, ctx, h * 5 / 4)) + 0.05 * HitDamage.average(rule, 0, maxHit,
-				h -> EquipmentEffects.damage(l, ctx, h * 2)));
+				h -> damage(l, ctx, h * 5 / 4)) + 0.05 * HitDamage.average(rule, 0, maxHit,
+				h -> damage(l, ctx, h * 2)));
 			displayMax = EquipmentEffects.maximum(rule, l, ctx, maxHit * 2);
 		}
-		if (EquipmentEffects.verac(l))
+		if (verac(l))
 		{
 			avgDamage = 0.75 * avgDamage + 0.25 * EquipmentEffects.average(rule, l, ctx, 1, maxHit + 1);
 			displayMax = EquipmentEffects.maximum(rule, l, ctx, maxHit + 1);
@@ -485,7 +468,7 @@ public final class DpsCalculator
 			detail = (detail == null ? "" : detail + "; ") + rule.detail;
 		}
 		DpsResult r = result(avgDamage, displayMax, accuracy, speed).withDetail(detail);
-		if (EquipmentEffects.bloodMoon(l))
+		if (bloodMoon(l))
 		{
 			// Bloodrager rolls 0..99 and triggers at <=32: exactly 33%, not one third.
 			// The second hit requires the first to land; either proc saves only one tick.
@@ -525,15 +508,11 @@ public final class DpsCalculator
 		String stance = style.getStance();
 		int stanceBonus = stance.equals("accurate") ? 3 : 0;
 
-		OffensivePrayer prayer = ctx.getPrayer(CombatClass.RANGED);
-		double pAcc = prayer == null ? 1 : 1 + prayer.getAccuracyPercent() / 100;
-		double pDmg = prayer == null ? 1 : 1 + prayer.getDamagePercent() / 100;
-
 		// The eclipse atlatl and Hunter's spear hit with the (visible, potion-boosted) Strength level and melee strength bonus;
 		// ranged prayers and the void ranger helm still boost it. Accuracy is ordinary ranged accuracy.
-		boolean atlatl = WeaponRules.scalesWithStrength(weapon);
-		int effAcc = (int) Math.floor(ctx.getRanged() * pAcc) + stanceBonus + 8;
-		int effStr = (int) Math.floor((atlatl ? ctx.getStrength() : ctx.getRanged()) * pDmg) + stanceBonus + 8;
+		boolean atlatl = scalesWithStrength(weapon);
+		int effAcc = effective(ctx, CombatClass.RANGED, ctx.getRanged(), false, stanceBonus + 8);
+		int effStr = effective(ctx, CombatClass.RANGED, atlatl ? ctx.getStrength() : ctx.getRanged(), true, stanceBonus + 8);
 		if (hasVoid(l, "void ranger helm"))
 		{
 			effAcc = effAcc * 11 / 10;
@@ -552,43 +531,14 @@ public final class DpsCalculator
 			attRoll = frac(attRoll, 100 + pieces * 5, 100);
 			maxHit = frac(maxHit, 1000 + pieces * 25, 1000);
 		}
-		boolean taskDamage = false;
-
-		int salve = salveTier(l.get(Slot.NECK));
-		boolean avarice = named(l, Slot.NECK, "amulet of avarice")
-			&& m.getLowerName().startsWith("revenant");
-		int avariceFactor = ctx.getModifiers().isForinthrySurge() ? 27 : 24;
-		if (avarice)
+		attRoll = applyBonus(attRoll, targetBonus(l, m, ctx, true, true), ctx, 23, 20);
+		// Unimbued salves and helmets still raise the atlatl's Strength-based damage; the imbued helmet's 15% is
+		// additive with the other ranged damage bonuses, after the twisted bow's scaling.
+		int tier = targetBonus(l, m, ctx, !atlatl, !atlatl);
+		boolean taskDamage = tier == BONUS_TASK && !atlatl;
+		if (!taskDamage)
 		{
-			attRoll = frac(attRoll, avariceFactor, 20);
-		}
-		else if (m.hasAttribute("undead") && (salve == SALVE_I || salve == SALVE_EI))
-		{
-			attRoll = frac(attRoll, salve == SALVE_EI ? 6 : 7, salve == SALVE_EI ? 5 : 6);
-		}
-		else if (ctx.isOnTask() && isImbuedSlayerHelm(l.get(Slot.HEAD)))
-		{
-			attRoll = frac(attRoll, 23, 20);
-		}
-		if (avarice)
-		{
-			maxHit = frac(maxHit, avariceFactor, 20);
-		}
-		else if (m.hasAttribute("undead") && (salve == SALVE_I || salve == SALVE_EI || atlatl && salve != SALVE_NONE))
-		{
-			boolean enchanted = salve == SALVE_E || salve == SALVE_EI;
-			maxHit = frac(maxHit, enchanted ? 6 : 7, enchanted ? 5 : 6);
-		}
-		else if (ctx.isOnTask() && (atlatl ? isSlayerHelm(l.get(Slot.HEAD)) : isImbuedSlayerHelm(l.get(Slot.HEAD))))
-		{
-			if (atlatl)
-			{
-				maxHit = frac(maxHit, 7, 6);
-			}
-			else
-			{
-				taskDamage = true;
-			}
+			maxHit = applyBonus(maxHit, tier, ctx, 7, 6);
 		}
 		if (wName.startsWith("twisted bow"))
 		{
@@ -603,7 +553,7 @@ public final class DpsCalculator
 			int accPct = Math.max(0, Math.min(140, 140 + (3 * magic - 10) / 100 - (t - 100) * (t - 100) / 100));
 			int dmgPct = Math.max(0, Math.min(250, 250 + (3 * magic - 14) / 100 - (t - 140) * (t - 140) / 100));
 			attRoll = frac(attRoll, accPct, 100);
-			if (CombatRules.wardenP2(m))
+			if (wardenP2(m))
 			{
 				attRoll = frac(attRoll, accPct, 100);
 			}
@@ -617,11 +567,11 @@ public final class DpsCalculator
 		}
 		if (wName.startsWith("scorching bow") && m.hasAttribute("demon"))
 		{
-			int bonus = CombatRules.demonBonus(m, 30);
+			int bonus = demonBonus(m, 30);
 			attRoll = frac(attRoll, 100 + bonus, 100);
 			extraDamage += bonus;
 		}
-		if (EquipmentEffects.wildernessWeapon(l, ctx))
+		if (wildernessWeapon(l, ctx))
 		{
 			attRoll = frac(attRoll, 3, 2);
 			extraDamage += 50;
@@ -635,13 +585,13 @@ public final class DpsCalculator
 		if (wName.equals("holy water"))
 		{
 			maxHit = ((ctx.getRanged() + 10L) * (64 + weapon.getRangedStr()) + 320) / 640;
-			maxHit = frac(maxHit, 100 + CombatRules.demonBonus(m, 60), 100);
+			maxHit = frac(maxHit, 100 + demonBonus(m, 60), 100);
 			if (EncounterDamage.named(m, "nezikchened"))
 			{
 				maxHit += 5;
 			}
 		}
-		if (EquipmentEffects.ratWeapon(weapon) && m.hasAttribute("rat"))
+		if (ratWeapon(weapon) && m.hasAttribute("rat"))
 		{
 			maxHit += 10;
 		}
@@ -710,19 +660,19 @@ public final class DpsCalculator
 		{
 			return DpsResult.ZERO;
 		}
-		if (CombatRules.phase(m, EncounterPhase.ROYAL_TITANS_OUT_OF_MELEE))
+		if (phase(m, EncounterPhase.ROYAL_TITANS_OUT_OF_MELEE))
 		{
 			// Ranged attacks are six times as accurate while the titan is out of melee range.
 			attRoll *= 6;
 		}
-		long defRoll = CombatRules.defenceRoll(m, m.getDefenceLevel(), defBonus);
+		long defRoll = defenceRoll(m, m.getDefenceLevel(), defBonus);
 		double accuracy = HitChance.single(attRoll, defRoll);
-		accuracy = CombatRules.accuracy(m, l, accuracy);
-		int speed = WeaponRules.attackSpeed(weapon, style);
-		long[] bounds = CombatRules.bounds(m, attRoll, defRoll, maxHit);
+		accuracy = accuracy(m, l, accuracy);
+		int speed = attackSpeed(weapon, style);
+		long[] bounds = bounds(m, attRoll, defRoll, maxHit);
 		long minimum = bounds[0];
 		maxHit = bounds[1];
-		EncounterDamage.Rule rule = EncounterDamage.rule(m, l);
+		EncounterDamage.Rule rule = rule(m, l);
 		if (spec != null)
 		{
 			return SpecialDamage.ranged(spec, l, ctx, rule, spec.isGuaranteed() ? 1 : accuracy,
@@ -738,13 +688,13 @@ public final class DpsCalculator
 			detail = maxHit + " + " + maxHit + (detail == null ? "" : "; " + detail);
 			maxHit *= 2;
 		}
-		if (EquipmentEffects.karil(l))
+		if (karil(l))
 		{
 			avgDamage += accuracy * 0.25 * HitDamage.average(rule, 0, rawMax, h -> h / 2);
 			maxHit += rule.maximum(rawMax / 2);
 			detail = "25% second hitsplat at half the first damage";
 		}
-		if (sub.equals("crossbow") && WeaponRules.firesAmmoSlot(weapon))
+		if (sub.equals("crossbow") && firesAmmoSlot(weapon))
 		{
 			EnchantedBolts.Result bolts = EnchantedBolts.calculate(l, ctx, rule, accuracy, minimum, rawMax);
 			if (bolts != null)
@@ -793,7 +743,7 @@ public final class DpsCalculator
 		int stanceBonus;
 		if (weapon.getSubcategory().equals("salamander"))
 		{
-			baseMax = WeaponRules.salamanderMaxHit(weapon, ctx.getMagic());
+			baseMax = salamanderMaxHit(weapon, ctx.getMagic());
 			speed = weapon.getAttackSpeed();
 			stanceBonus = 0;
 		}
@@ -820,7 +770,7 @@ public final class DpsCalculator
 		else
 		{
 			baseMax = spec != null ? SpecialDamage.builtInMax(weapon, ctx.getMagic())
-				: WeaponRules.poweredStaffMaxHit(weapon, ctx.getMagic());
+				: poweredStaffMaxHit(weapon, ctx.getMagic());
 			if (baseMax <= 0)
 			{
 				return DpsResult.ZERO;
@@ -835,7 +785,7 @@ public final class DpsCalculator
 			baseMax = (int) spec.scaleMax(baseMax);
 			speed = 5;
 		}
-		String spell = EncounterDamage.spell(l);
+		String spell = spell(l);
 		String element = SpellRules.element(l.getSpell());
 		boolean standard = l.getSpell() != null && "standard".equalsIgnoreCase(l.getSpell().getSpellbook());
 		boolean ancient = l.getSpell() != null && "ancient".equalsIgnoreCase(l.getSpell().getSpellbook());
@@ -855,10 +805,8 @@ public final class DpsCalculator
 			baseMax += 2;
 
 		OffensivePrayer prayer = ctx.getPrayer(CombatClass.MAGIC);
-		double pAcc = prayer == null ? 1 : 1 + prayer.getAccuracyPercent() / 100;
 		double dmgPct = prayer == null ? 0 : prayer.getDamagePercent();
-
-		int effMagic = (int) Math.floor(ctx.getMagic() * pAcc) + stanceBonus + 9;
+		int effMagic = effective(ctx, CombatClass.MAGIC, ctx.getMagic(), false, stanceBonus + 9);
 		boolean voidMage = hasVoid(l, "void mage helm");
 		if (voidMage)
 		{
@@ -876,9 +824,9 @@ public final class DpsCalculator
 			gearDmg += (named(l, Slot.HEAD, "virtus mask") ? 3 : 0)
 				+ (named(l, Slot.BODY, "virtus robe top") ? 3 : 0) + (named(l, Slot.LEGS, "virtus robe bottom") ? 3 : 0);
 		}
-		if (WeaponRules.isShadow(weapon) && !style.isAutocast())
+		if (isShadow(weapon) && !style.isAutocast())
 		{
-			int factor = CombatRules.toa(m) ? 4 : 3;
+			int factor = toa(m) ? 4 : 3;
 			magicBonus *= factor;
 			gearDmg = Math.min(100, gearDmg * factor);
 		}
@@ -893,32 +841,19 @@ public final class DpsCalculator
 			dmgPct += 10;
 			additiveAccuracy += 10;
 		}
-		boolean task = false;
-
-		int salve = salveTier(l.get(Slot.NECK));
-		if (m.hasAttribute("undead") && (salve == SALVE_I || salve == SALVE_EI))
-		{
-			int bonus = salve == SALVE_EI ? 20 : 15;
-			additiveAccuracy += bonus;
-			dmgPct += bonus;
-		}
-		else if (named(l, Slot.NECK, "amulet of avarice") && m.getLowerName().startsWith("revenant"))
-		{
-			int bonus = ctx.getModifiers().isForinthrySurge() ? 35 : 20;
-			additiveAccuracy += bonus;
-			dmgPct += bonus;
-		}
-		else if (ctx.isOnTask() && isImbuedSlayerHelm(l.get(Slot.HEAD)))
-		{
-			task = true;
-		}
-		if (EquipmentEffects.vampyre(ctx) && named(l, Slot.RING, "efaritay's aid") && EncounterImmunities.silver(l))
+		// Salve and avarice are additive percentages for Magic; the imbued helmet still multiplies afterwards.
+		int tier = targetBonus(l, m, ctx, true, true);
+		int additive = tier == BONUS_AVARICE ? ctx.getModifiers().isForinthrySurge() ? 35 : 20
+			: tier == BONUS_SALVE ? 15 : tier == BONUS_SALVE_E ? 20 : 0;
+		additiveAccuracy += additive;
+		dmgPct += additive;
+		if (vampyre(ctx) && named(l, Slot.RING, "efaritay's aid") && EncounterImmunities.silver(l))
 		{
 			additiveAccuracy += 15;
 		}
 		attRoll = frac(attRoll, 100 + additiveAccuracy, 100);
 		long maxHit = (long) Math.floor(baseMax * (1 + dmgPct / 100));
-		if (task)
+		if (tier == BONUS_TASK)
 		{
 			attRoll = frac(attRoll, 23, 20);
 			maxHit = frac(maxHit, 23, 20);
@@ -936,9 +871,9 @@ public final class DpsCalculator
 			{
 				bonus *= 2;
 			}
-			attRoll = frac(attRoll, 100 + CombatRules.demonBonus(m, bonus), 100);
+			attRoll = frac(attRoll, 100 + demonBonus(m, bonus), 100);
 		}
-		if (EquipmentEffects.wildernessWeapon(l, ctx))
+		if (wildernessWeapon(l, ctx))
 		{
 			attRoll = frac(attRoll, 3, 2);
 			maxHit = frac(maxHit, 3, 2);
@@ -975,12 +910,12 @@ public final class DpsCalculator
 		{
 			maxHit = Math.max(2, maxHit / 2);
 		}
-		int defenceLevel = CombatRules.defenceBasedMagic(m) ? m.getDefenceLevel() : m.getMagicLevel();
+		int defenceLevel = defenceBasedMagic(m) ? m.getDefenceLevel() : m.getMagicLevel();
 		if (maxHit <= 0)
 		{
 			return DpsResult.ZERO;
 		}
-		long defRoll = CombatRules.defenceRoll(m, defenceLevel, m.getDefMagic());
+		long defRoll = defenceRoll(m, defenceLevel, m.getDefMagic());
 		boolean confliction = named(l, Slot.HANDS, "confliction gauntlets") && !weapon.isTwoHanded();
 		double accuracy = magicAccuracy(attRoll, defRoll, confliction);
 		if (named(l, Slot.RING, "brimstone ring"))
@@ -991,14 +926,14 @@ public final class DpsCalculator
 		{
 			accuracy = iceSceptreAccuracy(m, l, attRoll, defRoll, confliction, accuracy, spell, speed);
 		}
-		accuracy = CombatRules.accuracy(m, l, accuracy);
-		long[] bounds = CombatRules.bounds(m, attRoll, defRoll, maxHit);
-		if (CombatRules.wardenP2(m) || EncounterDamage.named(m, "respiratory system"))
+		accuracy = accuracy(m, l, accuracy);
+		long[] bounds = bounds(m, attRoll, defRoll, maxHit);
+		if (wardenP2(m) || EncounterDamage.named(m, "respiratory system"))
 		{
 			minimum = bounds[0];
 			maxHit = bounds[1];
 		}
-		EncounterDamage.Rule rule = EncounterDamage.rule(m, l);
+		EncounterDamage.Rule rule = rule(m, l);
 		if (spec != null)
 		{
 			boolean dawnbringer = spec.getKind() == SpecialAttack.Kind.DAWNBRINGER;
@@ -1017,7 +952,7 @@ public final class DpsCalculator
 			average = 0.8 * average + 0.2 * accuracy * HitDamage.average(rule, minimum, maxHit, h -> h + 8);
 			displayMax = rule.maximum(maxHit + 8);
 		}
-		if (EquipmentEffects.ahrim(l))
+		if (ahrim(l))
 		{
 			average = 0.75 * average + 0.25 * accuracy * HitDamage.average(rule, minimum, maxHit, h -> h * 13 / 10);
 			displayMax = rule.maximum(maxHit * 13 / 10);
@@ -1026,8 +961,8 @@ public final class DpsCalculator
 		{
 			int percent = wName.startsWith("purging staff") ? 50 : 25;
 			average = accuracy * HitDamage.average(rule, minimum, maxHit,
-				h -> h + h * percent / 100 * CombatRules.demonVulnerability(m) / 100);
-			displayMax = rule.maximum(maxHit + maxHit * percent / 100 * CombatRules.demonVulnerability(m) / 100);
+				h -> h + h * percent / 100 * demonVulnerability(m) / 100);
+			displayMax = rule.maximum(maxHit + maxHit * percent / 100 * demonVulnerability(m) / 100);
 		}
 		if (wName.startsWith("twinflame staff") && standard
 			&& (spell.endsWith(" bolt") || spell.endsWith(" blast") || spell.endsWith(" wave")))
@@ -1124,6 +1059,58 @@ public final class DpsCalculator
 	private static final int SALVE_E = 3;
 	private static final int SALVE_EI = 4;
 
+	/** An effective level: the boosted level under the class prayer's percentage, floored, plus stance and class constants. */
+	private static int effective(CombatContext ctx, CombatClass cls, int level, boolean damage, int add)
+	{
+		OffensivePrayer prayer = ctx.getPrayer(cls);
+		double percent = prayer == null ? 0 : damage ? prayer.getDamagePercent() : prayer.getAccuracyPercent();
+		return (int) Math.floor(level * (1 + percent / 100)) + add;
+	}
+
+	private static final int BONUS_NONE = 0;
+	private static final int BONUS_AVARICE = 1;
+	private static final int BONUS_SALVE = 2;
+	private static final int BONUS_SALVE_E = 3;
+	private static final int BONUS_TASK = 4;
+
+	/**
+	 * Which target bonus applies: the amulet of avarice against revenants, a salve amulet against the undead or the
+	 * Slayer helmet on task. They never stack and salve takes priority over the helmet. Ranged and Magic only benefit
+	 * from imbued salves and helmets.
+	 */
+	private static int targetBonus(Loadout l, Monster m, CombatContext ctx, boolean imbuedSalve, boolean imbuedHelm)
+	{
+		if (named(l, Slot.NECK, "amulet of avarice") && m.getLowerName().startsWith("revenant"))
+		{
+			return BONUS_AVARICE;
+		}
+		int salve = salveTier(l.get(Slot.NECK));
+		if (m.hasAttribute("undead") && salve != SALVE_NONE && (!imbuedSalve || salve == SALVE_I || salve == SALVE_EI))
+		{
+			return salve == SALVE_E || salve == SALVE_EI ? BONUS_SALVE_E : BONUS_SALVE;
+		}
+		GearItem head = l.get(Slot.HEAD);
+		return ctx.isOnTask() && (imbuedHelm ? isImbuedSlayerHelm(head) : isSlayerHelm(head)) ? BONUS_TASK : BONUS_NONE;
+	}
+
+	/** Scales a roll by a target bonus; the Slayer helmet's factor is the class's (7/6 melee, 23/20 imbued). */
+	private static long applyBonus(long roll, int tier, CombatContext ctx, long helmNum, long helmDen)
+	{
+		switch (tier)
+		{
+			case BONUS_AVARICE:
+				return frac(roll, ctx.getModifiers().isForinthrySurge() ? 27 : 24, 20);
+			case BONUS_SALVE:
+				return frac(roll, 7, 6);
+			case BONUS_SALVE_E:
+				return frac(roll, 6, 5);
+			case BONUS_TASK:
+				return frac(roll, helmNum, helmDen);
+			default:
+				return roll;
+		}
+	}
+
 	private static int salveTier(GearItem neck)
 	{
 		String n = lower(neck);
@@ -1203,7 +1190,7 @@ public final class DpsCalculator
 		{
 			Bonuses b = new Bonuses();
 			GearItem weapon = l.getWeapon();
-			boolean firesAmmo = WeaponRules.firesAmmoSlot(weapon);
+			boolean firesAmmo = firesAmmoSlot(weapon);
 			for (Slot slot : SLOTS)
 			{
 				GearItem item = l.get(slot);
@@ -1224,7 +1211,7 @@ public final class DpsCalculator
 				}
 			}
 			GearItem loaded = l.getLoadedAmmo();
-			if (loaded != null && WeaponRules.loadsAmmo(weapon))
+			if (loaded != null && loadsAmmo(weapon))
 			{
 				b.rangedStr += loaded.getRangedStr();
 			}

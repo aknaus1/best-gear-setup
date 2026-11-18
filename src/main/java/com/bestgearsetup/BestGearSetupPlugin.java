@@ -1871,7 +1871,7 @@ public class BestGearSetupPlugin extends Plugin
 	public String getPotionChoice(CombatClass cls)
 	{
 		// The plugin settings are canonical; legacy free-text choices were migrated at startup.
-		return potionValue(cls == CombatClass.MELEE ? config.meleePotion() : cls == CombatClass.RANGED ? config.rangedPotion() : config.magicPotion());
+		return PotionOptions.value(cls == CombatClass.MELEE ? config.meleePotion() : cls == CombatClass.RANGED ? config.rangedPotion() : config.magicPotion());
 	}
 
 	/**
@@ -1982,23 +1982,15 @@ public class BestGearSetupPlugin extends Plugin
 			+ " budget search only uses them if owned. Prices load after login; search again if this is unexpected.";
 	}
 
-
 	private static String potionChoice(BestGearSetupConfig config, CombatClass cls)
 	{
 		return cls == CombatClass.MELEE ? config.potionMelee() : cls == CombatClass.RANGED ? config.potionRanged() : config.potionMagic();
 	}
 
-	private static String potionValue(Object selected)
-	{
-		if (selected instanceof PotionOptions.Melee) { return ((PotionOptions.Melee) selected).value(); }
-		if (selected instanceof PotionOptions.Ranged) { return ((PotionOptions.Ranged) selected).value(); }
-		return ((PotionOptions.Magic) selected).value();
-	}
-
 	static Object potionOption(CombatClass cls, String name)
 	{
 		Object[] choices = cls == CombatClass.MELEE ? PotionOptions.Melee.values() : cls == CombatClass.RANGED ? PotionOptions.Ranged.values() : PotionOptions.Magic.values();
-		for (Object choice : choices) { if (potionValue(choice).equalsIgnoreCase(name)) { return choice; } }
+		for (Object choice : choices) { if (PotionOptions.value((Enum<?>) choice).equalsIgnoreCase(name)) { return choice; } }
 		return null;
 	}
 

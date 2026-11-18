@@ -37,6 +37,9 @@ import java.util.function.ToDoubleFunction;
 import java.util.function.ToLongFunction;
 import lombok.Value;
 import net.runelite.api.gameval.ItemID;
+import static com.bestgearsetup.calc.WeaponRules.*;
+import static com.bestgearsetup.calc.EncounterDamage.*;
+import static com.bestgearsetup.calc.EquipmentEffects.*;
 
 /**
  * Searches for the best setup per combat class under the owned-items / budget rules and the
@@ -169,7 +172,7 @@ public class Optimizer
 		this.fireProtectionRequired = DragonfireProtection.required(monster, settings);
 		this.slayerEquipmentRequired = SlayerEquipment.applies(monster, settings);
 		this.araxyte = EncounterDamage.named(monster, "acidic araxyte") || EncounterDamage.named(monster, "mirrorback araxyte");
-		this.hueyTail = monster.getId() == 14014 || EncounterDamage.named(monster, "the hueycoatl") && monster.getLowerName().contains("tail");
+		this.hueyTail = hueyTail(monster);
 	}
 
 	/**
@@ -382,12 +385,12 @@ public class Optimizer
 	private Found exactWeapon(GearItem weapon, CombatClass cls, Map<Slot, List<GearItem>> candidates)
 	{
 		List<Option> options = options(weapon, cls);
-		boolean fires = WeaponRules.firesAmmoSlot(weapon);
-		boolean loads = WeaponRules.loadsAmmo(weapon);
+		boolean fires = firesAmmoSlot(weapon);
+		boolean loads = loadsAmmo(weapon);
 		List<GearItem> ammo = fires || loads ? compatibleAmmo(weapon, fires) : Collections.singletonList(null);
 		if (options.isEmpty() || ammo.isEmpty())
 			return null;
-		boolean recovery = recoveryRequired() && WeaponRules.firesRecoverableAmmo(weapon, cls);
+		boolean recovery = recoveryRequired() && firesRecoverableAmmo(weapon, cls);
 		List<Slot> free = new ArrayList<>();
 		Map<Slot, List<GearItem>> choices = new EnumMap<>(Slot.class);
 		for (Slot slot : SLOTS)
@@ -511,7 +514,7 @@ public class Optimizer
 	{
 		Spell spell = trial.getSpell();
 		return trial.getStyle().getType() + "/" + (spell == null ? "-" : spell.getSpellbook() + "/" + SpellRules.element(spell)
-			+ "/" + EncounterDamage.spell(trial).endsWith(" bolt")) + "/" + EquipmentEffects.named(trial, Slot.AMMO, "crystal blessing");
+			+ "/" + spell(trial).endsWith(" bolt")) + "/" + EquipmentEffects.named(trial, Slot.AMMO, "crystal blessing");
 	}
 
 	/** The best exact result so far, and the search that found it. */
@@ -543,14 +546,14 @@ public class Optimizer
 	{
 		AttackStyle style = trial.getStyle();
 		GearItem weapon = trial.getWeapon();
-		CombatClass cls = WeaponRules.classOf(style);
+		CombatClass cls = classOf(style);
 		int attack = cls == CombatClass.MAGIC ? MAGIC : cls == CombatClass.RANGED ? RANGED
 			: style.getType() == AttackStyle.Type.STAB ? STAB : style.getType() == AttackStyle.Type.SLASH ? SLASH : CRUSH;
 		List<Integer> out = new ArrayList<>();
 		out.add(attack);
 		out.add(cls == CombatClass.MAGIC ? MAGIC_STR
-			: cls == CombatClass.RANGED && !WeaponRules.scalesWithStrength(weapon) ? RANGED_STR : MELEE_STR);
-		if (EncounterDamage.lower(weapon).contains("bulwark"))
+			: cls == CombatClass.RANGED && !scalesWithStrength(weapon) ? RANGED_STR : MELEE_STR);
+		if (lower(weapon).contains("bulwark"))
 			out.add(DEFENCE);
 		// Huey's tail and the araxytes reward an attack bonus above the others (EncounterDamage, CombatRules.araxyteMax).
 		boolean lead = araxyte && (attack == CRUSH || attack == RANGED && weapon.getSubcategory().equals("crossbow"));
@@ -668,7 +671,7 @@ public class Optimizer
 	 */
 	private String effectKey(Loadout trial, GearItem item)
 	{
-		String name = EncounterDamage.lower(item);
+		String name = lower(item);
 		if (DragonfireProtection.isProtectiveShield(item) && !specialName(name))
 		{
 			Loadout l = trial.copy();
@@ -692,7 +695,7 @@ public class Optimizer
 				{
 					JsonArray names = piece.getAsJsonArray();
 					for (int i = 1; i < names.size(); i++)
-						known |= EquipmentEffects.namedWeapon(item, names.get(i).getAsString());
+						known |= namedWeapon(item, names.get(i).getAsString());
 				}
 			}
 			setPieces.put(item, known);
@@ -710,7 +713,7 @@ public class Optimizer
 		{
 			JsonObject set = element.getAsJsonObject();
 			if (boundClass != CombatClass.valueOf(set.get("class").getAsString()) || set.has("weapon")
-				&& !NameLists.NameList.of(set.get("weapon")).matches(EncounterDamage.lower(trial.getWeapon())))
+				&& !NameLists.NameList.of(set.get("weapon")).matches(lower(trial.getWeapon())))
 				continue;
 			// Each slot's pieces are searched together: a way to wear the set with a stronger effect (elite void) is
 			// listed as a set of its own, and only adds to the score here.
@@ -725,7 +728,7 @@ public class Optimizer
 				{
 					for (int i = 1; i < names.size(); i++)
 					{
-						if (EquipmentEffects.namedWeapon(item, names.get(i).getAsString()))
+						if (namedWeapon(item, names.get(i).getAsString()))
 						{
 							named.add(item);
 							break;
@@ -1228,8 +1231,8 @@ public class Optimizer
 	{
 		return protectedEquipment(l)
 			&& (!recoveryRequired() || l.getStyle() == null
-				|| !WeaponRules.firesRecoverableAmmo(l.getWeapon(), WeaponRules.classOf(l.getStyle()))
-				|| WeaponRules.isAmmoRecoveryCape(l.get(Slot.CAPE)));
+				|| !firesRecoverableAmmo(l.getWeapon(), classOf(l.getStyle()))
+				|| isAmmoRecoveryCape(l.get(Slot.CAPE)));
 	}
 
 	/** Special switches must meet the equipment protection rules, but keep the worn cape: no recovery cape is required. */
@@ -1484,7 +1487,7 @@ public class Optimizer
 	 */
 	private List<GearItem> specAmmo(Loadout worn, GearItem weapon)
 	{
-		if (weapon == worn.getWeapon() || !WeaponRules.firesAmmoSlot(weapon))
+		if (weapon == worn.getWeapon() || !firesAmmoSlot(weapon))
 		{
 			return Collections.singletonList(null);
 		}
@@ -1514,7 +1517,7 @@ public class Optimizer
 		{
 			l.set(Slot.SHIELD, null);
 		}
-		if (WeaponRules.loadsAmmo(weapon))
+		if (loadsAmmo(weapon))
 		{
 			List<GearItem> darts = compatibleAmmo(weapon, false);
 			if (darts.isEmpty())
@@ -1534,7 +1537,7 @@ public class Optimizer
 			List<GearItem> out = new ArrayList<>();
 			for (GearItem w : data.getItems(Slot.WEAPON))
 			{
-				if (usable(w) && WeaponRules.supports(w, c) && hasSpecialAttack(w, c))
+				if (usable(w) && supports(w, c) && hasSpecialAttack(w, c))
 				{
 					out.add(w);
 				}
@@ -1557,7 +1560,7 @@ public class Optimizer
 			return Collections.emptySet();
 		}
 		GearItem weapon = l.getWeapon();
-		boolean firesAmmo = WeaponRules.firesAmmoSlot(weapon);
+		boolean firesAmmo = firesAmmoSlot(weapon);
 		DpsResult base = DpsCalculator.calculate(l, ctx);
 		double minDps = base.getDps() * (1 - Math.max(0, settings.getFillMarginPercent()) / 100) - EPS;
 		double basePrimary = primary(base);
@@ -1626,7 +1629,7 @@ public class Optimizer
 	 */
 	private void prune(Loadout l, Set<Slot> filled, List<SpecialPlan> specs)
 	{
-		boolean firesAmmo = WeaponRules.firesAmmoSlot(l.getWeapon());
+		boolean firesAmmo = firesAmmoSlot(l.getWeapon());
 		ToDoubleFunction<GearItem> fillBonus = settings.getFillMode() == FillMode.NONE ? null : fillMetric(settings.getFillMode());
 		CombatContext specCtx = specs.isEmpty() ? null
 			: ctx.withModifiers(ctx.getModifiers().toBuilder().specialAttack(true).build());
@@ -1812,7 +1815,7 @@ public class Optimizer
 			{
 				if (isSpecial(item) || DragonfireProtection.isProtectiveShield(item)
 					|| SlayerEquipment.isRequired(monster, settings, item)
-					|| recoveryRequired() && WeaponRules.isAmmoRecoveryCape(item) && !outranked(item, pool))
+					|| recoveryRequired() && isAmmoRecoveryCape(item) && !outranked(item, pool))
 				{
 					keep.add(item);
 				}
@@ -1866,7 +1869,7 @@ public class Optimizer
 	{
 		for (GearItem weapon : data.getItems(Slot.WEAPON))
 		{
-			if (WeaponRules.scalesWithStrength(weapon) && !WeaponRules.isAtlatl(weapon) && usable(weapon))
+			if (scalesWithStrength(weapon) && !isAtlatl(weapon) && usable(weapon))
 			{
 				return true;
 			}
@@ -1927,13 +1930,13 @@ public class Optimizer
 	{
 		GearItem weapon = trial.getWeapon();
 		if (DragonfireProtection.isProtectiveShield(item) || SlayerEquipment.isRequired(monster, settings, item)
-			|| WeaponRules.isAmmoRecoveryCape(item) && recoveryRequired()
-				&& WeaponRules.firesRecoverableAmmo(weapon, boundClass))
+			|| isAmmoRecoveryCape(item) && recoveryRequired()
+				&& firesRecoverableAmmo(weapon, boundClass))
 		{
 			return false;
 		}
 		// Effects match the calculator's name, which drops the "corrupted " of Deadman items.
-		String name = EncounterDamage.lower(item);
+		String name = lower(item);
 		// Coloured slayer helmets ("hydra slayer helmet") have the effect without the special name.
 		if (!specialName(item.getLowerCombatName()) && !specialName(name) && !name.contains("max cape")
 			&& !DpsCalculator.isSlayerHelm(item))
@@ -1948,22 +1951,22 @@ public class Optimizer
 	{
 		CombatClass cls = boundClass;
 		GearItem weapon = trial.getWeapon();
-		String w = EncounterDamage.lower(weapon);
-		boolean ahrim = cls == CombatClass.MAGIC && EquipmentEffects.namedWeapon(weapon, "ahrim's staff");
-		boolean karil = cls == CombatClass.RANGED && EquipmentEffects.namedWeapon(weapon, "karil's crossbow");
+		String w = lower(weapon);
+		boolean ahrim = cls == CombatClass.MAGIC && namedWeapon(weapon, "ahrim's staff");
+		boolean karil = cls == CombatClass.RANGED && namedWeapon(weapon, "karil's crossbow");
 		// Target stats can follow its remaining HP; keep target-specific effects whenever they might.
 		boolean fixedTarget = ctx.getHealthStates() == null;
 		if (name.startsWith("dharok's "))
 		{
-			return cls == CombatClass.MELEE && EquipmentEffects.namedWeapon(weapon, "dharok's greataxe");
+			return cls == CombatClass.MELEE && namedWeapon(weapon, "dharok's greataxe");
 		}
 		if (name.startsWith("verac's "))
 		{
-			return cls == CombatClass.MELEE && EquipmentEffects.namedWeapon(weapon, "verac's flail");
+			return cls == CombatClass.MELEE && namedWeapon(weapon, "verac's flail");
 		}
 		if (name.startsWith("blood moon "))
 		{
-			return cls == CombatClass.MELEE && EquipmentEffects.namedWeapon(weapon, "dual macuahuitl");
+			return cls == CombatClass.MELEE && namedWeapon(weapon, "dual macuahuitl");
 		}
 		if (name.startsWith("ahrim's "))
 		{
@@ -1979,7 +1982,7 @@ public class Optimizer
 		}
 		if (name.startsWith("eclipse moon "))
 		{
-			return cls == CombatClass.RANGED && WeaponRules.isAtlatl(weapon);
+			return cls == CombatClass.RANGED && isAtlatl(weapon);
 		}
 		if (name.startsWith("obsidian ") || name.startsWith("berserker necklace"))
 		{
@@ -2013,7 +2016,7 @@ public class Optimizer
 			String book = spell == null || spell.getSpellbook() == null ? "" : spell.getSpellbook().toLowerCase(Locale.ROOT);
 			String element = SpellRules.element(spell);
 			return cls == CombatClass.MAGIC && (name.startsWith("virtus ") ? book.equals("ancient")
-				: name.startsWith("chaos gauntlets") ? book.equals("standard") && EncounterDamage.spell(trial).endsWith(" bolt")
+				: name.startsWith("chaos gauntlets") ? book.equals("standard") && spell(trial).endsWith(" bolt")
 				: name.startsWith("confliction gauntlets") ? !weapon.isTwoHanded()
 				: name.startsWith("brimstone ring") || !element.isEmpty() && !name.contains("empty")
 					&& (name.startsWith("elemental amulet") || name.contains(element)));
@@ -2031,7 +2034,7 @@ public class Optimizer
 		{
 			// Ranged and Magic need it imbued, except the atlatl's strength-scaled max hit.
 			return (!fixedTarget || monster.hasAttribute("undead"))
-				&& (cls == CombatClass.MELEE || name.contains("i)") || WeaponRules.isAtlatl(weapon));
+				&& (cls == CombatClass.MELEE || name.contains("i)") || isAtlatl(weapon));
 		}
 		if (name.startsWith("amulet of avarice"))
 		{
@@ -2176,7 +2179,7 @@ public class Optimizer
 			{
 				continue;
 			}
-			if (!WeaponRules.supports(w, cls))
+			if (!supports(w, cls))
 			{
 				if (cls == CombatClass.MAGIC && !ctx.getModifiers().isSpecialAttack() && !settings.isPreventManualCast())
 				{
@@ -2261,7 +2264,7 @@ public class Optimizer
 			recoveryRequired = false;
 			for (GearItem cape : data.getItems(Slot.CAPE))
 			{
-				recoveryRequired |= settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAmmoRecoveryCape(cape) && usable(cape)
+				recoveryRequired |= settings.isRequireAtlatlAmmoRecovery() && isAmmoRecoveryCape(cape) && usable(cape)
 					&& (lock == null || lock.getKind() == SlotLock.Kind.FILL
 						|| lock.getKind() == SlotLock.Kind.ITEM && lock.getItemId() == cape.getId());
 			}
@@ -2277,7 +2280,7 @@ public class Optimizer
 		for (String raw : weapon.getStyles() == null ? java.util.Collections.<String>emptyList() : weapon.getStyles())
 		{
 			AttackStyle style = AttackStyle.parse(raw);
-			if (style != null && WeaponRules.classOf(style) == cls)
+			if (style != null && classOf(style) == cls)
 			{
 				l.setStyle(style);
 				if (SpecialAttack.of(l, ctx) != null)
@@ -2309,14 +2312,14 @@ public class Optimizer
 		for (String raw : weapon.getStyles())
 		{
 			AttackStyle s = AttackStyle.parse(raw);
-			if (s == null || WeaponRules.classOf(s) != cls || !seen.add(s.getType() + "/" + s.getStance())
+			if (s == null || classOf(s) != cls || !seen.add(s.getType() + "/" + s.getStance())
 				|| !styleAllowed(weapon, s, anyType))
 			{
 				continue;
 			}
 			if (cls == CombatClass.MAGIC)
 			{
-				if (weapon.getSubcategory().equals("salamander") && WeaponRules.salamanderMaxHit(weapon, ctx.getMagic()) > 0)
+				if (weapon.getSubcategory().equals("salamander") && salamanderMaxHit(weapon, ctx.getMagic()) > 0)
 				{
 					out.add(new Option(s, null));
 				}
@@ -2331,7 +2334,7 @@ public class Optimizer
 						}
 					}
 				}
-				else if (WeaponRules.isPoweredStaff(weapon) && WeaponRules.poweredStaffMaxHit(weapon, ctx.getMagic()) > 0)
+				else if (isPoweredStaff(weapon) && poweredStaffMaxHit(weapon, ctx.getMagic()) > 0)
 				{
 					out.add(new Option(s, null));
 				}
@@ -2365,7 +2368,7 @@ public class Optimizer
 	private boolean styleAllowed(GearItem weapon, AttackStyle s, boolean anyType)
 	{
 		if (!AttackReach.canReach(monster, weapon, s, settings.getTargetDistance())
-			|| !anyType && !settings.getStyles().contains(WeaponRules.tabType(weapon, s)))
+			|| !anyType && !settings.getStyles().contains(tabType(weapon, s)))
 		{
 			return false;
 		}
@@ -2663,7 +2666,7 @@ public class Optimizer
 		boolean anyStyle = false;
 		for (CombatClass cls : CombatClass.values())
 		{
-			if (!WeaponRules.supports(weapon, cls) || !classAllowed(monster, cls) || options(weapon, cls).isEmpty())
+			if (!supports(weapon, cls) || !classAllowed(monster, cls) || options(weapon, cls).isEmpty())
 			{
 				continue;
 			}
@@ -2672,8 +2675,8 @@ public class Optimizer
 			{
 				continue;
 			}
-			boolean fires = WeaponRules.firesAmmoSlot(weapon);
-			if ((fires || WeaponRules.loadsAmmo(weapon)) && compatibleAmmo(weapon, fires).isEmpty())
+			boolean fires = firesAmmoSlot(weapon);
+			if ((fires || loadsAmmo(weapon)) && compatibleAmmo(weapon, fires).isEmpty())
 			{
 				return "none of its ammunition can be used" + (fires && settings.getLocks().containsKey(Slot.AMMO)
 					? " with the ammo slot lock" : "");
@@ -2711,7 +2714,7 @@ public class Optimizer
 		long price = price(item);
 		if (!ItemCosts.isKnown(price))
 		{
-			return settings.getAmmoCount() <= 0 && WeaponRules.consumedPerAttack(item);
+			return settings.getAmmoCount() <= 0 && consumedPerAttack(item);
 		}
 		return price <= settings.getBudget();
 	}
@@ -2722,7 +2725,7 @@ public class Optimizer
 		{
 			return false;
 		}
-		if (WeaponRules.consumedPerAttack(item))
+		if (consumedPerAttack(item))
 		{
 			// Only the units still to buy need a price; none are needed when the quantity isn't counted.
 			return ammoShortfall(item) > 0;
@@ -2747,7 +2750,7 @@ public class Optimizer
 	 */
 	private long itemCost(GearItem item)
 	{
-		if (WeaponRules.consumedPerAttack(item))
+		if (consumedPerAttack(item))
 		{
 			return ammoCost(item);
 		}
@@ -2775,7 +2778,7 @@ public class Optimizer
 	private long ammoShortfall(GearItem item)
 	{
 		long count = settings.getAmmoCount();
-		if (count <= 0 || !WeaponRules.consumedPerAttack(item))
+		if (count <= 0 || !consumedPerAttack(item))
 		{
 			return 0;
 		}

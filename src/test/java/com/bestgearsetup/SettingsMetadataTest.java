@@ -32,9 +32,9 @@ public class SettingsMetadataTest
 		for (CombatClass cls : CombatClass.values())
 		{
 			Set<String> names = new HashSet<>();
-			if (cls == CombatClass.MELEE) { for (PotionOptions.Melee option : PotionOptions.Melee.values()) { names.add(option.value()); } }
-			if (cls == CombatClass.RANGED) { for (PotionOptions.Ranged option : PotionOptions.Ranged.values()) { names.add(option.value()); } }
-			if (cls == CombatClass.MAGIC) { for (PotionOptions.Magic option : PotionOptions.Magic.values()) { names.add(option.value()); } }
+			if (cls == CombatClass.MELEE) { for (PotionOptions.Melee option : PotionOptions.Melee.values()) { names.add(PotionOptions.value(option)); } }
+			if (cls == CombatClass.RANGED) { for (PotionOptions.Ranged option : PotionOptions.Ranged.values()) { names.add(PotionOptions.value(option)); } }
+			if (cls == CombatClass.MAGIC) { for (PotionOptions.Magic option : PotionOptions.Magic.values()) { names.add(PotionOptions.value(option)); } }
 			assertTrue(names.contains("best")); assertTrue(names.contains("none"));
 			for (String name : PotionNames.namesFor(data,cls)) { assertTrue(cls + ": " + name,names.contains(name)); }
 			assertEquals(PotionNames.namesFor(data,cls).size() + 2,names.size());
