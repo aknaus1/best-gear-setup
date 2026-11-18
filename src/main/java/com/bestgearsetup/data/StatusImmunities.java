@@ -41,8 +41,6 @@ public final class StatusImmunities
 		int freezeResistance;
 		/** Highest burn severity this target ignores (0 = none). */
 		int burnImmunity;
-		/** Whether Wiki data was found; otherwise only the target's flags were used. */
-		boolean known;
 	}
 
 	/** The last target looked up and its answer: a search asks about the same target for every setup it scores. */
@@ -85,12 +83,12 @@ public final class StatusImmunities
 		if (record == null)
 		{
 			return new Immunity(m.isImmunePoison(), m.isImmuneVenom(), m.isImmuneVenom() && !m.isImmunePoison(),
-				-1, BURN_NONE, false);
+				-1, BURN_NONE);
 		}
 		boolean poison = record[0] >= 100 || m.isImmunePoison();
 		boolean venomPoisons = record[1] == -2;
 		boolean venom = venomPoisons || record[1] >= 100 || m.isImmuneVenom();
-		return new Immunity(poison, venom, venom && !poison, record[2], Math.max(0, record[3]), true);
+		return new Immunity(poison, venom, venom && !poison, record[2], Math.max(0, record[3]));
 	}
 
 	private static void load()

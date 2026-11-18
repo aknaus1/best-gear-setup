@@ -2360,11 +2360,6 @@ public class Optimizer
 	}
 
 	/** Reach, attack type and experience filter. */
-	boolean styleAllowed(GearItem weapon, AttackStyle s)
-	{
-		return styleAllowed(weapon, s, false);
-	}
-
 	private boolean styleAllowed(GearItem weapon, AttackStyle s, boolean anyType)
 	{
 		if (!AttackReach.canReach(monster, weapon, s, settings.getTargetDistance())

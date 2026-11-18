@@ -2,6 +2,7 @@ package com.bestgearsetup;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import com.bestgearsetup.calc.TestFactories;
 import com.bestgearsetup.calc.CombatContext;
 import com.bestgearsetup.calc.Optimizer;
 import com.bestgearsetup.calc.OptimizerSettings;
@@ -34,7 +35,7 @@ public class GloryOwnershipTest
 		Gson gson = RuneLiteAPI.GSON;
 		GameData data = WikiGameData.get(gson).gameData(gson);
 		Monster monster = WikiMonsters.get(gson).monster(data.matchNpc(265, null, 0).getName());
-		CombatContext context = new CombatContext(monster, PlayerLevels.maxed(), false, false, null);
+		CombatContext context = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, false, null);
 		Set<Integer> owned = OwnedItems.expand(new HashSet<>(Arrays.asList(
 			ItemID.DRAGON_SCIMITAR, ItemID.AMULET_OF_GLORY_4)));
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)

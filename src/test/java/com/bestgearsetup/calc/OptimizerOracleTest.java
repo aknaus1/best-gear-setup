@@ -291,7 +291,7 @@ public class OptimizerOracleTest
 		Monster monster = monsters.monster(c.monster);
 		c.levels = new PlayerLevels(level(r), level(r), level(r), level(r), level(r), level(r), level(r), level(r));
 		boolean wilderness = c.monster.equals("chaos dwarf") || r.nextInt(4) == 0;
-		c.ctx = new CombatContext(monster, c.levels, false, r.nextBoolean(), r.nextBoolean() ? TestData.piety() : null)
+		c.ctx = TestFactories.combatContext(monster, c.levels, false, r.nextBoolean(), r.nextBoolean() ? TestData.piety() : null)
 			.withModifiers(CombatModifiers.builder().wilderness(wilderness).build());
 
 		// Weapons for the tab, then 4-6 armour slots of relevant items; magic keeps its spell lists small.

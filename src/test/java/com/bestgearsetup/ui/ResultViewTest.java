@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import com.bestgearsetup.calc.TestFactories;
 import com.bestgearsetup.RuneUse;
 import com.bestgearsetup.SearchResults;
 import com.bestgearsetup.calc.AttackStyle;
@@ -229,7 +230,7 @@ public class ResultViewTest
 		monster.setHitpoints(750);
 		for (int selected : new int[]{100, 0, 1000})
 		{
-			CombatContext ctx = new CombatContext(monster, PlayerLevels.maxed(), false, false, null)
+			CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, false, null)
 				.withModifiers(CombatModifiers.builder().monsterHitpoints(selected).build());
 			int starting = selected == 100 ? 100 : 750;
 			assertEquals(starting, ctx.getTargetHitpoints());

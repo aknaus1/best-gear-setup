@@ -82,7 +82,7 @@ public class LockSearchTest
 		};
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			IconTextField search = (IconTextField) named(panel, "lockSearch");
 			Container suggestions = (Container) named(panel, "lockSuggestions");
 			search.setText("lightbear");

@@ -333,7 +333,7 @@ public class SpellRunesTest
 
 	private static List<Integer> required(Loadout loadout, Set<SupportSpell> support)
 	{
-		return SpellRunes.required(loadout, support);
+		return SpellRunes.required(loadout, support, null);
 	}
 
 	private static Loadout loadout(String spell, String weapon, String shield)

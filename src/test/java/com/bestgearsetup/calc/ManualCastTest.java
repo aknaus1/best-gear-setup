@@ -26,7 +26,7 @@ import org.junit.Test;
 
 public class ManualCastTest
 {
-	private final CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+	private final CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 	private GearItem bow;
 	private GearItem staff;
 	private Spell fireBolt;

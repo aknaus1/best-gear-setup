@@ -23,7 +23,7 @@ public class EncounterDamageTest
 		Loadout loadout = new Loadout();
 		loadout.set(Slot.WEAPON, weapon);
 		loadout.setStyle(AttackStyle.parse(style));
-		CombatContext ctx = new CombatContext(monster, PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, true, piety());
 		if (thrall)
 		{
 			ctx = new CombatContext(monster, PlayerLevels.maxed(), false, ctx.getAttack(), ctx.getStrength(),
@@ -318,7 +318,7 @@ public class EncounterDamageTest
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.locks(Collections.singletonMap(Slot.WEAPON, SlotLock.item(sword.getWeapon().getId()))).build();
 		assertTrue(com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(sword.getWeapon()), Collections.emptyList()),
-			new CombatContext(guardian, PlayerLevels.maxed(), false, true, piety()), settings, id -> true,
+			TestFactories.combatContext(guardian, PlayerLevels.maxed(), false, true, piety()), settings, id -> true,
 			GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
 		Monster leafy = monster(100, 20, "leafy");
 		assertFalse(EncounterImmunities.attackAllowed(leafy, sword));

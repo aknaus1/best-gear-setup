@@ -123,20 +123,6 @@ public class CombatContext
 		return toBuilder().monster(target).modifiers(modifiers.toBuilder().monsterHitpoints(hp).build()).build();
 	}
 
-	/**
-	 * Convenience constructor: with potions, assumes super combat, ranging potion and saturated heart.
-	 */
-	public CombatContext(Monster monster, PlayerLevels levels, boolean onTask, boolean usePotions,
-		Map<CombatClass, OffensivePrayer> prayers)
-	{
-		this(monster, levels, onTask,
-			usePotions ? levels.getAttack() + 5 + levels.getAttack() * 15 / 100 : levels.getAttack(),
-			usePotions ? levels.getStrength() + 5 + levels.getStrength() * 15 / 100 : levels.getStrength(),
-			usePotions ? levels.getRanged() + 4 + levels.getRanged() / 10 : levels.getRanged(),
-			usePotions ? levels.getMagic() + 4 + levels.getMagic() / 10 : levels.getMagic(),
-			prayers, false);
-	}
-
 	public OffensivePrayer getPrayer(CombatClass combatClass)
 	{
 		return prayers.get(combatClass);

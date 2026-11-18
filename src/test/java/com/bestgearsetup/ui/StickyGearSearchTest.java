@@ -178,7 +178,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			IconTextField search = field(panel, "lockSearch");
 			Container suggestions = container(panel, "lockSuggestions");
 			search.setText("berserker ring");
@@ -194,7 +194,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			IconTextField search = field(panel, "excludeSearch");
 			Container suggestions = container(panel, "excludeSuggestions");
 			search.setText("berserker ring");
@@ -210,7 +210,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			IconTextField search = field(panel, "ownedSearch");
 			Container suggestions = container(panel, "ownedSuggestions");
 			search.setText("berserker ring");
@@ -226,7 +226,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			IconTextField search = field(panel, "forcedSpellsSearch");
 			Container suggestions = container(panel, "forcedSpellsSuggestions");
 			search.setText("fire");
@@ -242,7 +242,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			IconTextField search = field(panel, "blockedSpellsSearch");
 			Container suggestions = container(panel, "blockedSpellsSuggestions");
 			search.setText("fire");
@@ -260,7 +260,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			field(panel, "lockSearch").setText("berserker ring");
 			Container suggestions = container(panel, "lockSuggestions");
 			exact(suggestions, BERSERKER_BUTTON).doClick();
@@ -275,7 +275,7 @@ public class StickyGearSearchTest
 		locks.put(Slot.RING, SlotLock.item(BERSERKER.getId()));
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			Container suggestions = container(panel, "lockSuggestions");
 			field(panel, "lockSearch").setText("berserker ring");
 			assertNull("The item already locked in its slot isn't offered", exact(suggestions, BERSERKER_BUTTON));
@@ -293,7 +293,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			Container suggestions = container(panel, "lockSuggestions");
 			for (SlotLock lock : new SlotLock[]{SlotLock.empty(), SlotLock.fill()})
 			{
@@ -311,7 +311,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			field(panel, "excludeSearch").setText("berserker ring");
 			Container suggestions = container(panel, "excludeSuggestions");
 			exact(suggestions, BERSERKER_BUTTON).doClick();
@@ -325,7 +325,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			field(panel, "ownedSearch").setText("berserker ring");
 			Container suggestions = container(panel, "ownedSuggestions");
 			exact(suggestions, titled(BERSERKER)).doClick();
@@ -340,7 +340,7 @@ public class StickyGearSearchTest
 		manual.add(BERSERKER.getId());
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			Container suggestions = container(panel, "ownedSuggestions");
 			field(panel, "ownedSearch").setText("berserker ring");
 			assertNull(exact(suggestions, titled(BERSERKER)));
@@ -353,7 +353,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			field(panel, "forcedSpellsSearch").setText("fire");
 			Container suggestions = container(panel, "forcedSpellsSuggestions");
 			button(suggestions, "Fire Bolt (").doClick();
@@ -368,7 +368,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			field(panel, "blockedSpellsSearch").setText("fire");
 			Container suggestions = container(panel, "blockedSpellsSuggestions");
 			button(suggestions, "Fire Bolt (").doClick();
@@ -383,7 +383,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			Container suggestions = container(panel, "excludeSuggestions");
 			field(panel, "excludeSearch").setText("berserker ring");
 			assertNotNull("Other matches stay listed", exact(suggestions, BERSERKER_BUTTON));
@@ -402,7 +402,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			Container suggestions = container(panel, "lockSuggestions");
 			field(panel, "lockSearch").setText("berserker ring");
 			assertNotNull("Other matches stay listed", exact(suggestions, BERSERKER_BUTTON));
@@ -421,7 +421,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			Container suggestions = container(panel, "ownedSuggestions");
 			field(panel, "ownedSearch").setText("berserker ring");
 			assertNotNull("Other matches stay listed", exact(suggestions, titled(BERSERKER)));
@@ -440,7 +440,7 @@ public class StickyGearSearchTest
 		locks.put(Slot.HEAD, SlotLock.empty());
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			field(panel, "lockSearch").setText("lightbearer");
 			assertEquals("Lock to Lightbearer",
 				button(container(panel, "lockSuggestions"), "Lightbearer").getToolTipText());
@@ -453,7 +453,7 @@ public class StickyGearSearchTest
 		locks.put(Slot.RING, SlotLock.item(BERSERKER.getId()));
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			Container suggestions = container(panel, "lockSuggestions");
 			field(panel, "lockSearch").setText("lightbearer");
 			assertEquals("Replaces lock: Berserker Ring",
@@ -472,7 +472,7 @@ public class StickyGearSearchTest
 		locks.put(Slot.RING, SlotLock.empty());
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			field(panel, "lockSearch").setText("lightbearer");
 			assertEquals("Replaces lock: Keep empty",
 				button(container(panel, "lockSuggestions"), "Lightbearer").getToolTipText());
@@ -485,7 +485,7 @@ public class StickyGearSearchTest
 		locks.put(Slot.RING, SlotLock.fill());
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			field(panel, "lockSearch").setText("lightbearer");
 			assertEquals("Replaces lock: Always fill",
 				button(container(panel, "lockSuggestions"), "Lightbearer").getToolTipText());
@@ -498,7 +498,7 @@ public class StickyGearSearchTest
 		locks.put(Slot.RING, SlotLock.item(BERSERKER.getId()));
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			field(panel, "lockSearch").setText("lightbearer");
 			button(container(panel, "lockSuggestions"), "Lightbearer").doClick();
 			assertEquals(List.of(LIGHTBEARER), lockCalls);
@@ -542,7 +542,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			IconTextField search = field(panel, searchName);
 			Container suggestions = container(panel, suggestionsName);
 			search.setText(text);
@@ -568,7 +568,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			IconTextField search = field(panel, "lockSearch");
 			Container suggestions = container(panel, "lockSuggestions");
 			search.setText("lightbear");
@@ -585,7 +585,7 @@ public class StickyGearSearchTest
 	{
 		run(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			JComboBox<?> slot = (JComboBox<?>) named(panel, "lockSlot");
 			Container suggestions = container(panel, "lockSuggestions");
 			field(panel, "lockSearch").setText("lightbear");

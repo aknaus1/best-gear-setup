@@ -53,7 +53,7 @@ public class ChaosDwarfOptimizerTest
 			}
 		}, id -> false);
 		Monster monster = WikiMonsters.get(gson).monster(data.matchNpc(291, null, 0).getName());
-		context = new CombatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 68),
+		context = TestFactories.combatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 68),
 			false, false, null).withModifiers(CombatModifiers.builder().wilderness(true).build());
 	}
 

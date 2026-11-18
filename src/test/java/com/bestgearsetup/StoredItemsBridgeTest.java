@@ -69,7 +69,7 @@ public class StoredItemsBridgeTest
 		owned.bank = Map.of(4151, 1L);
 		owned.inventory = Map.of(9242, 40L);
 		owned.worn = Map.of(11840, 1L);
-		owned.rebuild(true);
+		owned.rebuild();
 		refresh(storage("stash", "Warriors' Guild bank (master)", item(11865, 1)),
 			storage("poh", "Magic Wardrobe", item(21791, 1)),
 			storage("death", "Vorkath", item(12926, 1)),
@@ -95,7 +95,7 @@ public class StoredItemsBridgeTest
 		owned.bank = Map.of(4151, 1L);
 		owned.inventory = Map.of(9242, 40L);
 		owned.worn = Map.of(11840, 1L);
-		owned.rebuild(true);
+		owned.rebuild();
 		refresh(storage("world", "Bank", item(4151, 1)),
 			storage("carryable", "Inventory", item(9242, 40)),
 			storage("carryable", "Equipment", item(11840, 1)),

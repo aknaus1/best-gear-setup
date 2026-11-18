@@ -187,7 +187,7 @@ public class OwnedItemsTest
 		owned.bank = Collections.singletonMap(ItemID.ABYSSAL_WHIP, 1L);
 		owned.inventory = Collections.singletonMap(9242, 159L);
 		owned.worn = Collections.singletonMap(ItemID.AMULET_OF_GLORY_4, 1L);
-		owned.rebuild(true);
+		owned.rebuild();
 
 		Set<Integer> carried = owned.snapshot(SearchMode.INVENTORY_ONLY);
 		assertFalse(carried.contains(ItemID.ABYSSAL_WHIP));

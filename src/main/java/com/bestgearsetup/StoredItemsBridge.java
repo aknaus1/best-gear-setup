@@ -98,7 +98,7 @@ final class StoredItemsBridge
 		profile = null;
 		ticks = 0;
 		owned.setStoredLocations(Collections.emptyList(), false);
-		owned.rebuild(true);
+		owned.rebuild();
 	}
 
 	/** Null denotes an unsupported payload; an empty list is an authoritative empty snapshot. */
@@ -135,9 +135,7 @@ final class StoredItemsBridge
 			}
 			if (!items.isEmpty())
 			{
-				Object updated = storage.get("lastUpdated");
-				locations.add(new StoredLocation(category, name,
-					updated instanceof Number ? ((Number) updated).longValue() : -1, items));
+				locations.add(new StoredLocation(category, name, items));
 			}
 		}
 		return Collections.unmodifiableList(locations);

@@ -53,7 +53,7 @@ public class SingleSearchBench
 				Monster m = wiki.monster(sum.getName());
 				if (m == null || m.getHitpoints() <= 0)
 					continue;
-				CombatContext ctx = new CombatContext(m, PlayerLevels.maxed(), false, true, null);
+				CombatContext ctx = TestFactories.combatContext(m, PlayerLevels.maxed(), false, true, null);
 				for (SearchMode mode : new SearchMode[]{SearchMode.BUDGET, SearchMode.UNLIMITED})
 				{
 					for (CombatClass cls : CombatClass.values())

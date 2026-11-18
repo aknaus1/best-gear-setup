@@ -90,7 +90,7 @@ public final class NameLists
 	/** The named table of pattern to whole number, tried in order. */
 	public static NameTable table(String key)
 	{
-		return table(object(key), key);
+		return table(object(key));
 	}
 
 	/** A group of tables under one name, keyed like "attack reach" by weapon subcategory. */
@@ -101,7 +101,7 @@ public final class NameLists
 		{
 			if (entry.getValue().isJsonObject())
 			{
-				tables.put(entry.getKey(), table(entry.getValue().getAsJsonObject(), key + "." + entry.getKey()));
+				tables.put(entry.getKey(), table(entry.getValue().getAsJsonObject()));
 			}
 		}
 		return tables;
@@ -117,7 +117,7 @@ public final class NameLists
 		return table.getAsJsonObject();
 	}
 
-	private static NameTable table(JsonObject table, String key)
+	private static NameTable table(JsonObject table)
 	{
 		List<NameList> patterns = new ArrayList<>();
 		List<Integer> values = new ArrayList<>();

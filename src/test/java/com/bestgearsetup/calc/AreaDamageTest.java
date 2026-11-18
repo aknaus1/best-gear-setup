@@ -26,7 +26,7 @@ public class AreaDamageTest
 
 	private static CombatContext context(Monster target, int targets)
 	{
-		return new CombatContext(target, PlayerLevels.maxed(), false, true, piety()).withFightOptions(targets, 0);
+		return TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety()).withFightOptions(targets, 0);
 	}
 
 	@Test

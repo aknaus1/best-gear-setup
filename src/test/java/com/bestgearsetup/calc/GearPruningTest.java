@@ -51,7 +51,7 @@ public class GearPruningTest
 			MonsterSummary summary = data.matchNpc(npc, null, 0);
 			assertNotNull("npc " + npc, summary);
 			Monster monster = WikiMonsters.get(GSON).monster(summary.getName());
-			CombatContext ctx = new CombatContext(monster, PlayerLevels.maxed(), onTask, false, TestData.piety());
+			CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), onTask, false, TestData.piety());
 			OptimizerSettings settings = OptimizerSettings.builder()
 				.mode(ownedOnly ? SearchMode.OWNED_ONLY : SearchMode.UNLIMITED).resultsPerClass(1)
 				.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();

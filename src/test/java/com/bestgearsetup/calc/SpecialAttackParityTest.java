@@ -86,7 +86,7 @@ public class SpecialAttackParityTest
 					{
 						for (int stacks : new int[]{0, 3})
 						{
-							CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, false, null)
+							CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null)
 								.withModifiers(CombatModifiers.builder().specialAttack(true).soulreaperStacks(stacks).build());
 							SpecialAttack now = SpecialAttack.of(l, ctx);
 							LegacySpecialAttack was = LegacySpecialAttack.of(l, ctx);

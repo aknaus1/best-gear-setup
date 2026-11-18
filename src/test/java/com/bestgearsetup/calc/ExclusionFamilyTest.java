@@ -69,7 +69,7 @@ public class ExclusionFamilyTest
 		List<MonsterGroup> groups = data.searchMonsterGroups("vorkath", 1, true);
 		assertFalse(groups.isEmpty());
 		Monster vorkath = WikiMonsters.get(GSON).monster(groups.get(0).getPrimary().getName());
-		CombatContext ctx = new CombatContext(vorkath, PlayerLevels.maxed(), false, true, TestData.piety());
+		CombatContext ctx = TestFactories.combatContext(vorkath, PlayerLevels.maxed(), false, true, TestData.piety());
 		OptimizerSettings base = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.resultsPerClass(40).antifire(Antifire.SUPER).protectMagic(false).spellbooks(Collections.emptySet()).build();
 

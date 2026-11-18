@@ -64,7 +64,7 @@ public class OptionCouplingTest
 			}
 		}
 		GameData data = TestData.gameData(items, catalogue.getSpells());
-		CombatContext ctx = new CombatContext(monsters.monster(monster), levels, false, potions,
+		CombatContext ctx = TestFactories.combatContext(monsters.monster(monster), levels, false, potions,
 			prayers ? TestData.piety() : null).withModifiers(CombatModifiers.builder().wilderness(wilderness).build());
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> prices.get(item.getId()));
 		SetupResult result = optimizer.optimize(cls, () -> false, done -> { }).get(0);
@@ -118,7 +118,7 @@ public class OptionCouplingTest
 	@Test
 	public void trialTakesItsBestSpell()
 	{
-		CombatContext ctx = new CombatContext(monsters.monster("chaos dwarf"), new PlayerLevels(69, 73, 81, 64, 60, 67, 88, 61),
+		CombatContext ctx = TestFactories.combatContext(monsters.monster("chaos dwarf"), new PlayerLevels(69, 73, 81, 64, 60, 67, 88, 61),
 			false, false, null).withModifiers(CombatModifiers.builder().wilderness(true).build());
 		OptimizerSettings settings = settings(AttackStyle.Type.MAGIC).mode(SearchMode.UNLIMITED).build();
 		GearItem staff = catalogue.getItem(Slot.WEAPON, 6563);

@@ -108,7 +108,7 @@ public class StoredItemsIntegrationTest
 
 	private void searched(SearchMode mode)
 	{
-		plugin.ownedItems.rebuild(true);
+		plugin.ownedItems.rebuild();
 		plugin.searchMode = mode;
 		plugin.searchOwned = plugin.ownedItems.snapshot(mode);
 		plugin.searchQuantities = plugin.ownedItems.quantitySnapshot(mode);

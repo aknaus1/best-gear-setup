@@ -21,7 +21,7 @@ public class CheapestTieTest
 	{
 		GameData data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 		Monster m = WikiMonsters.get(RuneLiteAPI.GSON).monster(monster);
-		CombatContext ctx = new CombatContext(m, PlayerLevels.maxed(), false, true, null);
+		CombatContext ctx = TestFactories.combatContext(m, PlayerLevels.maxed(), false, true, null);
 		OptimizerSettings s = OptimizerSettings.builder().mode(SearchMode.UNLIMITED).killSpecials(true)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "arceuus", "ancient"))).build();
 		List<SetupResult> list = com.bestgearsetup.calc.Optimizers.of(data, ctx, s, id -> false, SingleSearchBench::price).optimize(cls, () -> false, done -> { });

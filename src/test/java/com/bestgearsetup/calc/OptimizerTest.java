@@ -85,7 +85,7 @@ public class OptimizerTest
 		GearItem... items)
 	{
 		GameData data = TestData.gameData(Arrays.asList(items), Collections.emptyList());
-		CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, prices).optimize(CombatClass.MELEE, () -> false, done -> { });
 	}
 
@@ -272,7 +272,7 @@ public class OptimizerTest
 	public void respectsMonsterImmunity()
 	{
 		GameData data = TestData.gameData(Collections.singletonList(sword), Collections.emptyList());
-		CombatContext ctx = new CombatContext(monster(1, 0, "melee immune"), PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(1, 0, "melee immune"), PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard")).build();
 		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> true, GearItem::getPrice)

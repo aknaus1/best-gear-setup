@@ -68,11 +68,6 @@ class ConstraintsPanel extends JPanel
 	private final RuleCard blockedSpells;
 	private final RuleCard owned;
 
-	ConstraintsPanel(BestGearSetupPlugin plugin)
-	{
-		this(plugin, null, null);
-	}
-
 	ConstraintsPanel(BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites)
 	{
 		this.plugin = plugin;

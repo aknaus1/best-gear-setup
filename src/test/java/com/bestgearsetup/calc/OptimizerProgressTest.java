@@ -24,7 +24,7 @@ public class OptimizerProgressTest
 	public static void load() throws Exception
 	{
 		data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
-		context = new CombatContext(TestData.monster(100, 20), PlayerLevels.maxed(), false, true, null);
+		context = TestFactories.combatContext(TestData.monster(100, 20), PlayerLevels.maxed(), false, true, null);
 	}
 
 	private static List<Double> progress()
@@ -58,7 +58,7 @@ public class OptimizerProgressTest
 		// Dusk takes melee damage only.
 		Monster dusk = TestData.monster(100, 20);
 		dusk.setId(7851);
-		CombatContext meleeOnly = new CombatContext(dusk, PlayerLevels.maxed(), false, true, null);
+		CombatContext meleeOnly = TestFactories.combatContext(dusk, PlayerLevels.maxed(), false, true, null);
 		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, meleeOnly, OptimizerSettings.builder().build(), id -> false, GearItem::getPrice)
 			.optimize(CombatClass.RANGED, () -> false, seen::add).isEmpty());
 		assertEquals(Collections.singletonList(1.0), seen);

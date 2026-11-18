@@ -234,11 +234,6 @@ final class SpellRunes
 			: required(setup.getLoadout(), setup.getSupportSpells(), setup.getThrall());
 	}
 
-	static List<Integer> required(Loadout loadout, Set<SupportSpell> support)
-	{
-		return required(loadout, support, null);
-	}
-
 	static List<Integer> required(Loadout loadout, Set<SupportSpell> support, Thrall tier)
 	{
 		if (loadout == null)

@@ -35,7 +35,7 @@ public class PyrefiendOptimizerTest
 		Gson gson = RuneLiteAPI.GSON;
 		data = WikiGameData.get(gson).gameData(gson);
 		Monster monster = WikiMonsters.get(gson).monster(data.matchNpc(433, null, 0).getName());
-		ctx = new CombatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 67), true, false, null);
+		ctx = TestFactories.combatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 67), true, false, null);
 	}
 
 	private static Set<Integer> meleeOwned()

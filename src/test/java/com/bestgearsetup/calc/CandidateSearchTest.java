@@ -68,7 +68,7 @@ public class CandidateSearchTest
 		GearItem balanced = item(203, "balanced helm", Slot.HEAD);
 		balanced.setStabBonus(1);
 		balanced.setMeleeStr(1);
-		CombatContext ctx = new CombatContext(monster(100, 60), PlayerLevels.maxed(), false, false, null);
+		CombatContext ctx = TestFactories.combatContext(monster(100, 60), PlayerLevels.maxed(), false, false, null);
 		double best = best(sword, balanced, ctx);
 		assertTrue(best > best(sword, strength, ctx));
 		assertTrue(best > best(sword, attack, ctx));
@@ -98,7 +98,7 @@ public class CandidateSearchTest
 		cheaper.setStabBonus(4);
 		cheaper.setMeleeStr(2);
 		cheaper.setPrice(10);
-		CombatContext ctx = new CombatContext(monster(100, 60), PlayerLevels.maxed(), false, false, null);
+		CombatContext ctx = TestFactories.combatContext(monster(100, 60), PlayerLevels.maxed(), false, false, null);
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(sword, good, worse, cheaper),
 			Collections.emptyList()), ctx, settings().mode(SearchMode.BUDGET).budget(10_000).build(), id -> false,
 			GearItem::getPrice);
@@ -110,7 +110,7 @@ public class CandidateSearchTest
 	public void trialOptionsFollowTheExperienceFilter()
 	{
 		GearItem sword = stabSword();
-		CombatContext ctx = new CombatContext(monster(300, 300), PlayerLevels.maxed(), false, false, null);
+		CombatContext ctx = TestFactories.combatContext(monster(300, 300), PlayerLevels.maxed(), false, false, null);
 		Loadout l = new Loadout();
 		l.set(Slot.WEAPON, sword);
 		double accurate = dps(sword, null, ctx, "stab,stab,accurate");
@@ -137,7 +137,7 @@ public class CandidateSearchTest
 	{
 		GearItem sword = stabSword();
 		sword.setPrice(5_000_000);
-		CombatContext ctx = new CombatContext(monster(100, 60), PlayerLevels.maxed(), false, false, null);
+		CombatContext ctx = TestFactories.combatContext(monster(100, 60), PlayerLevels.maxed(), false, false, null);
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Collections.singletonList(sword), Collections.emptyList()),
 			ctx, settings().wildernessRiskLimited(true).maxExpensiveItems(0).build(), id -> true, GearItem::getPrice);
 		Loadout l = new Loadout();

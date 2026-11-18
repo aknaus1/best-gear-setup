@@ -31,7 +31,7 @@ public class AmmunitionOwnershipTest
 		data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 		atlatl = data.getItem(Slot.WEAPON, 29000);
 		dart = data.getItem(Slot.AMMO, 28991);
-		context = new CombatContext(TestData.monster(100, 20), PlayerLevels.maxed(), false, true, null);
+		context = TestFactories.combatContext(TestData.monster(100, 20), PlayerLevels.maxed(), false, true, null);
 	}
 
 	@Test

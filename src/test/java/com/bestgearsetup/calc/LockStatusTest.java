@@ -46,7 +46,7 @@ public class LockStatusTest
 	private List<LockStatus> check(SearchMode mode, Map<Slot, SlotLock> locks)
 	{
 		GameData data = TestData.gameData(Arrays.asList(whip, bow, helm, shield), Collections.emptyList());
-		CombatContext ctx = new CombatContext(monster(1, 0), levels, false, false, null);
+		CombatContext ctx = TestFactories.combatContext(monster(1, 0), levels, false, false, null);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).budget(1_000_000).locks(locks).build();
 		return LockStatus.check(data, com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, GearItem::getPrice), locks);
 	}
@@ -75,7 +75,7 @@ public class LockStatusTest
 		GearItem scimitar = weapon(1333, "rune scimitar", "scimitar", 4, "chop,slash,accurate");
 		scimitar.setPrice(0);
 		GameData data = TestData.gameData(Arrays.asList(scimitar, helm), Collections.emptyList());
-		CombatContext ctx = new CombatContext(monster(1, 0), levels, false, false, null);
+		CombatContext ctx = TestFactories.combatContext(monster(1, 0), levels, false, false, null);
 		Map<Slot, SlotLock> locks = locks(Slot.HEAD, SlotLock.item(helm.getId()));
 		for (SearchMode mode : new SearchMode[]{SearchMode.OWNED_ONLY, SearchMode.INVENTORY_ONLY})
 		{

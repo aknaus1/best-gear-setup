@@ -104,7 +104,7 @@ public class OptimizerConstraintsTest
 	private List<SetupResult> run(OptimizerSettings.OptimizerSettingsBuilder b, Monster target, boolean thrall)
 	{
 		GameData data = TestData.gameData(items, Collections.emptyList());
-		CombatContext base = new CombatContext(target, PlayerLevels.maxed(), false, true, piety());
+		CombatContext base = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety());
 		CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, base.getAttack(), base.getStrength(),
 			base.getRanged(), base.getMagic(), piety(), thrall);
 		OptimizerSettings settings = b.mode(SearchMode.UNLIMITED)
@@ -217,7 +217,7 @@ public class OptimizerConstraintsTest
 		GearItem defenceHelm = item(504, "tank helm", Slot.HEAD);
 		defenceHelm.setSlashDef(100);
 		GameData data = TestData.gameData(Arrays.asList(fast, slow, strengthHelm, defenceHelm), Collections.emptyList());
-		CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = settings().mode(SearchMode.UNLIMITED).fillMode(FillMode.DEFENCE)
 			.fillMarginPercent(15).resultsPerClass(2).build();
 		List<SetupResult> before = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().fillMode(FillMode.NONE).build(),
@@ -269,7 +269,7 @@ public class OptimizerConstraintsTest
 		cheapArrow.setRangedStr(10);
 		cheapArrow.setPrice(10);
 		GameData data = TestData.gameData(Arrays.asList(bow, goodArrow, cheapArrow), Collections.emptyList());
-		CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings.OptimizerSettingsBuilder b = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(200_000)
 			.spellbooks(Collections.singleton("standard"));
 
@@ -301,7 +301,7 @@ public class OptimizerConstraintsTest
 		atlatl.setRangedBonus(87);
 		atlatl.setMeleeStr(40);
 		GameData data = TestData.gameData(Arrays.asList(bow, atlatl), Collections.emptyList());
-		CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings.OptimizerSettingsBuilder b = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard"));
 
@@ -309,12 +309,12 @@ public class OptimizerConstraintsTest
 			id -> true, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false, done -> { });
 		assertEquals(1, ranged.size());
 		assertEquals(bow, ranged.get(0).getLoadout().getWeapon());
-		assertEquals(AttackStyle.Type.RANGED, ranged.get(0).getAttackType());
+		assertEquals(AttackStyle.Type.RANGED, TestFactories.attackType(ranged.get(0)));
 
 		List<SetupResult> atl = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.styles(EnumSet.of(AttackStyle.Type.ATLATL)).build(),
 			id -> true, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false, done -> { });
 		assertEquals(1, atl.size());
 		assertEquals(atlatl, atl.get(0).getLoadout().getWeapon());
-		assertEquals(AttackStyle.Type.ATLATL, atl.get(0).getAttackType());
+		assertEquals(AttackStyle.Type.ATLATL, TestFactories.attackType(atl.get(0)));
 	}
 }

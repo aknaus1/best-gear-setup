@@ -129,7 +129,7 @@ public class CombatCatalogTest
 				Loadout l = loadout(weapon, style);
 				for (int id : new int[]{13011, 13012, 13013, 11753, 11755, 7223, 7550, 7584, 12223})
 				{
-					CombatContext ctx = new CombatContext(target(id), PlayerLevels.maxed(), false, false, null);
+					CombatContext ctx = TestFactories.combatContext(target(id), PlayerLevels.maxed(), false, false, null);
 					sane(DpsCalculator.calculate(l, ctx));
 					calculations++;
 				}
@@ -149,7 +149,7 @@ public class CombatCatalogTest
 		{
 			Monster monster = monsters.monster(summary.getName());
 			assertNotNull(summary.getName(), monster);
-			CombatContext ctx = new CombatContext(monster, PlayerLevels.maxed(), false, false, null);
+			CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, false, null);
 			for (GearItem weapon : weapons)
 			{
 				AttackStyle style = AttackStyle.parse(weapon.getStyles().get(0));
@@ -164,7 +164,7 @@ public class CombatCatalogTest
 		for (int id : new int[]{13011, 11753, 7223})
 		{
 			Monster monster = target(id);
-			CombatContext ctx = new CombatContext(monster, PlayerLevels.maxed(), false, true, null);
+			CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, true, null);
 			for (CombatClass cls : CombatClass.values())
 			{
 				List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(20_000_000, 1), itemId -> false, PRICE)
@@ -198,7 +198,7 @@ public class CombatCatalogTest
 		assertTrue(akkha.getHitpoints() > 400);
 		for (Monster monster : new Monster[]{vardorvis, akkha})
 		{
-			CombatContext ctx = new CombatContext(monster, PlayerLevels.maxed(), false, true, null)
+			CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, true, null)
 				.withHealthStates(hp -> MonsterStates.atHealth(monster, hp));
 			for (CombatClass cls : CombatClass.values())
 			{
@@ -229,7 +229,7 @@ public class CombatCatalogTest
 				Loadout l = loadout(weapon, style);
 				for (int id : new int[]{13011, 11753, 7584, 12223, 7550})
 				{
-					CombatContext ctx = new CombatContext(target(id), PlayerLevels.maxed(), false, true, null)
+					CombatContext ctx = TestFactories.combatContext(target(id), PlayerLevels.maxed(), false, true, null)
 						.withModifiers(spec);
 					DpsResult r = DpsCalculator.calculate(l, ctx);
 					sane(r);
@@ -245,7 +245,7 @@ public class CombatCatalogTest
 		assertTrue(scored.contains("dark bow"));
 		assertFalse(scored.contains("scythe of vitur"));
 
-		CombatContext ctx = new CombatContext(target(12223), PlayerLevels.maxed(), false, true, null).withModifiers(spec);
+		CombatContext ctx = TestFactories.combatContext(target(12223), PlayerLevels.maxed(), false, true, null).withModifiers(spec);
 		for (CombatClass cls : CombatClass.values())
 		{
 			for (SetupResult result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(200_000_000, 3), itemId -> false, PRICE)
@@ -263,7 +263,7 @@ public class CombatCatalogTest
 		CombatModifiers poison = CombatModifiers.builder().weaponPoison(WeaponPoison.POISON_PLUS_PLUS).build();
 		for (int id : new int[]{415, 2267, 12223})
 		{
-			CombatContext ctx = new CombatContext(target(id), PlayerLevels.maxed(), false, true, null).withModifiers(poison);
+			CombatContext ctx = TestFactories.combatContext(target(id), PlayerLevels.maxed(), false, true, null).withModifiers(poison);
 			for (CombatClass cls : CombatClass.values())
 			{
 				for (SetupResult result : com.bestgearsetup.calc.Optimizers.of(data, ctx, budget(100_000_000, 1), itemId -> false, PRICE)

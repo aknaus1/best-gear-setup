@@ -59,7 +59,7 @@ public class CosmeticVariantTest
 
 	private static List<SetupResult> ranged(SearchMode mode, ToLongFunction<GearItem> price, Integer... held)
 	{
-		CombatContext context = new CombatContext(monsters.monster("general graardor"), PlayerLevels.maxed(), false,
+		CombatContext context = TestFactories.combatContext(monsters.monster("general graardor"), PlayerLevels.maxed(), false,
 			false, null);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).resultsPerClass(100).build();
 		Set<Integer> owned = new HashSet<>(Arrays.asList(held));
@@ -76,7 +76,7 @@ public class CosmeticVariantTest
 	private static SetupResult best(String monster, CombatClass cls, SearchMode mode, Integer... held)
 	{
 		Monster target = monsters.monster(monster);
-		CombatContext context = new CombatContext(target, PlayerLevels.maxed(), false, false, null);
+		CombatContext context = TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).killSpecials(true)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient"))).build();
 		Set<Integer> owned = new HashSet<>(Arrays.asList(held));

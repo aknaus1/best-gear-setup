@@ -25,7 +25,7 @@ public class WolfOptimizerTest
 		Gson gson = RuneLiteAPI.GSON;
 		GameData data = WikiGameData.get(gson).gameData(gson);
 		Monster wolf = WikiMonsters.get(gson).monster(data.matchNpc(106, null, 0).getName());
-		CombatContext ctx = new CombatContext(wolf, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 67),
+		CombatContext ctx = TestFactories.combatContext(wolf, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 67),
 			true, false, null);
 		Set<Integer> owned = new HashSet<>(Arrays.asList(29028, 11865, 6570, 1725, 6585, 28997,
 			29022, 29025, 7462, 13239, 11773));

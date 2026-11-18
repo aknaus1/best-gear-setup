@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import com.bestgearsetup.calc.TestFactories;
 import com.bestgearsetup.calc.CombatContext;
 import com.bestgearsetup.calc.Optimizer;
 import com.bestgearsetup.calc.OptimizerSettings;
@@ -35,7 +36,7 @@ public class OwnershipRulesTest
 	{
 		Gson gson = RuneLiteAPI.GSON;
 		data = WikiGameData.get(gson).gameData(gson);
-		context = new CombatContext(WikiMonsters.get(gson).monster(data.matchNpc(265, null, 0).getName()),
+		context = TestFactories.combatContext(WikiMonsters.get(gson).monster(data.matchNpc(265, null, 0).getName()),
 			PlayerLevels.maxed(), true, false, null);
 	}
 

@@ -34,7 +34,7 @@ public class AtlatlAmmoRecoveryTest
 	private GearItem fireCape;
 	private GearItem accumulator;
 	private GameData data;
-	private final CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+	private final CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 
 	@BeforeClass
 	public static void ownershipRules()
@@ -296,7 +296,7 @@ public class AtlatlAmmoRecoveryTest
 		data = TestData.gameData(Arrays.asList(bowfa, crossbow, bolts, fireCape, accumulator), Collections.emptyList());
 		Monster target = monster(250, 20);
 		target.setHitpoints(600);
-		CombatContext rangedCtx = new CombatContext(target, PlayerLevels.maxed(), false, true, null);
+		CombatContext rangedCtx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, null);
 		OptimizerSettings.OptimizerSettingsBuilder specs = settings().styles(EnumSet.of(AttackStyle.Type.RANGED))
 			.spellbooks(Collections.singleton("standard")).killSpecials(true).specEnergy(SpecEnergy.FULL_BAR);
 

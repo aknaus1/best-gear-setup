@@ -44,7 +44,7 @@ public class EquipmentFiltersTest
 	private List<SetupResult> run(OptimizerSettings.OptimizerSettingsBuilder builder, GearItem... gear)
 	{
 		GameData data = TestData.gameData(Arrays.asList(gear), Collections.emptyList());
-		CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = builder.mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard")).resultsPerClass(1).build();
 		// Even owned equipment must obey category filters.
@@ -140,8 +140,8 @@ public class EquipmentFiltersTest
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.locks(Collections.singletonMap(Slot.WEAPON, SlotLock.item(sword.getId()))).build();
 		PlayerLevels low = new PlayerLevels(1, 99, 99, 99, 99, 99, 99, 99);
-		CombatContext lowContext = new CombatContext(monster(100, 20), low, false, true, piety());
-		CombatContext maxed = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+		CombatContext lowContext = TestFactories.combatContext(monster(100, 20), low, false, true, piety());
+		CombatContext maxed = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, lowContext, settings, id -> true, GearItem::getPrice)
 			.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
 		// Owned items only and Inventory + equipped only wear an unowned lock, priced as a purchase.
@@ -186,8 +186,8 @@ public class EquipmentFiltersTest
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.locks(Collections.singletonMap(Slot.AMMO, SlotLock.item(arrow.getId()))).build();
 		PlayerLevels low = new PlayerLevels(99, 99, 99, 1, 99, 99, 99, 99);
-		CombatContext lowContext = new CombatContext(monster(100, 20), low, false, true, piety());
-		CombatContext maxed = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+		CombatContext lowContext = TestFactories.combatContext(monster(100, 20), low, false, true, piety());
+		CombatContext maxed = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, lowContext, settings, id -> true, GearItem::getPrice)
 			.optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
 		// Owned items only and Inventory + equipped only use unowned locked ammunition, priced as a purchase.

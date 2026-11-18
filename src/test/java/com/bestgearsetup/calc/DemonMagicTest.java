@@ -43,7 +43,7 @@ public class DemonMagicTest
 
 	private static List<SetupResult> search(boolean markOfDarkness)
 	{
-		CombatContext ctx = new CombatContext(yama, PlayerLevels.maxed(), false, false, TestData.piety())
+		CombatContext ctx = TestFactories.combatContext(yama, PlayerLevels.maxed(), false, false, TestData.piety())
 			.withModifiers(CombatModifiers.builder().markOfDarkness(markOfDarkness).build());
 		// An unlimited budget: charged and demonic weapons are untradeable but bought through their
 		// tradable components, so they must be candidates even when not owned.

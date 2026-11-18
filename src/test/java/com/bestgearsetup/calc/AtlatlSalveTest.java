@@ -19,7 +19,7 @@ import org.junit.Test;
 public class AtlatlSalveTest
 {
 	private static GameData data;
-	private static final CombatContext CONTEXT = new CombatContext(TestData.monster(30, 0, "undead"),
+	private static final CombatContext CONTEXT = TestFactories.combatContext(TestData.monster(30, 0, "undead"),
 		new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 68), true, false, null);
 	private static final OptimizerSettings SETTINGS = OptimizerSettings.builder()
 		.mode(SearchMode.OWNED_ONLY)

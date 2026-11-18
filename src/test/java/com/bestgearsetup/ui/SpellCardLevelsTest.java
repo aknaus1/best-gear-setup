@@ -80,7 +80,7 @@ public class SpellCardLevelsTest
 		filter = SpellFilter.of(stored, Collections.emptyList());
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			panel.refresh();
 			Container content = (Container) named(panel, "blockedSpellsContent");
 			assertEquals(Arrays.asList("Wind Strike", "Fire Bolt", "Ice Barrage", "Unknown One", "Unknown Two"),
@@ -102,7 +102,7 @@ public class SpellCardLevelsTest
 		filter = SpellFilter.of(Collections.emptyList(), Arrays.asList("fire bolt", "wind strike", "ice barrage", "stale"));
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			panel.refresh();
 			Container content = (Container) named(panel, "forcedSpellsContent");
 			assertNotNull(label(content, "lvl 35, Standard"));
@@ -117,7 +117,7 @@ public class SpellCardLevelsTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			panel.refresh();
 			// Like the item searches, nothing is suggested until the user types.
 			assertEquals(Collections.emptyList(), buttons((Container) named(panel, "blockedSpellsSuggestions")));

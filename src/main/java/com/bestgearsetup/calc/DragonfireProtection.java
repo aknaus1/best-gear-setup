@@ -83,19 +83,13 @@ public final class DragonfireProtection
 			&& !item.getLowerCombatName().equals("mind shield");
 	}
 
-	/** Meets normal protection requirements; boss chip damage and avoidable specials may remain. */
-	public static boolean allowed(Monster monster, Loadout loadout, OptimizerSettings settings, PlayerLevels levels)
-	{
-		return !required(monster, settings) || protects(monster, loadout, settings, levels);
-	}
-
 	/** Whether this lookup makes the setup carry dragonfire protection at all; fixed for one search. */
 	static boolean required(Monster monster, OptimizerSettings settings)
 	{
 		return settings.isRequireFireProtection() && applies(monster);
 	}
 
-	/** {@link #allowed} once {@link #required} holds. */
+	/** Meets normal protection requirements once {@link #required} holds; boss chip damage and avoidable specials may remain. */
 	static boolean protects(Monster monster, Loadout loadout, OptimizerSettings settings, PlayerLevels levels)
 	{
 		if (wyvern(monster))

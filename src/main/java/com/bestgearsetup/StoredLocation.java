@@ -11,14 +11,12 @@ public class StoredLocation
 {
 	String category;
 	String name;
-	long lastUpdated;
 	Map<Integer, Long> items;
 
-	StoredLocation(String category, String name, long lastUpdated, Map<Integer, Long> items)
+	StoredLocation(String category, String name, Map<Integer, Long> items)
 	{
 		this.category = category;
 		this.name = name;
-		this.lastUpdated = lastUpdated;
 		this.items = Collections.unmodifiableMap(new HashMap<>(items));
 	}
 

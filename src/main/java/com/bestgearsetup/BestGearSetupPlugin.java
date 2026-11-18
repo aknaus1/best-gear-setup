@@ -588,7 +588,7 @@ public class BestGearSetupPlugin extends Plugin
 			}
 		}
 		// Nothing is moving: publish what was read rather than waiting for it to settle.
-		ownedItems.rebuild(true);
+		ownedItems.rebuild();
 		onPanel(BestGearSetupPanel::updateOwnedStatus);
 	}
 
@@ -1181,7 +1181,7 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				return;
 			}
-			List<String> notes = describeSearch(data, levels, baseMonster, scaled, monster, specials, ctx, settings, raid, config);
+			List<String> notes = describeSearch(baseMonster, scaled, monster, specials, ctx, settings, raid, config);
 			notes.addAll(detectedNotes);
 			if (config.usePrayers() && prayerUnlocks == null)
 			{
@@ -1568,7 +1568,7 @@ public class BestGearSetupPlugin extends Plugin
 		return resisted.isEmpty() ? null : "Damage over time: " + String.join(", ", resisted) + ".";
 	}
 
-	private List<String> describeSearch(GameData data, PlayerLevels levels, Monster unscaled, Monster base, Monster drained,
+	private List<String> describeSearch(Monster unscaled, Monster base, Monster drained,
 		SpecialAttacks specials, CombatContext ctx, OptimizerSettings settings, RaidScaling.Settings raid, BestGearSetupConfig config)
 	{
 		// Only what changed this result or needs the player's attention; the header shows party scaling and Defence.

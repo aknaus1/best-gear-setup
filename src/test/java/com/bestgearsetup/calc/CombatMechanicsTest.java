@@ -40,7 +40,7 @@ public class CombatMechanicsTest
 
 	private static CombatContext context(Monster target)
 	{
-		return new CombatContext(target, PlayerLevels.maxed(), false, false, null);
+		return TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null);
 	}
 
 	private static void spell(Loadout l, String name, String book, int max)

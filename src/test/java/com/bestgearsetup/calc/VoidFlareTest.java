@@ -52,7 +52,7 @@ public class VoidFlareTest
 		Monster target = monster(100, 0, "demon");
 		target.setId(14179);
 		target.setName("void flare (shadow)");
-		CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, false, null);
+		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null);
 		DpsResult bow = DpsCalculator.calculate(loadout("magic shortbow", "bow", "rapid,ranged,rapid"), ctx);
 		DpsResult salamander = DpsCalculator.calculate(loadout("black salamander", "salamander", "flare,ranged,accurate"), ctx);
 		DpsResult staff = DpsCalculator.calculate(loadout("trident of the seas", "powered staff", "accurate,magic,accurate"), ctx);

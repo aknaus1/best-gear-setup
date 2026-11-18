@@ -105,7 +105,7 @@ public class SpellRulesCardsTest
 		filter = SpellFilter.of(Arrays.asList("ice barrage", "fire bolt"), Collections.singleton("wind strike"));
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			panel.refresh();
 			Container blocked = (Container) named(panel, "blockedSpellsContent");
 			Container forced = (Container) named(panel, "forcedSpellsContent");
@@ -127,7 +127,7 @@ public class SpellRulesCardsTest
 		filter = SpellFilter.of(Collections.singleton("fire bolt"), Collections.emptySet());
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			panel.refresh();
 			button((Container) named(panel, "blockedSpellsContent"), "×").doClick();
 			assertEquals(Collections.singletonList("fire bolt:ALLOW"), actions);
@@ -140,7 +140,7 @@ public class SpellRulesCardsTest
 		filter = SpellFilter.of(Collections.emptySet(), Collections.singleton("not a spell"));
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			panel.refresh();
 			assertNotNull(label((Container) named(panel, "forcedSpellsContent"), "not in game data"));
 		});
@@ -151,7 +151,7 @@ public class SpellRulesCardsTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			panel.refresh();
 			assertNotNull(label((Container) named(panel, "blockedSpellsContent"), "No excluded spells"));
 			assertNotNull(label((Container) named(panel, "forcedSpellsContent"), "No allowed spells"));

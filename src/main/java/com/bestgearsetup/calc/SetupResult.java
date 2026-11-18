@@ -24,9 +24,4 @@ public class SetupResult
 	/** Thrall tier whose runes this setup requires; null when no thrall is assumed. */
 	Thrall thrall;
 
-	/** Stab / slash / crush / ranged / magic / atlatl: the result tab this setup belongs to. */
-	public AttackStyle.Type getAttackType()
-	{
-		return loadout.getStyle() == null ? null : WeaponRules.tabType(loadout.getWeapon(), loadout.getStyle());
-	}
 }

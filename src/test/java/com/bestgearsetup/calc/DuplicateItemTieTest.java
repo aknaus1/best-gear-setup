@@ -21,7 +21,7 @@ import org.junit.Test;
 
 public class DuplicateItemTieTest
 {
-	private final CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+	private final CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 	private GameData data;
 	private GearItem avas;
 	private GearItem masori;

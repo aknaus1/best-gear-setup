@@ -44,7 +44,7 @@ public class StatusEffectsTest
 
 	private static CombatContext context(Monster m, CombatModifiers modifiers)
 	{
-		return new CombatContext(m, PlayerLevels.maxed(), false, false, null).withModifiers(modifiers);
+		return TestFactories.combatContext(m, PlayerLevels.maxed(), false, false, null).withModifiers(modifiers);
 	}
 
 	@Test

@@ -55,7 +55,7 @@ public class KillSpecialsTest
 		Monster target = monster(100, 20);
 		target.setHitpoints(300);
 		GameData data = TestData.gameData(Arrays.asList(sword, claws, helm), Collections.emptyList());
-		CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, piety()).withModifiers(modifiers);
+		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety()).withModifiers(modifiers);
 		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.spellbooks(Collections.singleton("standard")).build(),
 			owned::contains, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { });
 	}
@@ -124,7 +124,7 @@ public class KillSpecialsTest
 		Monster target = monster(100, 20);
 		target.setHitpoints(300);
 		GameData data = TestData.gameData(Arrays.asList(sword, claws, amulet), Collections.emptyList());
-		CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety());
 		SetupResult r = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, unlimited().killSpecials(true).wildernessRiskLimited(true)
 			.expensiveItemThreshold(1_000_000).maxExpensiveItems(1).spellbooks(Collections.singleton("standard")).build(),
 			owned::contains, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { }), sword);
@@ -142,7 +142,7 @@ public class KillSpecialsTest
 		Monster target = monster(100, 20);
 		target.setHitpoints(300);
 		GameData data = TestData.gameData(Arrays.asList(sword, claws, helm, amulet), Collections.emptyList());
-		CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety());
 		List<List<SetupResult>> runs = new java.util.ArrayList<>();
 		for (int results : new int[]{1, 2})
 		{
@@ -230,7 +230,7 @@ public class KillSpecialsTest
 		wyvern.setName("test wyvern");
 		wyvern.setHitpoints(300);
 		GameData data = TestData.gameData(Arrays.asList(sword, godsword, shield), Collections.emptyList());
-		CombatContext ctx = new CombatContext(wyvern, PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(wyvern, PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings.OptimizerSettingsBuilder settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.killSpecials(true).spellbooks(Collections.singleton("standard"));
 
@@ -253,7 +253,7 @@ public class KillSpecialsTest
 	private List<SetupResult> run(Monster target, SpecEnergy energy, DrainSpecs drains, GearItem... items)
 	{
 		GameData data = TestData.gameData(Arrays.asList(items), Collections.emptyList());
-		CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY).killSpecials(true)
 			.specEnergy(energy).drainSpecs(drains).spellbooks(Collections.singleton("standard")).build();
 		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, GearItem::getPrice).optimize(CombatClass.MELEE,
@@ -286,7 +286,7 @@ public class KillSpecialsTest
 		Loadout held = r.getLoadout().copy();
 		held.set(Slot.WEAPON, claws);
 		held.setStyle(r.getSpecial().getStyle());
-		CombatContext spec = new CombatContext(target(100, 300), PlayerLevels.maxed(), false, true, piety())
+		CombatContext spec = TestFactories.combatContext(target(100, 300), PlayerLevels.maxed(), false, true, piety())
 			.withModifiers(CombatModifiers.builder().specialAttack(true).build());
 		assertTrue(r.getSpecial().getSpec().getMaxHit() > DpsCalculator.calculate(held, spec).getMaxHit());
 
@@ -417,7 +417,7 @@ public class KillSpecialsTest
 		crossbow.setAmmunition(Collections.singletonList(bolts.getId()));
 		owned.addAll(Arrays.asList(bow.getId(), arrows.getId(), crossbow.getId()));
 		GameData data = TestData.gameData(Arrays.asList(bow, arrows, crossbow, bolts), Collections.emptyList());
-		CombatContext ctx = new CombatContext(target(250, 600), PlayerLevels.maxed(), false, true, null);
+		CombatContext ctx = TestFactories.combatContext(target(250, 600), PlayerLevels.maxed(), false, true, null);
 		OptimizerSettings.OptimizerSettingsBuilder settings = OptimizerSettings.builder().killSpecials(true)
 			.specEnergy(SpecEnergy.FULL_BAR).spellbooks(Collections.singleton("standard"));
 

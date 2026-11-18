@@ -190,7 +190,7 @@ public class SlayerEquipmentTest
 				.spellbooks(Collections.singleton("standard")).build();
 			for (boolean onTask : new boolean[]{false, true})
 			{
-				CombatContext ctx = new CombatContext(wyrm, PlayerLevels.maxed(), onTask, true, TestData.piety());
+				CombatContext ctx = TestFactories.combatContext(wyrm, PlayerLevels.maxed(), onTask, true, TestData.piety());
 				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, PRICE);
 				int found = 0;
 				for (CombatClass cls : CombatClass.values())
@@ -209,7 +209,7 @@ public class SlayerEquipmentTest
 		}
 		OptimizerSettings noBoots = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.karuulmDungeon(true).spellbooks(Collections.singleton("standard")).build();
-		CombatContext ctx = new CombatContext(wyrm, PlayerLevels.maxed(), false, true, TestData.piety());
+		CombatContext ctx = TestFactories.combatContext(wyrm, PlayerLevels.maxed(), false, true, TestData.piety());
 		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, ctx, noBoots, id -> id == 4587 || id == 1704, PRICE)
 			.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
 	}
@@ -238,7 +238,7 @@ public class SlayerEquipmentTest
 				OptimizerSettings settings = OptimizerSettings.builder().mode(mode).budget(10_000_000L)
 					.resultsPerClass(3)
 					.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient"))).build();
-				CombatContext ctx = new CombatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety())
+				CombatContext ctx = TestFactories.combatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety())
 					.withFightOptions(targets, 0);
 				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, PRICE);
 				int found = 0;
@@ -264,7 +264,7 @@ public class SlayerEquipmentTest
 			"basilisk knight", "harpie bug swarm", "hydra"})
 		{
 			Monster target = bundled(name);
-			CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
+			CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
 			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, PRICE);
 			int found = 0;
 			for (CombatClass cls : CombatClass.values())
@@ -287,12 +287,12 @@ public class SlayerEquipmentTest
 		Monster dustDevil = bundled("dust devil (smoke dungeon)");
 		OptimizerSettings owned = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.spellbooks(Collections.singleton("standard")).build();
-		CombatContext offTask = new CombatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety());
+		CombatContext offTask = TestFactories.combatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety());
 		Set<Integer> noMask = new HashSet<>(Arrays.asList(4587, 1704));
 		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, offTask, owned, noMask::contains, PRICE).optimize(CombatClass.MELEE, () -> false, done -> { })
 			.isEmpty());
 
-		CombatContext onTask = new CombatContext(dustDevil, PlayerLevels.maxed(), true, true, TestData.piety());
+		CombatContext onTask = TestFactories.combatContext(dustDevil, PlayerLevels.maxed(), true, true, TestData.piety());
 		OptimizerSettings unlimited = owned.toBuilder().mode(SearchMode.UNLIMITED).build();
 		GearItem head = com.bestgearsetup.calc.Optimizers.of(data, onTask, unlimited, id -> false, PRICE).optimize(CombatClass.MELEE, () -> false, done -> { })
 			.get(0).getLoadout().get(Slot.HEAD);
@@ -313,7 +313,7 @@ public class SlayerEquipmentTest
 			Slot slot = (Slot) c[1];
 			GearItem wrong = item(slot, (String) c[2]);
 			GearItem right = item(slot, (String) c[3]);
-			CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
+			CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
 			for (SlotLock lock : new SlotLock[]{SlotLock.item(wrong.getId()), SlotLock.empty(), SlotLock.fill()})
 			{
 				OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
