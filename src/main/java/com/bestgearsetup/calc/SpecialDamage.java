@@ -1,10 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.Slot;
-import com.bestgearsetup.data.StatusImmunities;
+import com.bestgearsetup.data.*;
 import java.util.function.LongFunction;
 import lombok.RequiredArgsConstructor;
 import static com.bestgearsetup.calc.EquipmentEffects.*;

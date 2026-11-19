@@ -1,12 +1,7 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.Slot;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import com.bestgearsetup.data.*;
+import java.util.*;
 import lombok.Value;
 
 /** How one slot lock affected a search, in plain words, for the results view. */

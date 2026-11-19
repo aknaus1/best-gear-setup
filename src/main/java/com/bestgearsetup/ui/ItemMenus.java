@@ -2,12 +2,8 @@ package com.bestgearsetup.ui;
 
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.calc.SlotLock;
-import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.Slot;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import com.bestgearsetup.data.*;
+import java.util.*;
 import java.util.stream.Collectors;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;

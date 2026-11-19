@@ -1,18 +1,7 @@
 package com.bestgearsetup;
 
-import com.bestgearsetup.calc.DpsResult;
-import com.bestgearsetup.calc.Loadout;
-import com.bestgearsetup.calc.SetupResult;
-import com.bestgearsetup.calc.SpecialPlan;
-import com.bestgearsetup.calc.SupportSpell;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.bestgearsetup.calc.*;
+import java.util.*;
 
 /** Expected base runes consumed per kill by attack and support spells. */
 public final class RuneUse

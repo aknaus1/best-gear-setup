@@ -3,9 +3,7 @@ package com.bestgearsetup.calc;
 import com.bestgearsetup.data.GearItem;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Value;
+import lombok.*;
 
 /**
  * The player's base (unboosted) combat levels.

@@ -1,14 +1,10 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.OffensivePrayer;
+import com.bestgearsetup.data.*;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.IntFunction;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 
 /**
  * Everything about the fight that does not depend on the gear: target (after any pre-fight

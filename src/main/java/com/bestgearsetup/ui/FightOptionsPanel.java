@@ -8,11 +8,7 @@ import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.MonsterSummary;
 import java.util.Collection;
 import java.util.stream.Collectors;
-import javax.swing.BoxLayout;
-import javax.swing.JCheckBox;
-import javax.swing.JComponent;
-import javax.swing.JPanel;
-import javax.swing.JSpinner;
+import javax.swing.*;
 import net.runelite.client.config.ConfigItemDescriptor;
 import net.runelite.client.ui.ColorScheme;
 

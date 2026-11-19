@@ -2,15 +2,7 @@ package com.bestgearsetup.data;
 
 import com.bestgearsetup.OwnershipRules;
 import com.google.gson.Gson;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
 import lombok.Getter;

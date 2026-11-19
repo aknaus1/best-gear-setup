@@ -4,17 +4,11 @@ import com.bestgearsetup.BestGearSetupConfig;
 import com.bestgearsetup.BestGearSetupPlugin;
 import java.awt.Cursor;
 import java.awt.font.TextAttribute;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JPanel;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import net.runelite.client.config.ConfigDescriptor;
-import net.runelite.client.config.ConfigItemDescriptor;
-import net.runelite.client.config.ConfigSectionDescriptor;
+import net.runelite.client.config.*;
 import net.runelite.client.ui.ColorScheme;
 
 /**

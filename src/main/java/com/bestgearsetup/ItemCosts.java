@@ -2,11 +2,7 @@ package com.bestgearsetup;
 
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.NameLists;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.function.IntPredicate;
 import java.util.function.IntToLongFunction;
 import net.runelite.api.gameval.ItemID;

@@ -3,20 +3,12 @@ package com.bestgearsetup;
 import com.bestgearsetup.data.NameLists;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.Skill;
+import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.gameval.DBTableID;
-import net.runelite.api.gameval.VarbitID;
-import net.runelite.api.gameval.VarPlayerID;
+import net.runelite.api.gameval.*;
 import net.runelite.client.config.ConfigManager;
 
 /** Account facts are read on the client thread and remembered only in the RuneScape profile. */

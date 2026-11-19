@@ -1,14 +1,7 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.NameLists;
-import com.bestgearsetup.data.Slot;
-import com.bestgearsetup.data.StatusImmunities;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import com.bestgearsetup.data.*;
+import java.util.*;
 import lombok.Value;
 import static com.bestgearsetup.calc.EncounterDamage.*;
 

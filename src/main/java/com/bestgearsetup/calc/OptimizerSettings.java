@@ -1,10 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.Slot;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import lombok.Builder;
 import lombok.Value;
 

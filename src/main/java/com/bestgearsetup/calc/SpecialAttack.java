@@ -2,15 +2,9 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.NameLists;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import com.google.gson.*;
+import java.util.*;
+import lombok.*;
 
 /**
  * A weapon's damaging special attack. Formulas follow the OSRS Wiki calculator (PlayerVsNPCCalc,

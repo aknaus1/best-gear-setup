@@ -2,16 +2,7 @@ package com.bestgearsetup;
 
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.data.Potion;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.function.Predicate;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.client.game.ItemVariationMapping;

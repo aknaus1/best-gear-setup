@@ -1,8 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.Potion;
+import com.bestgearsetup.data.*;
 import java.util.Locale;
 import java.util.function.Predicate;
 

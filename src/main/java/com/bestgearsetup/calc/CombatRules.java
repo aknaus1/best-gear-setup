@@ -1,9 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.EncounterPhase;
-import com.bestgearsetup.data.GearItem;
-import com.bestgearsetup.data.Monster;
+import com.bestgearsetup.data.*;
 import static com.bestgearsetup.calc.EncounterDamage.*;
 
 /** Static encounter identity rules from the OSRS Wiki calculator; phases remain separate targets. */

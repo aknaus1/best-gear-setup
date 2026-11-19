@@ -1,10 +1,7 @@
 package com.bestgearsetup.ui;
 
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.swing.SwingUtilities;
 import net.runelite.client.game.SpriteManager;
 

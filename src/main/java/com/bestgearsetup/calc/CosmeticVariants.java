@@ -2,9 +2,7 @@ package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.GearItem;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Cosmetics the snapshot folded together (ornament kits, recolours, kitted or league copies) and the client shows
