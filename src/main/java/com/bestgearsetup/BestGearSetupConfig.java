@@ -179,7 +179,7 @@ public interface BestGearSetupConfig extends Config
 		return value("bossesOnly", false);
 	}
 
-	/** On slayer task: Apply slayer helmet / black mask bonuses. Edited by its own sidebar control, so it needs no label. */
+	/** On slayer task: Apply slayer helmet / black mask bonuses. Detected per search from the Slayer task setting, so it needs no label. */
 	@ConfigItem(keyName = ON_TASK_KEY, name = "", description = "", hidden = true)
 	default boolean onSlayerTask()
 	{
@@ -315,7 +315,7 @@ public interface BestGearSetupConfig extends Config
 		return value("sunfireRunes", false);
 	}
 
-	/** Kandarin hard diary: Increase enchanted bolt proc chances by 10%. Edited by its own sidebar control, so it needs no label. */
+	/** Kandarin hard diary: Increase enchanted bolt proc chances by 10%. Detected per search from the account's diaries, so it needs no label. */
 	@ConfigItem(keyName = "kandarinDiary", name = "", description = "", hidden = true)
 	default boolean kandarinDiary()
 	{
