@@ -13,7 +13,7 @@ public final class MonsterStates
 	public static Monster atHealth(Monster base, int currentHp)
 	{
 		Monster result = base.copy();
-		if (!Encounter.named(base, "vardorvis"))
+		if (!Mitigation.named(base, "vardorvis"))
 		{
 			return result;
 		}

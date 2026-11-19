@@ -45,7 +45,7 @@ public enum SupportSpell
 
 	static boolean demonbane(Outfit loadout, CombatContext ctx)
 	{
-		return Encounter.spell(loadout).contains("demonbane") && ctx.getMonster().hasAttribute("demon");
+		return Mitigation.spell(loadout).contains("demonbane") && ctx.getMonster().hasAttribute("demon");
 	}
 
 	static boolean markOfDarkness(Outfit loadout, CombatContext ctx)
@@ -59,10 +59,10 @@ public enum SupportSpell
 		{
 			return false;
 		}
-		String spell = Encounter.spell(loadout);
+		String spell = Mitigation.spell(loadout);
 		String god = spell.equals("saradomin strike") ? "saradomin" : spell.equals("claws of guthix") ? "guthix"
 			: spell.equals("flames of zamorak") ? "zamorak" : "";
-		String cape = Encounter.lower(loadout.get(Slot.CAPE));
+		String cape = Mitigation.lower(loadout.get(Slot.CAPE));
 		return !god.isEmpty() && (cape.equals(god + " cape") || cape.equals("imbued " + god + " cape")
 			|| cape.equals(god + " max cape") || cape.equals("imbued " + god + " max cape"));
 	}

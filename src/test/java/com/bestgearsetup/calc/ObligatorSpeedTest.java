@@ -64,7 +64,7 @@ public class ObligatorSpeedTest
 		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, obligator());
 		l.setStyle(Style.parse(THRUST));
-		Encounter.Rule rule = Encounter.rule(m, l);
+		Mitigation.Rule rule = Mitigation.rule(m, l);
 		assertEquals(HitDamage.average(rule, 0, 40), HitDamage.bestOf(rule, 40, 1, h -> h), 1e-9);
 		// Best of two on 0..1: the best roll is 1 three times in four, and an accurate zero deals 1 anyway.
 		assertEquals(1.0, HitDamage.bestOf(rule, 1, 2, h -> h), 1e-9);

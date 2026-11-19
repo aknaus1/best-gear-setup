@@ -91,7 +91,7 @@ public class NameRulesParityTest
 		for (Gear item : items)
 		{
 			names.add(item.getLowerCombatName());
-			names.add(Encounter.lower(item));
+			names.add(Mitigation.lower(item));
 		}
 		for (Monster m : monsters)
 		{

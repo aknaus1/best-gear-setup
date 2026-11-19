@@ -60,7 +60,7 @@ final class LegacySlayerEquipment
 		{
 			for (String base : bases)
 			{
-				if (Encounter.versionOf(n, base))
+				if (Mitigation.versionOf(n, base))
 				{
 					return true;
 				}

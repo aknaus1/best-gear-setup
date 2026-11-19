@@ -5,7 +5,7 @@ import java.util.function.LongUnaryOperator;
 import static com.bestgearsetup.calc.Effects.*;
 import static com.bestgearsetup.calc.CombatRules.*;
 import static com.bestgearsetup.calc.Weapons.*;
-import static com.bestgearsetup.calc.Encounter.*;
+import static com.bestgearsetup.calc.Mitigation.*;
 
 /**
  * Expected-DPS calculator following the OSRS Wiki combat formulas. Covers the common gear
@@ -90,7 +90,7 @@ public final class DpsCalculator
 			&& l.getWeapon() != null && l.getWeapon().getSubcategory().equals("crossbow")
 			&& firesAmmoSlot(l.getWeapon()) && ammo.startsWith("ruby ");
 		boolean sun = weapon.equals("keris partisan of the sun") && l.getStyle().isMelee() && toa(m);
-		boolean vardorvis = ctx.getHealthStates() != null && Encounter.named(m, "vardorvis");
+		boolean vardorvis = ctx.getHealthStates() != null && Mitigation.named(m, "vardorvis");
 		if (!ruby && !sun && !vardorvis)
 		{
 			return null;
@@ -138,7 +138,7 @@ public final class DpsCalculator
 			int speed = ratWeapon(weapon) ? 1 : r.getAttackSpeedTicks();
 			r = result(hp, hp, 1, speed).withDetail("Target dies in one successful attack");
 		}
-		else if (Encounter.named(ctx.getMonster(), "respiratory system") && demonbane(loadout))
+		else if (Mitigation.named(ctx.getMonster(), "respiratory system") && demonbane(loadout))
 		{
 			int hp = ctx.getMonster().getHitpoints();
 			r = result(hp * r.getAccuracy(), hp, r.getAccuracy(), r.getAttackSpeedTicks()).withDetail("Demonbane one-hit kill");
@@ -371,8 +371,8 @@ public final class DpsCalculator
 		}
 		accuracy = accuracy(m, l, accuracy);
 		int speed = attackSpeed(weapon, style);
-		Encounter.Rule rule = rule(m, l);
-		long minimum = Encounter.named(m, "respiratory system") ? maxHit / 2 : 0;
+		Mitigation.Rule rule = rule(m, l);
+		long minimum = Mitigation.named(m, "respiratory system") ? maxHit / 2 : 0;
 		if (spec != null)
 		{
 			return SpecialDamage.melee(spec, l, ctx, rule, spec.isGuaranteed() ? 1 : accuracy, minimum + specMin, maxHit,
@@ -580,7 +580,7 @@ public final class DpsCalculator
 		{
 			maxHit = ((ctx.getRanged() + 10L) * (64 + weapon.getRangedStr()) + 320) / 640;
 			maxHit = frac(maxHit, 100 + demonBonus(m, 60), 100);
-			if (Encounter.named(m, "nezikchened"))
+			if (Mitigation.named(m, "nezikchened"))
 			{
 				maxHit += 5;
 			}
@@ -666,7 +666,7 @@ public final class DpsCalculator
 		long[] bounds = bounds(m, attRoll, defRoll, maxHit);
 		long minimum = bounds[0];
 		maxHit = bounds[1];
-		Encounter.Rule rule = rule(m, l);
+		Mitigation.Rule rule = rule(m, l);
 		if (spec != null)
 		{
 			return SpecialDamage.ranged(spec, l, ctx, rule, spec.isGuaranteed() ? 1 : accuracy,
@@ -922,12 +922,12 @@ public final class DpsCalculator
 		}
 		accuracy = accuracy(m, l, accuracy);
 		long[] bounds = bounds(m, attRoll, defRoll, maxHit);
-		if (wardenP2(m) || Encounter.named(m, "respiratory system"))
+		if (wardenP2(m) || Mitigation.named(m, "respiratory system"))
 		{
 			minimum = bounds[0];
 			maxHit = bounds[1];
 		}
-		Encounter.Rule rule = rule(m, l);
+		Mitigation.Rule rule = rule(m, l);
 		if (spec != null)
 		{
 			boolean dawnbringer = spec.getKind() == SpecialAttack.Kind.DAWNBRINGER;
@@ -1160,7 +1160,7 @@ public final class DpsCalculator
 
 	private static String lower(Gear item)
 	{
-		return Encounter.lower(item);
+		return Mitigation.lower(item);
 	}
 
 	/**

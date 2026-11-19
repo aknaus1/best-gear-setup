@@ -92,7 +92,7 @@ public final class AttackReach
 
 	private static boolean named(Monster monster, String target)
 	{
-		return Encounter.versionOf(monster.getLowerName().replace('\u2019', '\''), target);
+		return Mitigation.versionOf(monster.getLowerName().replace('\u2019', '\''), target);
 	}
 
 	/** Melee legality independent of the selected tile distance or missing monster tags. */
@@ -115,7 +115,7 @@ public final class AttackReach
 		{
 			return "Olm head: melee requires a halberd; non-ranged damage is divided by 3. Assumes the final phase.";
 		}
-		if (Encounter.olmPreferredClass(monster) != null)
+		if (Mitigation.olmPreferredClass(monster) != null)
 		{
 			return "Olm hand: off-style damage is divided by 3; hand immunity and healing phases are not simulated.";
 		}
@@ -147,7 +147,7 @@ public final class AttackReach
 		{
 			return "Zebak: ordinary melee at 1 tile; halberds at 2 tiles; melee excluded farther away.";
 		}
-		return Encounter.encounterNote(monster);
+		return Mitigation.encounterNote(monster);
 	}
 
 	/** Whether this weapon style can attack from the selected distance in this encounter. */

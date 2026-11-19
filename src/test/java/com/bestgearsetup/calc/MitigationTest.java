@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import org.junit.Test;
 
-public class EncounterDamageTest
+public class MitigationTest
 {
 	private static Dps calculate(Gear weapon, String style, Monster monster, boolean thrall)
 	{
@@ -84,7 +84,7 @@ public class EncounterDamageTest
 		{
 			Monster target = monster(100, 20);
 			target.setName(names[i]);
-			assertEquals(preferred[i], Encounter.olmPreferredClass(target));
+			assertEquals(preferred[i], Mitigation.olmPreferredClass(target));
 		}
 	}
 
@@ -140,7 +140,7 @@ public class EncounterDamageTest
 		Monster target = monster(100, 20);
 		target.setId(2042);
 		Outfit loadout = loadout("noxious halberd", "polearm", "swipe,slash,aggressive");
-		Encounter.Rule rule = Encounter.rule(target, loadout);
+		Mitigation.Rule rule = Mitigation.rule(target, loadout);
 		assertEquals(50, rule.mean(50), 0);
 		assertEquals(47.5, rule.mean(51), 0);
 		assertEquals(25, rule.average(0, 50), 1e-12);
@@ -172,7 +172,7 @@ public class EncounterDamageTest
 			{
 				int low = id == 8917 ? 22 : 0;
 				int high = id == 8917 ? 24 : loadout.getStyle().isMelee() ? 10 : 3;
-				Encounter.Rule rule = Encounter.rule(target, loadout);
+				Mitigation.Rule rule = Mitigation.rule(target, loadout);
 				for (int max : new int[]{0, 1, 3, 10, 22, 23, 24, 80, 520})
 				{
 					assertEquals(randomCapMean(0, max, low, high), rule.average(0, max), 1e-10);
@@ -242,24 +242,24 @@ public class EncounterDamageTest
 		magic.setSpell(spell);
 		Monster ice = monster(100, 20);
 		ice.setId(7584);
-		assertEquals(30, Encounter.rule(ice, magic).maximum(30));
+		assertEquals(30, Mitigation.rule(ice, magic).maximum(30));
 		spell.setName("Ice barrage");
-		assertEquals(10, Encounter.rule(ice, magic).maximum(30));
+		assertEquals(10, Mitigation.rule(ice, magic).maximum(30));
 		spell.setName("Dark demonbane");
-		assertEquals(30, Encounter.rule(ice, magic).maximum(30));
+		assertEquals(30, Mitigation.rule(ice, magic).maximum(30));
 		Outfit arclight = loadout("arclight", "slash sword", "chop,slash,aggressive");
-		assertEquals(30, Encounter.rule(ice, arclight).maximum(30));
+		assertEquals(30, Mitigation.rule(ice, arclight).maximum(30));
 		Monster tekton = monster(100, 20);
 		tekton.setId(7544);
 		assertFalse(Optimizer.classAllowed(tekton, Combat.RANGED));
 		assertTrue(Optimizer.classAllowed(tekton, Combat.MAGIC));
-		assertEquals(1, Encounter.rule(tekton, magic).maximum(4));
-		assertEquals(6, Encounter.rule(tekton, magic).maximum(30));
+		assertEquals(1, Mitigation.rule(tekton, magic).maximum(4));
+		assertEquals(6, Mitigation.rule(tekton, magic).maximum(30));
 		Monster crystal = monster(100, 20, "melee only");
 		crystal.setId(7568);
 		assertTrue(Optimizer.classAllowed(crystal, Combat.MAGIC));
 		assertFalse(Optimizer.classAllowed(crystal, Combat.RANGED));
-		assertEquals(10, Encounter.rule(crystal, magic).maximum(30));
+		assertEquals(10, Mitigation.rule(crystal, magic).maximum(30));
 	}
 
 	@Test
@@ -268,28 +268,28 @@ public class EncounterDamageTest
 		Monster demon = monster(100, 20);
 		demon.setId(13599);
 		Outfit sword = loadout("test sword", "slash sword", "chop,slash,aggressive");
-		assertEquals(24, Encounter.rule(demon, sword).maximum(30));
-		assertEquals(1, Encounter.rule(demon, sword).maximum(1));
+		assertEquals(24, Mitigation.rule(demon, sword).maximum(30));
+		assertEquals(1, Mitigation.rule(demon, sword).maximum(1));
 		for (String name : new String[]{"abyssal whip", "abyssal dagger (p++)", "abyssal tentacle", "arclight", "burning claws"})
 		{
 			Outfit bypass = loadout(name, "slash sword", "chop,slash,aggressive");
-			assertEquals(name, 30, Encounter.rule(demon, bypass).maximum(30));
+			assertEquals(name, 30, Mitigation.rule(demon, bypass).maximum(30));
 		}
 		Outfit scorching = loadout("scorching bow", "bow", "rapid,ranged,rapid");
-		assertEquals(30, Encounter.rule(demon, scorching).maximum(30));
+		assertEquals(30, Mitigation.rule(demon, scorching).maximum(30));
 		scorching.setStyle(Style.parse("bash,crush,aggressive"));
-		assertEquals(24, Encounter.rule(demon, scorching).maximum(30));
+		assertEquals(24, Mitigation.rule(demon, scorching).maximum(30));
 		// The Wiki's 13600 is a spawn variant; the unshielded state comes from the Boss phase input.
 		demon.setId(13600);
-		assertEquals(24, Encounter.rule(demon, sword).maximum(30));
+		assertEquals(24, Mitigation.rule(demon, sword).maximum(30));
 		demon.setPhase(com.bestgearsetup.data.EncounterPhase.TD_UNSHIELDED);
-		assertEquals(30, Encounter.rule(demon, sword).maximum(30));
+		assertEquals(30, Mitigation.rule(demon, sword).maximum(30));
 		demon.setPhase(com.bestgearsetup.data.EncounterPhase.STANDARD);
 		demon.setName("tormented demon (unshielded)");
-		assertEquals(30, Encounter.rule(demon, sword).maximum(30));
+		assertEquals(30, Mitigation.rule(demon, sword).maximum(30));
 		demon.setId(1);
 		demon.setName("tormented demon (shielded)");
-		assertEquals(24, Encounter.rule(demon, sword).maximum(30));
+		assertEquals(24, Mitigation.rule(demon, sword).maximum(30));
 	}
 
 	@Test
@@ -297,12 +297,12 @@ public class EncounterDamageTest
 	{
 		Monster corp = monster(100, 20);
 		corp.setId(319);
-		assertEquals(15, Encounter.rule(corp, loadout("ghrazi rapier", "stab sword", "stab,stab,accurate")).maximum(30));
-		assertEquals(30, Encounter.rule(corp, loadout("osmumten's fang", "stab sword", "stab,stab,accurate")).maximum(30));
-		assertEquals(15, Encounter.rule(corp, loadout("osmumten's fang", "stab sword", "slash,slash,aggressive")).maximum(30));
-		assertEquals(30, Encounter.rule(corp, loadout("noxious halberd", "polearm", "jab,stab,controlled")).maximum(30));
-		assertEquals(15, Encounter.rule(corp, loadout("blue moon spear", "spear", "jab,stab,controlled")).maximum(30));
-		assertEquals(30, Encounter.rule(corp, loadout("trident of the seas", "powered staff", "accurate,magic,accurate")).maximum(30));
+		assertEquals(15, Mitigation.rule(corp, loadout("ghrazi rapier", "stab sword", "stab,stab,accurate")).maximum(30));
+		assertEquals(30, Mitigation.rule(corp, loadout("osmumten's fang", "stab sword", "stab,stab,accurate")).maximum(30));
+		assertEquals(15, Mitigation.rule(corp, loadout("osmumten's fang", "stab sword", "slash,slash,aggressive")).maximum(30));
+		assertEquals(30, Mitigation.rule(corp, loadout("noxious halberd", "polearm", "jab,stab,controlled")).maximum(30));
+		assertEquals(15, Mitigation.rule(corp, loadout("blue moon spear", "spear", "jab,stab,controlled")).maximum(30));
+		assertEquals(30, Mitigation.rule(corp, loadout("trident of the seas", "powered staff", "accurate,magic,accurate")).maximum(30));
 	}
 
 	@Test
@@ -341,11 +341,11 @@ public class EncounterDamageTest
 		assertFalse(EncounterImmunities.attackAllowed(tierTwo, sword));
 		sword.set(Slot.RING, item(21140, "efaritay's aid", Slot.RING));
 		assertTrue(EncounterImmunities.attackAllowed(tierTwo, sword));
-		assertEquals(15, Encounter.rule(tierTwo, sword).maximum(30));
+		assertEquals(15, Mitigation.rule(tierTwo, sword).maximum(30));
 		Outfit silver = loadout("silverlight", "slash sword", "chop,slash,aggressive");
 		assertTrue(EncounterImmunities.attackAllowed(tierTwo, silver));
-		assertEquals(10, Encounter.rule(tierTwo, silver).maximum(30));
-		assertEquals(5, Encounter.rule(tierTwo, silver).maximum(5));
+		assertEquals(10, Mitigation.rule(tierTwo, silver).maximum(30));
+		assertEquals(5, Mitigation.rule(tierTwo, silver).maximum(5));
 		Monster tierThree = monster(100, 20, "vampyre (t3)");
 		assertFalse(EncounterImmunities.attackAllowed(tierThree, sword));
 		assertFalse(EncounterImmunities.attackAllowed(tierThree, silver));

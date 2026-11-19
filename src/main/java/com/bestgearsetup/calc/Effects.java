@@ -1,7 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.*;
-import static com.bestgearsetup.calc.Encounter.*;
+import static com.bestgearsetup.calc.Mitigation.*;
 
 /** Equipment predicates shared by calculation and optimizer set seeds. */
 final class Effects
@@ -169,13 +169,13 @@ final class Effects
 			&& named(l, Slot.NECK, "berserker necklace"));
 	}
 
-	static double average(Encounter.Rule rule, Outfit l, CombatContext ctx, long min, long max)
+	static double average(Mitigation.Rule rule, Outfit l, CombatContext ctx, long min, long max)
 	{
 		return rolledEffect(l, ctx) ? HitDamage.average(rule, min, max, h -> damage(l, ctx, h))
 			: HitDamage.average(rule, min, max);
 	}
 
-	static int maximum(Encounter.Rule rule, Outfit l, CombatContext ctx, long max)
+	static int maximum(Mitigation.Rule rule, Outfit l, CombatContext ctx, long max)
 	{
 		return rule.maximum(Math.max(1, damage(l, ctx, max)));
 	}

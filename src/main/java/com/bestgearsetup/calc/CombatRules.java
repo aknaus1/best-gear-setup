@@ -1,7 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.*;
-import static com.bestgearsetup.calc.Encounter.*;
+import static com.bestgearsetup.calc.Mitigation.*;
 
 /** Static encounter identity rules from the OSRS Wiki calculator; phases remain separate targets. */
 final class CombatRules

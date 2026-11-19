@@ -129,7 +129,7 @@ final class LegacyNameRules
 
 	static boolean reachNamed(Monster monster, String target)
 	{
-		return Encounter.versionOf(monster.getLowerName().replace('\u2019', '\''), target);
+		return Mitigation.versionOf(monster.getLowerName().replace('\u2019', '\''), target);
 	}
 
 	// ---- DragonfireProtection
@@ -141,7 +141,7 @@ final class LegacyNameRules
 			|| n.equals("elemental shield") || n.equals("mind shield");
 	}
 
-	// ---- Encounter
+	// ---- Mitigation
 	static boolean demonbaneMelee(String weapon)
 	{
 		return weapon.startsWith("silverlight") || weapon.startsWith("darklight") || weapon.startsWith("arclight")

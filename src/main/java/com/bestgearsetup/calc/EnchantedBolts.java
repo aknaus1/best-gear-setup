@@ -11,15 +11,15 @@ final class EnchantedBolts
 	{
 	}
 
-	static Result calculate(Outfit l, CombatContext ctx, Encounter.Rule rule, double accuracy, long min, long max)
+	static Result calculate(Outfit l, CombatContext ctx, Mitigation.Rule rule, double accuracy, long min, long max)
 	{
-		String ammo = Encounter.lower(l.get(Slot.AMMO));
+		String ammo = Mitigation.lower(l.get(Slot.AMMO));
 		if (!ammo.endsWith("(e)"))
 		{
 			return null;
 		}
 		Monster monster = ctx.getMonster();
-		boolean zaryte = Encounter.lower(l.getWeapon()).startsWith("zaryte crossbow");
+		boolean zaryte = Mitigation.lower(l.getWeapon()).startsWith("zaryte crossbow");
 		// The Zaryte crossbow special guarantees the effect on every accurate hit; misses keep the usual chance.
 		boolean guaranteed = zaryte && ctx.getModifiers().isSpecialAttack();
 		double diary = ctx.getModifiers().isKandarinDiary() ? 1.1 : 1;
@@ -35,11 +35,11 @@ final class EnchantedBolts
 			&& ctx.getModifiers().targetHp(monster) > 0)
 		{
 			chance = 0.06 * diary;
-			boolean infinite = Encounter.gemstoneCrab(monster);
+			boolean infinite = Mitigation.gemstoneCrab(monster);
 			int cap = infinite ? zaryte ? 66 : 60 : zaryte ? 110 : 100;
 			int damage = Math.min(cap, ctx.getModifiers().targetHp(monster) * (zaryte ? 22 : 20) / 100);
 			// Corp's reduction precedes ruby replacement, so ruby effect damage bypasses it.
-			Encounter.Rule rubyRule = Encounter.corp(monster) ? Encounter.unmitigated() : rule;
+			Mitigation.Rule rubyRule = Mitigation.corp(monster) ? Mitigation.unmitigated() : rule;
 			effectHit = rubyRule.mean(Math.max(1, damage));
 			effectMiss = effectHit;
 			missBecomesAccurate = true;

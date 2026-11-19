@@ -9,7 +9,7 @@ final class HitDamage
 	{
 	}
 
-	static double average(Encounter.Rule rule, long min, long max)
+	static double average(Mitigation.Rule rule, long min, long max)
 	{
 		if (min == 0 && max == 0)
 		{
@@ -18,7 +18,7 @@ final class HitDamage
 		return rule.average(min, max) + (min == 0 && max > 0 ? (rule.mean(1) - rule.mean(0)) / (max + 1.0) : 0);
 	}
 
-	static double average(Encounter.Rule rule, long min, long max, LongUnaryOperator transform)
+	static double average(Mitigation.Rule rule, long min, long max, LongUnaryOperator transform)
 	{
 		return averageTransformed(rule, min, max, h -> Math.max(1, transform.applyAsLong(h)));
 	}
@@ -27,7 +27,7 @@ final class HitDamage
 	 * Average of the highest of several damage rolls, each uniform over 0 to max: the chance the best roll is at most
 	 * h is ((h + 1) / (max + 1))^rolls. An accurate zero deals 1, as for a single roll.
 	 */
-	static double bestOf(Encounter.Rule rule, long max, int rolls, LongUnaryOperator transform)
+	static double bestOf(Mitigation.Rule rule, long max, int rolls, LongUnaryOperator transform)
 	{
 		double sum = 0;
 		double below = 0;
@@ -40,7 +40,7 @@ final class HitDamage
 		return sum;
 	}
 
-	static double averageTransformed(Encounter.Rule rule, long min, long max, LongUnaryOperator transform)
+	static double averageTransformed(Mitigation.Rule rule, long min, long max, LongUnaryOperator transform)
 	{
 		double sum = 0;
 		for (long hit = min; hit <= max; hit++)

@@ -33,11 +33,11 @@ final class SpellRules
 	static int maxHit(Outfit l, CombatContext ctx)
 	{
 		Spell spell = l.getSpell();
-		String name = Encounter.spell(l);
+		String name = Mitigation.spell(l);
 		int magic = ctx.getMagic();
 		if (name.equals("magic dart"))
 		{
-			return Encounter.lower(l.getWeapon()).startsWith("slayer's staff (e)") && ctx.isOnTask()
+			return Mitigation.lower(l.getWeapon()).startsWith("slayer's staff (e)") && ctx.isOnTask()
 				? 13 + magic / 6 : 10 + magic / 10;
 		}
 		return baseMax(spell, magic);

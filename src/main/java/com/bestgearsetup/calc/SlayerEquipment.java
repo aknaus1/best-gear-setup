@@ -146,7 +146,7 @@ public final class SlayerEquipment
 			notes.add("Wyrms in the Karuulm Slayer Dungeon need boots of stone, boots of brimstone or granite boots"
 				+ " (unless the Elite Kourend & Kebos Diary is complete); Wyrmscraig wyrms don't, so boots are not enforced.");
 		}
-		if (Encounter.versionOf(name, "wall beast"))
+		if (Mitigation.versionOf(name, "wall beast"))
 		{
 			notes.add("Wall beasts: a spiny helmet or slayer helmet is needed only to start the fight, so the head slot"
 				+ " is not restricted.");

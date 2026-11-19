@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.Test;
 
-public class NameListsTest
+public class NamesTest
 {
 	private static Names.NameList list(String... patterns)
 	{

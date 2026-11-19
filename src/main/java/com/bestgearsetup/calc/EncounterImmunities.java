@@ -1,7 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.*;
-import static com.bestgearsetup.calc.Encounter.*;
+import static com.bestgearsetup.calc.Mitigation.*;
 
 /** Combat-class and equipment requirements shared by search filtering and direct DPS scoring. */
 final class EncounterImmunities

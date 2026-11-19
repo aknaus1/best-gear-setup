@@ -14,7 +14,7 @@ import java.util.List;
 import org.junit.Test;
 
 /** Checks that an optimized setup carries the thrall tier used in its damage estimate. */
-public class SetupResultThrallTest
+public class SetupThrallTest
 {
 	private static Setup search(int magic, boolean thrallsEnabled, boolean immuneThrall)
 	{

@@ -185,7 +185,7 @@ final class LegacySpecialAttack
 		{
 			return null;
 		}
-		String n = Encounter.lower(weapon);
+		String n = Mitigation.lower(weapon);
 		Style.Type type = l.getStyle().getType();
 		boolean melee = l.getStyle().isMelee();
 		boolean ranged = type == Style.Type.RANGED;

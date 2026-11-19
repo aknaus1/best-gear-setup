@@ -69,7 +69,7 @@ Two tables are maintained by hand instead, so the code keeps only the rules that
 
 Names are lower case. A pattern is an exact name, or uses `*` for any text (`dragon dagger*`, `*sickle*`), and
 `kraken (*)` matches `kraken` alone or with a version. New data belongs in these files rather than in code; keep
-IDs that RuneLite provides as `ItemID`/`NpcID` constants in code. `NameListsTest` fails if code asks for a name
+IDs that RuneLite provides as `ItemID`/`NpcID` constants in code. `NamesTest` fails if code asks for a name
 the files don't have.
 `NameRulesParityTest` and `SpecialAttackParityTest` compare both files with the original hand-written rules,
 kept as `Legacy*` test classes, over every bundled item and monster. A deliberate data change updates the
