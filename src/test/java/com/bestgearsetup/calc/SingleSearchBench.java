@@ -1,10 +1,10 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
 import com.bestgearsetup.data.WikiMonsters;
@@ -45,7 +45,7 @@ public class SingleSearchBench
 		try (PrintWriter out = new PrintWriter(new FileWriter(path)))
 		{
 			out.println("monster,mode,class,ms,dps,ordinary,list");
-			for (MonsterSummary sum : data.getMonsters())
+			for (Summary sum : data.getMonsters())
 			{
 				if (!sum.isBoss() || !seen.add(sum.getName())
 					|| only != null && Arrays.stream(only.split(";")).noneMatch(sum.getName()::equals))
@@ -56,14 +56,14 @@ public class SingleSearchBench
 				CombatContext ctx = TestFactories.combatContext(m, PlayerLevels.maxed(), false, true, null);
 				for (SearchMode mode : new SearchMode[]{SearchMode.BUDGET, SearchMode.UNLIMITED})
 				{
-					for (CombatClass cls : CombatClass.values())
+					for (Combat cls : Combat.values())
 					{
 						if (index++ % parts != part)
 							continue;
 						OptimizerSettings s = OptimizerSettings.builder().mode(mode).budget(10_000_000).killSpecials(specs)
 							.spellbooks(new HashSet<>(Arrays.asList("standard", "arceuus", "ancient"))).build();
 						long t0 = System.nanoTime();
-						List<SetupResult> list = com.bestgearsetup.calc.Optimizers.of(data, ctx, s, id -> false, SingleSearchBench::price)
+						List<Setup> list = com.bestgearsetup.calc.Optimizers.of(data, ctx, s, id -> false, SingleSearchBench::price)
 							.optimize(cls, () -> false, done -> { });
 						long ms = (System.nanoTime() - t0) / 1_000_000;
 						out.printf(Locale.ROOT, "\"%s\",%s,%s,%d,%.12f,%.12f,\"%s\"%n", sum.getName(), mode, cls, ms,
@@ -77,17 +77,17 @@ public class SingleSearchBench
 	}
 
 	/** Offline prices are all zero: a fixed pseudo-random price up to 20m per item gives the budget something to trade. */
-	static long price(GearItem item)
+	static long price(Gear item)
 	{
 		return (item.getId() * 2654435761L >>> 8) % 20_000_000;
 	}
 
-	private static String describe(List<SetupResult> list)
+	private static String describe(List<Setup> list)
 	{
 		return list.stream().map(s -> s.getLoadout().getWeapon().getName() + "=" + String.format(Locale.ROOT, "%.6f",
 			s.getDps().getDps()) + "/" + s.getBuyCost()).collect(Collectors.joining(";")).replace("\"", "'")
 			+ (list.isEmpty() || !Boolean.getBoolean("bgs.bench.gear") ? "" : " " + list.get(0).getLoadout().getStyle() + " "
 			+ list.get(0).getLoadout().getSpell() + " " + Arrays.stream(Slot.values()).map(slot -> list.get(0).getLoadout().get(slot))
-			.filter(Objects::nonNull).map(GearItem::getName).collect(Collectors.joining(", ")).replace("\"", "'"));
+			.filter(Objects::nonNull).map(Gear::getName).collect(Collectors.joining(", ")).replace("\"", "'"));
 	}
 }

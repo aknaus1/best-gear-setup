@@ -11,9 +11,9 @@ import com.bestgearsetup.calc.Optimizer;
 import com.bestgearsetup.calc.OptimizerSettings;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.SearchMode;
-import com.bestgearsetup.calc.WeaponRules;
+import com.bestgearsetup.calc.Weapons;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
 import com.bestgearsetup.data.WikiMonsters;
@@ -58,7 +58,7 @@ public class OwnershipRulesTest
 		{
 			assertFalse(pair[0] + " grants " + pair[1],
 				OwnedItems.expand(Collections.singleton(pair[0])).contains(pair[1]));
-			GearItem target = data.findItem(pair[1]);
+			Gear target = data.findItem(pair[1]);
 			assertNotNull(optimizer(pair[0], SearchMode.OWNED_ONLY).unusableReason(target));
 			if (OwnershipRules.requiresOwnership(pair[1]))
 			{
@@ -75,7 +75,7 @@ public class OwnershipRulesTest
 	@Test
 	public void catalogueVariantsCannotBypassIdentityOrGrantAmmunitionQuantities()
 	{
-		GearItem item = new GearItem();
+		Gear item = new Gear();
 		item.setId(1704);
 		item.setVariants(Arrays.asList(1704, 1712, 10354, 10362));
 		assertEquals(Arrays.asList(1704, 1712), item.getOwnershipVariants());
@@ -130,7 +130,7 @@ public class OwnershipRulesTest
 		for (Slot slot : Slot.values())
 		{
 			Set<Integer> sources = new HashSet<>();
-			for (GearItem item : data.getItems(slot))
+			for (Gear item : data.getItems(slot))
 			{
 				sources.add(item.getId());
 				sources.addAll(item.getVariants());
@@ -139,7 +139,7 @@ public class OwnershipRulesTest
 			{
 				Set<Integer> owned = OwnedItems.expand(Collections.singleton(source));
 				Optimizer search = com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, item -> 1);
-				for (GearItem target : data.getItems(slot))
+				for (Gear target : data.getItems(slot))
 				{
 					if (!OwnershipRules.equivalent(source, target.getId()))
 					{
@@ -155,11 +155,11 @@ public class OwnershipRulesTest
 	{
 		GameData expanded = data.withMonsters(RuneLiteAPI.GSON, data.getMonsters());
 		expanded.addVariantItems(RuneLiteAPI.GSON, id -> id == 25731 ? "Holy sanguinesti staff" : null, id -> false);
-		GearItem holy = expanded.findItem(25731);
+		Gear holy = expanded.findItem(25731);
 		assertNotNull(holy);
 		assertEquals("holy sanguinesti staff", holy.getName());
-		assertEquals(WeaponRules.poweredStaffMaxHit(data.findItem(22323), 99),
-			WeaponRules.poweredStaffMaxHit(holy, 99));
+		assertEquals(Weapons.poweredStaffMaxHit(data.findItem(22323), 99),
+			Weapons.poweredStaffMaxHit(holy, 99));
 		expanded.findItem(22323).setMagicReq(1);
 		assertEquals(82, data.findItem(22323).getMagicReq());
 	}

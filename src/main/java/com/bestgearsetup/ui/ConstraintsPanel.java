@@ -52,7 +52,7 @@ class ConstraintsPanel extends JPanel
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		SidebarSection.Accordion accordion = new SidebarSection.Accordion(true);
-		add(BestGearSetupPanel.left(accordion.expandCollapseAll("gear")));
+		add(Sidebar.left(accordion.expandCollapseAll("gear")));
 
 		locks = new RuleCard(accordion, "locks", "Locked items",
 			"Always use an item, or keep a slot empty or filled. Right-click an item in a result for more.", "Add a lock");
@@ -90,11 +90,11 @@ class ConstraintsPanel extends JPanel
 			"For items the bank scan can't see, e.g. the POH costume room.", "Mark an item as owned");
 		owned.addSearch("owned", "Search items you own...", "Find an item to mark as owned", this::suggestOwned);
 
-		JLabel more = new JLabel(BestGearSetupPanel.html("Persistent preferences (equipment, styles, experience and fill slots) are in "
+		JLabel more = new JLabel(Sidebar.html("Persistent preferences (equipment, styles, experience and fill slots) are in "
 			+ "<b>Settings</b>."));
-		BestGearSetupPanel.setSmall(more, ColorScheme.LIGHT_GRAY_COLOR);
+		Sidebar.setSmall(more, ColorScheme.LIGHT_GRAY_COLOR);
 		more.setBorder(new EmptyBorder(2, 2, 0, 0));
-		add(BestGearSetupPanel.left(more));
+		add(Sidebar.left(more));
 	}
 
 	/** Limit the lock search to a slot (null for any) and put the cursor in it. */
@@ -156,7 +156,7 @@ class ConstraintsPanel extends JPanel
 			case FILL:
 				return "Always fill";
 			default:
-				GearItem item = data == null ? null : data.getItem(slot, lock.getItemId());
+				Gear item = data == null ? null : data.getItem(slot, lock.getItemId());
 				return item == null ? "Item " + lock.getItemId() : GameData.titleCase(item.getName());
 		}
 	}
@@ -167,7 +167,7 @@ class ConstraintsPanel extends JPanel
 		Set<Integer> excluded = plugin.getExcluded();
 		for (int id : excluded)
 		{
-			GearItem item = data == null ? null : data.findItem(id);
+			Gear item = data == null ? null : data.findItem(id);
 			String name = item == null ? "Item " + id : GameData.titleCase(item.getName());
 			exclusions.list.add(ruleRow(itemIcon(id), name, item == null ? null : item.getSlot().getDisplayName(),
 				"Use " + name + " again", () -> plugin.setExcluded(id, false)));
@@ -181,7 +181,7 @@ class ConstraintsPanel extends JPanel
 		Set<Integer> manual = plugin.getOwnedItems().getManual();
 		for (int id : manual)
 		{
-			GearItem item = data == null ? null : data.findItem(id);
+			Gear item = data == null ? null : data.findItem(id);
 			String name = item == null ? "Item " + id : GameData.titleCase(item.getName());
 			owned.list.add(ruleRow(itemIcon(id), name, item == null ? null : item.getSlot().getDisplayName(),
 				"Unmark " + name, () -> plugin.setManualOwned(id, false)));
@@ -259,7 +259,7 @@ class ConstraintsPanel extends JPanel
 		}
 	}
 
-	private static boolean isLockedTo(SlotLock lock, GearItem item)
+	private static boolean isLockedTo(SlotLock lock, Gear item)
 	{
 		return lock != null && lock.getKind() == SlotLock.Kind.ITEM && lock.getItemId() == item.getId();
 	}
@@ -292,7 +292,7 @@ class ConstraintsPanel extends JPanel
 	}
 
 	/** Items matching the card's search that {@code isNew} keeps; {@code taken} more are searched to make up for those it drops. */
-	private static Stream<GearItem> matches(GameData data, RuleCard card, Slot only, int taken, Predicate<GearItem> isNew)
+	private static Stream<Gear> matches(GameData data, RuleCard card, Slot only, int taken, Predicate<Gear> isNew)
 	{
 		return data.searchItems(card.search.getText(), MAX_SUGGESTIONS + taken, only).stream()
 			.filter(isNew)
@@ -320,7 +320,7 @@ class ConstraintsPanel extends JPanel
 	}
 
 	/** A search suggestion with the item's icon; items you own are green. */
-	private void itemButton(RuleCard card, GearItem item, String text, String tooltip, Runnable add)
+	private void itemButton(RuleCard card, Gear item, String text, String tooltip, Runnable add)
 	{
 		JButton row = suggestion(card, text, plugin.owns(item) ? OWNED_COLOR : Color.WHITE, tooltip, add);
 		if (itemManager != null)
@@ -346,7 +346,7 @@ class ConstraintsPanel extends JPanel
 			card.suggest();
 			card.search.requestFocusInWindow();
 		});
-		card.suggestions.add(BestGearSetupPanel.left(row));
+		card.suggestions.add(Sidebar.left(row));
 		return row;
 	}
 
@@ -372,12 +372,12 @@ class ConstraintsPanel extends JPanel
 		JPanel text = new JPanel(new GridLayout(0, 1));
 		text.setOpaque(false);
 		JLabel title = new JLabel(name);
-		BestGearSetupPanel.setSmall(title, Color.WHITE);
+		Sidebar.setSmall(title, Color.WHITE);
 		text.add(title);
 		if (detail != null)
 		{
 			JLabel slot = new JLabel(detail);
-			BestGearSetupPanel.setSmall(slot, ColorScheme.LIGHT_GRAY_COLOR);
+			Sidebar.setSmall(slot, ColorScheme.LIGHT_GRAY_COLOR);
 			text.add(slot);
 		}
 		text.setToolTipText(detail == null ? name : name + " (" + detail + ")");
@@ -440,8 +440,8 @@ class ConstraintsPanel extends JPanel
 
 	private static JLabel hint(String text)
 	{
-		JLabel label = new JLabel(BestGearSetupPanel.html(text, CARD_HTML_WIDTH));
-		BestGearSetupPanel.setSmall(label, ColorScheme.LIGHT_GRAY_COLOR);
+		JLabel label = new JLabel(Sidebar.html(text, CARD_HTML_WIDTH));
+		Sidebar.setSmall(label, ColorScheme.LIGHT_GRAY_COLOR);
 		label.setBorder(new EmptyBorder(0, 0, 6, 0));
 		return label;
 	}
@@ -456,7 +456,7 @@ class ConstraintsPanel extends JPanel
 	/** Lay a component out full width without painting over the card behind it. */
 	private static JPanel transparent(Component c)
 	{
-		JPanel p = BestGearSetupPanel.left(c);
+		JPanel p = Sidebar.left(c);
 		p.setOpaque(false);
 		return p;
 	}
@@ -474,7 +474,7 @@ class ConstraintsPanel extends JPanel
 		private RuleCard(SidebarSection.Accordion accordion, String key, String title, String hintText, String captionText)
 		{
 			section = accordion.create(key, title);
-			add(BestGearSetupPanel.left(section));
+			add(Sidebar.left(section));
 			list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
 			list.setOpaque(false);
 			JPanel body = section.getContent();
@@ -528,7 +528,7 @@ class ConstraintsPanel extends JPanel
 			if (count == 0)
 			{
 				JLabel none = new JLabel(empty);
-				BestGearSetupPanel.setSmall(none, Controls.DISABLED_TEXT);
+				Sidebar.setSmall(none, Controls.DISABLED_TEXT);
 				none.setBorder(new EmptyBorder(0, 0, 4, 0));
 				list.add(transparent(none));
 			}

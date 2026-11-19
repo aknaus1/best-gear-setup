@@ -5,7 +5,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
@@ -28,7 +28,7 @@ public class SpecialAttackParityTest
 	public void tableMatchesTheLegacyChainForEveryWeaponStyleTargetAndStack() throws Exception
 	{
 		GameData data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
-		List<GearItem> weapons = new ArrayList<>(data.getItems(Slot.WEAPON));
+		List<Gear> weapons = new ArrayList<>(data.getItems(Slot.WEAPON));
 		// Names the legacy chain tests, with suffixes that exercise prefix, (i) and uncharged checks.
 		String legacy = new String(Files.readAllBytes(Paths.get("src/test/java/com/bestgearsetup/calc/LegacySpecialAttack.java")));
 		Matcher m = Pattern.compile("n\\.(?:startsWith|equals|contains)\\(\"([^\"]+)\"\\)").matcher(legacy);
@@ -53,12 +53,12 @@ public class SpecialAttackParityTest
 		Monster.Attribute tag = new Monster.Attribute();
 		tag.setName("demon");
 		demon.setAttributes(Collections.singletonList(tag));
-		List<GearItem> bloodMoon = new ArrayList<>();
+		List<Gear> bloodMoon = new ArrayList<>();
 		for (String piece : new String[]{"blood moon helm", "blood moon chestplate", "blood moon tassets"})
 		{
 			for (Slot slot : Slot.values())
 			{
-				for (GearItem item : data.getItems(slot))
+				for (Gear item : data.getItems(slot))
 				{
 					if (item.getLowerCombatName().equals(piece))
 					{
@@ -69,15 +69,15 @@ public class SpecialAttackParityTest
 		}
 		assertEquals(3, bloodMoon.size());
 		int compared = 0;
-		for (GearItem weapon : weapons)
+		for (Gear weapon : weapons)
 		{
 			for (String style : weapon.getStyles())
 			{
 				for (boolean wearingSet : new boolean[]{false, true})
 				{
-					Loadout l = new Loadout();
+					Outfit l = new Outfit();
 					l.set(Slot.WEAPON, weapon);
-					l.setStyle(AttackStyle.parse(style));
+					l.setStyle(Style.parse(style));
 					if (wearingSet)
 					{
 						bloodMoon.forEach(piece -> l.set(piece.getSlot(), piece));

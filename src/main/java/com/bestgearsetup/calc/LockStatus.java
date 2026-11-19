@@ -11,7 +11,7 @@ public class LockStatus
 	Slot slot;
 	SlotLock lock;
 	/** The locked item; null for empty and fill locks, or an id missing from the bundled data. */
-	GearItem item;
+	Gear item;
 	/** Why the lock could not be honoured, or null when it was applied. */
 	String problem;
 	/** What the lock does to the search, or null when it only fixes the slot. */
@@ -36,7 +36,7 @@ public class LockStatus
 	private static LockStatus check(GameData data, Optimizer optimizer, Slot slot, SlotLock lock)
 	{
 		String slotName = slot.getDisplayName().toLowerCase(Locale.ROOT);
-		GearItem locked = lock.getKind() == SlotLock.Kind.ITEM ? data.getItem(slot, lock.getItemId()) : null;
+		Gear locked = lock.getKind() == SlotLock.Kind.ITEM ? data.getItem(slot, lock.getItemId()) : null;
 		String unprotected = optimizer.protectionLockReason(slot, locked);
 		if (unprotected != null)
 		{
@@ -53,7 +53,7 @@ public class LockStatus
 			default:
 				break;
 		}
-		GearItem item = locked;
+		Gear item = locked;
 		String blocked = slot == Slot.WEAPON ? "No setup can be found while this lock is set."
 			: slot == Slot.AMMO ? "Ammo slot empty: weapons firing ammunition are excluded."
 			: "The " + slotName + " slot is left empty.";

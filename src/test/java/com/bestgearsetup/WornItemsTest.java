@@ -2,7 +2,7 @@ package com.bestgearsetup;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,9 +49,9 @@ public class WornItemsTest
 		return plugin;
 	}
 
-	private static GearItem item(int id, Integer... variants)
+	private static Gear item(int id, Integer... variants)
 	{
-		GearItem item = new GearItem();
+		Gear item = new Gear();
 		item.setId(id);
 		item.setVariants(Arrays.asList(variants));
 		return item;

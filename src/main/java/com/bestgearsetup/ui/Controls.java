@@ -243,7 +243,7 @@ final class Controls
 	static JLabel caption(String text)
 	{
 		JLabel label = new JLabel(text);
-		BestGearSetupPanel.setSmall(label, ColorScheme.LIGHT_GRAY_COLOR);
+		Sidebar.setSmall(label, ColorScheme.LIGHT_GRAY_COLOR);
 		return label;
 	}
 

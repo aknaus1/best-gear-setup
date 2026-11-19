@@ -6,8 +6,8 @@ import static com.bestgearsetup.calc.TestData.weapon;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import java.util.Arrays;
@@ -24,11 +24,11 @@ public class DragonfireProtectionTest
 		return m;
 	}
 
-	private static Loadout gear(String shield)
+	private static Outfit gear(String shield)
 	{
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, weapon(4151, "abyssal whip", "whip", 4, "flick,slash,accurate"));
-		l.setStyle(AttackStyle.parse("flick,slash,accurate"));
+		l.setStyle(Style.parse("flick,slash,accurate"));
 		l.set(Slot.SHIELD, shield == null ? null : item(1540, shield, Slot.SHIELD));
 		return l;
 	}
@@ -40,7 +40,7 @@ public class DragonfireProtectionTest
 	}
 
 	/** Meets normal protection requirements, as the search checks them. */
-	private static boolean allowed(Monster monster, Loadout loadout, OptimizerSettings settings, PlayerLevels levels)
+	private static boolean allowed(Monster monster, Outfit loadout, OptimizerSettings settings, PlayerLevels levels)
 	{
 		return !DragonfireProtection.required(monster, settings)
 			|| DragonfireProtection.protects(monster, loadout, settings, levels);
@@ -97,7 +97,7 @@ public class DragonfireProtectionTest
 		PlayerLevels lowPrayer = new PlayerLevels(99, 99, 99, 99, 99, 1, 99, 99);
 		OptimizerSettings settings = OptimizerSettings.builder().antifire(Antifire.REGULAR).protectMagic(true).build();
 		assertFalse(allowed(target("black dragon"), gear(null), settings, lowPrayer));
-		Loadout twoHanded = gear("anti-dragon shield");
+		Outfit twoHanded = gear("anti-dragon shield");
 		twoHanded.getWeapon().setTwoHanded(true);
 		assertFalse(allowed(target("iron dragon"), twoHanded, settings, PlayerLevels.maxed()));
 		assertTrue(allowed(target("iron dragon"), twoHanded,
@@ -107,11 +107,11 @@ public class DragonfireProtectionTest
 	@Test
 	public void optimizerRetainsProtectiveShieldsAndHonoursLocksAndFilling()
 	{
-		GearItem whip = gear(null).getWeapon();
+		Gear whip = gear(null).getWeapon();
 		whip.setMeleeStr(82);
-		GearItem fire = item(1540, "anti-dragon shield", Slot.SHIELD);
+		Gear fire = item(1540, "anti-dragon shield", Slot.SHIELD);
 		fire.setPrice(100);
-		GearItem defender = item(12954, "dragon defender", Slot.SHIELD);
+		Gear defender = item(12954, "dragon defender", Slot.SHIELD);
 		defender.setMeleeStr(6);
 		defender.setSlashBonus(25);
 		defender.setSlashDef(100);
@@ -126,8 +126,8 @@ public class DragonfireProtectionTest
 			OptimizerSettings s = locked ? settings.toBuilder()
 				.locks(Collections.singletonMap(Slot.SHIELD, SlotLock.item(defender.getId()))).build() : settings;
 			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(whip, fire, defender), Collections.emptyList()),
-				ctx, s, id -> true, GearItem::getPrice);
-			List<SetupResult> setups = optimizer.optimize(CombatClass.MELEE, () -> false, done -> { });
+				ctx, s, id -> true, Gear::getPrice);
+			List<Setup> setups = optimizer.optimize(Combat.MELEE, () -> false, done -> { });
 			if (locked)
 			{
 				assertTrue(setups.isEmpty());

@@ -7,8 +7,8 @@ import java.util.Map;
 public final class AttackReach
 {
 	/** Base range by weapon subcategory and name. */
-	private static final Map<String, NameLists.NameTable> REACH = NameLists.tables("attack reach");
-	private static final NameLists.NameList FLYING = NameLists.list("flying monsters");
+	private static final Map<String, Names.NameTable> REACH = Names.tables("attack reach");
+	private static final Names.NameList FLYING = Names.list("flying monsters");
 
 	private AttackReach()
 	{
@@ -92,11 +92,11 @@ public final class AttackReach
 
 	private static boolean named(Monster monster, String target)
 	{
-		return EncounterDamage.versionOf(monster.getLowerName().replace('\u2019', '\''), target);
+		return Encounter.versionOf(monster.getLowerName().replace('\u2019', '\''), target);
 	}
 
 	/** Melee legality independent of the selected tile distance or missing monster tags. */
-	public static boolean meleeAllowed(Monster monster, GearItem weapon)
+	public static boolean meleeAllowed(Monster monster, Gear weapon)
 	{
 		boolean salamander = weapon.getSubcategory().equals("salamander");
 		if (aviansieId(monster.getId()) || named(monster, "aviansie") || named(monster, "reanimated aviansie"))
@@ -115,7 +115,7 @@ public final class AttackReach
 		{
 			return "Olm head: melee requires a halberd; non-ranged damage is divided by 3. Assumes the final phase.";
 		}
-		if (EncounterDamage.olmPreferredClass(monster) != null)
+		if (Encounter.olmPreferredClass(monster) != null)
 		{
 			return "Olm hand: off-style damage is divided by 3; hand immunity and healing phases are not simulated.";
 		}
@@ -147,11 +147,11 @@ public final class AttackReach
 		{
 			return "Zebak: ordinary melee at 1 tile; halberds at 2 tiles; melee excluded farther away.";
 		}
-		return EncounterDamage.encounterNote(monster);
+		return Encounter.encounterNote(monster);
 	}
 
 	/** Whether this weapon style can attack from the selected distance in this encounter. */
-	public static boolean canReach(Monster monster, GearItem weapon, AttackStyle style, int requested)
+	public static boolean canReach(Monster monster, Gear weapon, Style style, int requested)
 	{
 		if (style.isMelee() && !meleeAllowed(monster, weapon))
 		{
@@ -167,7 +167,7 @@ public final class AttackReach
 	 * Maximum tile distance for a normal attack with this style; 0 means unknown.
 	 * Longrange adds two tiles, capped at ten. Ranges follow the OSRS Wiki weapon combat tables.
 	 */
-	public static int range(GearItem weapon, AttackStyle style)
+	public static int range(Gear weapon, Style style)
 	{
 		if (weapon.getSubcategory().equals("salamander"))
 		{
@@ -185,7 +185,7 @@ public final class AttackReach
 		return base == 0 ? 0 : Math.min(10, base + (style.getStance().equals("longrange") ? 2 : 0));
 	}
 
-	static int baseRange(GearItem weapon)
+	static int baseRange(Gear weapon)
 	{
 		String name = weapon.getLowerCombatName().replace("corrupted ", "");
 		String subcategory = weapon.getSubcategory();
@@ -194,7 +194,7 @@ public final class AttackReach
 			// The uncharged Tonalztics shares the charged item's name.
 			return 6;
 		}
-		NameLists.NameTable ranges = REACH.get(subcategory);
+		Names.NameTable ranges = REACH.get(subcategory);
 		return ranges == null ? 0 : ranges.get(name, 0);
 	}
 }

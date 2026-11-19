@@ -1,7 +1,7 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import java.util.function.IntPredicate;
 import java.util.function.ToLongFunction;
 
@@ -13,7 +13,7 @@ public final class Optimizers
 	}
 
 	public static Optimizer of(GameData data, CombatContext ctx, OptimizerSettings settings, IntPredicate owned,
-		ToLongFunction<GearItem> priceFn)
+		ToLongFunction<Gear> priceFn)
 	{
 		return new Optimizer(data, ctx, settings, owned, id -> owned.test(id) ? Long.MAX_VALUE : 0, priceFn);
 	}

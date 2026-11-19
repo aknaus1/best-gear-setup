@@ -2,7 +2,7 @@ package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
@@ -32,20 +32,20 @@ public class WolfOptimizerTest
 		OptimizerSettings settings = OptimizerSettings.builder()
 			.mode(SearchMode.OWNED_ONLY)
 			
-			.styles(Collections.singleton(AttackStyle.Type.CRUSH))
+			.styles(Collections.singleton(Style.Type.CRUSH))
 			.spellbooks(Collections.singleton("standard"))
 			.build();
-		SetupResult best = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
+		Setup best = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
+			.optimize(Combat.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(11865, best.getLoadout().get(Slot.HEAD).getId());
 		assertEquals(6585, best.getLoadout().get(Slot.NECK).getId());
 		assertEquals(33, best.getDps().getMaxHit());
 		assertEquals(6.021772704, best.getDps().getDps(), 1e-9);
 
-		Loadout bloodMoon = best.getLoadout().copy();
+		Outfit bloodMoon = best.getLoadout().copy();
 		bloodMoon.set(Slot.HEAD, data.getItem(Slot.HEAD, 29028));
 		bloodMoon.set(Slot.NECK, data.getItem(Slot.NECK, 1725));
-		DpsResult bloodMoonDps = DpsCalculator.calculate(bloodMoon, ctx);
+		Dps bloodMoonDps = DpsCalculator.calculate(bloodMoon, ctx);
 		assertEquals(30, bloodMoonDps.getMaxHit());
 		assertEquals(6.020908603581, bloodMoonDps.getDps(), 1e-9);
 		assertTrue(best.getDps().getDps() > bloodMoonDps.getDps());

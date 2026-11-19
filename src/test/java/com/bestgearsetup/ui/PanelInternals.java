@@ -10,12 +10,12 @@ public final class PanelInternals
 	{
 	}
 
-	public static JPanel resultsPanel(BestGearSetupPanel panel)
+	public static JPanel resultsPanel(Sidebar panel)
 	{
 		return panel.resultsPanel;
 	}
 
-	public static JLabel statusLabel(BestGearSetupPanel panel)
+	public static JLabel statusLabel(Sidebar panel)
 	{
 		return panel.statusLabel;
 	}

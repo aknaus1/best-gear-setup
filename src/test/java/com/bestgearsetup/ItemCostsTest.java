@@ -5,7 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.WikiGameData;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +30,7 @@ public class ItemCostsTest
 
 	private long price(int id, long fallback, int... components)
 	{
-		GearItem item = new GearItem();
+		Gear item = new Gear();
 		item.setId(id);
 		item.setPrice(fallback);
 		Map<Integer, Long> prices = new HashMap<>();
@@ -142,7 +142,7 @@ public class ItemCostsTest
 	@Test
 	public void tradeableItemWithoutQuoteIsUnknownRatherThanFree()
 	{
-		GearItem bow = new GearItem();
+		Gear bow = new Gear();
 		bow.setId(ItemID.TWISTED_BOW);
 		bow.setTradeable(true);
 		assertEquals(ItemCosts.UNKNOWN, ItemCosts.price(bow, id -> 0, NOT_TRADEABLE));
@@ -153,7 +153,7 @@ public class ItemCostsTest
 	@Test
 	public void syntheticTradeableItemWithoutBundledPriceIsUnknown()
 	{
-		GearItem item = new GearItem();
+		Gear item = new Gear();
 		item.setId(99949);
 		item.setTradeable(true);
 		assertEquals(ItemCosts.UNKNOWN, ItemCosts.price(item, id -> 0, NOT_TRADEABLE));
@@ -181,7 +181,7 @@ public class ItemCostsTest
 		};
 		for (int[] pair : itemAndBase)
 		{
-			GearItem item = bundled.findItem(pair[0]);
+			Gear item = bundled.findItem(pair[0]);
 			assertNotNull("bundled item " + pair[0], item);
 			assertFalse(item.getName() + " is untradeable in the bundled catalogue", item.isTradeable());
 			assertEquals(item.getName(), ItemCosts.UNKNOWN, ItemCosts.price(item, id -> 0, NOT_TRADEABLE));
@@ -205,7 +205,7 @@ public class ItemCostsTest
 	@Test
 	public void culinaromancerGlovesCostTheirChestPrice()
 	{
-		GearItem barrows = bundled.findItem(ItemID.HUNDRED_GAUNTLETS_LEVEL_10);
+		Gear barrows = bundled.findItem(ItemID.HUNDRED_GAUNTLETS_LEVEL_10);
 		assertNotNull(barrows);
 		assertEquals(130_000, ItemCosts.price(barrows, id -> 0, NOT_TRADEABLE));
 		assertEquals(130_000, price(ItemID.HUNDRED_GAUNTLETS_LEVEL_9, 0));
@@ -216,8 +216,8 @@ public class ItemCostsTest
 	@Test
 	public void breakableUntradeablesCarryTheirPvpRepairFee()
 	{
-		GearItem defender = bundled.findItem(ItemID.DRAGON_PARRYINGDAGGER);
-		GearItem fireCape = bundled.findItem(ItemID.TZHAAR_CAPE_FIRE);
+		Gear defender = bundled.findItem(ItemID.DRAGON_PARRYINGDAGGER);
+		Gear fireCape = bundled.findItem(ItemID.TZHAAR_CAPE_FIRE);
 		assertNotNull(defender);
 		assertEquals("Earned, so acquiring it costs nothing", 0, ItemCosts.price(defender, id -> 0, NOT_TRADEABLE));
 		assertEquals(240_000, ItemCosts.pvpRepairCost(defender));
@@ -229,11 +229,11 @@ public class ItemCostsTest
 	@Test
 	public void unmappedItemsUseTheGameCacheTradeability()
 	{
-		GearItem fireCape = bundled.findItem(ItemID.TZHAAR_CAPE_FIRE);
+		Gear fireCape = bundled.findItem(ItemID.TZHAAR_CAPE_FIRE);
 		assertNotNull(fireCape);
 		assertEquals(0, ItemCosts.price(fireCape, id -> 0, NOT_TRADEABLE));
 
-		GearItem unmapped = new GearItem();
+		Gear unmapped = new Gear();
 		unmapped.setId(ItemID.TZHAAR_CAPE_FIRE);
 		assertEquals(ItemCosts.UNKNOWN, ItemCosts.price(unmapped, id -> 0, id -> id == ItemID.TZHAAR_CAPE_FIRE));
 	}

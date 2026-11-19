@@ -3,14 +3,14 @@ package com.bestgearsetup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.calc.DpsResult;
-import com.bestgearsetup.calc.Loadout;
-import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.Dps;
+import com.bestgearsetup.calc.Outfit;
+import com.bestgearsetup.calc.Setup;
 import com.bestgearsetup.calc.SpecialPlan;
 import com.bestgearsetup.calc.SupportSpell;
 import com.bestgearsetup.calc.Thrall;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
 import java.util.ArrayList;
@@ -52,7 +52,7 @@ public class RuneUseTest
 	@Test
 	public void specialsSubtractTimeBeforeCountingCasts()
 	{
-		DpsResult ordinary = dps(5, 5, 1, 4);
+		Dps ordinary = dps(5, 5, 1, 4);
 		SpecialPlan special = new SpecialPlan(null, null, null, null, null, null, null,
 			dps(6, 6, 1, 5), ordinary, null, 2, 0, 0);
 		RuneUse use = RuneUse.of(setup("fire surge", "staff of the dead", "tome of fire",
@@ -134,10 +134,10 @@ public class RuneUseTest
 		assertRunes(use.getSupport(), ItemID.AIRRUNE, 0.3, ItemID.FIRERUNE, 0.3, ItemID.BLOODRUNE, 0.3);
 	}
 
-	private static SetupResult setup(String spellName, String weapon, String shield, DpsResult dps,
+	private static Setup setup(String spellName, String weapon, String shield, Dps dps,
 		Set<SupportSpell> support, Thrall tier, SpecialPlan special)
 	{
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		if (spellName != null)
 		{
 			Spell spell = new Spell();
@@ -149,20 +149,20 @@ public class RuneUseTest
 		{
 			loadout.set(Slot.SHIELD, gear(shield));
 		}
-		return new SetupResult(spellName == null ? CombatClass.MELEE : CombatClass.MAGIC,
+		return new Setup(spellName == null ? Combat.MELEE : Combat.MAGIC,
 			loadout, dps, 0, 0, Collections.emptySet(), support, special, tier);
 	}
 
-	private static GearItem gear(String name)
+	private static Gear gear(String name)
 	{
-		GearItem item = new GearItem();
+		Gear item = new Gear();
 		item.setName(name);
 		return item;
 	}
 
-	private static DpsResult dps(double dps, double primary, int targets, double speed)
+	private static Dps dps(double dps, double primary, int targets, double speed)
 	{
-		return new DpsResult(dps, 0, 1, (int) speed, 0, null, primary, targets, speed);
+		return new Dps(dps, 0, 1, (int) speed, 0, null, primary, targets, speed);
 	}
 
 	private static void assertRunes(Map<Integer, Double> actual, double... pairs)

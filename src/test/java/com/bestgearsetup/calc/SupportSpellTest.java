@@ -2,7 +2,7 @@ package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
@@ -18,25 +18,25 @@ public class SupportSpellTest
 	public void thrallIsAssumedUnlessANonArceuusSpellIsAutocastOrTheTargetIsImmune()
 	{
 		Monster target = monster(false, false);
-		assertEquals(EnumSet.of(SupportSpell.THRALL), SupportSpell.assumed(new Loadout(), context(target, true)));
+		assertEquals(EnumSet.of(SupportSpell.THRALL), SupportSpell.assumed(new Outfit(), context(target, true)));
 		assertEquals(EnumSet.noneOf(SupportSpell.class),
 			SupportSpell.assumed(loadout("ice barrage", "ancient", null), context(target, true)));
 		assertEquals(EnumSet.of(SupportSpell.THRALL),
 			SupportSpell.assumed(loadout("undead grasp", "arceuus", null), context(target, true)));
-		assertEquals(EnumSet.noneOf(SupportSpell.class), SupportSpell.assumed(new Loadout(), context(target, false)));
+		assertEquals(EnumSet.noneOf(SupportSpell.class), SupportSpell.assumed(new Outfit(), context(target, false)));
 		assertEquals(EnumSet.noneOf(SupportSpell.class),
-			SupportSpell.assumed(new Loadout(), context(monster(false, true), true)));
+			SupportSpell.assumed(new Outfit(), context(monster(false, true), true)));
 	}
 
 	@Test
 	public void thrallTierFollowsBaseMagicLevel()
 	{
 		Monster target = monster(false, false);
-		assertEquals(EnumSet.noneOf(SupportSpell.class), SupportSpell.assumed(new Loadout(), context(target, true, 37)));
+		assertEquals(EnumSet.noneOf(SupportSpell.class), SupportSpell.assumed(new Outfit(), context(target, true, 37)));
 		assertEquals(Thrall.LESSER, context(target, true, 38).getThrall());
 		assertEquals(Thrall.SUPERIOR, context(target, true, 75).getThrall());
 		assertEquals(Thrall.GREATER, context(target, true, 76).getThrall());
-		assertEquals(EnumSet.of(SupportSpell.THRALL), SupportSpell.assumed(new Loadout(), context(target, true, 38)));
+		assertEquals(EnumSet.of(SupportSpell.THRALL), SupportSpell.assumed(new Outfit(), context(target, true, 38)));
 		assertNull(context(target, false, 99).getThrall());
 		assertEquals(0.625, Thrall.GREATER.getDps(), 1e-9);
 		assertEquals(2 / 2.0 / 2.4, Thrall.SUPERIOR.getDps(), 1e-9);
@@ -46,7 +46,7 @@ public class SupportSpellTest
 	@Test
 	public void markOfDarknessNeedsADemonbaneSpellAgainstADemon()
 	{
-		Loadout demonbane = loadout("dark demonbane", "arceuus", null);
+		Outfit demonbane = loadout("dark demonbane", "arceuus", null);
 		assertEquals(EnumSet.of(SupportSpell.MARK_OF_DARKNESS),
 			SupportSpell.assumed(demonbane, context(monster(true, false), false)));
 		assertEquals(EnumSet.noneOf(SupportSpell.class),
@@ -88,16 +88,16 @@ public class SupportSpellTest
 		return m;
 	}
 
-	private static Loadout loadout(String spell, String spellbook, String cape)
+	private static Outfit loadout(String spell, String spellbook, String cape)
 	{
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		Spell s = new Spell();
 		s.setName(spell);
 		s.setSpellbook(spellbook);
 		l.setSpell(s);
 		if (cape != null)
 		{
-			GearItem item = new GearItem();
+			Gear item = new Gear();
 			item.setName(cape);
 			l.set(Slot.CAPE, item);
 		}

@@ -64,7 +64,7 @@ in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (and its `META-INF` copy).
 Two tables are maintained by hand instead, so the code keeps only the rules that read them:
 
 - `name-lists.json`: item and monster name lists and name-keyed values (weapon reach, Slayer equipment, silver
-  and demonbane weapons, repair fees and so on). Each class reads its entries by name, through `NameLists`.
+  and demonbane weapons, repair fees and so on). Each class reads its entries by name, through `Names`.
 - `special-attacks.json`: the damaging special attacks, tried in order.
 
 Names are lower case. A pattern is an exact name, or uses `*` for any text (`dragon dagger*`, `*sickle*`), and

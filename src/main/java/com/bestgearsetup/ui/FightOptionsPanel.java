@@ -1,11 +1,11 @@
 package com.bestgearsetup.ui;
 
-import com.bestgearsetup.BestGearSetupConfig;
+import com.bestgearsetup.Options;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import javax.swing.*;
@@ -27,27 +27,27 @@ class FightOptionsPanel extends JPanel
 	private Monster target = new Monster();
 
 	/** @param items the config's item descriptors, from {@link net.runelite.client.config.ConfigManager#getConfigDescriptor} */
-	FightOptionsPanel(BestGearSetupPlugin plugin, BestGearSetupConfig config, Collection<ConfigItemDescriptor> items)
+	FightOptionsPanel(BestGearSetupPlugin plugin, Options config, Collection<ConfigItemDescriptor> items)
 	{
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		SidebarSection.Accordion accordion = new SidebarSection.Accordion(true);
-		add(BestGearSetupPanel.left(accordion.expandCollapseAll("fight")));
+		add(Sidebar.left(accordion.expandCollapseAll("fight")));
 		// Each row's control is built as its one-level section is filled.
 		settingRows = new SettingRows(plugin, config, items, SPINNER_COLUMNS, this::updateVisibility);
 		SidebarSection conditions = accordion.create("fightConditions", "Fight conditions");
 		addRows(conditions, "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
 			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "killsPerTrip");
 		wildernessTip = control("wilderness").getToolTipText();
-		add(BestGearSetupPanel.left(conditions));
+		add(Sidebar.left(conditions));
 		raidSection = accordion.create("raidScaling", "Raid scaling");
 		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel");
-		add(BestGearSetupPanel.left(raidSection));
+		add(Sidebar.left(raidSection));
 		preparationSection = accordion.create("preparation", "Pre-fight preparation");
 		preparationSection.setToolTipText("Specs and defence drains landed before the fight");
 		addRows(preparationSection, "autoSpecs");
 		addRows(preparationSection, PREPARATION);
-		add(BestGearSetupPanel.left(preparationSection));
+		add(Sidebar.left(preparationSection));
 		refresh();
 	}
 
@@ -60,14 +60,14 @@ class FightOptionsPanel extends JPanel
 	}
 
 	/** Match the encounter rules used by the calculation, without changing saved assumptions. */
-	void setTarget(MonsterSummary summary)
+	void setTarget(Summary summary)
 	{
 		target = summary == null ? new Monster() : targetOf(summary);
 		refresh();
 	}
 
 	/** The id, name and tags the encounter rules read, without loading the variant's full stats. */
-	static Monster targetOf(MonsterSummary summary)
+	static Monster targetOf(Summary summary)
 	{
 		Monster target = new Monster();
 		target.setId(summary.getId());

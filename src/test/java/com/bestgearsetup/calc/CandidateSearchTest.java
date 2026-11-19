@@ -6,8 +6,8 @@ import static com.bestgearsetup.calc.TestData.weapon;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,9 +25,9 @@ public class CandidateSearchTest
 		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
-	private static GearItem stabSword()
+	private static Gear stabSword()
 	{
-		GearItem sword = weapon(100, "sword", "stab sword", 4, "stab,stab,accurate", "lunge,stab,aggressive");
+		Gear sword = weapon(100, "sword", "stab sword", 4, "stab,stab,accurate", "lunge,stab,aggressive");
 		sword.setStabBonus(60);
 		sword.setMeleeStr(40);
 		return sword;
@@ -39,16 +39,16 @@ public class CandidateSearchTest
 			.spellbooks(new HashSet<>());
 	}
 
-	private static double dps(GearItem sword, GearItem head, CombatContext ctx, String style)
+	private static double dps(Gear sword, Gear head, CombatContext ctx, String style)
 	{
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, sword);
 		l.set(Slot.HEAD, head);
-		l.setStyle(AttackStyle.parse(style));
+		l.setStyle(Style.parse(style));
 		return DpsCalculator.calculate(l, ctx).getDps();
 	}
 
-	private static double best(GearItem sword, GearItem head, CombatContext ctx)
+	private static double best(Gear sword, Gear head, CombatContext ctx)
 	{
 		return Math.max(dps(sword, head, ctx, "stab,stab,accurate"), dps(sword, head, ctx, "lunge,stab,aggressive"));
 	}
@@ -60,12 +60,12 @@ public class CandidateSearchTest
 	@Test
 	public void balancedItemSurvivesPruning()
 	{
-		GearItem sword = stabSword();
-		GearItem attack = item(201, "attack helm", Slot.HEAD);
+		Gear sword = stabSword();
+		Gear attack = item(201, "attack helm", Slot.HEAD);
 		attack.setStabBonus(3);
-		GearItem strength = item(202, "strength helm", Slot.HEAD);
+		Gear strength = item(202, "strength helm", Slot.HEAD);
 		strength.setMeleeStr(3);
-		GearItem balanced = item(203, "balanced helm", Slot.HEAD);
+		Gear balanced = item(203, "balanced helm", Slot.HEAD);
 		balanced.setStabBonus(1);
 		balanced.setMeleeStr(1);
 		CombatContext ctx = TestFactories.combatContext(monster(100, 60), PlayerLevels.maxed(), false, false, null);
@@ -75,8 +75,8 @@ public class CandidateSearchTest
 
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(sword, attack, strength, balanced),
 			Collections.emptyList()), ctx, settings().build(), id -> true, i -> 0);
-		assertTrue(optimizer.candidates(CombatClass.MELEE).get(Slot.HEAD).contains(balanced));
-		SetupResult result = optimizer.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
+		assertTrue(optimizer.candidates(Combat.MELEE).get(Slot.HEAD).contains(balanced));
+		Setup result = optimizer.optimize(Combat.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(balanced, result.getLoadout().get(Slot.HEAD));
 		assertEquals(best, result.getDps().getDps(), 1e-12);
 	}
@@ -85,33 +85,33 @@ public class CandidateSearchTest
 	@Test
 	public void dominatedItemsArePruned()
 	{
-		GearItem sword = stabSword();
-		GearItem good = item(201, "good helm", Slot.HEAD);
+		Gear sword = stabSword();
+		Gear good = item(201, "good helm", Slot.HEAD);
 		good.setStabBonus(5);
 		good.setMeleeStr(2);
 		good.setPrice(1_000);
-		GearItem worse = item(202, "worse helm", Slot.HEAD);
+		Gear worse = item(202, "worse helm", Slot.HEAD);
 		worse.setStabBonus(4);
 		worse.setMeleeStr(2);
 		worse.setPrice(1_000);
-		GearItem cheaper = item(203, "cheaper helm", Slot.HEAD);
+		Gear cheaper = item(203, "cheaper helm", Slot.HEAD);
 		cheaper.setStabBonus(4);
 		cheaper.setMeleeStr(2);
 		cheaper.setPrice(10);
 		CombatContext ctx = TestFactories.combatContext(monster(100, 60), PlayerLevels.maxed(), false, false, null);
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(sword, good, worse, cheaper),
 			Collections.emptyList()), ctx, settings().mode(SearchMode.BUDGET).budget(10_000).build(), id -> false,
-			GearItem::getPrice);
-		assertEquals(Arrays.asList(good, cheaper), optimizer.candidates(CombatClass.MELEE).get(Slot.HEAD));
+			Gear::getPrice);
+		assertEquals(Arrays.asList(good, cheaper), optimizer.candidates(Combat.MELEE).get(Slot.HEAD));
 	}
 
 	/** The trial evaluation only ever chooses a stance the experience filter allows, even when another scores more. */
 	@Test
 	public void trialOptionsFollowTheExperienceFilter()
 	{
-		GearItem sword = stabSword();
+		Gear sword = stabSword();
 		CombatContext ctx = TestFactories.combatContext(monster(300, 300), PlayerLevels.maxed(), false, false, null);
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, sword);
 		double accurate = dps(sword, null, ctx, "stab,stab,accurate");
 		double aggressive = dps(sword, null, ctx, "lunge,stab,aggressive");
@@ -120,14 +120,14 @@ public class CandidateSearchTest
 
 		Optimizer free = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Collections.singletonList(sword), Collections.emptyList()), ctx,
 			settings().build(), id -> true, i -> 0);
-		l.setStyle(AttackStyle.parse(accurateWins ? "lunge,stab,aggressive" : "stab,stab,accurate"));
-		assertEquals(Math.max(accurate, aggressive), free.scoreWithBestOption(l, CombatClass.MELEE), 1e-12);
+		l.setStyle(Style.parse(accurateWins ? "lunge,stab,aggressive" : "stab,stab,accurate"));
+		assertEquals(Math.max(accurate, aggressive), free.scoreWithBestOption(l, Combat.MELEE), 1e-12);
 		assertEquals(accurateWins ? "accurate" : "aggressive", l.getStyle().getStance());
 
 		// Forbid the winning stance's experience: the other one is chosen although it scores less.
 		Optimizer filtered = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Collections.singletonList(sword), Collections.emptyList()),
 			ctx, settings().attackXp(!accurateWins).strengthXp(accurateWins).build(), id -> true, i -> 0);
-		assertEquals(Math.min(accurate, aggressive), filtered.scoreWithBestOption(l, CombatClass.MELEE), 1e-12);
+		assertEquals(Math.min(accurate, aggressive), filtered.scoreWithBestOption(l, Combat.MELEE), 1e-12);
 		assertEquals(accurateWins ? "aggressive" : "accurate", l.getStyle().getStance());
 	}
 
@@ -135,14 +135,14 @@ public class CandidateSearchTest
 	@Test
 	public void trialOverTheCapScoresNothing()
 	{
-		GearItem sword = stabSword();
+		Gear sword = stabSword();
 		sword.setPrice(5_000_000);
 		CombatContext ctx = TestFactories.combatContext(monster(100, 60), PlayerLevels.maxed(), false, false, null);
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Collections.singletonList(sword), Collections.emptyList()),
-			ctx, settings().wildernessRiskLimited(true).maxExpensiveItems(0).build(), id -> true, GearItem::getPrice);
-		Loadout l = new Loadout();
+			ctx, settings().wildernessRiskLimited(true).maxExpensiveItems(0).build(), id -> true, Gear::getPrice);
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, sword);
-		l.setStyle(AttackStyle.parse("lunge,stab,aggressive"));
-		assertEquals(0, optimizer.scoreWithBestOption(l, CombatClass.MELEE), 0);
+		l.setStyle(Style.parse("lunge,stab,aggressive"));
+		assertEquals(0, optimizer.scoreWithBestOption(l, Combat.MELEE), 0);
 	}
 }

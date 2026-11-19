@@ -24,7 +24,7 @@ public final class ConfigItemsForTests
 	{
 		// getConfigDescriptor reads only the config interface, so the manager's own state is never needed.
 		ConfigManager manager = mock(ConfigManager.class, CALLS_REAL_METHODS);
-		return manager.getConfigDescriptor(new BestGearSetupConfig()
+		return manager.getConfigDescriptor(new Options()
 		{
 		});
 	}

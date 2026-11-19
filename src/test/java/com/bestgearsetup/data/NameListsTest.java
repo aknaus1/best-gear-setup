@@ -24,20 +24,20 @@ import org.junit.Test;
 
 public class NameListsTest
 {
-	private static NameLists.NameList list(String... patterns)
+	private static Names.NameList list(String... patterns)
 	{
 		JsonArray array = new JsonArray();
 		for (String pattern : patterns)
 		{
 			array.add(pattern);
 		}
-		return NameLists.NameList.of(array);
+		return Names.NameList.of(array);
 	}
 
 	@Test
 	public void patternsMatchExactPrefixSuffixContainsAndVersions()
 	{
-		NameLists.NameList names = list("sunspear", "dragon dagger*", "*sickle", "*emerald*", "magic shortbow*(i)*",
+		Names.NameList names = list("sunspear", "dragon dagger*", "*sickle", "*emerald*", "magic shortbow*(i)*",
 			"kraken (*)");
 		assertTrue(names.matches("sunspear"));
 		assertFalse(names.matches("sunspear (or)"));
@@ -58,13 +58,13 @@ public class NameListsTest
 	@Test
 	public void tablesUseTheFirstMatchingPatternAndSkipNotes()
 	{
-		NameLists.NameTable reach = NameLists.tables("attack reach").get("bow");
+		Names.NameTable reach = Names.tables("attack reach").get("bow");
 		assertEquals(10, reach.get("magic longbow", 0));
 		assertEquals(7, reach.get("magic shortbow", 0));
 		assertEquals(5, reach.get("comp ogre bow", 0));
 		assertEquals(-1, reach.get("not a bow", -1));
-		assertEquals(61, NameLists.table("guardian pickaxe bonus").get("dragon pickaxe", 61));
-		assertFalse(NameLists.exact("pvp repair fees").containsKey("_about"));
+		assertEquals(61, Names.table("guardian pickaxe bonus").get("dragon pickaxe", 61));
+		assertFalse(Names.exact("pvp repair fees").containsKey("_about"));
 	}
 
 	@Test
@@ -134,7 +134,7 @@ public class NameListsTest
 	public void everyNameTheCodeAsksForIsBundled() throws IOException
 	{
 		JsonObject root = read("src/main/resources/com/bestgearsetup/name-lists.json");
-		Pattern call = Pattern.compile("NameLists\\.(list|table|tables|exact|rows)\\(\"([^\"]+)\"\\)");
+		Pattern call = Pattern.compile("Names\\.(list|table|tables|exact|rows)\\(\"([^\"]+)\"\\)");
 		int found = 0;
 		try (Stream<Path> sources = Files.walk(Paths.get("src/main/java")))
 		{

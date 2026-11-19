@@ -12,11 +12,11 @@ import net.runelite.client.ui.overlay.WidgetItemOverlay;
 class BestGearSetupBankOverlay extends WidgetItemOverlay
 {
 	private final BestGearSetupPlugin plugin;
-	private final BestGearSetupConfig config;
+	private final Options config;
 	private final ItemManager itemManager;
 
 	@Inject
-	BestGearSetupBankOverlay(BestGearSetupPlugin plugin, BestGearSetupConfig config, ItemManager itemManager)
+	BestGearSetupBankOverlay(BestGearSetupPlugin plugin, Options config, ItemManager itemManager)
 	{
 		this.plugin = plugin;
 		this.config = config;

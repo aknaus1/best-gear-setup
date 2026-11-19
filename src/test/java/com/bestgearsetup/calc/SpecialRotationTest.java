@@ -9,8 +9,8 @@ public class SpecialRotationTest
 {
 	private static final double EPS = 1e-9;
 	// 5 DPS ordinary attacks, and a 10 DPS spec on the same 4-tick (2.4s) weapon.
-	private static final DpsResult ORDINARY = new DpsResult(5, 30, 0.8, 4, 12, null);
-	private static final DpsResult SPEC = new DpsResult(10, 60, 0.9, 4, 24, null);
+	private static final Dps ORDINARY = new Dps(5, 30, 0.8, 4, 12, null);
+	private static final Dps SPEC = new Dps(10, 60, 0.9, 4, 24, null);
 
 	@Test
 	public void regeneratedEnergySpecsForItsShareOfTheFight()
@@ -52,13 +52,13 @@ public class SpecialRotationTest
 	{
 		assertNull(SpecialRotation.blend(SPEC, ORDINARY, 50, 500, SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND));
 		assertNull(SpecialRotation.blend(ORDINARY, SPEC, 0, 500, SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND));
-		assertNull(SpecialRotation.blend(ORDINARY, DpsResult.ZERO, 50, 500, SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND));
+		assertNull(SpecialRotation.blend(ORDINARY, Dps.ZERO, 50, 500, SpecEnergy.FULL_BAR, SpecialRotation.REGEN_PER_SECOND));
 	}
 
 	@Test
 	public void areaDamageBlendsTotalAndPrimaryRatesSeparately()
 	{
-		DpsResult area = new DpsResult(15, 30, 0.8, 4, 12, null, 5, 3, 4);
+		Dps area = new Dps(15, 30, 0.8, 4, 12, null, 5, 3, 4);
 		SpecialRotation.Blend b = SpecialRotation.blend(area, SPEC, 50, 500, SpecEnergy.REGENERATION, SpecialRotation.REGEN_PER_SECOND);
 		double share = 2.4 / 3 / 50;
 		assertEquals(share * 10 + (1 - share) * 15, b.getResult().getDps(), EPS);
@@ -69,16 +69,16 @@ public class SpecialRotationTest
 	private static final SpecialRotation.Fight WARHAMMER = new SpecialRotation.Fight()
 	{
 		@Override
-		public DpsResult ordinary(SpecialAttacks drains)
+		public Dps ordinary(SpecialAttacks drains)
 		{
 			int dps = new int[]{5, 8, 10}[drains.getDragonWarhammer()];
-			return new DpsResult(dps, 30, 0.8, 4, dps * 2.4, null);
+			return new Dps(dps, 30, 0.8, 4, dps * 2.4, null);
 		}
 
 		@Override
-		public DpsResult spec(SpecialAttacks drains)
+		public Dps spec(SpecialAttacks drains)
 		{
-			return new DpsResult(5, 50, 0.5, 4, 12, null);
+			return new Dps(5, 50, 0.5, 4, 12, null);
 		}
 	};
 
@@ -125,15 +125,15 @@ public class SpecialRotationTest
 		SpecialRotation.Fight strong = new SpecialRotation.Fight()
 		{
 			@Override
-			public DpsResult ordinary(SpecialAttacks drains)
+			public Dps ordinary(SpecialAttacks drains)
 			{
 				return WARHAMMER.ordinary(drains);
 			}
 
 			@Override
-			public DpsResult spec(SpecialAttacks drains)
+			public Dps spec(SpecialAttacks drains)
 			{
-				return new DpsResult(12, 50, 0.5, 4, 28.8, null);
+				return new Dps(12, 50, 0.5, 4, 28.8, null);
 			}
 		};
 		SpecialRotation.Blend b = SpecialRotation.draining(strong, SpecialAttack.Drain.DRAGON_WARHAMMER, 50, 5000,

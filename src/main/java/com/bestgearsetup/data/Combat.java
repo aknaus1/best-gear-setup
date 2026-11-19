@@ -1,6 +1,6 @@
 package com.bestgearsetup.data;
 
-public enum CombatClass
+public enum Combat
 {
 	MELEE,
 	RANGED,

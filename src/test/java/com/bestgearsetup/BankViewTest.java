@@ -14,10 +14,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
-import com.bestgearsetup.calc.Loadout;
-import com.bestgearsetup.calc.SetupResult;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.calc.Outfit;
+import com.bestgearsetup.calc.Setup;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
@@ -191,14 +191,14 @@ public class BankViewTest
 	{
 		Fixture bank = new Fixture(ItemID.AIRRUNE, ItemID.MISTRUNE, ItemID.MINDRUNE, ItemID._4DOSE2ATTACK,
 			ItemID._4DOSE2COMBAT);
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		loadout.set(Slot.WEAPON, item(12926, 12924));
 		Spell spell = new Spell();
 		spell.setName("wind strike");
 		loadout.setSpell(spell);
 		Potion attack = new Potion();
 		attack.setId(ItemID._4DOSE2ATTACK);
-		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), Collections.singletonList(attack));
+		bank.view.setSelection(new Setup(Combat.MAGIC, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), Collections.singletonList(attack));
 		assertTrue(bank.view.show());
 		// Own cells: the weapon; air and mind runes in the pouch row under the inventory, whose first slot the
 		// (missing) pouch takes; the super attack in the second inventory slot.
@@ -224,12 +224,12 @@ public class BankViewTest
 		// The air runes are in a rune pouch: the bank only has their placeholder, and a mist rune.
 		Fixture bank = new Fixture(ItemID.AIRRUNE, ItemID.MISTRUNE, ItemID.MINDRUNE, ItemID.BH_RUNE_POUCH);
 		bank.items[4].values.put("ItemQuantity", 0);
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		loadout.set(Slot.WEAPON, item(12926));
 		Spell spell = new Spell();
 		spell.setName("wind strike");
 		loadout.setSpell(spell);
-		bank.view.setSelection(new SetupResult(CombatClass.MAGIC, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), Collections.emptyList());
+		bank.view.setSelection(new Setup(Combat.MAGIC, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), Collections.emptyList());
 		assertTrue(bank.view.show());
 		// The placeholder counts as owning air runes, so it keeps the air cell and the mist rune is an extra.
 		assertFalse(bank.items[4].widget.isSelfHidden());
@@ -285,10 +285,10 @@ public class BankViewTest
 		assertEquals(1, bank.filter(12926));
 		assertEquals(0, bank.filter(-1));
 		assertEquals(1, bank.filter(4153));
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		loadout.set(Slot.WEAPON, item(12926, 12924));
 		loadout.setLoadedAmmo(item(11230, 11231));
-		bank.view.setSelection(new SetupResult(CombatClass.RANGED, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
+		bank.view.setSelection(new Setup(Combat.RANGED, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 		bank.view.refreshSelection();
 		assertEquals(0, bank.filter(11231));
 		assertEquals(1, bank.filter(12926));
@@ -513,16 +513,16 @@ public class BankViewTest
 		verify(later, never()).setParam0(anyInt());
 	}
 
-	private static SetupResult setup(Slot slot, GearItem item)
+	private static Setup setup(Slot slot, Gear item)
 	{
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		loadout.set(slot, item);
-		return new SetupResult(CombatClass.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
+		return new Setup(Combat.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 	}
 
-	private static GearItem item(int id, Integer... variants)
+	private static Gear item(int id, Integer... variants)
 	{
-		GearItem item = new GearItem();
+		Gear item = new Gear();
 		item.setId(id);
 		item.setVariants(Arrays.asList(variants));
 		return item;
@@ -543,12 +543,12 @@ public class BankViewTest
 			super(client, itemManager, bankSearch, eventBus);
 		}
 
-		void setSelection(SetupResult setup)
+		void setSelection(Setup setup)
 		{
 			setSelection(setup, Collections.emptyList());
 		}
 
-		void setSelection(SetupResult setup, List<Potion> potions)
+		void setSelection(Setup setup, List<Potion> potions)
 		{
 			setSelection(setup, potions, BestGearSetupBankView::itemIds, Collections.emptyList());
 		}

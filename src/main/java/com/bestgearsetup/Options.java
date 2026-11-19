@@ -5,8 +5,8 @@ import com.bestgearsetup.data.EncounterPhase;
 import java.awt.Color;
 import net.runelite.client.config.*;
 
-@ConfigGroup(BestGearSetupConfig.GROUP)
-public interface BestGearSetupConfig extends Config
+@ConfigGroup(Options.GROUP)
+public interface Options extends Config
 {
 	String GROUP = "bestgearsetup";
 	String MODE_KEY = "mode";
@@ -30,7 +30,7 @@ public interface BestGearSetupConfig extends Config
 	 */
 	private <T> T value(String name, T defaultValue)
 	{
-		return SearchAssumptions.value(this, name, defaultValue);
+		return Assumptions.value(this, name, defaultValue);
 	}
 
 	@ConfigSection(

@@ -6,9 +6,9 @@ import static com.bestgearsetup.calc.TestData.piety;
 import static com.bestgearsetup.calc.TestData.weapon;
 import static org.junit.Assert.assertEquals;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,8 +23,8 @@ public class DuplicateItemTieTest
 {
 	private final CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 	private GameData data;
-	private GearItem avas;
-	private GearItem masori;
+	private Gear avas;
+	private Gear masori;
 
 	@BeforeClass
 	public static void ownershipRules()
@@ -35,36 +35,36 @@ public class DuplicateItemTieTest
 	@Before
 	public void setUp()
 	{
-		GearItem bow = weapon(861, "magic shortbow", "bow", 4, "accurate,ranged,accurate");
+		Gear bow = weapon(861, "magic shortbow", "bow", 4, "accurate,ranged,accurate");
 		bow.setRangedBonus(69);
-		GearItem arrows = item(892, "rune arrow", Slot.AMMO);
+		Gear arrows = item(892, "rune arrow", Slot.AMMO);
 		arrows.setRangedStr(49);
 		avas = assembler(22109, "ava's assembler");
 		masori = assembler(27374, "masori assembler");
 		data = TestData.gameData(Arrays.asList(bow, arrows, avas, masori), Collections.emptyList());
 	}
 
-	private static GearItem assembler(int id, String name)
+	private static Gear assembler(int id, String name)
 	{
-		GearItem cape = item(id, name, Slot.CAPE);
+		Gear cape = item(id, name, Slot.CAPE);
 		cape.setRangedBonus(8);
 		cape.setRangedStr(2);
 		cape.setTradeable(false);
 		return cape;
 	}
 
-	private GearItem cape(SearchMode mode, IntPredicate owned)
+	private Gear cape(SearchMode mode, IntPredicate owned)
 	{
 		return cape(mode, owned, false);
 	}
 
-	private GearItem cape(SearchMode mode, IntPredicate owned, boolean recovery)
+	private Gear cape(SearchMode mode, IntPredicate owned, boolean recovery)
 	{
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).spellbooks(Collections.emptySet())
-			.styles(EnumSet.of(AttackStyle.Type.RANGED, AttackStyle.Type.ATLATL))
+			.styles(EnumSet.of(Style.Type.RANGED, Style.Type.ATLATL))
 			.requireAtlatlAmmoRecovery(recovery).build();
-		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned, GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getLoadout().get(Slot.CAPE);
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned, Gear::getPrice)
+			.optimize(Combat.RANGED, () -> false, done -> { }).get(0).getLoadout().get(Slot.CAPE);
 	}
 
 	@Test
@@ -78,7 +78,7 @@ public class DuplicateItemTieTest
 	@Test
 	public void kittedVersionWinsWhenAmmunitionRecoveryIsRequired()
 	{
-		GearItem atlatl = weapon(29000, "eclipse atlatl", "bow", 4, "rapid,ranged,rapid");
+		Gear atlatl = weapon(29000, "eclipse atlatl", "bow", 4, "rapid,ranged,rapid");
 		atlatl.setRangedBonus(87);
 		atlatl.setMeleeStr(40);
 		atlatl.setTwoHanded(true);

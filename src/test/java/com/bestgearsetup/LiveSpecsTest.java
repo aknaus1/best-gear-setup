@@ -83,7 +83,7 @@ public class LiveSpecsTest
 		PartyMember local = mock(PartyMember.class);
 		when(local.getMemberId()).thenReturn(1L);
 		when(party.getLocalMember()).thenReturn(local);
-		BestGearSetupConfig config = mock(BestGearSetupConfig.class);
+		Options config = mock(Options.class);
 		when(config.autoSpecs()).thenReturn(true);
 		List<String> changes = new ArrayList<>();
 

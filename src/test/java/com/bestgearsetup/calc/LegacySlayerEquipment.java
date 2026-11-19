@@ -1,6 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import java.util.ArrayList;
@@ -60,7 +60,7 @@ final class LegacySlayerEquipment
 		{
 			for (String base : bases)
 			{
-				if (EncounterDamage.versionOf(n, base))
+				if (Encounter.versionOf(n, base))
 				{
 					return true;
 				}
@@ -105,7 +105,7 @@ final class LegacySlayerEquipment
 	}
 
 	/** Whether the item satisfies one of this target's requirements, so it must stay a search candidate. */
-	static boolean isRequired(Monster monster, OptimizerSettings settings, GearItem item)
+	static boolean isRequired(Monster monster, OptimizerSettings settings, Gear item)
 	{
 		for (Rule rule : rules(monster, settings))
 		{
@@ -117,11 +117,11 @@ final class LegacySlayerEquipment
 		return false;
 	}
 
-	static boolean allowed(Monster monster, OptimizerSettings settings, Loadout loadout)
+	static boolean allowed(Monster monster, OptimizerSettings settings, Outfit loadout)
 	{
 		for (Rule rule : rules(monster, settings))
 		{
-			GearItem worn = loadout.get(rule.slot);
+			Gear worn = loadout.get(rule.slot);
 			if (rule.slot == Slot.SHIELD && loadout.getWeapon() != null && loadout.getWeapon().isTwoHanded())
 			{
 				worn = null;
@@ -139,7 +139,7 @@ final class LegacySlayerEquipment
 	 *
 	 * @param item the locked item, or null for an empty / fill lock
 	 */
-	static String lockConflict(Monster monster, OptimizerSettings settings, Slot slot, GearItem item)
+	static String lockConflict(Monster monster, OptimizerSettings settings, Slot slot, Gear item)
 	{
 		for (Rule rule : rules(monster, settings))
 		{
@@ -199,7 +199,7 @@ final class LegacySlayerEquipment
 			this.item = item;
 		}
 
-		private boolean satisfiedBy(GearItem worn)
+		private boolean satisfiedBy(Gear worn)
 		{
 			return worn != null && (worn.getSlot() == null || worn.getSlot() == slot) && item.test(worn.getLowerCombatName());
 		}

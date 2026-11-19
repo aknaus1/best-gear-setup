@@ -11,9 +11,9 @@ import org.junit.Test;
 
 public class SpecialVersionTiersTest
 {
-	private static MonsterSummary summary(String name, int level, boolean boss, int id)
+	private static Summary summary(String name, int level, boolean boss, int id)
 	{
-		MonsterSummary monster = new MonsterSummary();
+		Summary monster = new Summary();
 		monster.setName(name);
 		monster.setCombatLevel(level);
 		monster.setBoss(boss);
@@ -21,7 +21,7 @@ public class SpecialVersionTiersTest
 		return monster;
 	}
 
-	private static GameData data(MonsterSummary... monsters)
+	private static GameData data(Summary... monsters)
 	{
 		return new GameData(Arrays.asList(monsters), Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
@@ -45,14 +45,14 @@ public class SpecialVersionTiersTest
 	@Test
 	public void primaryPrefersNormalBossThenNormalVersionThenOriginalRule()
 	{
-		MonsterSummary echoBoss = summary("dragon (echo)", 100, true, 1);
-		MonsterSummary normal = summary("dragon (level 227)", 227, false, 2);
-		MonsterSummary normalBoss = summary("dragon (level 300)", 300, true, 3);
+		Summary echoBoss = summary("dragon (echo)", 100, true, 1);
+		Summary normal = summary("dragon (level 227)", 227, false, 2);
+		Summary normalBoss = summary("dragon (level 300)", 300, true, 3);
 		assertEquals(normalBoss, data(echoBoss, normal, normalBoss).searchMonsterGroups("dragon", 1, false)
 			.get(0).getPrimary());
 		assertEquals(normal, data(echoBoss, normal).searchMonsterGroups("dragon", 1, false)
 			.get(0).getPrimary());
-		MonsterSummary deadman = summary("dragon (deadman)", 200, false, 4);
+		Summary deadman = summary("dragon (deadman)", 200, false, 4);
 		assertEquals(echoBoss, data(deadman, echoBoss).searchMonsterGroups("dragon", 1, false)
 			.get(0).getPrimary());
 		assertEquals(deadman, data(deadman).searchMonsterGroups("dragon", 1, false)
@@ -62,9 +62,9 @@ public class SpecialVersionTiersTest
 	@Test
 	public void matchNpcPrefersNormalAtAnyTierButPreservesExactId()
 	{
-		MonsterSummary echo = summary("dragon (echo)", 227, true, 10);
-		MonsterSummary normal = summary("dragon (level 227)", 227, true, 11);
-		MonsterSummary other = summary("dragon (level 100)", 100, true, 12);
+		Summary echo = summary("dragon (echo)", 227, true, 10);
+		Summary normal = summary("dragon (level 227)", 227, true, 11);
+		Summary other = summary("dragon (level 100)", 100, true, 12);
 		GameData data = data(echo, normal, other);
 		assertEquals(echo, data.matchNpc(10, "dragon", 227));
 		assertEquals(normal, data.matchNpc(-1, "Dragon", 227));
@@ -77,8 +77,8 @@ public class SpecialVersionTiersTest
 	@Test
 	public void normalLowerTierStillBeatsSpecialHigherTier()
 	{
-		MonsterSummary special = summary("dragon (echo)", 227, false, 1);
-		MonsterSummary normal = summary("dragon (level 100)", 100, false, 2);
+		Summary special = summary("dragon (echo)", 227, false, 1);
+		Summary normal = summary("dragon (level 100)", 100, false, 2);
 		assertEquals(normal, data(special, normal).matchNpc(-1, "dragon", 227));
 		assertEquals(special, data(special).matchNpc(-1, "dragon", 227));
 	}
@@ -86,8 +86,8 @@ public class SpecialVersionTiersTest
 	@Test
 	public void matchNpcKeepsNameAndLevelTierOrderWithinNormalVersions()
 	{
-		MonsterSummary exactName = summary("dragon", 100, false, 1);
-		MonsterSummary prefixLevel = summary("dragon (level 227)", 227, false, 2);
+		Summary exactName = summary("dragon", 100, false, 1);
+		Summary prefixLevel = summary("dragon (level 227)", 227, false, 2);
 		GameData data = data(exactName, prefixLevel);
 		assertEquals(exactName, data.matchNpc(-1, "dragon", 100));
 		assertEquals(prefixLevel, data.matchNpc(-1, "dragon", 227));

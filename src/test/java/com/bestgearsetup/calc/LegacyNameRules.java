@@ -1,7 +1,7 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import java.util.regex.Pattern;
 
@@ -12,7 +12,7 @@ final class LegacyNameRules
 		Pattern.compile("(bronze|blurite|iron|steel|mithril|adamant|rune|dragon) crossbow.*");
 
 	// ---- AttackReach
-	static int baseRange(GearItem weapon)
+	static int baseRange(Gear weapon)
 	{
 		String name = weapon.getLowerCombatName().replace("corrupted ", "");
 		switch (weapon.getSubcategory())
@@ -129,11 +129,11 @@ final class LegacyNameRules
 
 	static boolean reachNamed(Monster monster, String target)
 	{
-		return EncounterDamage.versionOf(monster.getLowerName().replace('\u2019', '\''), target);
+		return Encounter.versionOf(monster.getLowerName().replace('\u2019', '\''), target);
 	}
 
 	// ---- DragonfireProtection
-	static boolean isProtectiveShield(GearItem item)
+	static boolean isProtectiveShield(Gear item)
 	{
 		String n = item == null ? "" : item.getLowerCombatName();
 		return n.startsWith("anti-dragon shield") || n.startsWith("dragonfire shield")
@@ -141,7 +141,7 @@ final class LegacyNameRules
 			|| n.equals("elemental shield") || n.equals("mind shield");
 	}
 
-	// ---- EncounterDamage
+	// ---- Encounter
 	static boolean demonbaneMelee(String weapon)
 	{
 		return weapon.startsWith("silverlight") || weapon.startsWith("darklight") || weapon.startsWith("arclight")
@@ -177,7 +177,7 @@ final class LegacyNameRules
 		return ammo.startsWith("broad ") || ammo.startsWith("amethyst broad ") || ammo.startsWith("seeking broad ");
 	}
 
-	// ---- EquipmentEffects
+	// ---- Effects
 	static int vampyrePercent(String weapon)
 	{
 		return weapon.startsWith("blisterwood flail") || weapon.startsWith("hallowed flail")
@@ -205,7 +205,7 @@ final class LegacyNameRules
 		return name.equals("bone mace") || name.equals("bone shortbow") || name.equals("bone staff");
 	}
 
-	static boolean wildernessWeapon(String name, CombatClass cls)
+	static boolean wildernessWeapon(String name, Combat cls)
 	{
 		switch (cls)
 		{
@@ -218,7 +218,7 @@ final class LegacyNameRules
 		}
 	}
 
-	// ---- WeaponRules
+	// ---- Weapons
 	static int salamanderBonus(String name)
 	{
 		return name.equals("swamp lizard") ? 56 : name.equals("orange salamander") ? 59
@@ -363,7 +363,7 @@ final class LegacyNameRules
 		return REPAIR_COSTS.getOrDefault(name, 0L);
 	}
 
-	// ---- GearItem
+	// ---- Gear
 	static boolean leagueName(String lower)
 	{
 		for (String name : new String[]{"the dogsword", "drygore blowpipe", "amulet of the monarchs", "emperor ring", "devil's element", "nature's reprisal", "gloves of the damned", "crystal blessing", "sunlight spear", "sunlit bracers", "thunder khopesh", "thousand-dragon ward"})

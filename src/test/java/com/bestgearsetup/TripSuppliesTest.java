@@ -4,14 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.calc.Antifire;
-import com.bestgearsetup.calc.AttackStyle;
-import com.bestgearsetup.calc.DpsResult;
-import com.bestgearsetup.calc.Loadout;
+import com.bestgearsetup.calc.Style;
+import com.bestgearsetup.calc.Dps;
+import com.bestgearsetup.calc.Outfit;
 import com.bestgearsetup.calc.PlayerLevels;
-import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.Setup;
 import com.bestgearsetup.calc.SpecialPlan;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.OffensivePrayer;
 import com.bestgearsetup.data.Potion;
@@ -27,14 +27,14 @@ import org.junit.Test;
 
 public class TripSuppliesTest
 {
-	private static final Map<CombatClass, OffensivePrayer> PIETY = Collections.singletonMap(CombatClass.MELEE,
+	private static final Map<Combat, OffensivePrayer> PIETY = Collections.singletonMap(Combat.MELEE,
 		new OffensivePrayer("Piety", 20, 23, 70, 70));
 
 	@Test
 	public void pietyAndAProtectionPrayerDrainAPointASecondWithoutPrayerBonus()
 	{
 		// Drain 24 + 12 against a resistance of 60: a point every 60 / 36 ticks, one a second.
-		SetupResult setup = setup(5, 0);
+		Setup setup = setup(5, 0);
 		assertEquals(20, TripSupplies.prayerPerKill(setup, results(100, PIETY)), 1e-9);
 		// +30 prayer bonus doubles the resistance, halving the drain.
 		assertEquals(10, TripSupplies.prayerPerKill(setup(5, 30), results(100, PIETY)), 1e-9);
@@ -54,10 +54,10 @@ public class TripSuppliesTest
 	public void drainEffectsFollowTheWikiPrayerTable()
 	{
 		// Deadeye drains 12, half of Rigour's 24; with Vorkath's overhead (12) a ranged kill drains 24 or 36.
-		SetupResult ranged = new SetupResult(CombatClass.RANGED, new Loadout(), setup(5, 0).getDps(), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
-		assertEquals(40 / 3.0, TripSupplies.prayerPerKill(ranged, results(100, Collections.singletonMap(CombatClass.RANGED,
+		Setup ranged = new Setup(Combat.RANGED, new Outfit(), setup(5, 0).getDps(), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
+		assertEquals(40 / 3.0, TripSupplies.prayerPerKill(ranged, results(100, Collections.singletonMap(Combat.RANGED,
 			new OffensivePrayer("Deadeye", 18, 18, 62, 1)))), 1e-9);
-		assertEquals(20, TripSupplies.prayerPerKill(ranged, results(100, Collections.singletonMap(CombatClass.RANGED,
+		assertEquals(20, TripSupplies.prayerPerKill(ranged, results(100, Collections.singletonMap(Combat.RANGED,
 			new OffensivePrayer("Rigour", 20, 23, 74, 70)))), 1e-9);
 		// Below Protect from Magic's level 37 the overhead doesn't drain.
 		SearchResults low = results(100, Collections.emptyMap(), new PlayerLevels(99, 99, 99, 99, 99, 36, 99, 99));
@@ -80,30 +80,30 @@ public class TripSuppliesTest
 	@Test
 	public void aSpecKeepingTheWornWeaponCountsOnlyItsExtraItems()
 	{
-		GearItem sword = new GearItem();
+		Gear sword = new Gear();
 		sword.setId(1);
 		sword.setSlot(Slot.WEAPON);
-		GearItem shield = new GearItem();
+		Gear shield = new Gear();
 		shield.setId(2);
 		shield.setSlot(Slot.SHIELD);
-		Loadout worn = new Loadout();
+		Outfit worn = new Outfit();
 		worn.set(Slot.WEAPON, sword);
-		DpsResult dps = setup(5, 0).getDps();
+		Dps dps = setup(5, 0).getDps();
 		// The same weapon with an added off-hand takes one slot; another weapon with it takes two.
 		SpecialPlan same = new SpecialPlan(sword, shield, null, null, null, null, null, dps, dps, null, 2, 0, 0);
-		SpecialPlan other = new SpecialPlan(new GearItem(), shield, null, null, null, null, null, dps, dps, null, 2, 0, 0);
-		assertEquals(1, TripSupplies.usedSlots(new SetupResult(CombatClass.MELEE, worn, dps, 0, 0,
+		SpecialPlan other = new SpecialPlan(new Gear(), shield, null, null, null, null, null, dps, dps, null, 2, 0, 0);
+		assertEquals(1, TripSupplies.usedSlots(new Setup(Combat.MELEE, worn, dps, 0, 0,
 			Collections.emptySet(), Collections.emptySet(), same, null), Collections.emptyList()));
-		assertEquals(2, TripSupplies.usedSlots(new SetupResult(CombatClass.MELEE, worn, dps, 0, 0,
+		assertEquals(2, TripSupplies.usedSlots(new Setup(Combat.MELEE, worn, dps, 0, 0,
 			Collections.emptySet(), Collections.emptySet(), other, null), Collections.emptyList()));
 		// A two-handed spec weapon also takes the worn shield off into the inventory.
-		GearItem claws = new GearItem();
+		Gear claws = new Gear();
 		claws.setId(3);
 		claws.setSlot(Slot.WEAPON);
 		claws.setTwoHanded(true);
 		worn.set(Slot.SHIELD, shield);
 		SpecialPlan twoHanded = new SpecialPlan(claws, null, null, null, null, null, null, dps, dps, null, 2, 0, 0);
-		assertEquals(2, TripSupplies.usedSlots(new SetupResult(CombatClass.MELEE, worn, dps, 0, 0,
+		assertEquals(2, TripSupplies.usedSlots(new Setup(Combat.MELEE, worn, dps, 0, 0,
 			Collections.emptySet(), Collections.emptySet(), twoHanded, null), Collections.emptyList()));
 	}
 
@@ -230,13 +230,13 @@ public class TripSuppliesTest
 	{
 		IntPredicate owns = id -> id == ItemID.SHARK;
 		// A melee-only chicken's advice is Protect from Melee, which blocks all of an ordinary monster's damage.
-		assertFalse(packsFood("chicken (normal)", false, CombatClass.MELEE, Antifire.NONE, owns, "crush", 19));
+		assertFalse(packsFood("chicken (normal)", false, Combat.MELEE, Antifire.NONE, owns, "crush", 19));
 		// Magical melee is blocked by Protect from Melee too (Wiki: Magical melee).
-		assertFalse(packsFood("banshee", false, CombatClass.MELEE, Antifire.NONE, owns, "magical melee", 8));
+		assertFalse(packsFood("banshee", false, Combat.MELEE, Antifire.NONE, owns, "magical melee", 8));
 		// A boss can hit through prayer, a typeless hit ignores it, and a magic attack beside it isn't blocked.
-		assertTrue(packsFood("chicken (normal)", true, CombatClass.MELEE, Antifire.NONE, owns, "crush", 19));
-		assertTrue(packsFood("chicken (normal)", false, CombatClass.MELEE, Antifire.NONE, owns, "typeless", 19));
-		assertTrue(packsFood("chicken (normal)", false, CombatClass.MELEE, Antifire.NONE, owns, "crush", 19, "magic", 5));
+		assertTrue(packsFood("chicken (normal)", true, Combat.MELEE, Antifire.NONE, owns, "crush", 19));
+		assertTrue(packsFood("chicken (normal)", false, Combat.MELEE, Antifire.NONE, owns, "typeless", 19));
+		assertTrue(packsFood("chicken (normal)", false, Combat.MELEE, Antifire.NONE, owns, "crush", 19, "magic", 5));
 		// Without the Prayer level for the overhead, the hits get through.
 		SearchResults low = target("chicken (normal)", false, "crush", 19);
 		SearchResults lowPrayer = new SearchResults(low.getMonster(), 100, Collections.emptyMap(), Collections.emptyList(),
@@ -252,20 +252,20 @@ public class TripSuppliesTest
 		IntPredicate owns = id -> id == ItemID.SHARK;
 		String steel = "steel dragon (level 246)";
 		// At range its claws never reach; a super antifire takes its breath to 0 (Wiki: Dragonfire).
-		assertFalse(packsFood(steel, false, CombatClass.RANGED, Antifire.SUPER, owns, "slash", 22, "dragonfire", 50));
+		assertFalse(packsFood(steel, false, Combat.RANGED, Antifire.SUPER, owns, "slash", 22, "dragonfire", 50));
 		// An antifire alone lets 35 through without a shield.
-		assertTrue(packsFood(steel, false, CombatClass.RANGED, Antifire.REGULAR, owns, "slash", 22, "dragonfire", 50));
+		assertTrue(packsFood(steel, false, Combat.RANGED, Antifire.REGULAR, owns, "slash", 22, "dragonfire", 50));
 		// Up close, Protect from Melee blocks the claws.
-		assertFalse(packsFood(steel, false, CombatClass.MELEE, Antifire.SUPER, owns, "slash", 22, "dragonfire", 50));
+		assertFalse(packsFood(steel, false, Combat.MELEE, Antifire.SUPER, owns, "slash", 22, "dragonfire", 50));
 	}
 
 	/** Whether a trip against {@code name}, with these attacks as name and max hit pairs, packs food. */
-	private static boolean packsFood(String name, boolean boss, CombatClass cls, Antifire antifire, IntPredicate owns,
+	private static boolean packsFood(String name, boolean boss, Combat cls, Antifire antifire, IntPredicate owns,
 		Object... attacks)
 	{
 		SearchResults results = target(name, boss, attacks);
-		SetupResult melee = setup(5, 0);
-		SetupResult setup = new SetupResult(cls, melee.getLoadout(), melee.getDps(), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
+		Setup melee = setup(5, 0);
+		Setup setup = new Setup(cls, melee.getLoadout(), melee.getDps(), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 		return TripSupplies.plan(setup, results, Collections.emptyList(), 1, true, owns, antifire).stream()
 			.anyMatch(s -> s.getName().equals("Shark"));
 	}
@@ -337,36 +337,36 @@ public class TripSuppliesTest
 		assertEquals("1 Superantipoison", TripSupplies.summary(supplies));
 		assertTrue(TripSupplies.plan(setup(5, 0), results(100, PIETY), Collections.emptyList(), 1, false, id -> false, Antifire.NONE).isEmpty());
 		// A serpentine helm makes the wearer immune to both.
-		SetupResult helmed = setup(5, 0);
-		GearItem helm = new GearItem();
+		Setup helmed = setup(5, 0);
+		Gear helm = new Gear();
 		helm.setName("Serpentine helm");
 		helm.setSlot(Slot.HEAD);
 		helmed.getLoadout().set(Slot.HEAD, helm);
 		assertTrue(TripSupplies.plan(helmed, venom, Collections.emptyList(), 1, false, id -> false, Antifire.NONE).isEmpty());
 	}
 
-	private static SetupResult setup(double dps, int prayerBonus)
+	private static Setup setup(double dps, int prayerBonus)
 	{
-		Loadout loadout = new Loadout();
-		GearItem item = new GearItem();
+		Outfit loadout = new Outfit();
+		Gear item = new Gear();
 		item.setName("test amulet");
 		item.setPrayerBonus(prayerBonus);
 		loadout.set(Slot.NECK, item);
-		return new SetupResult(CombatClass.MELEE, loadout, new DpsResult(dps, 10, 1, 4, 5, null), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
+		return new Setup(Combat.MELEE, loadout, new Dps(dps, 10, 1, 4, 5, null), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 	}
 
-	private static SearchResults results(int hp, Map<CombatClass, OffensivePrayer> prayers)
+	private static SearchResults results(int hp, Map<Combat, OffensivePrayer> prayers)
 	{
 		return results(hp, prayers, PlayerLevels.maxed());
 	}
 
-	private static SearchResults results(int hp, Map<CombatClass, OffensivePrayer> prayers, PlayerLevels levels)
+	private static SearchResults results(int hp, Map<Combat, OffensivePrayer> prayers, PlayerLevels levels)
 	{
 		Monster monster = new Monster();
 		// Vorkath's advice is Protect from Magic for every setup.
 		monster.setName("vorkath (post-quest)");
 		monster.setHitpoints(hp);
-		return new SearchResults(monster, hp, Collections.<AttackStyle.Type, List<SetupResult>>emptyMap(),
+		return new SearchResults(monster, hp, Collections.<Style.Type, List<Setup>>emptyMap(),
 			Collections.emptyList(), prayers, Collections.emptyMap(), false, Collections.emptyList(), false, false,
 			Collections.emptyList(), null, null, 0, 99, 99, levels);
 	}

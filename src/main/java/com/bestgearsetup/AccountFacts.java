@@ -1,6 +1,6 @@
 package com.bestgearsetup;
 
-import com.bestgearsetup.data.NameLists;
+import com.bestgearsetup.data.Names;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import java.util.*;
@@ -21,7 +21,7 @@ final class AccountFacts
 	private static Map<String, List<String>> loadTargets()
 	{
 		Map<String, List<String>> targets = new HashMap<>();
-		for (Map.Entry<String, JsonElement> entry : NameLists.load("/com/bestgearsetup/slayer-targets.json").entrySet())
+		for (Map.Entry<String, JsonElement> entry : Names.load("/com/bestgearsetup/slayer-targets.json").entrySet())
 		{
 			List<String> aliases = new ArrayList<>();
 			for (JsonElement alias : entry.getValue().getAsJsonArray())
@@ -39,13 +39,13 @@ final class AccountFacts
 		if (ready(client))
 		{
 			boolean complete = client.getVarbitValue(VarbitID.KANDARIN_DIARY_HARD_COMPLETE) == 1;
-			if (!String.valueOf(complete).equals(manager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, key)))
+			if (!String.valueOf(complete).equals(manager.getRSProfileConfiguration(Options.GROUP, key)))
 			{
-				manager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, key, complete);
+				manager.setRSProfileConfiguration(Options.GROUP, key, complete);
 			}
 			return complete;
 		}
-		String value = manager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, key);
+		String value = manager.getRSProfileConfiguration(Options.GROUP, key);
 		return "true".equals(value) ? true : "false".equals(value) ? false : null;
 	}
 
@@ -96,14 +96,14 @@ final class AccountFacts
 				catch (RuntimeException e) { return null; }
 			}
 			String json = gson.toJson(record);
-			if (!json.equals(manager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, key)))
+			if (!json.equals(manager.getRSProfileConfiguration(Options.GROUP, key)))
 			{
-				manager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, key, json);
+				manager.setRSProfileConfiguration(Options.GROUP, key, json);
 			}
 		}
 		else
 		{
-			String value = manager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, key);
+			String value = manager.getRSProfileConfiguration(Options.GROUP, key);
 			try { record = value == null ? null : gson.fromJson(value, TaskRecord.class); }
 			catch (RuntimeException e) { return null; }
 		}

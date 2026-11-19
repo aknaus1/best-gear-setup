@@ -8,9 +8,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.google.gson.Gson;
@@ -36,15 +36,15 @@ public class OptimizerConstraintsTest
 		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
-	private GearItem whip;
-	private GearItem stabSword;
-	private GearItem godsword;
-	private GearItem strongHelm;
-	private GearItem tankHelm;
-	private GearItem prayerHelm;
-	private GearItem tankBoots;
-	private GearItem membersRing;
-	private List<GearItem> items;
+	private Gear whip;
+	private Gear stabSword;
+	private Gear godsword;
+	private Gear strongHelm;
+	private Gear tankHelm;
+	private Gear prayerHelm;
+	private Gear tankBoots;
+	private Gear membersRing;
+	private List<Gear> items;
 
 	@Before
 	public void setUp()
@@ -90,18 +90,18 @@ public class OptimizerConstraintsTest
 		items = new ArrayList<>(Arrays.asList(whip, stabSword, godsword, strongHelm, tankHelm, prayerHelm, tankBoots, membersRing));
 	}
 
-	private SetupResult best(OptimizerSettings.OptimizerSettingsBuilder b)
+	private Setup best(OptimizerSettings.OptimizerSettingsBuilder b)
 	{
 		return best(b, monster(100, 20));
 	}
 
-	private SetupResult best(OptimizerSettings.OptimizerSettingsBuilder b, Monster target)
+	private Setup best(OptimizerSettings.OptimizerSettingsBuilder b, Monster target)
 	{
-		List<SetupResult> r = run(b, target, false);
+		List<Setup> r = run(b, target, false);
 		return r.isEmpty() ? null : r.get(0);
 	}
 
-	private List<SetupResult> run(OptimizerSettings.OptimizerSettingsBuilder b, Monster target, boolean thrall)
+	private List<Setup> run(OptimizerSettings.OptimizerSettingsBuilder b, Monster target, boolean thrall)
 	{
 		GameData data = TestData.gameData(items, Collections.emptyList());
 		CombatContext base = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety());
@@ -110,7 +110,7 @@ public class OptimizerConstraintsTest
 		OptimizerSettings settings = b.mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard"))
 			.build();
-		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { });
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, Gear::getPrice).optimize(Combat.MELEE, () -> false, done -> { });
 	}
 
 	private static OptimizerSettings.OptimizerSettingsBuilder settings()
@@ -121,7 +121,7 @@ public class OptimizerConstraintsTest
 	@Test
 	public void baselinePicksGodswordAndStrongHelm()
 	{
-		SetupResult r = best(settings());
+		Setup r = best(settings());
 		assertEquals(godsword, r.getLoadout().getWeapon());
 		assertEquals(strongHelm, r.getLoadout().get(Slot.HEAD));
 	}
@@ -131,7 +131,7 @@ public class OptimizerConstraintsTest
 	{
 		Map<Slot, SlotLock> locks = new EnumMap<>(Slot.class);
 		locks.put(Slot.WEAPON, SlotLock.item(4151));
-		SetupResult r = best(settings().locks(locks));
+		Setup r = best(settings().locks(locks));
 		assertEquals(whip, r.getLoadout().getWeapon());
 	}
 
@@ -142,7 +142,7 @@ public class OptimizerConstraintsTest
 		locks.put(Slot.HEAD, SlotLock.empty());
 		assertNull(best(settings().locks(locks)).getLoadout().get(Slot.HEAD));
 
-		SetupResult r = best(settings().excluded(new HashSet<>(Arrays.asList(11804, 100))));
+		Setup r = best(settings().excluded(new HashSet<>(Arrays.asList(11804, 100))));
 		assertEquals(whip, r.getLoadout().getWeapon());
 		assertTrue(r.getLoadout().get(Slot.HEAD) != strongHelm);
 	}
@@ -150,11 +150,11 @@ public class OptimizerConstraintsTest
 	@Test
 	public void shieldLockRulesOutTwoHanders()
 	{
-		GearItem shield = item(400, "shield", Slot.SHIELD);
+		Gear shield = item(400, "shield", Slot.SHIELD);
 		items.add(shield);
 		Map<Slot, SlotLock> locks = new EnumMap<>(Slot.class);
 		locks.put(Slot.SHIELD, SlotLock.item(400));
-		SetupResult r = best(settings().locks(locks));
+		Setup r = best(settings().locks(locks));
 		assertEquals(whip, r.getLoadout().getWeapon());
 		assertEquals(shield, r.getLoadout().get(Slot.SHIELD));
 	}
@@ -171,9 +171,9 @@ public class OptimizerConstraintsTest
 	@Test
 	public void styleFilterRemovesSlash()
 	{
-		SetupResult r = best(settings().styles(EnumSet.of(AttackStyle.Type.STAB, AttackStyle.Type.CRUSH)));
+		Setup r = best(settings().styles(EnumSet.of(Style.Type.STAB, Style.Type.CRUSH)));
 		assertEquals(stabSword, r.getLoadout().getWeapon());
-		assertEquals(AttackStyle.Type.STAB, r.getLoadout().getStyle().getType());
+		assertEquals(Style.Type.STAB, r.getLoadout().getStyle().getType());
 	}
 
 	@Test
@@ -182,7 +182,7 @@ public class OptimizerConstraintsTest
 		// Only the whip's controlled style gives defence; defence XP off must never pick it.
 		Map<Slot, SlotLock> locks = new EnumMap<>(Slot.class);
 		locks.put(Slot.WEAPON, SlotLock.item(4151));
-		SetupResult noDef = best(settings().locks(locks).defenceXp(false));
+		Setup noDef = best(settings().locks(locks).defenceXp(false));
 		assertEquals("accurate", noDef.getLoadout().getStyle().getStance());
 
 		// Strength only: Attack and Defence off leave aggressive, never accurate or the shared controlled style.
@@ -194,43 +194,43 @@ public class OptimizerConstraintsTest
 	public void fillDefenceRespectsMargin()
 	{
 		// Boots add no DPS, so they are filled; the tank helm costs DPS so needs a margin.
-		SetupResult r = best(settings().fillMode(FillMode.DEFENCE).defenceFocus(DefenceFocus.MELEE));
+		Setup r = best(settings().fillMode(FillMode.DEFENCE).defenceFocus(DefenceFocus.MELEE));
 		assertEquals(tankBoots, r.getLoadout().get(Slot.FEET));
 		assertEquals(strongHelm, r.getLoadout().get(Slot.HEAD));
 		assertTrue(r.getFilledSlots().contains(Slot.FEET));
 
-		SetupResult generous = best(settings().fillMode(FillMode.DEFENCE).defenceFocus(DefenceFocus.MELEE).fillMarginPercent(50));
+		Setup generous = best(settings().fillMode(FillMode.DEFENCE).defenceFocus(DefenceFocus.MELEE).fillMarginPercent(50));
 		assertEquals(tankHelm, generous.getLoadout().get(Slot.HEAD));
 	}
 
 	@Test
 	public void fillingReordersResultsBeforeApplyingTheResultLimit()
 	{
-		GearItem fast = weapon(501, "fast sword", "sword", 4, "slash,slash,aggressive");
+		Gear fast = weapon(501, "fast sword", "sword", 4, "slash,slash,aggressive");
 		fast.setMeleeStr(52);
 		fast.setSlashBonus(80);
-		GearItem slow = weapon(502, "slow sword", "sword", 5, "slash,slash,aggressive");
+		Gear slow = weapon(502, "slow sword", "sword", 5, "slash,slash,aggressive");
 		slow.setMeleeStr(120);
 		slow.setSlashBonus(80);
-		GearItem strengthHelm = item(503, "strength helm", Slot.HEAD);
+		Gear strengthHelm = item(503, "strength helm", Slot.HEAD);
 		strengthHelm.setMeleeStr(30);
-		GearItem defenceHelm = item(504, "tank helm", Slot.HEAD);
+		Gear defenceHelm = item(504, "tank helm", Slot.HEAD);
 		defenceHelm.setSlashDef(100);
 		GameData data = TestData.gameData(Arrays.asList(fast, slow, strengthHelm, defenceHelm), Collections.emptyList());
 		CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = settings().mode(SearchMode.UNLIMITED).fillMode(FillMode.DEFENCE)
 			.fillMarginPercent(15).resultsPerClass(2).build();
-		List<SetupResult> before = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().fillMode(FillMode.NONE).build(),
-			id -> true, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { });
+		List<Setup> before = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().fillMode(FillMode.NONE).build(),
+			id -> true, Gear::getPrice).optimize(Combat.MELEE, () -> false, done -> { });
 		assertEquals(slow, before.get(0).getLoadout().getWeapon());
-		List<SetupResult> after = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MELEE, () -> false, done -> { });
+		List<Setup> after = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> true, Gear::getPrice)
+			.optimize(Combat.MELEE, () -> false, done -> { });
 		assertEquals(2, after.size());
 		assertEquals(fast, after.get(0).getLoadout().getWeapon());
 		assertTrue(after.get(0).getDps().getDps() > after.get(1).getDps().getDps());
 		assertEquals(defenceHelm, after.get(1).getLoadout().get(Slot.HEAD));
-		List<SetupResult> limited = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().resultsPerClass(1).build(),
-			id -> true, GearItem::getPrice).optimize(CombatClass.MELEE, () -> false, done -> { });
+		List<Setup> limited = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().resultsPerClass(1).build(),
+			id -> true, Gear::getPrice).optimize(Combat.MELEE, () -> false, done -> { });
 		assertEquals(1, limited.size());
 		assertEquals(fast, limited.get(0).getLoadout().getWeapon());
 	}
@@ -240,7 +240,7 @@ public class OptimizerConstraintsTest
 	{
 		Map<Slot, SlotLock> locks = new EnumMap<>(Slot.class);
 		locks.put(Slot.HEAD, SlotLock.fill());
-		SetupResult r = best(settings().locks(locks).fillMode(FillMode.PRAYER));
+		Setup r = best(settings().locks(locks).fillMode(FillMode.PRAYER));
 		assertEquals(prayerHelm, r.getLoadout().get(Slot.HEAD));
 		assertTrue(r.getFilledSlots().contains(Slot.HEAD));
 	}
@@ -248,7 +248,7 @@ public class OptimizerConstraintsTest
 	@Test
 	public void maxHitModePrefersBiggestHits()
 	{
-		GearItem slowHeavy = weapon(500, "slow heavy", "2h sword", 9, "chop,slash,aggressive");
+		Gear slowHeavy = weapon(500, "slow heavy", "2h sword", 9, "chop,slash,aggressive");
 		slowHeavy.setMeleeStr(260);
 		slowHeavy.setTwoHanded(true);
 		items.add(slowHeavy);
@@ -259,13 +259,13 @@ public class OptimizerConstraintsTest
 	@Test
 	public void ammoCountIsPricedInBudget()
 	{
-		GearItem bow = weapon(600, "bow", "bow", 5, "rapid,ranged,rapid");
+		Gear bow = weapon(600, "bow", "bow", 5, "rapid,ranged,rapid");
 		bow.setRangedBonus(60);
 		bow.setAmmunition(Arrays.asList(700, 701));
-		GearItem goodArrow = item(700, "good arrow", Slot.AMMO);
+		Gear goodArrow = item(700, "good arrow", Slot.AMMO);
 		goodArrow.setRangedStr(60);
 		goodArrow.setPrice(1_000);
-		GearItem cheapArrow = item(701, "cheap arrow", Slot.AMMO);
+		Gear cheapArrow = item(701, "cheap arrow", Slot.AMMO);
 		cheapArrow.setRangedStr(10);
 		cheapArrow.setPrice(10);
 		GameData data = TestData.gameData(Arrays.asList(bow, goodArrow, cheapArrow), Collections.emptyList());
@@ -273,13 +273,13 @@ public class OptimizerConstraintsTest
 		OptimizerSettings.OptimizerSettingsBuilder b = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(200_000)
 			.spellbooks(Collections.singleton("standard"));
 
-		SetupResult ignoreAmmo = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.build(), id -> id == 600, GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup ignoreAmmo = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.build(), id -> id == 600, Gear::getPrice)
+			.optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(goodArrow, ignoreAmmo.getLoadout().get(Slot.AMMO));
 
 		// 1000 good arrows cost 1m, over the 200k budget.
-		SetupResult priced = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.ammoCount(1000).build(), id -> id == 600, GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup priced = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.ammoCount(1000).build(), id -> id == 600, Gear::getPrice)
+			.optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(cheapArrow, priced.getLoadout().get(Slot.AMMO));
 		assertEquals(10_000, priced.getBuyCost());
 	}
@@ -295,9 +295,9 @@ public class OptimizerConstraintsTest
 	@Test
 	public void atlatlHasItsOwnTab()
 	{
-		GearItem bow = weapon(600, "bow", "bow", 5, "rapid,ranged,rapid");
+		Gear bow = weapon(600, "bow", "bow", 5, "rapid,ranged,rapid");
 		bow.setRangedBonus(60);
-		GearItem atlatl = weapon(29000, "eclipse atlatl", "bow", 4, "rapid,ranged,rapid");
+		Gear atlatl = weapon(29000, "eclipse atlatl", "bow", 4, "rapid,ranged,rapid");
 		atlatl.setRangedBonus(87);
 		atlatl.setMeleeStr(40);
 		GameData data = TestData.gameData(Arrays.asList(bow, atlatl), Collections.emptyList());
@@ -305,16 +305,16 @@ public class OptimizerConstraintsTest
 		OptimizerSettings.OptimizerSettingsBuilder b = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard"));
 
-		List<SetupResult> ranged = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.styles(EnumSet.of(AttackStyle.Type.RANGED)).build(),
-			id -> true, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false, done -> { });
+		List<Setup> ranged = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.styles(EnumSet.of(Style.Type.RANGED)).build(),
+			id -> true, Gear::getPrice).optimize(Combat.RANGED, () -> false, done -> { });
 		assertEquals(1, ranged.size());
 		assertEquals(bow, ranged.get(0).getLoadout().getWeapon());
-		assertEquals(AttackStyle.Type.RANGED, TestFactories.attackType(ranged.get(0)));
+		assertEquals(Style.Type.RANGED, TestFactories.attackType(ranged.get(0)));
 
-		List<SetupResult> atl = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.styles(EnumSet.of(AttackStyle.Type.ATLATL)).build(),
-			id -> true, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false, done -> { });
+		List<Setup> atl = com.bestgearsetup.calc.Optimizers.of(data, ctx, b.styles(EnumSet.of(Style.Type.ATLATL)).build(),
+			id -> true, Gear::getPrice).optimize(Combat.RANGED, () -> false, done -> { });
 		assertEquals(1, atl.size());
 		assertEquals(atlatl, atl.get(0).getLoadout().getWeapon());
-		assertEquals(AttackStyle.Type.ATLATL, TestFactories.attackType(atl.get(0)));
+		assertEquals(Style.Type.ATLATL, TestFactories.attackType(atl.get(0)));
 	}
 }

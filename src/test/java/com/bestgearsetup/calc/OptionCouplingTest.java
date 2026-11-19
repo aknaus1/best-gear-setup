@@ -3,9 +3,9 @@ package com.bestgearsetup.calc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
 import com.bestgearsetup.data.WikiMonsters;
@@ -42,16 +42,16 @@ public class OptionCouplingTest
 	}
 
 	/** One bank: {item id, acquisition price, owned (1) or not (0)} per row. */
-	private static SetupResult best(String monster, PlayerLevels levels, boolean potions, boolean prayers,
-		boolean wilderness, OptimizerSettings settings, CombatClass cls, long[][] bank)
+	private static Setup best(String monster, PlayerLevels levels, boolean potions, boolean prayers,
+		boolean wilderness, OptimizerSettings settings, Combat cls, long[][] bank)
 	{
-		List<GearItem> items = new ArrayList<>();
+		List<Gear> items = new ArrayList<>();
 		Map<Integer, Long> prices = new HashMap<>();
 		HashSet<Integer> owned = new HashSet<>();
 		for (long[] row : bank)
 		{
 			int id = (int) row[0];
-			GearItem item = null;
+			Gear item = null;
 			for (Slot slot : Slot.values())
 			{
 				item = item != null ? item : catalogue.getItem(slot, id);
@@ -67,14 +67,14 @@ public class OptionCouplingTest
 		CombatContext ctx = TestFactories.combatContext(monsters.monster(monster), levels, false, potions,
 			prayers ? TestData.piety() : null).withModifiers(CombatModifiers.builder().wilderness(wilderness).build());
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> prices.get(item.getId()));
-		SetupResult result = optimizer.optimize(cls, () -> false, done -> { }).get(0);
+		Setup result = optimizer.optimize(cls, () -> false, done -> { }).get(0);
 		assertTrue(optimizer.expensiveItemCount(result.getLoadout()) <= settings.getMaxExpensiveItems()
 			|| !settings.isWildernessRiskLimited());
 		assertTrue(settings.getMode() != SearchMode.BUDGET || result.getBuyCost() <= settings.getBudget());
 		return result;
 	}
 
-	private static OptimizerSettings.OptimizerSettingsBuilder settings(AttackStyle.Type tab)
+	private static OptimizerSettings.OptimizerSettingsBuilder settings(Style.Type tab)
 	{
 		// These pin how autocast spells couple with gear; manual casting would let the staves cast anything.
 		return OptimizerSettings.builder().styles(Collections.singleton(tab)).preventManualCast(true)
@@ -85,8 +85,8 @@ public class OptionCouplingTest
 	public void stanceChangesWithTwoSlots()
 	{
 		// Aggressive only beats accurate once the cape comes off and Glory replaces Strength.
-		SetupResult r = best("fire giant (level 86)", new PlayerLevels(71, 77, 69, 72, 95, 97, 89, 92), true, false,
-			false, settings(AttackStyle.Type.CRUSH).mode(SearchMode.BUDGET).budget(5_000_000).build(), CombatClass.MELEE,
+		Setup r = best("fire giant (level 86)", new PlayerLevels(71, 77, 69, 72, 95, 97, 89, 92), true, false,
+			false, settings(Style.Type.CRUSH).mode(SearchMode.BUDGET).budget(5_000_000).build(), Combat.MELEE,
 			new long[][]{
 				{6760, 100_001, 1}, {4153, 99_999, 1}, {4081, 100_000, 1}, {10588, 12_000, 1}, {1725, 100_001, 1},
 				{1704, 99_999, 1}, {21298, 500, 1}, {6524, 900_000, 0}, {31081, 99_999, 0}, {24420, 900_000, 1},
@@ -101,10 +101,10 @@ public class OptionCouplingTest
 	public void spellChangesWithTwoSlots()
 	{
 		// Fire Wave needs the Tome of fire, which takes the one expensive allowance and the legs' place.
-		SetupResult r = best("chaos dwarf", new PlayerLevels(90, 64, 82, 74, 71, 94, 75, 60), true, true, true,
-			settings(AttackStyle.Type.MAGIC).mode(SearchMode.BUDGET).budget(5_000_000).wildernessRiskLimited(true)
+		Setup r = best("chaos dwarf", new PlayerLevels(90, 64, 82, 74, 71, 94, 75, 60), true, true, true,
+			settings(Style.Type.MAGIC).mode(SearchMode.BUDGET).budget(5_000_000).wildernessRiskLimited(true)
 				.maxExpensiveItems(1).expensiveItemThreshold(100_000).excluded(Collections.singleton(4675)).build(),
-			CombatClass.MAGIC, new long[][]{
+			Combat.MAGIC, new long[][]{
 				{30634, 12_000, 1}, {1405, 12_000, 0}, {4675, 100_001, 1}, {20714, 900_000, 0}, {1387, 12_000, 1},
 				{12002, 500, 0}, {21791, 100_000, 0}, {10446, 500, 0}, {25576, -1, 1}, {22975, 0, 0},
 				{23053, 100_000, 1},
@@ -120,19 +120,19 @@ public class OptionCouplingTest
 	{
 		CombatContext ctx = TestFactories.combatContext(monsters.monster("chaos dwarf"), new PlayerLevels(69, 73, 81, 64, 60, 67, 88, 61),
 			false, false, null).withModifiers(CombatModifiers.builder().wilderness(true).build());
-		OptimizerSettings settings = settings(AttackStyle.Type.MAGIC).mode(SearchMode.UNLIMITED).build();
-		GearItem staff = catalogue.getItem(Slot.WEAPON, 6563);
+		OptimizerSettings settings = settings(Style.Type.MAGIC).mode(SearchMode.UNLIMITED).build();
+		Gear staff = catalogue.getItem(Slot.WEAPON, 6563);
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(catalogue, ctx, settings, id -> true, item -> 0);
 		Map<String, String> best = new HashMap<>();
 		for (int shield : new int[]{20714, 11924})
 		{
-			Loadout l = new Loadout();
+			Outfit l = new Outfit();
 			l.set(Slot.WEAPON, staff);
 			l.set(Slot.SHIELD, catalogue.getItem(Slot.SHIELD, shield));
-			AttackStyle autocast = null;
+			Style autocast = null;
 			for (String raw : staff.getStyles())
 			{
-				AttackStyle style = AttackStyle.parse(raw);
+				Style style = Style.parse(raw);
 				autocast = style != null && style.isAutocast() ? style : autocast;
 			}
 			// Independently: every spell this staff can autocast at this Magic level.
@@ -155,7 +155,7 @@ public class OptionCouplingTest
 				}
 			}
 			l.setSpell(catalogue.getSpells().get(0));
-			double score = optimizer.scoreWithBestOption(l, CombatClass.MAGIC);
+			double score = optimizer.scoreWithBestOption(l, Combat.MAGIC);
 			assertEquals(expected, score, 1e-12);
 			assertEquals(expectedSpell, l.getSpell().getName());
 			assertEquals(score, DpsCalculator.calculate(l, ctx).getDps(), 1e-12);
@@ -172,10 +172,10 @@ public class OptionCouplingTest
 		// Fire Blast loses with the Malediction ward and the Tome of fire loses with Wind Blast; together they win.
 		Map<Slot, SlotLock> locks = new EnumMap<>(Slot.class);
 		locks.put(Slot.NECK, SlotLock.empty());
-		SetupResult r = best("chaos dwarf", new PlayerLevels(69, 73, 81, 64, 60, 67, 88, 61), false, false, true,
-			settings(AttackStyle.Type.MAGIC).mode(SearchMode.UNLIMITED).wildernessRiskLimited(true).maxExpensiveItems(2)
+		Setup r = best("chaos dwarf", new PlayerLevels(69, 73, 81, 64, 60, 67, 88, 61), false, false, true,
+			settings(Style.Type.MAGIC).mode(SearchMode.UNLIMITED).wildernessRiskLimited(true).maxExpensiveItems(2)
 				.expensiveItemThreshold(100_000).attackXp(false).ammoCount(1_000).locks(locks).build(),
-			CombatClass.MAGIC, new long[][]{
+			Combat.MAGIC, new long[][]{
 				{6563, 99_999, 1}, {6910, 99_999, 1}, {20714, 100_000, 1}, {1387, 900_000, 0}, {12002, 12_000, 0},
 				{21791, 500, 1}, {12267, 0, 1}, {6141, 99_999, 1}, {1724, 100_000, 1}, {28313, -1, 1},
 				{11924, 12_000, 1}, {30066, 900_000, 0}, {581, 500, 1},

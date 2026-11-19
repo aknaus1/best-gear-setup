@@ -31,16 +31,16 @@ public final class SpecialRotation
 	@Value
 	public static class Blend
 	{
-		DpsResult result;
+		Dps result;
 		double specsPerKill;
 	}
 
 	/** The fight's ordinary attacks and special attack once some drains have landed. */
 	public interface Fight
 	{
-		DpsResult ordinary(SpecialAttacks drains);
+		Dps ordinary(SpecialAttacks drains);
 
-		DpsResult spec(SpecialAttacks drains);
+		Dps spec(SpecialAttacks drains);
 	}
 
 	/**
@@ -51,7 +51,7 @@ public final class SpecialRotation
 	 * @param energy   energy each spec costs, in percent
 	 * @param regen    energy regenerated per second, in percent
 	 */
-	public static Blend blend(DpsResult ordinary, DpsResult spec, int energy, int targetHp, SpecEnergy mode,
+	public static Blend blend(Dps ordinary, Dps spec, int energy, int targetHp, SpecEnergy mode,
 		double regen)
 	{
 		double ordinaryRate = ordinary.getPrimaryDps();
@@ -95,7 +95,7 @@ public final class SpecialRotation
 	public static Blend draining(Fight fight, SpecialAttack.Drain drain, int energy, int targetHp, SpecEnergy mode,
 		double regen, boolean allMiss)
 	{
-		DpsResult start = fight.ordinary(SpecialAttacks.NONE);
+		Dps start = fight.ordinary(SpecialAttacks.NONE);
 		if (energy <= 0 || targetHp <= 0 || start.getPrimaryDps() <= 0)
 		{
 			return null;
@@ -157,7 +157,7 @@ public final class SpecialRotation
 			{
 				return remainder(drains, hp);
 			}
-			DpsResult spec = fight.spec(drains);
+			Dps spec = fight.spec(drains);
 			double seconds = spec.getExpectedSpeedTicks() * SECONDS_PER_TICK;
 			double perSpec = spec.getPrimaryDps() * seconds;
 			double accuracy = Math.max(0, Math.min(1, spec.getAccuracy()));
@@ -202,7 +202,7 @@ public final class SpecialRotation
 			double ordinary = fight.ordinary(drains).getPrimaryDps();
 			if (midFightRegen > 0)
 			{
-				DpsResult spec = fight.spec(drains);
+				Dps spec = fight.spec(drains);
 				double seconds = spec.getExpectedSpeedTicks() * SECONDS_PER_TICK;
 				if (seconds > 0 && spec.getPrimaryDps() > ordinary)
 				{

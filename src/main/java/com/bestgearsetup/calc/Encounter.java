@@ -5,10 +5,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Per-hit encounter mitigation, applied after player damage bonuses and before thralls. */
-final class EncounterDamage
+final class Encounter
 {
-	private static final NameLists.NameList DEMONBANE_MELEE = NameLists.list("demonbane melee weapons");
-	private static final NameLists.NameList ABYSSAL_WEAPONS = NameLists.list("abyssal weapons");
+	private static final Names.NameList DEMONBANE_MELEE = Names.list("demonbane melee weapons");
+	private static final Names.NameList ABYSSAL_WEAPONS = Names.list("abyssal weapons");
 	private static final Rule NONE = scaled(1, 1, false, null);
 	private static final Rule THIRD = scaled(1, 3, false, "Damage / 3, rounded per hit");
 	private static final Rule HALF = scaled(1, 2, false, "Damage / 2, rounded per hit");
@@ -27,7 +27,7 @@ final class EncounterDamage
 	private static final Rule HUEY_EARTH = capped(9, 0, false, "Tail: random 0-9 earth spell cap");
 	private static final Rule HUEY_CRUSH = capped(9, 0, true, "Tail: random 0-9 crush cap, minimum 1 including misses");
 
-	private EncounterDamage()
+	private Encounter()
 	{
 	}
 
@@ -43,34 +43,34 @@ final class EncounterDamage
 		return new Rule(1, 1, false, limit, offset, false, detail, 0, outputMinimum, 1, 1);
 	}
 
-	static CombatClass olmPreferredClass(Monster monster)
+	static Combat olmPreferredClass(Monster monster)
 	{
 		if (AttackReach.isOlmHead(monster))
 		{
-			return CombatClass.RANGED;
+			return Combat.RANGED;
 		}
 		int id = monster.getId();
 		String name = monster.getLowerName();
 		boolean olm = name.startsWith("great olm");
 		if (id == 7550 || id == 7553 || olm && name.contains("mage hand"))
 		{
-			return CombatClass.MAGIC;
+			return Combat.MAGIC;
 		}
 		if (id == 7552 || id == 7555 || olm && name.contains("melee hand"))
 		{
-			return CombatClass.MELEE;
+			return Combat.MELEE;
 		}
 		return null;
 	}
 
-	static int divisor(Monster monster, CombatClass combatClass)
+	static int divisor(Monster monster, Combat combatClass)
 	{
-		CombatClass preferred = olmPreferredClass(monster);
+		Combat preferred = olmPreferredClass(monster);
 		if (preferred != null && preferred != combatClass)
 		{
 			return 3;
 		}
-		return combatClass == CombatClass.RANGED && AttackReach.isKraken(monster) ? 7 : 1;
+		return combatClass == Combat.RANGED && AttackReach.isKraken(monster) ? 7 : 1;
 	}
 
 	static boolean named(Monster monster, String target)
@@ -155,27 +155,27 @@ final class EncounterDamage
 			|| CombatRules.phase(monster, EncounterPhase.TD_UNSHIELDED));
 	}
 
-	static boolean demonbane(Loadout loadout)
+	static boolean demonbane(Outfit loadout)
 	{
 		String weapon = lower(loadout.getWeapon());
-		if (loadout.getStyle().getType() == AttackStyle.Type.MAGIC)
+		if (loadout.getStyle().getType() == Style.Type.MAGIC)
 		{
 			return spell(loadout).contains("demonbane");
 		}
-		if (loadout.getStyle().getType() == AttackStyle.Type.RANGED)
+		if (loadout.getStyle().getType() == Style.Type.RANGED)
 		{
 			return weapon.startsWith("scorching bow");
 		}
 		return DEMONBANE_MELEE.matches(weapon);
 	}
 
-	static boolean abyssal(Loadout loadout)
+	static boolean abyssal(Outfit loadout)
 	{
 		String weapon = lower(loadout.getWeapon());
 		return loadout.getStyle().isMelee() && ABYSSAL_WEAPONS.matches(weapon);
 	}
 
-	static String lower(GearItem item)
+	static String lower(Gear item)
 	{
 		if (item == null)
 		{
@@ -185,25 +185,25 @@ final class EncounterDamage
 		return item.isDmmEquipment() && name.startsWith("corrupted ") ? name.substring(10) : name;
 	}
 
-	static String spell(Loadout loadout)
+	static String spell(Outfit loadout)
 	{
 		return loadout.getSpell() == null ? "" : loadout.getSpell().getLowerName();
 	}
 
-	static Rule rule(Monster monster, Loadout loadout)
+	static Rule rule(Monster monster, Outfit loadout)
 	{
-		return rule(monster, loadout, WeaponRules.classOf(loadout.getStyle()));
+		return rule(monster, loadout, Weapons.classOf(loadout.getStyle()));
 	}
 
 	/** Mitigation for a hit of the given class, such as Voidwaker's magical special attack. */
-	static Rule rule(Monster monster, Loadout loadout, CombatClass cls)
+	static Rule rule(Monster monster, Outfit loadout, Combat cls)
 	{
 		Rule base = baseRule(monster, loadout, cls);
 		int armour = monster.getFlatArmour() == null ? monster.getId() == 13011 ? -2
 			: monster.getId() == 13013 ? -5 : monster.getId() == 13012
 			? monster.getLowerName().contains("clone") ? 4 : 6 : CombatRules.eclipseClone(monster)
 			? 4 : 0 : monster.getFlatArmour();
-		if (cls == CombatClass.MAGIC)
+		if (cls == Combat.MAGIC)
 		{
 			armour = 0;
 		}
@@ -230,18 +230,18 @@ final class EncounterDamage
 		});
 	}
 
-	private static Rule baseRule(Monster monster, Loadout loadout, CombatClass cls)
+	private static Rule baseRule(Monster monster, Outfit loadout, Combat cls)
 	{
 		String weapon = lower(loadout.getWeapon());
 		int id = monster.getId();
 		if (hueyTail(monster))
 		{
 			DpsCalculator.Bonuses bonuses = DpsCalculator.Bonuses.of(loadout);
-			boolean crush = loadout.getStyle().getType() == AttackStyle.Type.CRUSH
+			boolean crush = loadout.getStyle().getType() == Style.Type.CRUSH
 				&& bonuses.crush > bonuses.stab && bonuses.crush > bonuses.slash;
 			return crush ? HUEY_CRUSH : SpellRules.element(loadout.getSpell()).equals("earth") ? HUEY_EARTH : HUEY_OTHER;
 		}
-		if (cls == CombatClass.MAGIC && (id == 9434 || id == 9435 || id == 9437 || id == 9438
+		if (cls == Combat.MAGIC && (id == 9434 || id == 9435 || id == 9437 || id == 9438
 			|| id == 9440 || id == 9441 || id == 9443 || id == 9444 || named(monster, "nightmare totem")
 			|| named(monster, "phosani's nightmare totem")))
 		{
@@ -257,18 +257,18 @@ final class EncounterDamage
 		}
 		if (verzikP1(monster) && !weapon.equals("dawnbringer"))
 		{
-			return cls == CombatClass.MELEE ? VERZIK_MELEE : VERZIK_OTHER;
+			return cls == Combat.MELEE ? VERZIK_MELEE : VERZIK_OTHER;
 		}
-		if (tekton(monster) && cls == CombatClass.MAGIC)
+		if (tekton(monster) && cls == Combat.MAGIC)
 		{
 			return TEKTON;
 		}
-		if (crystal(monster) && cls == CombatClass.MAGIC)
+		if (crystal(monster) && cls == Combat.MAGIC)
 		{
 			return THIRD;
 		}
 		if (iceDemon(monster)
-			&& !(cls == CombatClass.MAGIC && spell(loadout).startsWith("fire ")) && !demonbane(loadout))
+			&& !(cls == Combat.MAGIC && spell(loadout).startsWith("fire ")) && !demonbane(loadout))
 		{
 			return THIRD;
 		}
@@ -282,8 +282,8 @@ final class EncounterDamage
 		}
 		if (corp(monster))
 		{
-			boolean stab = loadout.getStyle().getType() == AttackStyle.Type.STAB;
-			boolean suitable = cls == CombatClass.MAGIC || stab && (weapon.startsWith("osmumten's fang")
+			boolean stab = loadout.getStyle().getType() == Style.Type.STAB;
+			boolean suitable = cls == Combat.MAGIC || stab && (weapon.startsWith("osmumten's fang")
 				|| loadout.getWeapon().getSubcategory().equals("polearm")
 				|| weapon.contains("spear") && !weapon.startsWith("blue moon spear"));
 			return suitable ? NONE : HALF;
@@ -298,7 +298,7 @@ final class EncounterDamage
 			{
 				return HALF;
 			}
-			return cls == CombatClass.RANGED && weapon.equals("comp ogre bow")
+			return cls == Combat.RANGED && weapon.equals("comp ogre bow")
 				&& lower(loadout.get(Slot.AMMO)).contains(" brutal") ? NONE : QUARTER;
 		}
 		if (monster.hasAttribute("vampyre (t2)") && !EncounterImmunities.vampyrebane(loadout, false))

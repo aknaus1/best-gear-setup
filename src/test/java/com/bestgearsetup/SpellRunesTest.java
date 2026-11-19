@@ -3,12 +3,12 @@ package com.bestgearsetup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.calc.Loadout;
-import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.Outfit;
+import com.bestgearsetup.calc.Setup;
 import com.bestgearsetup.calc.SupportSpell;
 import com.bestgearsetup.calc.Thrall;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
@@ -162,7 +162,7 @@ public class SpellRunesTest
 	public void runeSavingNamesExistInTheGameData() throws Exception
 	{
 		Gson gson = RuneLiteAPI.GSON;
-		List<GearItem> weapons = WikiGameData.get(gson).gameData(gson).getItems(Slot.WEAPON);
+		List<Gear> weapons = WikiGameData.get(gson).gameData(gson).getItems(Slot.WEAPON);
 		for (String name : Arrays.asList("kodai wand", "staff of the dead", "toxic staff of the dead",
 			"staff of light", "staff of balance"))
 		{
@@ -173,7 +173,7 @@ public class SpellRunesTest
 	@Test
 	public void thrallRunesFollowTheTier()
 	{
-		Loadout melee = loadout(null, "abyssal whip", null);
+		Outfit melee = loadout(null, "abyssal whip", null);
 		Set<SupportSpell> thrall = EnumSet.of(SupportSpell.THRALL);
 		assertEquals(Arrays.asList(ItemID.AIRRUNE, ItemID.MINDRUNE, ItemID.COSMICRUNE, ItemID.BOOK_OF_THE_DEAD),
 			SpellRunes.required(melee, thrall, Thrall.LESSER));
@@ -183,7 +183,7 @@ public class SpellRunesTest
 			ItemID.BOOK_OF_THE_DEAD);
 		assertEquals(greater, SpellRunes.required(melee, thrall, Thrall.GREATER));
 		assertEquals(greater, SpellRunes.required(melee, thrall, null));
-		SetupResult setup = new SetupResult(CombatClass.MELEE, melee, null, 0, 0, Collections.emptySet(),
+		Setup setup = new Setup(Combat.MELEE, melee, null, 0, 0, Collections.emptySet(),
 			thrall, null, Thrall.LESSER);
 		assertEquals(SpellRunes.required(melee, thrall, Thrall.LESSER), SpellRunes.required(setup));
 	}
@@ -202,7 +202,7 @@ public class SpellRunesTest
 		Gson gson = RuneLiteAPI.GSON;
 		for (Spell spell : WikiGameData.get(gson).gameData(gson).getSpells())
 		{
-			Loadout loadout = new Loadout();
+			Outfit loadout = new Outfit();
 			loadout.setSpell(spell);
 			assertFalse(spell.getName(), required(loadout).isEmpty());
 		}
@@ -244,8 +244,8 @@ public class SpellRunesTest
 	@Test
 	public void bankLayoutPutsThreeSpellItemsInThePouchRowAndTheRestInTheInventory()
 	{
-		Loadout loadout = loadout("dark demonbane", "magic staff", null);
-		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MAGIC, loadout, null,
+		Outfit loadout = loadout("dark demonbane", "magic staff", null);
+		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new Setup(Combat.MAGIC, loadout, null,
 			0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.MARK_OF_DARKNESS, SupportSpell.THRALL), null, null),
 			Collections.emptyList(), Collections.emptyList());
 		// The pouch takes the first inventory slot; the items past its three follow it.
@@ -253,7 +253,7 @@ public class SpellRunesTest
 		assertEquals(Integer.valueOf(6), cells.get(ItemID.BOOK_OF_THE_DEAD));
 		// Aether replaces soul and cosmic; it sits with the first of those (soul), in the pouch row.
 		assertEquals(Integer.valueOf(61), cells.get(ItemID.AETHERRUNE));
-		Map<Integer, Integer> thrall = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
+		Map<Integer, Integer> thrall = BestGearSetupBankView.cellsFor(new Setup(Combat.MELEE,
 			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.THRALL), null, null),
 			Collections.emptyList(), Collections.emptyList());
 		assertEquals(thrall.get(ItemID.COSMICRUNE), thrall.get(ItemID.AETHERRUNE));
@@ -262,10 +262,10 @@ public class SpellRunesTest
 	@Test
 	public void bankLayoutPutsThePouchInTheInventoryAndItsRunesUnderIt()
 	{
-		Loadout loadout = loadout("fire surge", "staff of earth", null);
+		Outfit loadout = loadout("fire surge", "staff of earth", null);
 		loadout.set(Slot.HEAD, gear(ItemID.WRATHRUNE, "test helm"));
 		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(
-			new SetupResult(CombatClass.MAGIC, loadout, null, 0, 0, Collections.emptySet(), Collections.emptySet(), null, null), Collections.emptyList(), Collections.emptyList());
+			new Setup(Combat.MAGIC, loadout, null, 0, 0, Collections.emptySet(), Collections.emptySet(), null, null), Collections.emptyList(), Collections.emptyList());
 		// Equipment keeps its silhouette cell; a rune pouch takes the first inventory slot and its runes sit in the
 		// row under the inventory, in spellbook order.
 		assertEquals(Integer.valueOf(1), cells.get(ItemID.WRATHRUNE));
@@ -287,7 +287,7 @@ public class SpellRunesTest
 		combat.setId(ItemID._4DOSE2COMBAT);
 		Potion heart = new Potion();
 		heart.setId(ItemID.SATURATED_HEART);
-		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
+		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(new Setup(Combat.MELEE,
 			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), Collections.emptySet(), null, null), Arrays.asList(combat, heart),
 			Collections.emptyList());
 		assertEquals(Integer.valueOf(4), cells.get(ItemID._4DOSE2COMBAT));
@@ -298,7 +298,7 @@ public class SpellRunesTest
 		attack.setId(ItemID._4DOSE2ATTACK);
 		Potion strength = new Potion();
 		strength.setId(ItemID._4DOSE2STRENGTH);
-		Map<Integer, Integer> split = BestGearSetupBankView.cellsFor(new SetupResult(CombatClass.MELEE,
+		Map<Integer, Integer> split = BestGearSetupBankView.cellsFor(new Setup(Combat.MELEE,
 			loadout(null, "abyssal whip", null), null, 0, 0, Collections.emptySet(), Collections.emptySet(), null, null), Arrays.asList(attack, strength),
 			Collections.emptyList());
 		// A super combat covers both and sits with the first; each keeps its own cell.
@@ -306,7 +306,7 @@ public class SpellRunesTest
 		assertEquals(Integer.valueOf(4), split.get(ItemID._3DOSE2COMBAT));
 		assertEquals(Integer.valueOf(5), split.get(ItemID._4DOSE2STRENGTH));
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
-		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout(null, "abyssal whip", null), null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null),
+		plugin.setBankHighlightedSetup(new Setup(Combat.MELEE, loadout(null, "abyssal whip", null), null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null),
 			Collections.singletonList(combat), Collections.emptyList());
 		assertTrue(plugin.getBankHighlightIds().containsAll(Arrays.asList(ItemID._1DOSE2COMBAT,
 			ItemID._1DOSEDIVINECOMBAT)));
@@ -316,29 +316,29 @@ public class SpellRunesTest
 	public void bankHighlightsIncludeSpellRunes()
 	{
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
-		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MAGIC,
+		plugin.setBankHighlightedSetup(new Setup(Combat.MAGIC,
 			loadout("blood barrage", "kodai wand", null), null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 		assertTrue(plugin.getBankHighlightIds().containsAll(Arrays.asList(ItemID.DEATHRUNE, ItemID.BLOODRUNE,
 			ItemID.SOULRUNE, ItemID.AETHERRUNE)));
-		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout(null, "abyssal whip", null), null,
+		plugin.setBankHighlightedSetup(new Setup(Combat.MELEE, loadout(null, "abyssal whip", null), null,
 			0, 0, Collections.emptySet(), EnumSet.of(SupportSpell.THRALL), null, null));
 		assertTrue(plugin.getBankHighlightIds().containsAll(Arrays.asList(ItemID.FIRERUNE, ItemID.BLOODRUNE,
 			ItemID.COSMICRUNE, ItemID.BOOK_OF_THE_DEAD)));
 	}
 
-	private static List<Integer> required(Loadout loadout)
+	private static List<Integer> required(Outfit loadout)
 	{
 		return required(loadout, EnumSet.noneOf(SupportSpell.class));
 	}
 
-	private static List<Integer> required(Loadout loadout, Set<SupportSpell> support)
+	private static List<Integer> required(Outfit loadout, Set<SupportSpell> support)
 	{
 		return SpellRunes.required(loadout, support, null);
 	}
 
-	private static Loadout loadout(String spell, String weapon, String shield)
+	private static Outfit loadout(String spell, String weapon, String shield)
 	{
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		if (spell != null)
 		{
 			Spell s = new Spell();
@@ -353,9 +353,9 @@ public class SpellRunesTest
 		return loadout;
 	}
 
-	private static GearItem gear(int id, String name)
+	private static Gear gear(int id, String name)
 	{
-		GearItem item = new GearItem();
+		Gear item = new Gear();
 		item.setId(id);
 		item.setName(name);
 		return item;

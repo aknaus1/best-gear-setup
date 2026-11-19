@@ -2,7 +2,7 @@ package com.bestgearsetup;
 
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import java.util.*;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.VarbitID;
@@ -14,7 +14,7 @@ final class LiveRaid
 	int maxCombat;
 	boolean raidDetected;
 
-	static Monster target(MonsterSummary summary)
+	static Monster target(Summary summary)
 	{
 		Monster target = new Monster();
 		target.setId(summary.getId()); target.setName(summary.getName());
@@ -27,7 +27,7 @@ final class LiveRaid
 		return target;
 	}
 
-	static LiveRaid read(Client client, MonsterSummary summary)
+	static LiveRaid read(Client client, Summary summary)
 	{
 		LiveRaid live = new LiveRaid();
 		RaidScaling.Raid raid = RaidScaling.raid(target(summary));

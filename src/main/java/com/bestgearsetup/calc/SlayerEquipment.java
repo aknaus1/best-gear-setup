@@ -13,8 +13,8 @@ import lombok.RequiredArgsConstructor;
  */
 public final class SlayerEquipment
 {
-	private static final NameLists.NameList KARUULM_ONLY = NameLists.list("karuulm monsters");
-	private static final NameLists.NameList WYRMS = NameLists.list("wyrms");
+	private static final Names.NameList KARUULM_ONLY = Names.list("karuulm monsters");
+	private static final Names.NameList WYRMS = Names.list("wyrms");
 	/** One rule per row of name-lists.json's "slayer equipment", each from the monster's OSRS Wiki page. */
 	private static final List<Rule> RULES = rules();
 
@@ -25,7 +25,7 @@ public final class SlayerEquipment
 	private static List<Rule> rules()
 	{
 		List<Rule> rules = new ArrayList<>();
-		for (JsonElement element : NameLists.rows("slayer equipment"))
+		for (JsonElement element : Names.rows("slayer equipment"))
 		{
 			JsonObject row = element.getAsJsonObject();
 			// A row names its monsters, or other lists of this file under "monsterLists".
@@ -34,10 +34,10 @@ public final class SlayerEquipment
 				monsters.addAll(row.getAsJsonArray("monsters"));
 			if (row.has("monsterLists"))
 				for (JsonElement list : row.getAsJsonArray("monsterLists"))
-					monsters.addAll(NameLists.rows(list.getAsString()));
+					monsters.addAll(Names.rows(list.getAsString()));
 			rules.add(new Rule(Slot.valueOf(row.get("slot").getAsString()), row.get("items").getAsString(),
-				row.has("karuulm") && row.get("karuulm").getAsBoolean(), NameLists.NameList.of(monsters),
-				NameLists.NameList.of(row.get("gear"))));
+				row.has("karuulm") && row.get("karuulm").getAsBoolean(), Names.NameList.of(monsters),
+				Names.NameList.of(row.get("gear"))));
 		}
 		return Collections.unmodifiableList(rules);
 	}
@@ -78,7 +78,7 @@ public final class SlayerEquipment
 	}
 
 	/** Whether the item satisfies one of this target's requirements, so it must stay a search candidate. */
-	static boolean isRequired(Monster monster, OptimizerSettings settings, GearItem item)
+	static boolean isRequired(Monster monster, OptimizerSettings settings, Gear item)
 	{
 		for (Rule rule : rules(monster, settings))
 		{
@@ -90,11 +90,11 @@ public final class SlayerEquipment
 		return false;
 	}
 
-	static boolean allowed(Monster monster, OptimizerSettings settings, Loadout loadout)
+	static boolean allowed(Monster monster, OptimizerSettings settings, Outfit loadout)
 	{
 		for (Rule rule : rules(monster, settings))
 		{
-			GearItem worn = loadout.get(rule.slot);
+			Gear worn = loadout.get(rule.slot);
 			if (rule.slot == Slot.SHIELD && loadout.getWeapon() != null && loadout.getWeapon().isTwoHanded())
 			{
 				worn = null;
@@ -112,7 +112,7 @@ public final class SlayerEquipment
 	 *
 	 * @param item the locked item, or null for an empty / fill lock
 	 */
-	static String lockConflict(Monster monster, OptimizerSettings settings, Slot slot, GearItem item)
+	static String lockConflict(Monster monster, OptimizerSettings settings, Slot slot, Gear item)
 	{
 		for (Rule rule : rules(monster, settings))
 		{
@@ -146,7 +146,7 @@ public final class SlayerEquipment
 			notes.add("Wyrms in the Karuulm Slayer Dungeon need boots of stone, boots of brimstone or granite boots"
 				+ " (unless the Elite Kourend & Kebos Diary is complete); Wyrmscraig wyrms don't, so boots are not enforced.");
 		}
-		if (EncounterDamage.versionOf(name, "wall beast"))
+		if (Encounter.versionOf(name, "wall beast"))
 		{
 			notes.add("Wall beasts: a spiny helmet or slayer helmet is needed only to start the fight, so the head slot"
 				+ " is not restricted.");
@@ -161,10 +161,10 @@ public final class SlayerEquipment
 		private final String items;
 		/** Waived by the Elite Kourend & Kebos Diary. */
 		private final boolean karuulm;
-		private final NameLists.NameList monster;
-		private final NameLists.NameList item;
+		private final Names.NameList monster;
+		private final Names.NameList item;
 
-		private boolean satisfiedBy(GearItem worn)
+		private boolean satisfiedBy(Gear worn)
 		{
 			return worn != null && (worn.getSlot() == null || worn.getSlot() == slot) && item.matches(worn.getLowerCombatName());
 		}

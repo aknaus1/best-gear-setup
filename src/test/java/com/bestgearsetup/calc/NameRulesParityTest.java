@@ -2,10 +2,10 @@ package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertEquals;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
 import com.bestgearsetup.data.WikiMonsters;
@@ -20,7 +20,7 @@ import org.junit.Test;
 /** Each name rule moved into name-lists.json must answer exactly as its hand-written original did. */
 public class NameRulesParityTest
 {
-	private static List<GearItem> items;
+	private static List<Gear> items;
 	private static List<Monster> monsters;
 
 	@BeforeClass
@@ -34,7 +34,7 @@ public class NameRulesParityTest
 		}
 		WikiMonsters wiki = WikiMonsters.get(RuneLiteAPI.GSON);
 		monsters = new ArrayList<>();
-		for (MonsterSummary summary : wiki.getSummaries())
+		for (Summary summary : wiki.getSummaries())
 		{
 			Monster m = wiki.monster(summary.getName());
 			if (m != null)
@@ -88,10 +88,10 @@ public class NameRulesParityTest
 	private static List<String> names()
 	{
 		List<String> names = new ArrayList<>();
-		for (GearItem item : items)
+		for (Gear item : items)
 		{
 			names.add(item.getLowerCombatName());
-			names.add(EncounterDamage.lower(item));
+			names.add(Encounter.lower(item));
 		}
 		for (Monster m : monsters)
 		{
@@ -108,12 +108,12 @@ public class NameRulesParityTest
 
 	private static boolean in(String list, String name)
 	{
-		return com.bestgearsetup.data.NameLists.list(list).matches(name);
+		return com.bestgearsetup.data.Names.list(list).matches(name);
 	}
 
 	private static int table(String table, String name, int fallback)
 	{
-		return com.bestgearsetup.data.NameLists.table(table).get(name, fallback);
+		return com.bestgearsetup.data.Names.table(table).get(name, fallback);
 	}
 
 	@Test
@@ -132,9 +132,9 @@ public class NameRulesParityTest
 		same("pickaxe bonus", names, LegacyNameRules::pickaxeBonus, n -> table("guardian pickaxe bonus", n, 61));
 		same("two-hit", names, LegacyNameRules::twoHit, n -> in("two-hit weapons", n));
 		same("rat weapons", names, LegacyNameRules::ratWeapon, n -> in("rat weapons", n));
-		same("wilderness melee", names, n -> LegacyNameRules.wildernessWeapon(n, CombatClass.MELEE), n -> in("wilderness melee weapons", n));
-		same("wilderness ranged", names, n -> LegacyNameRules.wildernessWeapon(n, CombatClass.RANGED), n -> in("wilderness ranged weapons", n));
-		same("wilderness magic", names, n -> LegacyNameRules.wildernessWeapon(n, CombatClass.MAGIC), n -> in("wilderness magic weapons", n));
+		same("wilderness melee", names, n -> LegacyNameRules.wildernessWeapon(n, Combat.MELEE), n -> in("wilderness melee weapons", n));
+		same("wilderness ranged", names, n -> LegacyNameRules.wildernessWeapon(n, Combat.RANGED), n -> in("wilderness ranged weapons", n));
+		same("wilderness magic", names, n -> LegacyNameRules.wildernessWeapon(n, Combat.MAGIC), n -> in("wilderness magic weapons", n));
 		same("salamander bonus", names, LegacyNameRules::salamanderBonus, n -> table("salamander magic bonus", n, -1));
 		same("recovery capes", names, LegacyNameRules::recoveryCapeName, n -> in("ammo recovery capes", n));
 		same("venom helms", names, LegacyNameRules::venomHelm, n -> in("venom helms", n));
@@ -167,7 +167,7 @@ public class NameRulesParityTest
 					{
 						continue;
 					}
-					for (GearItem item : items)
+					for (Gear item : items)
 					{
 						assertEquals(where + " " + item.getName(), LegacySlayerEquipment.isRequired(m, settings, item),
 							SlayerEquipment.isRequired(m, settings, item));
@@ -195,11 +195,11 @@ public class NameRulesParityTest
 		}
 		same("pvp repair fee", items, i -> LegacyNameRules.repairFee(i.getName() == null ? "" : i.getName().toLowerCase(java.util.Locale.ROOT)),
 			com.bestgearsetup.ItemCosts::pvpRepairCost);
-		java.util.Map<String, Integer> fees = com.bestgearsetup.data.NameLists.exact("pvp repair fees");
+		java.util.Map<String, Integer> fees = com.bestgearsetup.data.Names.exact("pvp repair fees");
 		assertEquals(LegacyNameRules.REPAIR_COSTS.size(), fees.size());
 		LegacyNameRules.REPAIR_COSTS.forEach((n, fee) -> assertEquals(n, fee.longValue(), (long) fees.get(n)));
 		same("league equipment", raw, LegacyNameRules::leagueName, n -> in("league equipment", n));
-		same("GearItem.isLeagueEquipment", items, i -> LegacyNameRules.leagueName(i.getName().toLowerCase(java.util.Locale.ROOT))
-			&& !i.isDmmEquipment(), GearItem::isLeagueEquipment);
+		same("Gear.isLeagueEquipment", items, i -> LegacyNameRules.leagueName(i.getName().toLowerCase(java.util.Locale.ROOT))
+			&& !i.isDmmEquipment(), Gear::isLeagueEquipment);
 	}
 }

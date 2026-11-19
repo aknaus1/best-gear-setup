@@ -4,9 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
@@ -57,7 +57,7 @@ public class ChaosDwarfOptimizerTest
 			false, false, null).withModifiers(CombatModifiers.builder().wilderness(true).build());
 	}
 
-	private static long price(GearItem item)
+	private static long price(Gear item)
 	{
 		String name = item.getName();
 		if (name.equals("barrows gloves"))
@@ -72,7 +72,7 @@ public class ChaosDwarfOptimizerTest
 	private static OptimizerSettings settings()
 	{
 		return OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
-			.styles(Collections.singleton(AttackStyle.Type.ATLATL)).spellbooks(Collections.emptySet())
+			.styles(Collections.singleton(Style.Type.ATLATL)).spellbooks(Collections.emptySet())
 			.wildernessRiskLimited(true).maxExpensiveItems(4).expensiveItemThreshold(100_000).build();
 	}
 
@@ -80,7 +80,7 @@ public class ChaosDwarfOptimizerTest
 	public void mixedEquipmentBeatsTheEclipseSetWithinFourExpensiveItems()
 	{
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, context, settings(), OWNED::contains, ChaosDwarfOptimizerTest::price);
-		SetupResult result = optimizer.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup result = optimizer.optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(5.542224536007131, result.getDps().getDps(), 1e-9);
 		assertEquals(22, result.getDps().getMaxHit());
 		assertEquals(0.9033389604375305, result.getDps().getAccuracy(), 1e-8);
@@ -116,7 +116,7 @@ public class ChaosDwarfOptimizerTest
 
 	private static OptimizerSettings crushSettings()
 	{
-		return settings().toBuilder().styles(Collections.singleton(AttackStyle.Type.CRUSH)).build();
+		return settings().toBuilder().styles(Collections.singleton(Style.Type.CRUSH)).build();
 	}
 
 	/**
@@ -128,8 +128,8 @@ public class ChaosDwarfOptimizerTest
 	{
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, crushContext(), crushSettings(), CRUSH_BANK::containsKey,
 			item -> CRUSH_BANK.getOrDefault(item.getId(), 1_000L));
-		SetupResult result = optimizer.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
-		Loadout l = result.getLoadout();
+		Setup result = optimizer.optimize(Combat.MELEE, () -> false, done -> { }).get(0);
+		Outfit l = result.getLoadout();
 		assertEquals(28997, l.getWeapon().getId());
 		assertEquals(1725, l.get(Slot.NECK).getId());
 		assertEquals("aggressive", l.getStyle().getStance());
@@ -146,17 +146,17 @@ public class ChaosDwarfOptimizerTest
 
 		// The trap itself: every single change from accurate + Glory loses DPS. The boots are worn again here, as
 		// they were while the search compared the stances (with the Glory their strength does count).
-		Loadout searched = l.copy();
+		Outfit searched = l.copy();
 		searched.set(Slot.FEET, data.getItem(Slot.FEET, 3105));
 		double both = DpsCalculator.calculate(searched, crushContext()).getDps();
-		Loadout glory = searched.copy();
+		Outfit glory = searched.copy();
 		glory.set(Slot.NECK, data.getItem(Slot.NECK, 1704));
-		Loadout accurate = searched.copy();
-		Loadout trapped = glory.copy();
+		Outfit accurate = searched.copy();
+		Outfit trapped = glory.copy();
 		for (String raw : l.getWeapon().getStyles())
 		{
-			AttackStyle style = AttackStyle.parse(raw);
-			if (style.getType() == AttackStyle.Type.CRUSH && style.getStance().equals("accurate"))
+			Style style = Style.parse(raw);
+			if (style.getType() == Style.Type.CRUSH && style.getStance().equals("accurate"))
 			{
 				accurate.setStyle(style);
 				trapped.setStyle(style);
@@ -177,7 +177,7 @@ public class ChaosDwarfOptimizerTest
 		OptimizerSettings locked = settings().toBuilder().mode(SearchMode.BUDGET).budget(0)
 			.locks(locks).build();
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, context, locked, OWNED::contains, ChaosDwarfOptimizerTest::price);
-		SetupResult result = optimizer.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup result = optimizer.optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(29035, result.getLoadout().get(Slot.HEAD).getId());
 		assertEquals(22114, result.getLoadout().get(Slot.CAPE).getId());
 		assertEquals(0, result.getBuyCost());

@@ -1,16 +1,16 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.Slot;
 import java.util.Set;
 import lombok.Value;
 
 @Value
-public class SetupResult
+public class Setup
 {
-	CombatClass combatClass;
-	Loadout loadout;
-	DpsResult dps;
+	Combat combatClass;
+	Outfit loadout;
+	Dps dps;
 	/** GP needed to buy the items in this setup that the player does not own. */
 	long buyCost;
 	/** Items to buy that have no current price; when positive, {@link #buyCost} is a lower bound. */

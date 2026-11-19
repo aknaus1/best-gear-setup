@@ -1,7 +1,7 @@
 package com.bestgearsetup;
 
 import static org.junit.Assert.assertEquals;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingUtilities;
@@ -11,8 +11,8 @@ import org.junit.Test;
 /** A rerun is queued on the Swing thread; it must not resurrect a search that is no longer current. */
 public class QueuedRerunTest
 {
-	private final List<MonsterSummary> started = new ArrayList<>();
-	private final MonsterSummary target = new MonsterSummary();
+	private final List<Summary> started = new ArrayList<>();
+	private final Summary target = new Summary();
 	private BestGearSetupPlugin plugin;
 
 	@Before
@@ -21,7 +21,7 @@ public class QueuedRerunTest
 		plugin = new BestGearSetupPlugin()
 		{
 			@Override
-			public void findBestSetup(MonsterSummary summary)
+			public void findBestSetup(Summary summary)
 			{
 				started.add(summary);
 			}

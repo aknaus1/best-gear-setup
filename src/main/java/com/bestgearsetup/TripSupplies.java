@@ -26,11 +26,11 @@ public final class TripSupplies
 	static final int PROTECTION_DRAIN = 12;
 	/** Ticks a prayer point lasts per unit of drain effect before any prayer bonus. */
 	private static final int BASE_RESISTANCE = 60;
-	private static final Map<String, Integer> DRAIN_EFFECTS = NameLists.exact("prayer drain");
+	private static final Map<String, Integer> DRAIN_EFFECTS = Names.exact("prayer drain");
 	/** Doses per item of boosts that aren't four-dose bottles. */
-	private static final Map<String, Integer> BOOST_DOSES = NameLists.exact("boost doses");
+	private static final Map<String, Integer> BOOST_DOSES = Names.exact("boost doses");
 	/** One-bite foods as [name, item id], best heal first. */
-	private static final JsonArray FOODS = NameLists.rows("trip foods");
+	private static final JsonArray FOODS = Names.rows("trip foods");
 	public static final int INVENTORY_SLOTS = 28;
 	/** Fewest free slots that get a mix of foods; fewer hold the main food alone. */
 	static final int MIX_SLOTS = 4;
@@ -58,7 +58,7 @@ public final class TripSupplies
 	}
 
 	/** Seconds one kill takes: the target's hitpoints over the setup's DPS; infinite when it deals no damage. */
-	public static double killSeconds(SetupResult setup, SearchResults results)
+	public static double killSeconds(Setup setup, SearchResults results)
 	{
 		double dps = setup.getDps() == null ? 0 : setup.getDps().getPrimaryDps();
 		return dps > 0 ? results.getStartingHitpoints() / dps : Double.POSITIVE_INFINITY;
@@ -69,7 +69,7 @@ public final class TripSupplies
 	 * {@code 2 × prayer bonus + 60}, and each time it is reached a point is lost (Wiki: Prayer); 0 when the kill
 	 * never ends.
 	 */
-	public static double prayerPerKill(SetupResult setup, SearchResults results)
+	public static double prayerPerKill(Setup setup, SearchResults results)
 	{
 		OffensivePrayer offensive = results.getPrayers() == null ? null : results.getPrayers().get(setup.getCombatClass());
 		int drain = (needsOverhead(setup, results) ? PROTECTION_DRAIN : 0)
@@ -86,7 +86,7 @@ public final class TripSupplies
 	 * allows. A target that needs none, or that praying doesn't help against or has no advice, drains none. A switching
 	 * fight keeps one on at a time.
 	 */
-	static boolean needsOverhead(SetupResult setup, SearchResults results)
+	static boolean needsOverhead(Setup setup, SearchResults results)
 	{
 		Overheads.Advice advice = Overheads.recommend(results.getMonster(), setup.getCombatClass());
 		if (advice == null)
@@ -108,7 +108,7 @@ public final class TripSupplies
 	 * that poisons, then with {@code food} food in the free slots. Empty for raid targets, whose supplies come from
 	 * the raid.
 	 */
-	public static List<Supply> plan(SetupResult setup, SearchResults results, List<Potion> potions, int kills,
+	public static List<Supply> plan(Setup setup, SearchResults results, List<Potion> potions, int kills,
 		boolean food, IntPredicate owns, Antifire antifire)
 	{
 		List<Supply> out = new ArrayList<>();
@@ -157,7 +157,7 @@ public final class TripSupplies
 	 * full fire protection ({@link DragonfireProtection#blocksBreath}), and a metal dragon's melee by standing at range.
 	 * A boss, a typeless or unknown attack, a switching fight or missing data keeps the food.
 	 */
-	static boolean needsFood(Monster monster, SetupResult setup, Antifire antifire, PlayerLevels levels)
+	static boolean needsFood(Monster monster, Setup setup, Antifire antifire, PlayerLevels levels)
 	{
 		Overheads.Advice advice = Overheads.recommend(monster, setup.getCombatClass());
 		if (advice != null && advice.getNote().startsWith("It doesn't attack"))
@@ -167,7 +167,7 @@ public final class TripSupplies
 			return true;
 		Overheads.Overhead prayer = advice == null || advice.isSwitching() || advice.getPrayer() == null
 			|| advice.getPrayer().getLevel() > levels.getPrayer() ? null : advice.getPrayer();
-		boolean distant = setup.getCombatClass() != CombatClass.MELEE && DragonfireProtection.keepsDistance(monster);
+		boolean distant = setup.getCombatClass() != Combat.MELEE && DragonfireProtection.keepsDistance(monster);
 		for (Map.Entry<String, Monster.MonsterAttack> attack : attacks.entrySet())
 		{
 			String style = attack.getKey();
@@ -248,7 +248,7 @@ public final class TripSupplies
 	}
 
 	/** Slots taken before food: a spec switch's items and a shield a two-handed spec weapon takes off, a rune pouch and spell items beyond its three, and each bottle. */
-	public static int usedSlots(SetupResult setup, List<Supply> supplies)
+	public static int usedSlots(Setup setup, List<Supply> supplies)
 	{
 		int used = supplies.stream().mapToInt(Supply::getCount).sum();
 		int spellItems = SpellRunes.required(setup).size();
@@ -264,10 +264,10 @@ public final class TripSupplies
 	}
 
 	/** Whether a two-handed spec weapon switch takes the worn shield off into the inventory. */
-	static boolean takesShieldOff(SetupResult setup)
+	static boolean takesShieldOff(Setup setup)
 	{
 		SpecialPlan special = setup.getSpecial();
-		GearItem weapon = special == null ? null : special.getWeapon();
+		Gear weapon = special == null ? null : special.getWeapon();
 		return weapon != null && special.isSwitch(setup.getLoadout()) && weapon.isTwoHanded() && special.getOffhand() == null
 			&& setup.getLoadout().get(Slot.SHIELD) != null && weapon != setup.getLoadout().getWeapon();
 	}

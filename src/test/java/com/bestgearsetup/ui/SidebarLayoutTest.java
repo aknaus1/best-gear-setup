@@ -3,15 +3,15 @@ package com.bestgearsetup.ui;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
-import com.bestgearsetup.BestGearSetupConfig;
+import com.bestgearsetup.Options;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.OwnedItems;
 import com.bestgearsetup.SearchResults;
-import com.bestgearsetup.calc.Loadout;
+import com.bestgearsetup.calc.Outfit;
 import com.bestgearsetup.calc.PotionChoice;
-import com.bestgearsetup.calc.SetupResult;
+import com.bestgearsetup.calc.Setup;
 import com.bestgearsetup.calc.SlotLock;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Monster;
 import java.awt.Component;
@@ -79,12 +79,12 @@ public class SidebarLayoutTest
 					}
 
 					@Override
-					public String getPotionChoice(CombatClass cls)
+					public String getPotionChoice(Combat cls)
 					{
 						return PotionChoice.BEST;
 					}
 				};
-				BestGearSetupPanel panel = new BestGearSetupPanel(plugin, new BestGearSetupConfig() {}, null, null, null);
+				Sidebar panel = new Sidebar(plugin, new Options() {}, null, null, null);
 				panel.modeBox.setSelectedItem(com.bestgearsetup.calc.SearchMode.OWNED_ONLY);
 				assertFalse(panel.budgetRow.isVisible());
 				panel.modeBox.setSelectedItem(com.bestgearsetup.calc.SearchMode.BUDGET);
@@ -115,11 +115,11 @@ public class SidebarLayoutTest
 					assertEquals(editorScroll.getViewport().getWidth(), editorScroll.getViewport().getView().getWidth());
 					back.doClick();
 				}
-				EquipmentGrid grid = new EquipmentGrid(new SetupResult(CombatClass.MELEE, new Loadout(), null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null),
+				EquipmentGrid grid = new EquipmentGrid(new Setup(Combat.MELEE, new Outfit(), null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null),
 					java.util.Collections.emptyMap(), plugin, null, null, 0);
 				JPanel gridRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
 				gridRow.add(grid);
-				panel.resultsPanel.add(BestGearSetupPanel.left(gridRow));
+				panel.resultsPanel.add(Sidebar.left(gridRow));
 				panel.setSize(width, 420);
 				layout(panel);
 				layout(panel);

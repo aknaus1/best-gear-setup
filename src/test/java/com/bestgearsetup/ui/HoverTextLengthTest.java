@@ -4,13 +4,13 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import com.bestgearsetup.BestGearSetupConfig;
+import com.bestgearsetup.Options;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.OwnedItems;
-import com.bestgearsetup.calc.Loadout;
-import com.bestgearsetup.calc.SetupResult;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.calc.Outfit;
+import com.bestgearsetup.calc.Setup;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import java.awt.AWTEvent;
 import java.awt.Component;
@@ -82,11 +82,11 @@ public class HoverTextLengthTest
 	@Test
 	public void itemHoverKeepsWhereItIsStoredWithinTheLimit() throws Exception
 	{
-		GearItem amulet = new GearItem();
+		Gear amulet = new Gear();
 		amulet.setId(12851);
 		amulet.setName("amulet of the damned (full)");
 		amulet.setSlot(Slot.NECK);
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		loadout.set(Slot.NECK, amulet);
 		BestGearSetupPlugin plugin = mock(BestGearSetupPlugin.class);
 		when(plugin.getExcluded()).thenReturn(Collections.emptySet());
@@ -96,7 +96,7 @@ public class HoverTextLengthTest
 		when(images.getImage(anyInt())).thenReturn(mock(AsyncBufferedImage.class));
 		SwingUtilities.invokeAndWait(() ->
 		{
-			EquipmentGrid grid = new EquipmentGrid(new SetupResult(CombatClass.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null),
+			EquipmentGrid grid = new EquipmentGrid(new Setup(Combat.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null),
 				Collections.emptyMap(), plugin, images, null, 0);
 			JComponent neck = (JComponent) grid.getComponent(4);
 			MouseEvent hover = new MouseEvent(neck, MouseEvent.MOUSE_MOVED, 0, 0, 1, 1, 0, false);
@@ -119,12 +119,12 @@ public class HoverTextLengthTest
 	public void settingAndSectionDescriptionsAreUnderTenWords()
 	{
 		List<String> tooLong = new ArrayList<>();
-		for (Method method : BestGearSetupConfig.class.getDeclaredMethods())
+		for (Method method : Options.class.getDeclaredMethods())
 		{
 			ConfigItem item = method.getAnnotation(ConfigItem.class);
 			if (item != null && words(item.description()) > MAX_WORDS) { tooLong.add(item.keyName() + ": " + item.description()); }
 		}
-		for (Field field : BestGearSetupConfig.class.getDeclaredFields())
+		for (Field field : Options.class.getDeclaredFields())
 		{
 			ConfigSection section = field.getAnnotation(ConfigSection.class);
 			if (section != null && words(section.description()) > MAX_WORDS) { tooLong.add(section.name() + ": " + section.description()); }

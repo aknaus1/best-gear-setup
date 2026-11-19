@@ -3,9 +3,9 @@ package com.bestgearsetup.calc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.WikiGameData;
 import java.util.ArrayList;
@@ -32,8 +32,8 @@ public class OptimizerProgressTest
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.emptySet()).build();
 		List<Double> seen = new ArrayList<>();
-		List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, context, settings, id -> false, GearItem::getPrice)
-			.optimize(CombatClass.MELEE, () -> false, seen::add);
+		List<Setup> results = com.bestgearsetup.calc.Optimizers.of(data, context, settings, id -> false, Gear::getPrice)
+			.optimize(Combat.MELEE, () -> false, seen::add);
 		assertFalse(results.isEmpty());
 		return seen;
 	}
@@ -59,8 +59,8 @@ public class OptimizerProgressTest
 		Monster dusk = TestData.monster(100, 20);
 		dusk.setId(7851);
 		CombatContext meleeOnly = TestFactories.combatContext(dusk, PlayerLevels.maxed(), false, true, null);
-		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, meleeOnly, OptimizerSettings.builder().build(), id -> false, GearItem::getPrice)
-			.optimize(CombatClass.RANGED, () -> false, seen::add).isEmpty());
+		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, meleeOnly, OptimizerSettings.builder().build(), id -> false, Gear::getPrice)
+			.optimize(Combat.RANGED, () -> false, seen::add).isEmpty());
 		assertEquals(Collections.singletonList(1.0), seen);
 	}
 }

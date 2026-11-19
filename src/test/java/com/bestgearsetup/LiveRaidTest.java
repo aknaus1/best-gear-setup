@@ -6,7 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import com.bestgearsetup.data.MonsterSummary;
+import com.bestgearsetup.data.Summary;
 import java.util.HashMap;
 import java.util.Map;
 import net.runelite.api.Client;
@@ -24,7 +24,7 @@ public class LiveRaidTest
 
 	@Test public void nonRaidTargetsReadNothing()
 	{
-		MonsterSummary target = new MonsterSummary(); target.setName("turoth");
+		Summary target = new Summary(); target.setName("turoth");
 		LiveRaid live = LiveRaid.read(client(new HashMap<>()), target);
 		assertFalse(live.raidDetected);
 		assertTrue(live.values.isEmpty());
@@ -32,7 +32,7 @@ public class LiveRaidTest
 
 	@Test public void toaInputsRequireActivePartyAndFollowSelectedBossPath()
 	{
-		MonsterSummary target = new MonsterSummary(); target.setName("kephri");
+		Summary target = new Summary(); target.setName("kephri");
 		target.setAttributes(java.util.Collections.singletonList("tombs of amascut"));
 		Map<Integer,Integer> bits = new HashMap<>();
 		bits.put(VarbitID.TOA_CLIENT_PARTYSTATUS,2); bits.put(VarbitID.TOA_CLIENT_P0,1); bits.put(VarbitID.TOA_CLIENT_P1,2);

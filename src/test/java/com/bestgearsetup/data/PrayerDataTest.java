@@ -29,7 +29,7 @@ public class PrayerDataTest
 		prayers.put("strength", Arrays.asList(prayer("piety", 23), prayer("wiki-only prayer", 28)));
 		GameData data = new GameData(Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyList(), prayers, null);
-		List<OffensivePrayer> melee = data.getPrayers(CombatClass.MELEE);
+		List<OffensivePrayer> melee = data.getPrayers(Combat.MELEE);
 		assertEquals(1, melee.size());
 		assertEquals("piety", melee.get(0).getName());
 		assertEquals(20, melee.get(0).getAccuracyPercent(), 0);

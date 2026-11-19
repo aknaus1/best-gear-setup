@@ -102,7 +102,7 @@ public final class StatusImmunities
 			Map<String, int[]> names = new HashMap<>();
 			try
 			{
-				JsonObject root = NameLists.load(RESOURCE);
+				JsonObject root = Names.load(RESOURCE);
 				read(root.getAsJsonObject("ids"), ids);
 				read(root.getAsJsonObject("names"), names);
 			}

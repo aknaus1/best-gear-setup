@@ -7,9 +7,9 @@ import org.junit.Test;
 
 public class EquipmentCategoryTest
 {
-	private GearItem item(int id, String name)
+	private Gear item(int id, String name)
 	{
-		GearItem gear = new GearItem();
+		Gear gear = new Gear();
 		gear.setId(id);
 		gear.setName(name);
 		return gear;

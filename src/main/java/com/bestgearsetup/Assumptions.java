@@ -7,21 +7,21 @@ import java.util.Map;
  * the config key. Each config default reads its captured value through {@link #value}, so this class needs
  * no override per setting; SearchAssumptionsTest checks that every config item is copied and can be overridden.
  */
-final class SearchAssumptions implements BestGearSetupConfig
+final class Assumptions implements Options
 {
 	private final Object[] values;
 
-	private SearchAssumptions(Object[] values)
+	private Assumptions(Object[] values)
 	{
 		this.values = values;
 	}
 
 	/** Copy every setting of {@code source}, then apply the overrides; an unknown or mistyped override is rejected. */
-	static BestGearSetupConfig capture(BestGearSetupConfig source, Map<String, Object> overrides)
+	static Options capture(Options source, Map<String, Object> overrides)
 	{
 		Object[] values = ConfigSettings.capture(source);
 		overrides.forEach((name, value) -> ConfigSettings.set(values, name, value));
-		return new SearchAssumptions(values);
+		return new Assumptions(values);
 	}
 
 	/**
@@ -29,10 +29,10 @@ final class SearchAssumptions implements BestGearSetupConfig
 	 * value instead. A static call, so no unannotated method reaches RuneLite's configuration handler.
 	 */
 	@SuppressWarnings("unchecked")
-	static <T> T value(BestGearSetupConfig source, String name, T defaultValue)
+	static <T> T value(Options source, String name, T defaultValue)
 	{
-		return source instanceof SearchAssumptions
-			? (T) ((SearchAssumptions) source).values[ConfigSettings.index(name)] : defaultValue;
+		return source instanceof Assumptions
+			? (T) ((Assumptions) source).values[ConfigSettings.index(name)] : defaultValue;
 	}
 
 	@Override

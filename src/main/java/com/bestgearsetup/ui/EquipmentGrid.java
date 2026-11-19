@@ -54,12 +54,12 @@ class EquipmentGrid extends JPanel
 	};
 
 	/** @param locks how each locked slot affected the search that found this setup */
-	EquipmentGrid(SetupResult result, Map<Slot, LockStatus> locks, BestGearSetupPlugin plugin, ItemManager itemManager,
+	EquipmentGrid(Setup result, Map<Slot, LockStatus> locks, BestGearSetupPlugin plugin, ItemManager itemManager,
 		SpriteCache sprites, int ammoCount)
 	{
 		super(new GridLayout(5, 3, 6, 4));
 		setOpaque(false);
-		Loadout l = result.getLoadout();
+		Outfit l = result.getLoadout();
 		Set<Slot> filled = result.getFilledSlots();
 		for (Slot slot : LAYOUT)
 		{
@@ -70,7 +70,7 @@ class EquipmentGrid extends JPanel
 				add(empty);
 				continue;
 			}
-			GearItem item = l.get(slot);
+			Gear item = l.get(slot);
 			boolean darts = false;
 			if (slot == Slot.AMMO && item == null && l.getLoadedAmmo() != null)
 			{
@@ -117,7 +117,7 @@ class EquipmentGrid extends JPanel
 	private static final class SlotBox extends JComponent
 	{
 		private final Slot slot;
-		private final GearItem item;
+		private final Gear item;
 		private final boolean filled;
 		private final LockStatus lock;
 		private final SpriteCache sprites;
@@ -131,7 +131,7 @@ class EquipmentGrid extends JPanel
 		/** The item tooltip's lines, most important first; the location and worn status are added when it is shown. */
 		private List<String> itemTip;
 
-		SlotBox(Slot slot, GearItem item, boolean darts, boolean filled, LockStatus lock, BestGearSetupPlugin plugin,
+		SlotBox(Slot slot, Gear item, boolean darts, boolean filled, LockStatus lock, BestGearSetupPlugin plugin,
 			ItemManager itemManager, SpriteCache sprites, int ammoCount)
 		{
 			this.slot = slot;
@@ -143,7 +143,7 @@ class EquipmentGrid extends JPanel
 			this.wearable = item != null && !darts;
 			setPreferredSize(new Dimension(SLOT_SIZE, SLOT_SIZE));
 			boolean locked = lock != null;
-			GearItem lockedItem = locked ? lock.getItem() : null;
+			Gear lockedItem = locked ? lock.getItem() : null;
 
 			if (item == null && lockedItem != null && lock.isBlocking())
 			{
@@ -152,9 +152,9 @@ class EquipmentGrid extends JPanel
 				ghost = itemManager.getImage(lockedItem.getId());
 				ghost.onLoaded(this::repaint);
 				// Why the slot is empty always shows; the locked item's name follows when it fits (its faded icon shows it).
-				setToolTipText(BestGearSetupPanel.tip("Can't use: " + BestGearSetupPanel.escape(lock.getProblem()),
-					"<b>Locked to " + BestGearSetupPanel.escape(GameData.titleCase(lockedItem.getName())) + "</b>",
-					BestGearSetupPanel.escape(lock.getEffect()), "<i>Right-click to unlock</i>"));
+				setToolTipText(Sidebar.tip("Can't use: " + Sidebar.escape(lock.getProblem()),
+					"<b>Locked to " + Sidebar.escape(GameData.titleCase(lockedItem.getName())) + "</b>",
+					Sidebar.escape(lock.getEffect()), "<i>Right-click to unlock</i>"));
 				setComponentPopupMenu(ItemMenus.create(lockedItem, slot, true, plugin));
 				return;
 			}
@@ -164,8 +164,8 @@ class EquipmentGrid extends JPanel
 				icon = null;
 				marker = null;
 				// A lock that couldn't be used says why first: it is why the slot is empty.
-				setToolTipText(BestGearSetupPanel.tip(locked && lock.isBlocking() ? "Can't use: "
-					+ BestGearSetupPanel.escape(lock.getProblem()) : null, BestGearSetupPanel.escape(slot.getDisplayName()
+				setToolTipText(Sidebar.tip(locked && lock.isBlocking() ? "Can't use: "
+					+ Sidebar.escape(lock.getProblem()) : null, Sidebar.escape(slot.getDisplayName()
 					+ (lockDescription(lock).isEmpty() ? " (empty)" : ": " + lockDescription(lock))), TIP_FOOTER));
 			}
 			else
@@ -175,8 +175,8 @@ class EquipmentGrid extends JPanel
 				boolean owned = plugin.owns(item);
 				marker = owned ? OWNED : !item.isTradeable() ? UNTRADEABLE : BUY;
 				List<String> tip = new ArrayList<>();
-				tip.add("<b>" + BestGearSetupPanel.escape(GameData.titleCase(item.getName())) + "</b>");
-				boolean countedAmmo = WeaponRules.consumedPerAttack(item) && ammoCount > 0;
+				tip.add("<b>" + Sidebar.escape(GameData.titleCase(item.getName())) + "</b>");
+				boolean countedAmmo = Weapons.consumedPerAttack(item) && ammoCount > 0;
 				long held = countedAmmo && owned ? plugin.heldQuantity(item) : 0;
 				if (owned && countedAmmo && held < ammoCount)
 				{
@@ -197,15 +197,15 @@ class EquipmentGrid extends JPanel
 				{
 					long cost = plugin.price(item);
 					tip.add("Buy: " + (ItemCosts.isKnown(cost) ? Budget.format(cost) + " gp"
-						+ (WeaponRules.consumedPerAttack(item) ? " each" : "") : "no current price"));
+						+ (Weapons.consumedPerAttack(item) ? " each" : "") : "no current price"));
 				}
 				if (darts) { tip.add("Loaded in blowpipe"); }
 				if (filled) { tip.add("Filled for defence or prayer"); }
-				if (locked) { tip.add(BestGearSetupPanel.escape(lockDescription(lock))); }
+				if (locked) { tip.add(Sidebar.escape(lockDescription(lock))); }
 				if (variantOfExcluded(item, plugin)) { tip.add("Variant of an excluded item"); }
 				tip.add(sameStatsVariants(item, plugin));
 				itemTip = tip;
-				setToolTipText(BestGearSetupPanel.tip(tooltipLines(null)));
+				setToolTipText(Sidebar.tip(tooltipLines(null)));
 			}
 			setComponentPopupMenu(ItemMenus.create(item, darts ? null : slot, locked, plugin));
 		}
@@ -223,7 +223,7 @@ class EquipmentGrid extends JPanel
 				return super.getToolTipText(event);
 			}
 			// Read when shown, so a deposit or a Dude, Where's My Stuff? update is reflected without a new search.
-			return BestGearSetupPanel.tip(tooltipLines(plugin.itemLocations(item)));
+			return Sidebar.tip(tooltipLines(plugin.itemLocations(item)));
 		}
 
 		/**
@@ -237,14 +237,14 @@ class EquipmentGrid extends JPanel
 			if (locations != null && !locations.isEmpty())
 			{
 				List<String> places = new ArrayList<>(locations);
-				String where = "Location: " + BestGearSetupPanel.escape(String.join(", ", places));
-				int room = BestGearSetupPanel.TIP_WORDS - BestGearSetupPanel.words(lines.get(0));
-				if (BestGearSetupPanel.words(where) > room)
+				String where = "Location: " + Sidebar.escape(String.join(", ", places));
+				int room = Sidebar.TIP_WORDS - Sidebar.words(lines.get(0));
+				if (Sidebar.words(where) > room)
 				{
-					where = "Location: " + BestGearSetupPanel.escape(places.get(0)) + (places.size() > 1 ? " +" + (places.size() - 1) : "");
+					where = "Location: " + Sidebar.escape(places.get(0)) + (places.size() > 1 ? " +" + (places.size() - 1) : "");
 				}
 				// The only place the panel says where an item is stored: never left out, even past the limit.
-				if (BestGearSetupPanel.words(where) > room) { lines.set(0, lines.get(0) + "<br>" + where); }
+				if (Sidebar.words(where) > room) { lines.set(0, lines.get(0) + "<br>" + where); }
 				else { lines.add(1, where); }
 			}
 			lines.add(TIP_FOOTER);
@@ -252,18 +252,18 @@ class EquipmentGrid extends JPanel
 		}
 
 		/** Ornamented, kitted or recoloured copies that fight the same; owned ones first, as any can be worn instead. */
-		private static String sameStatsVariants(GearItem item, BestGearSetupPlugin plugin)
+		private static String sameStatsVariants(Gear item, BestGearSetupPlugin plugin)
 		{
-			List<GearItem> others = CosmeticVariants.others(plugin.getGameData(), item);
+			List<Gear> others = CosmeticVariants.others(plugin.getGameData(), item);
 			if (others.isEmpty())
 			{
 				return "";
 			}
 			List<String> owned = new ArrayList<>();
 			List<String> rest = new ArrayList<>();
-			for (GearItem other : others)
+			for (Gear other : others)
 			{
-				String name = BestGearSetupPanel.escape(GameData.titleCase(other.getName()));
+				String name = Sidebar.escape(GameData.titleCase(other.getName()));
 				if (plugin.owns(other))
 				{
 					owned.add(name + " (owned)");
@@ -283,7 +283,7 @@ class EquipmentGrid extends JPanel
 			return line.toString();
 		}
 
-		private static boolean variantOfExcluded(GearItem item, BestGearSetupPlugin plugin)
+		private static boolean variantOfExcluded(Gear item, BestGearSetupPlugin plugin)
 		{
 			GameData data = plugin.getGameData();
 			Set<Integer> excluded = plugin.getExcluded();

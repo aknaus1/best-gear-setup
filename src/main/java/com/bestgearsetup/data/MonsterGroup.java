@@ -14,18 +14,18 @@ public final class MonsterGroup
 	private final String name;
 	/** Variants in natural version order ("delve 2" before "delve 10"). */
 	@Getter
-	private final List<MonsterSummary> variants;
+	private final List<Summary> variants;
 	/** The variant selected when the group is picked: a normal boss, then a normal variant when possible. */
 	@Getter
-	private final MonsterSummary primary;
+	private final Summary primary;
 
-	MonsterGroup(String name, List<MonsterSummary> bundleOrder)
+	MonsterGroup(String name, List<Summary> bundleOrder)
 	{
 		this.name = name;
-		MonsterSummary firstNormalBoss = null;
-		MonsterSummary firstNormal = null;
-		MonsterSummary firstBoss = null;
-		for (MonsterSummary variant : bundleOrder)
+		Summary firstNormalBoss = null;
+		Summary firstNormal = null;
+		Summary firstBoss = null;
+		for (Summary variant : bundleOrder)
 		{
 			boolean normal = !specialVersion(variant.getName());
 			if (normal && firstNormal == null)
@@ -46,7 +46,7 @@ public final class MonsterGroup
 		}
 		this.primary = firstNormalBoss != null ? firstNormalBoss
 			: firstNormal != null ? firstNormal : firstBoss != null ? firstBoss : bundleOrder.get(0);
-		List<MonsterSummary> sorted = new ArrayList<>(bundleOrder);
+		List<Summary> sorted = new ArrayList<>(bundleOrder);
 		sorted.sort(Comparator.comparing(this::sortKey, MonsterGroup::compareNatural));
 		this.variants = Collections.unmodifiableList(sorted);
 	}
@@ -60,7 +60,7 @@ public final class MonsterGroup
 	}
 
 	/** A group of one, for a target that is not in the bundled list. */
-	static MonsterGroup single(MonsterSummary monster)
+	static MonsterGroup single(Summary monster)
 	{
 		return new MonsterGroup(baseName(monster.getName()), Collections.singletonList(monster));
 	}
@@ -72,32 +72,32 @@ public final class MonsterGroup
 
 	public boolean isBoss()
 	{
-		return variants.stream().anyMatch(MonsterSummary::isBoss);
+		return variants.stream().anyMatch(Summary::isBoss);
 	}
 
-	public boolean contains(MonsterSummary monster)
+	public boolean contains(Summary monster)
 	{
 		return variants.contains(monster);
 	}
 
 	public int getMinCombatLevel()
 	{
-		return variants.stream().mapToInt(MonsterSummary::getCombatLevel).min().orElse(0);
+		return variants.stream().mapToInt(Summary::getCombatLevel).min().orElse(0);
 	}
 
 	public int getMaxCombatLevel()
 	{
-		return variants.stream().mapToInt(MonsterSummary::getCombatLevel).max().orElse(0);
+		return variants.stream().mapToInt(Summary::getCombatLevel).max().orElse(0);
 	}
 
 	/** "Phase 3 (stage 1)", "Delve 1, NPC 14708"; "Standard" for the variant without a version. */
-	public String versionLabel(MonsterSummary variant)
+	public String versionLabel(Summary variant)
 	{
 		String label = sortKey(variant);
 		return label.isEmpty() ? "Standard" : label;
 	}
 
-	private String sortKey(MonsterSummary variant)
+	private String sortKey(Summary variant)
 	{
 		String full = variant.getName();
 		String rest = full.startsWith(name) ? full.substring(name.length()).trim() : full;

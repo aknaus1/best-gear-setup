@@ -2,7 +2,7 @@ package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
@@ -24,7 +24,7 @@ public class AtlatlSalveTest
 	private static final OptimizerSettings SETTINGS = OptimizerSettings.builder()
 		.mode(SearchMode.OWNED_ONLY)
 		
-		.styles(Collections.singleton(AttackStyle.Type.ATLATL))
+		.styles(Collections.singleton(Style.Type.ATLATL))
 		.spellbooks(Collections.singleton("standard"))
 		.build();
 
@@ -38,15 +38,15 @@ public class AtlatlSalveTest
 	@Test
 	public void enchantedSalvesShareAtlatlDamageButOnlyImbuedGrantsAccuracy()
 	{
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		loadout.set(Slot.WEAPON, data.getItem(Slot.WEAPON, 29000));
 		loadout.set(Slot.AMMO, data.getItem(Slot.AMMO, 28991));
-		loadout.setStyle(AttackStyle.parse("rapid,ranged,rapid"));
-		DpsResult baseline = DpsCalculator.calculate(loadout, CONTEXT);
+		loadout.setStyle(Style.parse("rapid,ranged,rapid"));
+		Dps baseline = DpsCalculator.calculate(loadout, CONTEXT);
 		loadout.set(Slot.NECK, data.getItem(Slot.NECK, 10588));
-		DpsResult regular = DpsCalculator.calculate(loadout, CONTEXT);
+		Dps regular = DpsCalculator.calculate(loadout, CONTEXT);
 		loadout.set(Slot.NECK, data.getItem(Slot.NECK, 12018));
-		DpsResult imbued = DpsCalculator.calculate(loadout, CONTEXT);
+		Dps imbued = DpsCalculator.calculate(loadout, CONTEXT);
 
 		assertEquals(baseline.getMaxHit() * 6 / 5, regular.getMaxHit());
 		assertEquals(baseline.getAccuracy(), regular.getAccuracy(), 1e-12);
@@ -59,13 +59,13 @@ public class AtlatlSalveTest
 	public void ownedOnlySelectsImbuedWhenAvailableAndRegularOtherwise()
 	{
 		Set<Integer> owned = new HashSet<>(Arrays.asList(29000, 28991, 10588));
-		SetupResult regular = com.bestgearsetup.calc.Optimizers.of(data, CONTEXT, SETTINGS, owned::contains, item -> 0)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup regular = com.bestgearsetup.calc.Optimizers.of(data, CONTEXT, SETTINGS, owned::contains, item -> 0)
+			.optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(10588, regular.getLoadout().get(Slot.NECK).getId());
 
 		owned.add(12018);
-		SetupResult imbued = com.bestgearsetup.calc.Optimizers.of(data, CONTEXT, SETTINGS, owned::contains, item -> 0)
-			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
+		Setup imbued = com.bestgearsetup.calc.Optimizers.of(data, CONTEXT, SETTINGS, owned::contains, item -> 0)
+			.optimize(Combat.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(12018, imbued.getLoadout().get(Slot.NECK).getId());
 		assertTrue(imbued.getDps().getDps() > regular.getDps().getDps());
 	}

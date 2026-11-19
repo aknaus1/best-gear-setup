@@ -6,8 +6,8 @@ import static com.bestgearsetup.calc.TestData.weapon;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import java.util.Arrays;
@@ -18,9 +18,9 @@ import org.junit.Test;
 
 public class AttackReachTest
 {
-	private final GearItem sword = weapon(4151, "abyssal whip", "whip", 4, "lash,slash,aggressive");
-	private final GearItem halberd = weapon(29796, "noxious halberd", "polearm", 5, "swipe,slash,aggressive");
-	private final GearItem blowpipe = weapon(12926, "toxic blowpipe", "thrown", 3,
+	private final Gear sword = weapon(4151, "abyssal whip", "whip", 4, "lash,slash,aggressive");
+	private final Gear halberd = weapon(29796, "noxious halberd", "polearm", 5, "swipe,slash,aggressive");
+	private final Gear blowpipe = weapon(12926, "toxic blowpipe", "thrown", 3,
 		"accurate,ranged,accurate", "rapid,ranged,rapid", "longrange,ranged,longrange");
 
 	public AttackReachTest()
@@ -33,14 +33,14 @@ public class AttackReachTest
 		blowpipe.setRangedStr(50);
 	}
 
-	private List<SetupResult> run(Monster target, CombatClass cls,
-		OptimizerSettings.OptimizerSettingsBuilder builder, GearItem... weapons)
+	private List<Setup> run(Monster target, Combat cls,
+		OptimizerSettings.OptimizerSettingsBuilder builder, Gear... weapons)
 	{
 		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = builder.mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard")).resultsPerClass(3).build();
 		return com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(weapons), Collections.emptyList()), ctx,
-			settings, id -> true, GearItem::getPrice).optimize(cls, () -> false, done -> { });
+			settings, id -> true, Gear::getPrice).optimize(cls, () -> false, done -> { });
 	}
 
 	@Test
@@ -51,7 +51,7 @@ public class AttackReachTest
 			Monster zulrah = monster(100, 20);
 			zulrah.setId(id);
 			zulrah.setName("zulrah");
-			List<SetupResult> results = run(zulrah, CombatClass.MELEE,
+			List<Setup> results = run(zulrah, Combat.MELEE,
 				OptimizerSettings.builder().targetDistance(1), sword, halberd);
 			assertEquals(1, results.size());
 			assertEquals(halberd, results.get(0).getLoadout().getWeapon());
@@ -64,9 +64,9 @@ public class AttackReachTest
 	{
 		Monster zulrah = monster(100, 20);
 		zulrah.setName("zulrah (magma)");
-		assertTrue(run(zulrah, CombatClass.MELEE, OptimizerSettings.builder()
+		assertTrue(run(zulrah, Combat.MELEE, OptimizerSettings.builder()
 			.locks(Collections.singletonMap(Slot.WEAPON, SlotLock.item(sword.getId()))), sword, halberd).isEmpty());
-		assertTrue(run(zulrah, CombatClass.MELEE, OptimizerSettings.builder().targetDistance(3), sword, halberd).isEmpty());
+		assertTrue(run(zulrah, Combat.MELEE, OptimizerSettings.builder().targetDistance(3), sword, halberd).isEmpty());
 	}
 
 	@Test
@@ -77,20 +77,20 @@ public class AttackReachTest
 		for (int id : new int[]{7551, 7554})
 		{
 			olm.setId(id);
-			List<SetupResult> results = run(olm, CombatClass.MELEE,
+			List<Setup> results = run(olm, Combat.MELEE,
 				OptimizerSettings.builder().targetDistance(1), sword, halberd);
 			assertEquals(1, results.size());
 			assertEquals(halberd, results.get(0).getLoadout().getWeapon());
-			assertFalse(run(olm, CombatClass.RANGED, OptimizerSettings.builder(), blowpipe).isEmpty());
-			assertTrue(run(olm, CombatClass.MELEE, OptimizerSettings.builder()
+			assertFalse(run(olm, Combat.RANGED, OptimizerSettings.builder(), blowpipe).isEmpty());
+			assertTrue(run(olm, Combat.MELEE, OptimizerSettings.builder()
 				.locks(Collections.singletonMap(Slot.WEAPON, SlotLock.item(sword.getId()))), sword, halberd).isEmpty());
-			assertTrue(run(olm, CombatClass.MELEE, OptimizerSettings.builder().targetDistance(3), halberd).isEmpty());
+			assertTrue(run(olm, Combat.MELEE, OptimizerSettings.builder().targetDistance(3), halberd).isEmpty());
 		}
 		for (int id : new int[]{7550, 7552})
 		{
 			olm.setId(id);
 			olm.setName("great olm (" + (id == 7550 ? "mage" : "melee") + " hand)");
-			assertFalse(run(olm, CombatClass.MELEE, OptimizerSettings.builder(), sword).isEmpty());
+			assertFalse(run(olm, Combat.MELEE, OptimizerSettings.builder(), sword).isEmpty());
 		}
 	}
 
@@ -98,36 +98,36 @@ public class AttackReachTest
 	public void distantBlowpipeUsesLongrangeAndStillObeysDefenceExperienceFilter()
 	{
 		Monster target = monster(100, 20);
-		List<SetupResult> atFive = run(target, CombatClass.RANGED,
+		List<Setup> atFive = run(target, Combat.RANGED,
 			OptimizerSettings.builder().targetDistance(5), blowpipe);
 		assertEquals("rapid", atFive.get(0).getLoadout().getStyle().getStance());
-		List<SetupResult> atSix = run(target, CombatClass.RANGED,
+		List<Setup> atSix = run(target, Combat.RANGED,
 			OptimizerSettings.builder().targetDistance(6), blowpipe);
 		assertEquals("longrange", atSix.get(0).getLoadout().getStyle().getStance());
-		assertTrue(run(target, CombatClass.RANGED, OptimizerSettings.builder()
+		assertTrue(run(target, Combat.RANGED, OptimizerSettings.builder()
 			.targetDistance(6).defenceXp(false), blowpipe).isEmpty());
-		assertTrue(run(target, CombatClass.RANGED, OptimizerSettings.builder().targetDistance(8), blowpipe).isEmpty());
+		assertTrue(run(target, Combat.RANGED, OptimizerSettings.builder().targetDistance(8), blowpipe).isEmpty());
 	}
 
 	@Test
 	public void meleeOnAStaffDoesNotInheritItsSpellRange()
 	{
-		GearItem staff = weapon(1409, "iban's staff", "staff", 5);
-		assertEquals(1, AttackReach.range(staff, AttackStyle.parse("bash,crush,aggressive")));
-		assertEquals(10, AttackReach.range(staff, AttackStyle.parse("spell,magic,magic")));
+		Gear staff = weapon(1409, "iban's staff", "staff", 5);
+		assertEquals(1, AttackReach.range(staff, Style.parse("bash,crush,aggressive")));
+		assertEquals(10, AttackReach.range(staff, Style.parse("spell,magic,magic")));
 	}
 
 	@Test
 	public void poweredStaffAndRangedRangesRespectWeaponExceptionsAndCap()
 	{
-		AttackStyle magic = AttackStyle.parse("accurate,magic,accurate");
-		AttackStyle longMagic = AttackStyle.parse("longrange,magic,longrange");
+		Style magic = Style.parse("accurate,magic,accurate");
+		Style longMagic = Style.parse("longrange,magic,longrange");
 		assertEquals(7, AttackReach.range(weapon(11907, "trident of the seas", "powered staff", 4), magic));
 		assertEquals(9, AttackReach.range(weapon(11907, "trident of the seas", "powered staff", 4), longMagic));
 		assertEquals(8, AttackReach.range(weapon(31115, "eye of ayak", "powered staff", 3), longMagic));
 		assertEquals(10, AttackReach.range(weapon(27275, "tumeken's shadow", "powered staff", 5), longMagic));
-		AttackStyle rapid = AttackStyle.parse("rapid,ranged,rapid");
-		AttackStyle longRanged = AttackStyle.parse("longrange,ranged,longrange");
+		Style rapid = Style.parse("rapid,ranged,rapid");
+		Style longRanged = Style.parse("longrange,ranged,longrange");
 		assertEquals(7, AttackReach.range(weapon(861, "magic shortbow (i)", "bow", 4), rapid));
 		assertEquals(7, AttackReach.range(weapon(21012, "dragon hunter crossbow", "crossbow", 6), rapid));
 		assertEquals(10, AttackReach.range(weapon(26374, "zaryte crossbow", "crossbow", 6), longRanged));
@@ -140,19 +140,19 @@ public class AttackReachTest
 	@Test
 	public void unknownRangedWeaponIsNotAssumedToReachDistantTargets()
 	{
-		GearItem unknown = weapon(99901, "test bow (beta)", "bow", 4, "rapid,ranged,rapid");
+		Gear unknown = weapon(99901, "test bow (beta)", "bow", 4, "rapid,ranged,rapid");
 		unknown.setRangedBonus(80);
 		unknown.setRangedStr(80);
-		assertFalse(run(monster(100, 20), CombatClass.RANGED,
+		assertFalse(run(monster(100, 20), Combat.RANGED,
 			OptimizerSettings.builder().betaItems(true), unknown).isEmpty());
-		assertTrue(run(monster(100, 20), CombatClass.RANGED,
+		assertTrue(run(monster(100, 20), Combat.RANGED,
 			OptimizerSettings.builder().betaItems(true).targetDistance(2), unknown).isEmpty());
 	}
 
 	@Test
 	public void flyingRestrictionStillAllowsOnlyPolearmsForMelee()
 	{
-		List<SetupResult> results = run(monster(100, 20, "flying"), CombatClass.MELEE,
+		List<Setup> results = run(monster(100, 20, "flying"), Combat.MELEE,
 			OptimizerSettings.builder(), sword, halberd);
 		assertEquals(1, results.size());
 		assertEquals(halberd, results.get(0).getLoadout().getWeapon());
@@ -166,16 +166,16 @@ public class AttackReachTest
 		{
 			Monster target = monster(100, 20);
 			target.setId(id);
-			List<SetupResult> results = run(target, CombatClass.MELEE, OptimizerSettings.builder(), sword, halberd);
+			List<Setup> results = run(target, Combat.MELEE, OptimizerSettings.builder(), sword, halberd);
 			boolean aviansie = id >= 3169 && id <= 3183 || id == 7037 || id == 12443 || id == 6492 || id == 15697;
 			assertEquals("NPC " + id, aviansie ? 0 : 1, results.size());
 			if (!aviansie)
 			{
 				assertEquals(halberd, results.get(0).getLoadout().getWeapon());
 			}
-			assertTrue(run(target, CombatClass.MELEE, OptimizerSettings.builder()
+			assertTrue(run(target, Combat.MELEE, OptimizerSettings.builder()
 				.locks(Collections.singletonMap(Slot.WEAPON, SlotLock.item(sword.getId()))), sword).isEmpty());
-			assertFalse(run(target, CombatClass.RANGED, OptimizerSettings.builder(), blowpipe).isEmpty());
+			assertFalse(run(target, Combat.RANGED, OptimizerSettings.builder(), blowpipe).isEmpty());
 		}
 	}
 
@@ -187,24 +187,24 @@ public class AttackReachTest
 		{
 			Monster target = monster(100, 20);
 			target.setName(name);
-			assertFalse(name, AttackReach.canReach(target, sword, AttackStyle.parse("lash,slash,aggressive"), 0));
+			assertFalse(name, AttackReach.canReach(target, sword, Style.parse("lash,slash,aggressive"), 0));
 			assertEquals(name, !name.toLowerCase(java.util.Locale.ROOT).contains("aviansie"),
-				AttackReach.canReach(target, halberd, AttackStyle.parse("swipe,slash,aggressive"), 0));
+				AttackReach.canReach(target, halberd, Style.parse("swipe,slash,aggressive"), 0));
 		}
 		Monster dusk = monster(100, 20, "melee only");
 		dusk.setId(7854);
 		dusk.setName("Dusk (Echo)");
-		assertFalse(run(dusk, CombatClass.MELEE, OptimizerSettings.builder(), sword).isEmpty());
+		assertFalse(run(dusk, Combat.MELEE, OptimizerSettings.builder(), sword).isEmpty());
 	}
 
 	@Test
 	public void zukExcludesEveryMeleeWeaponAndAutoRequiresShieldCornerRange()
 	{
-		GearItem crossbow = weapon(11785, "armadyl crossbow", "crossbow", 6,
+		Gear crossbow = weapon(11785, "armadyl crossbow", "crossbow", 6,
 			"rapid,ranged,rapid", "longrange,ranged,longrange");
 		crossbow.setRangedBonus(100);
 		crossbow.setRangedStr(100);
-		GearItem shadow = weapon(27275, "tumeken's shadow", "powered staff", 5, "accurate,magic,accurate");
+		Gear shadow = weapon(27275, "tumeken's shadow", "powered staff", 5, "accurate,magic,accurate");
 		shadow.setMagicBonus(100);
 		for (int id : new int[]{1, 7706})
 		{
@@ -214,28 +214,28 @@ public class AttackReachTest
 			{
 				zuk.setName("TzKal-Zuk (enraged)");
 			}
-			assertTrue(run(zuk, CombatClass.MELEE, OptimizerSettings.builder().targetDistance(1), sword, halberd).isEmpty());
-			assertTrue(run(zuk, CombatClass.MELEE, OptimizerSettings.builder()
+			assertTrue(run(zuk, Combat.MELEE, OptimizerSettings.builder().targetDistance(1), sword, halberd).isEmpty());
+			assertTrue(run(zuk, Combat.MELEE, OptimizerSettings.builder()
 				.locks(Collections.singletonMap(Slot.WEAPON, SlotLock.item(halberd.getId()))), halberd).isEmpty());
-			assertTrue(run(zuk, CombatClass.RANGED, OptimizerSettings.builder(), blowpipe).isEmpty());
-			List<SetupResult> results = run(zuk, CombatClass.RANGED, OptimizerSettings.builder(), crossbow);
+			assertTrue(run(zuk, Combat.RANGED, OptimizerSettings.builder(), blowpipe).isEmpty());
+			List<Setup> results = run(zuk, Combat.RANGED, OptimizerSettings.builder(), crossbow);
 			assertEquals(1, results.size());
 			assertEquals("longrange", results.get(0).getLoadout().getStyle().getStance());
-			assertFalse(run(zuk, CombatClass.MAGIC, OptimizerSettings.builder(), shadow).isEmpty());
+			assertFalse(run(zuk, Combat.MAGIC, OptimizerSettings.builder(), shadow).isEmpty());
 			assertEquals(9, AttackReach.distance(zuk, 0));
 			assertEquals(6, AttackReach.distance(zuk, 1));
-			assertEquals("longrange", run(zuk, CombatClass.RANGED, OptimizerSettings.builder()
+			assertEquals("longrange", run(zuk, Combat.RANGED, OptimizerSettings.builder()
 				.targetDistance(6), blowpipe).get(0).getLoadout().getStyle().getStance());
-			assertTrue(run(zuk, CombatClass.RANGED, OptimizerSettings.builder().defenceXp(false), crossbow).isEmpty());
+			assertTrue(run(zuk, Combat.RANGED, OptimizerSettings.builder().defenceXp(false), crossbow).isEmpty());
 		}
 		Monster zuk = monster(100, 20, "melee only");
 		zuk.setName("TzKal-Zuk (enraged)");
-		assertFalse(Optimizer.classAllowed(zuk, CombatClass.MELEE));
+		assertFalse(Optimizer.classAllowed(zuk, Combat.MELEE));
 		Monster jadHealer = monster(100, 20);
 		jadHealer.setId(7705);
 		jadHealer.setName("Yt-HurKot");
 		assertFalse(AttackReach.isZuk(jadHealer));
-		assertFalse(run(jadHealer, CombatClass.MELEE, OptimizerSettings.builder(), sword).isEmpty());
+		assertFalse(run(jadHealer, Combat.MELEE, OptimizerSettings.builder(), sword).isEmpty());
 	}
 
 	@Test
@@ -245,20 +245,20 @@ public class AttackReachTest
 		{
 			Monster target = monster(100, 20);
 			target.setId(id);
-			assertTrue(run(target, CombatClass.MELEE, OptimizerSettings.builder(), sword, halberd).isEmpty());
-			assertFalse(run(target, CombatClass.RANGED, OptimizerSettings.builder(), blowpipe).isEmpty());
+			assertTrue(run(target, Combat.MELEE, OptimizerSettings.builder(), sword, halberd).isEmpty());
+			assertFalse(run(target, Combat.RANGED, OptimizerSettings.builder(), blowpipe).isEmpty());
 		}
 		for (String name : new String[]{"Kraken (Kraken)", "Cave kraken", "Enormous tentacle"})
 		{
 			Monster target = monster(100, 20);
 			target.setName(name);
-			assertTrue(name, run(target, CombatClass.MELEE, OptimizerSettings.builder(), halberd).isEmpty());
+			assertTrue(name, run(target, Combat.MELEE, OptimizerSettings.builder(), halberd).isEmpty());
 		}
 		Monster sailing = monster(100, 20);
 		sailing.setId(15210);
 		sailing.setName("Armoured kraken");
 		assertFalse(AttackReach.isKraken(sailing));
-		assertFalse(run(sailing, CombatClass.MELEE, OptimizerSettings.builder(), sword).isEmpty());
+		assertFalse(run(sailing, Combat.MELEE, OptimizerSettings.builder(), sword).isEmpty());
 	}
 
 	@Test
@@ -267,19 +267,19 @@ public class AttackReachTest
 		Monster zebak = monster(100, 20);
 		zebak.setId(11730);
 		zebak.setName("Zebak");
-		assertEquals(sword, run(zebak, CombatClass.MELEE, OptimizerSettings.builder(), sword, halberd)
+		assertEquals(sword, run(zebak, Combat.MELEE, OptimizerSettings.builder(), sword, halberd)
 			.get(0).getLoadout().getWeapon());
-		assertEquals(halberd, run(zebak, CombatClass.MELEE, OptimizerSettings.builder().targetDistance(2), sword, halberd)
+		assertEquals(halberd, run(zebak, Combat.MELEE, OptimizerSettings.builder().targetDistance(2), sword, halberd)
 			.get(0).getLoadout().getWeapon());
-		assertTrue(run(zebak, CombatClass.MELEE, OptimizerSettings.builder().targetDistance(3), sword, halberd).isEmpty());
+		assertTrue(run(zebak, Combat.MELEE, OptimizerSettings.builder().targetDistance(3), sword, halberd).isEmpty());
 	}
 
 	@Test
 	public void vespulaAutoDistanceExcludesShortRangedWeaponsAndPortalAlwaysNeedsSevenTiles()
 	{
-		GearItem dart = weapon(11230, "dragon dart", "thrown", 3,
+		Gear dart = weapon(11230, "dragon dart", "thrown", 3,
 			"accurate,ranged,accurate", "rapid,ranged,rapid", "longrange,ranged,longrange");
-		GearItem bow = weapon(11235, "dark bow", "bow", 9, "accurate,ranged,accurate", "rapid,ranged,rapid");
+		Gear bow = weapon(11235, "dark bow", "bow", 9, "accurate,ranged,accurate", "rapid,ranged,rapid");
 		dart.setRangedBonus(50);
 		dart.setRangedStr(50);
 		bow.setRangedBonus(10);
@@ -290,19 +290,19 @@ public class AttackReachTest
 		vespula.setName("Vespula (normal)");
 		assertEquals(7, AttackReach.distance(vespula, 0));
 		assertEquals(2, AttackReach.distance(vespula, 2));
-		List<SetupResult> auto = run(vespula, CombatClass.RANGED, OptimizerSettings.builder(), dart, bow);
+		List<Setup> auto = run(vespula, Combat.RANGED, OptimizerSettings.builder(), dart, bow);
 		assertEquals(bow, auto.get(0).getLoadout().getWeapon());
 		assertEquals(1, auto.size());
 		// A longrange blowpipe reaches exactly seven tiles.
-		assertEquals("longrange", run(vespula, CombatClass.RANGED, OptimizerSettings.builder(), blowpipe)
+		assertEquals("longrange", run(vespula, Combat.RANGED, OptimizerSettings.builder(), blowpipe)
 			.get(0).getLoadout().getStyle().getStance());
-		assertFalse(run(vespula, CombatClass.RANGED, OptimizerSettings.builder().targetDistance(3), dart).isEmpty());
+		assertFalse(run(vespula, Combat.RANGED, OptimizerSettings.builder().targetDistance(3), dart).isEmpty());
 
 		Monster portal = monster(100, 20);
 		portal.setId(7533);
 		portal.setName("Abyssal portal (normal)");
 		assertEquals(7, AttackReach.distance(portal, 3));
-		assertTrue(run(portal, CombatClass.RANGED, OptimizerSettings.builder().targetDistance(3), dart).isEmpty());
+		assertTrue(run(portal, Combat.RANGED, OptimizerSettings.builder().targetDistance(3), dart).isEmpty());
 	}
 
 	@Test

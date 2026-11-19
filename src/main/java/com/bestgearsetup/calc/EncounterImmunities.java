@@ -1,14 +1,14 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.*;
-import static com.bestgearsetup.calc.EncounterDamage.*;
+import static com.bestgearsetup.calc.Encounter.*;
 
 /** Combat-class and equipment requirements shared by search filtering and direct DPS scoring. */
 final class EncounterImmunities
 {
-	private static final NameLists.NameList BROAD_AMMUNITION = NameLists.list("broad ammunition");
-	private static final NameLists.NameList VAMPYREBANE_MELEE = NameLists.list("vampyrebane melee weapons");
-	private static final NameLists.NameList SILVER_MELEE = NameLists.list("silver melee weapons");
+	private static final Names.NameList BROAD_AMMUNITION = Names.list("broad ammunition");
+	private static final Names.NameList VAMPYREBANE_MELEE = Names.list("vampyrebane melee weapons");
+	private static final Names.NameList SILVER_MELEE = Names.list("silver melee weapons");
 
 	/** Slot.values() copies the array on every call, and every scored setup is checked. */
 	private static final Slot[] SLOTS = Slot.values();
@@ -17,7 +17,7 @@ final class EncounterImmunities
 	{
 	}
 
-	static boolean classAllowed(Monster monster, CombatClass cls)
+	static boolean classAllowed(Monster monster, Combat cls)
 	{
 		int id = monster.getId();
 		boolean dusk = id == 7851 || id == 7854 || id == 7855 || id == 7882 || id == 7883
@@ -25,33 +25,33 @@ final class EncounterImmunities
 		if (CombatRules.eclipseClone(monster) || dusk || guardian(monster)
 			|| id >= 2463 && id <= 2468 || id >= 2137 && id <= 2142)
 		{
-			return cls == CombatClass.MELEE;
+			return cls == Combat.MELEE;
 		}
 		if (tekton(monster) || crystal(monster))
 		{
 			// Crystals can take reduced Magic damage even where a broader "melee only" tag says otherwise.
-			return cls != CombatClass.RANGED;
+			return cls != Combat.RANGED;
 		}
-		if (cls == CombatClass.MELEE && (AttackReach.isMeleeBlocked(monster)
+		if (cls == Combat.MELEE && (AttackReach.isMeleeBlocked(monster)
 			|| AttackReach.isVespula(monster) || AttackReach.isAbyssalPortal(monster)
 			|| id == 12214 || id == 12215 || id == 12219 || named(monster, "the leviathan")))
 		{
 			return false;
 		}
-		if (cls == CombatClass.MELEE && monster.hasAttribute("melee immune")
-			|| cls == CombatClass.RANGED && monster.hasAttribute("ranged immune")
-			|| cls == CombatClass.MAGIC && monster.hasAttribute("magic immune"))
+		if (cls == Combat.MELEE && monster.hasAttribute("melee immune")
+			|| cls == Combat.RANGED && monster.hasAttribute("ranged immune")
+			|| cls == Combat.MAGIC && monster.hasAttribute("magic immune"))
 		{
 			return false;
 		}
-		return (!monster.hasAttribute("melee only") || cls == CombatClass.MELEE)
-			&& (!monster.hasAttribute("ranged only") || cls == CombatClass.RANGED)
-			&& (!monster.hasAttribute("magic only") || cls == CombatClass.MAGIC);
+		return (!monster.hasAttribute("melee only") || cls == Combat.MELEE)
+			&& (!monster.hasAttribute("ranged only") || cls == Combat.RANGED)
+			&& (!monster.hasAttribute("magic only") || cls == Combat.MAGIC);
 	}
 
-	static boolean attackAllowed(Monster monster, Loadout loadout)
+	static boolean attackAllowed(Monster monster, Outfit loadout)
 	{
-		CombatClass cls = WeaponRules.classOf(loadout.getStyle());
+		Combat cls = Weapons.classOf(loadout.getStyle());
 		if (!classAllowed(monster, cls)
 			|| loadout.getStyle().isMelee() && !AttackReach.meleeAllowed(monster, loadout.getWeapon()))
 		{
@@ -67,12 +67,12 @@ final class EncounterImmunities
 				return false;
 			}
 		}
-		if (cls == CombatClass.RANGED && (weapon.equals("holy water") && !monster.hasAttribute("demon")
+		if (cls == Combat.RANGED && (weapon.equals("holy water") && !monster.hasAttribute("demon")
 			|| weapon.contains("(u)") || weapon.contains("uncharged")))
 		{
 			return false;
 		}
-		if (EquipmentEffects.ratWeapon(loadout.getWeapon()) && !monster.hasAttribute("rat"))
+		if (Effects.ratWeapon(loadout.getWeapon()) && !monster.hasAttribute("rat"))
 		{
 			return false;
 		}
@@ -82,12 +82,12 @@ final class EncounterImmunities
 			return false;
 		}
 		if (named(monster, "fire warrior of lesarkus")
-			&& (cls != CombatClass.RANGED || !ammo.equals("ice arrows")))
+			&& (cls != Combat.RANGED || !ammo.equals("ice arrows")))
 		{
 			return false;
 		}
-		if (named(monster, "fareed") && (cls == CombatClass.MAGIC
-			&& !SpellRules.element(loadout.getSpell()).equals("water") || cls == CombatClass.RANGED && !ammo.contains("arrow")))
+		if (named(monster, "fareed") && (cls == Combat.MAGIC
+			&& !SpellRules.element(loadout.getSpell()).equals("water") || cls == Combat.RANGED && !ammo.contains("arrow")))
 		{
 			return false;
 		}
@@ -98,9 +98,9 @@ final class EncounterImmunities
 		}
 		if (leafy(monster))
 		{
-			boolean leaf = cls == CombatClass.MELEE && weapon.startsWith("leaf-bladed ")
-				|| cls == CombatClass.MAGIC && spell(loadout).equals("magic dart")
-				|| cls == CombatClass.RANGED && WeaponRules.firesAmmoSlot(loadout.getWeapon())
+			boolean leaf = cls == Combat.MELEE && weapon.startsWith("leaf-bladed ")
+				|| cls == Combat.MAGIC && spell(loadout).equals("magic dart")
+				|| cls == Combat.RANGED && Weapons.firesAmmoSlot(loadout.getWeapon())
 				&& BROAD_AMMUNITION.matches(ammo);
 			if (!leaf)
 			{
@@ -119,10 +119,10 @@ final class EncounterImmunities
 		return true;
 	}
 
-	static boolean vampyrebane(Loadout loadout, boolean tierThree)
+	static boolean vampyrebane(Outfit loadout, boolean tierThree)
 	{
 		String weapon = lower(loadout.getWeapon());
-		if (loadout.getStyle().getType() == AttackStyle.Type.RANGED && weapon.startsWith("blisterwood stake"))
+		if (loadout.getStyle().getType() == Style.Type.RANGED && weapon.startsWith("blisterwood stake"))
 		{
 			return true;
 		}
@@ -130,12 +130,12 @@ final class EncounterImmunities
 			|| !tierThree && weapon.startsWith("rod of ivandis"));
 	}
 
-	static boolean silver(Loadout loadout)
+	static boolean silver(Outfit loadout)
 	{
-		if (loadout.getStyle().getType() == AttackStyle.Type.RANGED)
+		if (loadout.getStyle().getType() == Style.Type.RANGED)
 		{
 			return lower(loadout.getWeapon()).startsWith("blisterwood stake")
-				|| WeaponRules.firesAmmoSlot(loadout.getWeapon())
+				|| Weapons.firesAmmoSlot(loadout.getWeapon())
 				&& lower(loadout.get(Slot.AMMO)).startsWith("silver bolts");
 		}
 		String weapon = lower(loadout.getWeapon());

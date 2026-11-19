@@ -85,7 +85,7 @@ implementation surrounding it. These labels describe the inspected evidence, not
 | 28 | `DpsCalculator.java:278-284` | `PlayerVsNPCCalc.ts:855` | Pattern: melee damage/Keris accuracy versus the aggregate Magic accuracy percentage. |
 | 29 | `DpsCalculator.java:629-638` | `PlayerVsNPCCalc.ts:414` | Pattern: ranged flat bonuses and Tonalztics versus melee dragon-hunter/Keris bonuses. |
 | 30 | `SpecialDamage.java:252-254` | `claws.ts:144` | Pattern: direct claw hitsplat bounds versus a burn truth table. Related weapon, different computation; see the separate claw review below. |
-| 31 | `EquipmentEffects.java:135-139` | `PlayerVsNPCCalc.ts:165` | Pattern: silver-weapon per-hit damage versus special-attack defence-style selection. |
+| 31 | `Effects.java:135-139` | `PlayerVsNPCCalc.ts:165` | Pattern: silver-weapon per-hit damage versus special-attack defence-style selection. |
 | 32 | `SpecialAttacks.java:86-90` | `DefenceReduction.ts:101` | Mechanic/pattern: vulnerability followed by elder-maul drain; percentage arithmetic and loops, not a copied surrounding helper. |
 | 33 | `DpsCalculator.java:528-532` | `PlayerVsNPCCalc.ts:541` | Mechanic: ranged void scaling and base attack roll. The plugin also computes ranged damage using separate strength/atlatl inputs. |
 | 34 | `StatusEffects.java:384-387` | `claws.ts:160` | Pattern: capped Poisson burn stacks versus weighting first-success claw rolls. |

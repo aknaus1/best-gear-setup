@@ -22,9 +22,9 @@ public class WikiGameDataTest
 		data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);
 	}
 
-	private static GearItem item(Slot slot, String name)
+	private static Gear item(Slot slot, String name)
 	{
-		for (GearItem item : data.getItems(slot))
+		for (Gear item : data.getItems(slot))
 		{
 			if (item.getName().equals(name))
 			{
@@ -53,13 +53,13 @@ public class WikiGameDataTest
 		assertTrue(data.getItems(Slot.AMMO).size() > 100);
 		for (Slot slot : Slot.values())
 		{
-			for (GearItem item : data.getItems(slot))
+			for (Gear item : data.getItems(slot))
 			{
 				assertFalse(item.getName(), item.isLeagueEquipment() || item.isBetaEquipment());
 				assertTrue(item.getName(), item.getId() > 0);
 			}
 		}
-		List<String> weapons = data.getItems(Slot.WEAPON).stream().map(GearItem::getName).collect(Collectors.toList());
+		List<String> weapons = data.getItems(Slot.WEAPON).stream().map(Gear::getName).collect(Collectors.toList());
 		assertFalse(weapons.contains("the dogsword"));
 		assertFalse(weapons.contains("nature's recurve"));
 		assertTrue(weapons.contains("keris partisan of amascut (inside toa)"));
@@ -70,17 +70,17 @@ public class WikiGameDataTest
 	@Test
 	public void weaponsCarryWikiStatsCategoriesAndStyles()
 	{
-		GearItem whip = item(Slot.WEAPON, "abyssal whip");
+		Gear whip = item(Slot.WEAPON, "abyssal whip");
 		assertEquals(4151, whip.getId());
 		assertEquals(82, whip.getSlashBonus());
 		assertEquals(82, whip.getMeleeStr());
 		assertEquals(4, whip.getAttackSpeed());
 		assertEquals("whip", whip.getSubcategory());
 		assertEquals(3, whip.getStyles().size());
-		GearItem bow = item(Slot.WEAPON, "twisted bow");
+		Gear bow = item(Slot.WEAPON, "twisted bow");
 		assertTrue(bow.isTwoHanded());
 		assertEquals("bow", bow.getSubcategory());
-		GearItem shadow = item(Slot.WEAPON, "tumeken's shadow");
+		Gear shadow = item(Slot.WEAPON, "tumeken's shadow");
 		assertEquals("powered staff", shadow.getSubcategory());
 		assertEquals(5.0, item(Slot.NECK, "occult necklace").getMagicStr(), 1e-9);
 		assertTrue(item(Slot.WEAPON, "kodai wand").getStyles().contains("spell,magic,magic"));
@@ -112,7 +112,7 @@ public class WikiGameDataTest
 	public void wearRequirementsCombineCacheTextAndReviewedRules()
 	{
 		assertEquals(85, item(Slot.WEAPON, "twisted bow").getRangedReq());
-		GearItem scythe = item(Slot.WEAPON, "scythe of vitur");
+		Gear scythe = item(Slot.WEAPON, "scythe of vitur");
 		assertEquals(80, scythe.getAttackReq());
 		assertEquals(90, scythe.getStrengthReq());
 		// Ornament kits and charge states fold into the base item, so owning either id counts.
@@ -125,14 +125,14 @@ public class WikiGameDataTest
 		// Same stats, different effects: these stay separate.
 		assertEquals(75, item(Slot.WEAPON, "blood ancient sceptre").getMagicReq());
 		assertTrue(item(Slot.WEAPON, "eldritch nightmare staff").getVariants().size() <= 2);
-		GearItem mask = item(Slot.HEAD, "black mask (i)");
+		Gear mask = item(Slot.HEAD, "black mask (i)");
 		assertEquals(10, mask.getDefenceReq());
 		assertEquals(20, mask.getStrengthReq());
 		assertEquals(40, mask.getCombatReq());
-		GearItem salve = item(Slot.NECK, "salve amulet(ei)");
+		Gear salve = item(Slot.NECK, "salve amulet(ei)");
 		assertEquals(1, salve.getStrengthReq());
 		assertEquals(1, salve.getMagicReq());
-		GearItem pegasian = item(Slot.FEET, "pegasian boots");
+		Gear pegasian = item(Slot.FEET, "pegasian boots");
 		assertEquals(75, pegasian.getRangedReq());
 		assertEquals(75, pegasian.getDefenceReq());
 		assertEquals(1, pegasian.getAttackReq());
@@ -174,12 +174,12 @@ public class WikiGameDataTest
 	@Test
 	public void prayersAndPotionsFollowTheirWikiPages()
 	{
-		OffensivePrayer piety = data.getPrayers(CombatClass.MELEE).stream().filter(p -> p.getName().equals("piety"))
+		OffensivePrayer piety = data.getPrayers(Combat.MELEE).stream().filter(p -> p.getName().equals("piety"))
 			.findFirst().orElse(null);
 		assertNotNull(piety);
 		assertEquals(20, piety.getAccuracyPercent(), 1e-9);
 		assertEquals(23, piety.getDamagePercent(), 1e-9);
-		OffensivePrayer augury = data.getPrayers(CombatClass.MAGIC).stream().filter(p -> p.getName().equals("augury"))
+		OffensivePrayer augury = data.getPrayers(Combat.MAGIC).stream().filter(p -> p.getName().equals("augury"))
 			.findFirst().orElse(null);
 		assertNotNull(augury);
 		assertEquals(25, augury.getAccuracyPercent(), 1e-9);

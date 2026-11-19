@@ -19,16 +19,16 @@ public class SpecialVersionDefaultsTest
 		bundled = new GameDataLoader(RuneLiteAPI.GSON).loadGameData();
 	}
 
-	private static MonsterSummary summary(String name, int level, boolean boss)
+	private static Summary summary(String name, int level, boolean boss)
 	{
-		MonsterSummary m = new MonsterSummary();
+		Summary m = new Summary();
 		m.setName(name);
 		m.setCombatLevel(level);
 		m.setBoss(boss);
 		return m;
 	}
 
-	private static GameData data(MonsterSummary... monsters)
+	private static GameData data(Summary... monsters)
 	{
 		return new GameData(Arrays.asList(monsters), Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
@@ -56,11 +56,11 @@ public class SpecialVersionDefaultsTest
 	@Test
 	public void groupsPreferANormalVersion()
 	{
-		MonsterSummary echo = summary("black dragon (echo)", 227, false);
-		MonsterSummary normal = summary("black dragon (level 227)", 227, false);
-		MonsterSummary deadmanBoss = summary("yama (deadman) (permanent)", 524, true);
-		MonsterSummary yama = summary("yama (normal)", 1238, true);
-		MonsterSummary onlyDeadman = summary("bee swarm (deadman) (permanent)", 545, false);
+		Summary echo = summary("black dragon (echo)", 227, false);
+		Summary normal = summary("black dragon (level 227)", 227, false);
+		Summary deadmanBoss = summary("yama (deadman) (permanent)", 524, true);
+		Summary yama = summary("yama (normal)", 1238, true);
+		Summary onlyDeadman = summary("bee swarm (deadman) (permanent)", 545, false);
 		GameData data = data(echo, normal, deadmanBoss, yama, onlyDeadman,
 			summary("bee swarm (deadman) (annihilation)", 1420, false));
 		assertEquals(normal, data.searchMonsterGroups("black dragon", 1, false).get(0).getPrimary());
@@ -78,7 +78,7 @@ public class SpecialVersionDefaultsTest
 		assertEquals("witch's experiment (skavid)", primary("witch's experiment"));
 		assertEquals("cerberus", primary("cerberus"));
 		assertEquals("bee swarm (deadman) (permanent)", primary("bee swarm"));
-		for (MonsterSummary monster : bundled.getMonsters())
+		for (Summary monster : bundled.getMonsters())
 		{
 			for (boolean bosses : new boolean[]{false, true})
 			{

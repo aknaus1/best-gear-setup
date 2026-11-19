@@ -10,7 +10,7 @@ import java.util.*;
  * A pattern is an exact name, or uses {@code *} for any text ({@code "dragon dagger*"}, {@code "*sickle*"});
  * {@code "kraken (*)"} matches "kraken" alone or with a version, as in "kraken (cave)".
  */
-public final class NameLists
+public final class Names
 {
 	/** Parsed on first use without Gson: classes read their lists at class load, before the client's Gson exists. */
 	private static final class Lists
@@ -18,14 +18,14 @@ public final class NameLists
 		static final JsonObject DATA = load("/com/bestgearsetup/name-lists.json");
 	}
 
-	private NameLists()
+	private Names()
 	{
 	}
 
 	/** Bundled JSON resource, parsed once. Missing or malformed data fails loudly at class load. */
 	public static JsonObject load(String resource)
 	{
-		InputStream in = NameLists.class.getResourceAsStream(resource);
+		InputStream in = Names.class.getResourceAsStream(resource);
 		if (in == null)
 		{
 			throw new IllegalStateException("Bundled data is missing: " + resource);

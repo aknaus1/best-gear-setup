@@ -5,9 +5,9 @@ import com.bestgearsetup.data.*;
 /** Equipment requirements for dragonfire, independent of ordinary defence bonuses. */
 public final class DragonfireProtection
 {
-	private static final NameLists.NameList METAL_DRAGON = NameLists.list("metal dragons");
-	private static final NameLists.NameList CHROMATIC_DRAGON = NameLists.list("chromatic dragons");
-	private static final NameLists.NameList PROTECTIVE_SHIELDS = NameLists.list("protective shields");
+	private static final Names.NameList METAL_DRAGON = Names.list("metal dragons");
+	private static final Names.NameList CHROMATIC_DRAGON = Names.list("chromatic dragons");
+	private static final Names.NameList PROTECTIVE_SHIELDS = Names.list("protective shields");
 
 	private DragonfireProtection()
 	{
@@ -18,7 +18,7 @@ public final class DragonfireProtection
 		return monster.getLowerName();
 	}
 
-	static boolean isProtectiveShield(GearItem item)
+	static boolean isProtectiveShield(Gear item)
 	{
 		return item != null && PROTECTIVE_SHIELDS.matches(item.getLowerCombatName());
 	}
@@ -60,22 +60,22 @@ public final class DragonfireProtection
 	 * Whether the breath does no damage at all (Wiki: Dragonfire's damage tables): a super antifire, or an antifire
 	 * with a fire shield or, against all but metal dragons, with Protect from Magic. An antifire alone lets 35 through.
 	 */
-	public static boolean blocksBreath(Monster monster, Loadout loadout, Antifire antifire, boolean protectMagic)
+	public static boolean blocksBreath(Monster monster, Outfit loadout, Antifire antifire, boolean protectMagic)
 	{
 		return takesPotion(monster) && (antifire == Antifire.SUPER
 			|| antifire == Antifire.REGULAR && (fireShield(loadout) || protectMagic && !metal(monster)));
 	}
 
 	/** The shield a one-handed weapon leaves on, or null. */
-	private static GearItem shield(Loadout loadout)
+	private static Gear shield(Outfit loadout)
 	{
 		return loadout.getWeapon() == null || loadout.getWeapon().isTwoHanded() ? null : loadout.get(Slot.SHIELD);
 	}
 
 	/** Whether the worn shield is a dragonfire shield (not elemental or mind). */
-	private static boolean fireShield(Loadout loadout)
+	private static boolean fireShield(Outfit loadout)
 	{
-		GearItem item = shield(loadout);
+		Gear item = shield(loadout);
 		return isProtectiveShield(item) && !item.getLowerCombatName().equals("elemental shield")
 			&& !item.getLowerCombatName().equals("mind shield");
 	}
@@ -87,11 +87,11 @@ public final class DragonfireProtection
 	}
 
 	/** Meets normal protection requirements once {@link #required} holds; boss chip damage and avoidable specials may remain. */
-	static boolean protects(Monster monster, Loadout loadout, OptimizerSettings settings, PlayerLevels levels)
+	static boolean protects(Monster monster, Outfit loadout, OptimizerSettings settings, PlayerLevels levels)
 	{
 		if (wyvern(monster))
 		{
-			GearItem item = shield(loadout);
+			Gear item = shield(loadout);
 			return isProtectiveShield(item) && !item.getLowerCombatName().startsWith("anti-dragon shield");
 		}
 		boolean shield = fireShield(loadout);

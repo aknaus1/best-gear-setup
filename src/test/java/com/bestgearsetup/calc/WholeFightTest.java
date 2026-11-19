@@ -6,7 +6,7 @@ import static com.bestgearsetup.calc.TestData.weapon;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import org.junit.Test;
@@ -14,17 +14,17 @@ import org.junit.Test;
 /** Kill time integrated over the target's HP for attacks that change as it falls. */
 public class WholeFightTest
 {
-	private static Loadout rubyCrossbow()
+	private static Outfit rubyCrossbow()
 	{
-		GearItem bow = weapon(9185, "rune crossbow", "crossbow", 5, "rapid,ranged,rapid");
+		Gear bow = weapon(9185, "rune crossbow", "crossbow", 5, "rapid,ranged,rapid");
 		bow.setRangedBonus(90);
 		bow.setAmmunition(java.util.Arrays.asList(9242, 9243));
-		GearItem bolts = item(9242, "ruby bolts (e)", Slot.AMMO);
+		Gear bolts = item(9242, "ruby bolts (e)", Slot.AMMO);
 		bolts.setRangedStr(103);
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, bow);
 		l.set(Slot.AMMO, bolts);
-		l.setStyle(AttackStyle.parse("rapid,ranged,rapid"));
+		l.setStyle(Style.parse("rapid,ranged,rapid"));
 		return l;
 	}
 
@@ -34,7 +34,7 @@ public class WholeFightTest
 	}
 
 	/** Sum of 1/DPS over every integer HP from the start down to 1: the exact fluid kill time. */
-	private static double bruteForceDps(Loadout l, CombatContext ctx, int startHp)
+	private static double bruteForceDps(Outfit l, CombatContext ctx, int startHp)
 	{
 		double seconds = 0;
 		for (int hp = startHp; hp >= 1; hp--)
@@ -49,10 +49,10 @@ public class WholeFightTest
 	{
 		Monster target = monster(150, 80);
 		target.setHitpoints(900);
-		Loadout l = rubyCrossbow();
+		Outfit l = rubyCrossbow();
 		CombatContext ctx = context(target);
-		DpsResult start = DpsCalculator.snapshot(l, ctx);
-		DpsResult fight = DpsCalculator.calculate(l, ctx);
+		Dps start = DpsCalculator.snapshot(l, ctx);
+		Dps fight = DpsCalculator.calculate(l, ctx);
 		assertTrue(fight.getDps() < start.getDps());
 		assertEquals(bruteForceDps(l, ctx, 900), fight.getPrimaryDps(), fight.getPrimaryDps() * 0.002);
 		assertEquals(start.getMaxHit(), fight.getMaxHit());
@@ -64,7 +64,7 @@ public class WholeFightTest
 	{
 		Monster target = monster(150, 80);
 		target.setHitpoints(900);
-		Loadout l = rubyCrossbow();
+		Outfit l = rubyCrossbow();
 		CombatContext ctx = context(target).withModifiers(CombatModifiers.builder().monsterHitpoints(300).build());
 		assertEquals(bruteForceDps(l, ctx, 300), DpsCalculator.calculate(l, ctx).getPrimaryDps(), 0.002);
 	}
@@ -76,12 +76,12 @@ public class WholeFightTest
 		akkha.setId(11789);
 		akkha.setName("akkha");
 		akkha.setHitpoints(1000);
-		GearItem keris = weapon(27291, "keris partisan of the sun", "spear", 4, "lunge,stab,accurate");
+		Gear keris = weapon(27291, "keris partisan of the sun", "spear", 4, "lunge,stab,accurate");
 		keris.setStabBonus(58);
 		keris.setMeleeStr(75);
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, keris);
-		l.setStyle(AttackStyle.parse("lunge,stab,accurate"));
+		l.setStyle(Style.parse("lunge,stab,accurate"));
 		CombatContext ctx = context(akkha);
 		double high = DpsCalculator.snapshot(l, ctx).getPrimaryDps();
 		double low = DpsCalculator.snapshot(l, ctx.atTargetHp(249)).getPrimaryDps();
@@ -98,16 +98,16 @@ public class WholeFightTest
 		vardorvis.setName("vardorvis");
 		vardorvis.setHitpoints(700);
 		vardorvis.setStrengthLevel(270);
-		GearItem sword = weapon(50000, "test sword", "slash sword", 4, "slash,slash,aggressive");
+		Gear sword = weapon(50000, "test sword", "slash sword", 4, "slash,slash,aggressive");
 		sword.setSlashBonus(120);
 		sword.setMeleeStr(110);
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		l.set(Slot.WEAPON, sword);
-		l.setStyle(AttackStyle.parse("slash,slash,aggressive"));
+		l.setStyle(Style.parse("slash,slash,aggressive"));
 		CombatContext plain = context(MonsterStates.atHealth(vardorvis, 0));
 		assertNull(DpsCalculator.hpBreakpoints(l, plain));
 		CombatContext ctx = plain.withHealthStates(hp -> MonsterStates.atHealth(vardorvis, hp));
-		DpsResult fight = DpsCalculator.calculate(l, ctx);
+		Dps fight = DpsCalculator.calculate(l, ctx);
 		assertTrue(fight.getDps() > DpsCalculator.snapshot(l, ctx).getDps());
 		assertEquals(bruteForceDps(l, ctx, 700), fight.getPrimaryDps(), fight.getPrimaryDps() * 0.002);
 	}
@@ -117,7 +117,7 @@ public class WholeFightTest
 	{
 		Monster target = monster(150, 80);
 		target.setHitpoints(900);
-		Loadout l = rubyCrossbow();
+		Outfit l = rubyCrossbow();
 		l.set(Slot.AMMO, item(9243, "diamond bolts (e)", Slot.AMMO));
 		l.get(Slot.AMMO).setRangedStr(105);
 		CombatContext ctx = context(target);

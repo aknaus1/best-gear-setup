@@ -2,7 +2,7 @@ package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
@@ -44,17 +44,17 @@ public class PyrefiendOptimizerTest
 			29283, 29025, 12954, 7462, 13239, 11773, 26219, 28997, 28810, 4587, 31248));
 	}
 
-	private static SetupResult best(AttackStyle.Type type, Set<Integer> owned, OptimizerSettings settings)
+	private static Setup best(Style.Type type, Set<Integer> owned, OptimizerSettings settings)
 	{
 		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().styles(Collections.singleton(type)).build(),
-			owned::contains, item -> 1_000).optimize(type == AttackStyle.Type.RANGED ? CombatClass.RANGED
-				: CombatClass.MELEE, () -> false, done -> { }).get(0);
+			owned::contains, item -> 1_000).optimize(type == Style.Type.RANGED ? Combat.RANGED
+				: Combat.MELEE, () -> false, done -> { }).get(0);
 	}
 
 	@Test
 	public void threeStrengthTradesMakeDualMacuahuitlBeatFang()
 	{
-		SetupResult result = best(AttackStyle.Type.STAB, meleeOwned(), SETTINGS);
+		Setup result = best(Style.Type.STAB, meleeOwned(), SETTINGS);
 		assertEquals(28997, result.getLoadout().getWeapon().getId());
 		assertEquals(1725, result.getLoadout().get(Slot.NECK).getId());
 		assertEquals(29022, result.getLoadout().get(Slot.BODY).getId());
@@ -67,7 +67,7 @@ public class PyrefiendOptimizerTest
 	@Test
 	public void strengthAmuletAndAggressiveStanceMakeScimitarBeatZombieAxe()
 	{
-		SetupResult result = best(AttackStyle.Type.SLASH, meleeOwned(), SETTINGS);
+		Setup result = best(Style.Type.SLASH, meleeOwned(), SETTINGS);
 		assertEquals(4587, result.getLoadout().getWeapon().getId());
 		assertEquals(1725, result.getLoadout().get(Slot.NECK).getId());
 		assertEquals("aggressive", result.getLoadout().getStyle().getStance());
@@ -80,14 +80,14 @@ public class PyrefiendOptimizerTest
 	{
 		Set<Integer> owned = new HashSet<>(Arrays.asList(11865, 27374, 6585, 868, 811, 810, 12926,
 			11230, 29004, 22275, 2497, 7462, 22951));
-		SetupResult result = best(AttackStyle.Type.RANGED, owned, SETTINGS);
+		Setup result = best(Style.Type.RANGED, owned, SETTINGS);
 		assertEquals(868, result.getLoadout().getWeapon().getId());
 		assertEquals(14, result.getDps().getMaxHit());
 		assertEquals(5.519889137541012, result.getDps().getDps(), 1e-9);
 		owned.remove(11230);
 		OptimizerSettings knivesExcluded = SETTINGS.toBuilder()
 			.excluded(new HashSet<>(Arrays.asList(868, 12006, 12926))).build();
-		assertEquals(811, best(AttackStyle.Type.RANGED, owned, knivesExcluded).getLoadout().getWeapon().getId());
+		assertEquals(811, best(Style.Type.RANGED, owned, knivesExcluded).getLoadout().getWeapon().getId());
 	}
 
 	@Test
@@ -95,10 +95,10 @@ public class PyrefiendOptimizerTest
 	{
 		Set<Integer> owned = meleeOwned();
 		OptimizerSettings locked = SETTINGS.toBuilder().locks(SlotLock.parse("NECK:6585")).build();
-		assertEquals(6585, best(AttackStyle.Type.STAB, owned, locked).getLoadout().get(Slot.NECK).getId());
+		assertEquals(6585, best(Style.Type.STAB, owned, locked).getLoadout().get(Slot.NECK).getId());
 		owned.remove(1725);
 		OptimizerSettings noSpend = SETTINGS.toBuilder().mode(SearchMode.BUDGET).budget(0).build();
-		SetupResult affordable = best(AttackStyle.Type.STAB, owned, noSpend);
+		Setup affordable = best(Style.Type.STAB, owned, noSpend);
 		assertEquals(0, affordable.getBuyCost());
 		assertTrue(affordable.getLoadout().get(Slot.NECK).getId() != 1725);
 		assertTrue(affordable.getDps().getDps() < 6.349199525945838);

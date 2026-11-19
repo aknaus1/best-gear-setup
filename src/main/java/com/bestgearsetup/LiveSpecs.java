@@ -34,7 +34,7 @@ final class LiveSpecs
 
 	private final Client client;
 	private final ClientThread clientThread;
-	private final BestGearSetupConfig config;
+	private final Options config;
 	/** Called with the tracked target's name whenever what landed on it changes. */
 	private final Consumer<String> changed;
 
@@ -53,7 +53,7 @@ final class LiveSpecs
 	private int hitsplatTick;
 	private final List<Hitsplat> hitsplats = new ArrayList<>();
 
-	LiveSpecs(Client client, ClientThread clientThread, BestGearSetupConfig config, Consumer<String> changed)
+	LiveSpecs(Client client, ClientThread clientThread, Options config, Consumer<String> changed)
 	{
 		this.client = client;
 		this.clientThread = clientThread;
@@ -210,7 +210,7 @@ final class LiveSpecs
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (BestGearSetupConfig.GROUP.equals(event.getGroup()) && AUTO_KEY.equals(event.getKey()) && !config.autoSpecs())
+		if (Options.GROUP.equals(event.getGroup()) && AUTO_KEY.equals(event.getKey()) && !config.autoSpecs())
 		{
 			end();
 		}

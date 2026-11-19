@@ -15,7 +15,7 @@ import lombok.*;
 public final class Overheads
 {
 	/** Rules in priority order; "prefix:" names match a name start, others the name or one of its versions. */
-	private static final JsonArray RULES = NameLists.load("/com/bestgearsetup/encounter-prayers.json").getAsJsonArray("rules");
+	private static final JsonArray RULES = Names.load("/com/bestgearsetup/encounter-prayers.json").getAsJsonArray("rules");
 
 	private Overheads()
 	{
@@ -62,7 +62,7 @@ public final class Overheads
 	}
 
 	/** The first rule naming this target, with a melee setup's own advice when it has one; null when none does. */
-	public static Advice recommend(Monster monster, CombatClass cls)
+	public static Advice recommend(Monster monster, Combat cls)
 	{
 		String n = monster.getLowerName();
 		for (JsonElement element : RULES)
@@ -73,7 +73,7 @@ public final class Overheads
 			// A rule without a note lists a form that has no advice.
 			if (!rule.has("note"))
 				return null;
-			JsonObject chosen = cls == CombatClass.MELEE && rule.has("melee") ? rule.getAsJsonObject("melee") : rule;
+			JsonObject chosen = cls == Combat.MELEE && rule.has("melee") ? rule.getAsJsonObject("melee") : rule;
 			List<Overhead> prayers = new ArrayList<>();
 			if (chosen.has("prayers"))
 				chosen.getAsJsonArray("prayers").forEach(p -> prayers.add(Overhead.valueOf(p.getAsString())));

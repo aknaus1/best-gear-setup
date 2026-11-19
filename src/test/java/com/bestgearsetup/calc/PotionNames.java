@@ -1,6 +1,6 @@
 package com.bestgearsetup.calc;
 
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Potion;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ public final class PotionNames
 	}
 
 	/** Skills each combat class boosts. */
-	public static List<String> skillsFor(CombatClass cls)
+	public static List<String> skillsFor(Combat cls)
 	{
 		switch (cls)
 		{
@@ -31,7 +31,7 @@ public final class PotionNames
 	}
 
 	/** Potion names selectable for a combat class, in data order. */
-	public static List<String> namesFor(GameData data, CombatClass cls)
+	public static List<String> namesFor(GameData data, Combat cls)
 	{
 		Set<String> names = new LinkedHashSet<>();
 		for (String skill : skillsFor(cls))

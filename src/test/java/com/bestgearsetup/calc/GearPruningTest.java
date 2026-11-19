@@ -2,12 +2,12 @@ package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
-import com.bestgearsetup.data.MonsterSummary;
-import com.bestgearsetup.data.NameLists;
+import com.bestgearsetup.data.Summary;
+import com.bestgearsetup.data.Names;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.WikiGameData;
 import com.bestgearsetup.data.WikiMonsters;
@@ -32,7 +32,7 @@ public class GearPruningTest
 	// Yama, Zulrah, Kraken, an abyssal demon, General Graardor, a fire giant and Kree'arra, then targets with their
 	// own gear effects: Vorkath (undead), a Vyrewatch Sentinel (vampyre) and a revenant dragon.
 	private static final int[] NPCS = {14176, 2042, 494, 415, 2215, 2075, 3162, 8061, 9756, 7940};
-	private static final NameLists.NameList SPECIAL_GEAR = NameLists.list("special gear");
+	private static final Names.NameList SPECIAL_GEAR = Names.list("special gear");
 	private static GameData data;
 
 	@BeforeClass
@@ -48,29 +48,29 @@ public class GearPruningTest
 		int checked = 0;
 		for (int npc : NPCS)
 		{
-			MonsterSummary summary = data.matchNpc(npc, null, 0);
+			Summary summary = data.matchNpc(npc, null, 0);
 			assertNotNull("npc " + npc, summary);
 			Monster monster = WikiMonsters.get(GSON).monster(summary.getName());
 			CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), onTask, false, TestData.piety());
 			OptimizerSettings settings = OptimizerSettings.builder()
 				.mode(ownedOnly ? SearchMode.OWNED_ONLY : SearchMode.UNLIMITED).resultsPerClass(1)
 				.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();
-			for (CombatClass cls : CombatClass.values())
+			for (Combat cls : Combat.values())
 			{
-				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned, GearItem::getPrice);
-				for (SetupResult result : optimizer.optimize(cls, () -> false, done -> { }))
+				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned, Gear::getPrice);
+				for (Setup result : optimizer.optimize(cls, () -> false, done -> { }))
 				{
-					Loadout found = result.getLoadout();
+					Outfit found = result.getLoadout();
 					double score = optimizer.scoreWithBestOption(found.copy(), cls);
-					for (Map.Entry<Slot, List<GearItem>> e : optimizer.candidates(cls).entrySet())
+					for (Map.Entry<Slot, List<Gear>> e : optimizer.candidates(cls).entrySet())
 					{
 						if (e.getKey() == Slot.SHIELD && found.getWeapon().isTwoHanded())
 							continue;
-						for (GearItem item : e.getValue())
+						for (Gear item : e.getValue())
 						{
 							if (!SPECIAL_GEAR.matches(item.getLowerCombatName()))
 								continue;
-							Loadout swapped = found.copy();
+							Outfit swapped = found.copy();
 							swapped.set(e.getKey(), item);
 							checked++;
 							assertTrue(monster.getName() + " " + cls + ": " + item.getName() + " beats " + found,

@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.BestGearSetupConfig;
+import com.bestgearsetup.Options;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.ConfigItemsForTests;
 import com.bestgearsetup.calc.CalcMode;
@@ -44,7 +44,7 @@ public class SettingsPanelTest
 		ConfigDescriptor descriptor = ConfigItemsForTests.descriptor();
 		SwingUtilities.invokeAndWait(() ->
 		{
-			SettingsPanel panel = new SettingsPanel(plugin, new BestGearSetupConfig() {}, descriptor);
+			SettingsPanel panel = new SettingsPanel(plugin, new Options() {}, descriptor);
 			for (ConfigItemDescriptor item : descriptor.getItems())
 			{
 				Component control = named(panel, item.getItem().keyName());
@@ -67,11 +67,11 @@ public class SettingsPanelTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			SettingsPanel panel = new SettingsPanel(plugin, new BestGearSetupConfig() {}, ConfigItemsForTests.descriptor());
-			JCheckBox bosses = (JCheckBox) named(panel, BestGearSetupConfig.BOSSES_ONLY_KEY);
+			SettingsPanel panel = new SettingsPanel(plugin, new Options() {}, ConfigItemsForTests.descriptor());
+			JCheckBox bosses = (JCheckBox) named(panel, Options.BOSSES_ONLY_KEY);
 			assertFalse(bosses.isSelected());
 			bosses.doClick();
-			assertEquals(true, writes.get(BestGearSetupConfig.BOSSES_ONLY_KEY));
+			assertEquals(true, writes.get(Options.BOSSES_ONLY_KEY));
 
 			((JComboBox<?>) named(panel, "calcMode")).setSelectedItem(CalcMode.MAX_HIT);
 			assertEquals(CalcMode.MAX_HIT, writes.get("calcMode"));
@@ -87,7 +87,7 @@ public class SettingsPanelTest
 	public void refreshShowsChangesMadeElsewhere() throws Exception
 	{
 		boolean[] bossesOnly = {false};
-		BestGearSetupConfig config = new BestGearSetupConfig()
+		Options config = new Options()
 		{
 			@Override
 			public boolean bossesOnly()
@@ -104,12 +104,12 @@ public class SettingsPanelTest
 		SwingUtilities.invokeAndWait(() ->
 		{
 			SettingsPanel panel = new SettingsPanel(plugin, config, ConfigItemsForTests.descriptor());
-			ColorJButton swatch = (ColorJButton) named(panel, BestGearSetupConfig.BANK_HIGHLIGHT_COLOR_KEY);
+			ColorJButton swatch = (ColorJButton) named(panel, Options.BANK_HIGHLIGHT_COLOR_KEY);
 			assertEquals(new Color(0x12AB34), swatch.getColor());
 			assertEquals("#12AB34", swatch.getText());
 			bossesOnly[0] = true;
 			panel.refresh();
-			assertTrue(((JCheckBox) named(panel, BestGearSetupConfig.BOSSES_ONLY_KEY)).isSelected());
+			assertTrue(((JCheckBox) named(panel, Options.BOSSES_ONLY_KEY)).isSelected());
 			assertTrue(writes.isEmpty());
 		});
 	}
@@ -128,7 +128,7 @@ public class SettingsPanelTest
 		};
 		SwingUtilities.invokeAndWait(() ->
 		{
-			SettingsPanel panel = new SettingsPanel(opener, new BestGearSetupConfig() {}, ConfigItemsForTests.descriptor());
+			SettingsPanel panel = new SettingsPanel(opener, new Options() {}, ConfigItemsForTests.descriptor());
 			JButton link = (JButton) named(panel, "openRuneLiteSettings");
 			// Underlined with a hand cursor, so it reads as a link.
 			assertEquals(java.awt.font.TextAttribute.UNDERLINE_ON,

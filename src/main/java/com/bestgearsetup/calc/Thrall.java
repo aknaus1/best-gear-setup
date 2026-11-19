@@ -20,7 +20,7 @@ public enum Thrall
 	private static final double ATTACK_SECONDS = 2.4;
 
 	/** Fights where thralls can't be resurrected but whose infobox doesn't mark the target immune (Wiki Thrall page). */
-	private static final NameLists.NameList RESTRICTED_FIGHTS = NameLists.list("thrall-restricted fights");
+	private static final Names.NameList RESTRICTED_FIGHTS = Names.list("thrall-restricted fights");
 
 	private final String displayName;
 	private final int magicLevel;
@@ -31,12 +31,12 @@ public enum Thrall
 	@RequiredArgsConstructor
 	public enum Type
 	{
-		GHOSTLY("ghostly", CombatClass.MAGIC),
-		SKELETAL("skeletal", CombatClass.RANGED),
-		ZOMBIFIED("zombified", CombatClass.MELEE);
+		GHOSTLY("ghostly", Combat.MAGIC),
+		SKELETAL("skeletal", Combat.RANGED),
+		ZOMBIFIED("zombified", Combat.MELEE);
 
 		private final String label;
-		private final CombatClass combatClass;
+		private final Combat combatClass;
 	}
 
 	/** Flat DPS added to a setup. */

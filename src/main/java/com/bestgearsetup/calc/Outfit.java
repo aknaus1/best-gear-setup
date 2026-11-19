@@ -10,13 +10,13 @@ import lombok.Setter;
  * (autocast) or darts loaded into a blowpipe. Mutable for the optimiser's hot loop; use
  * {@link #copy()} before storing.
  */
-public class Loadout
+public class Outfit
 {
-	private final GearItem[] items = new GearItem[Slot.values().length];
+	private final Gear[] items = new Gear[Slot.values().length];
 
 	@Getter
 	@Setter
-	private AttackStyle style;
+	private Style style;
 
 	@Getter
 	@Setter
@@ -25,26 +25,26 @@ public class Loadout
 	/** Darts loaded into a blowpipe-type weapon (they do not occupy the ammo slot). */
 	@Getter
 	@Setter
-	private GearItem loadedAmmo;
+	private Gear loadedAmmo;
 
-	public GearItem get(Slot slot)
+	public Gear get(Slot slot)
 	{
 		return items[slot.ordinal()];
 	}
 
-	public void set(Slot slot, GearItem item)
+	public void set(Slot slot, Gear item)
 	{
 		items[slot.ordinal()] = item;
 	}
 
-	public GearItem getWeapon()
+	public Gear getWeapon()
 	{
 		return items[Slot.WEAPON.ordinal()];
 	}
 
-	public Loadout copy()
+	public Outfit copy()
 	{
-		Loadout l = new Loadout();
+		Outfit l = new Outfit();
 		System.arraycopy(items, 0, l.items, 0, items.length);
 		l.style = style;
 		l.spell = spell;
@@ -55,11 +55,11 @@ public class Loadout
 	@Override
 	public boolean equals(Object o)
 	{
-		if (!(o instanceof Loadout))
+		if (!(o instanceof Outfit))
 		{
 			return false;
 		}
-		Loadout other = (Loadout) o;
+		Outfit other = (Outfit) o;
 		return Arrays.equals(items, other.items) && java.util.Objects.equals(style, other.style)
 			&& spell == other.spell && loadedAmmo == other.loadedAmmo;
 	}

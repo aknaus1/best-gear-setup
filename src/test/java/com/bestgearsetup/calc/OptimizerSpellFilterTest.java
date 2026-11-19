@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Spell;
@@ -38,15 +38,15 @@ public class OptimizerSpellFilterTest
 	private static OptimizerSettings.OptimizerSettingsBuilder settings()
 	{
 		return OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
-			.resultsPerClass(40).styles(EnumSet.of(AttackStyle.Type.MAGIC))
+			.resultsPerClass(40).styles(EnumSet.of(Style.Type.MAGIC))
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus")));
 	}
 
-	private static List<SetupResult> search(OptimizerSettings settings)
+	private static List<Setup> search(OptimizerSettings settings)
 	{
 		CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, false, TestData.piety());
 		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, item -> 1_000_000L)
-			.optimize(CombatClass.MAGIC, () -> false, done -> { });
+			.optimize(Combat.MAGIC, () -> false, done -> { });
 	}
 
 	private static String spellName(Spell spell)
@@ -54,12 +54,12 @@ public class OptimizerSpellFilterTest
 		return spell == null ? null : spell.getLowerName();
 	}
 
-	private static Spell firstSpell(List<SetupResult> results)
+	private static Spell firstSpell(List<Setup> results)
 	{
 		return results.stream().map(r -> r.getLoadout().getSpell()).filter(s -> s != null).findFirst().orElse(null);
 	}
 
-	private static Set<String> spelllessWeapons(List<SetupResult> results)
+	private static Set<String> spelllessWeapons(List<Setup> results)
 	{
 		return results.stream().filter(r -> r.getLoadout().getSpell() == null)
 			.map(r -> r.getLoadout().getWeapon().getName()).collect(Collectors.toSet());
@@ -71,10 +71,10 @@ public class OptimizerSpellFilterTest
 		Spell best = firstSpell(search(settings().build()));
 		assertNotNull(best);
 		String blocked = best.getLowerName();
-		List<SetupResult> results = search(settings().spellFilter(
+		List<Setup> results = search(settings().spellFilter(
 			SpellFilter.of(Collections.singleton(blocked), Collections.emptySet())).build());
 		assertNotNull(firstSpell(results));
-		for (SetupResult result : results)
+		for (Setup result : results)
 		{
 			assertFalse(blocked.equals(spellName(result.getLoadout().getSpell())));
 			if (result.getSpecial() != null)
@@ -87,11 +87,11 @@ public class OptimizerSpellFilterTest
 	@Test
 	public void forcingASpellUsesOnlyThatSpell()
 	{
-		List<SetupResult> unfiltered = search(settings().build());
-		List<SetupResult> forced = search(settings().spellFilter(
+		List<Setup> unfiltered = search(settings().build());
+		List<Setup> forced = search(settings().spellFilter(
 			SpellFilter.of(Collections.emptySet(), Collections.singleton("fire bolt"))).build());
 		assertNotNull(firstSpell(forced));
-		for (SetupResult result : forced)
+		for (Setup result : forced)
 		{
 			if (result.getLoadout().getSpell() != null)
 			{
@@ -106,7 +106,7 @@ public class OptimizerSpellFilterTest
 	{
 		OptimizerSettings filtered = settings().spellFilter(
 			SpellFilter.of(Collections.emptySet(), Collections.singleton("dark demonbane"))).build();
-		List<SetupResult> results = search(filtered);
+		List<Setup> results = search(filtered);
 		assertFalse(results.isEmpty());
 		assertTrue(results.stream().allMatch(r -> r.getLoadout().getSpell() == null));
 		assertTrue(Optimizer.autocastSpells(data, 99, monster, filtered).isEmpty());
@@ -128,7 +128,7 @@ public class OptimizerSpellFilterTest
 		assertNotNull(best);
 		SpellFilter filter = SpellFilter.of(Collections.singleton(best.getName()), Collections.singleton(best.getName()));
 		assertTrue(filter.getForced().isEmpty());
-		List<SetupResult> results = search(settings().spellFilter(filter).build());
+		List<Setup> results = search(settings().spellFilter(filter).build());
 		assertNotNull(firstSpell(results));
 		assertTrue(results.stream().allMatch(r -> !best.getLowerName().equals(spellName(r.getLoadout().getSpell()))));
 		assertTrue(Optimizer.autocastSpells(data, 99, monster, settings().spellFilter(filter).build())
@@ -138,13 +138,13 @@ public class OptimizerSpellFilterTest
 	@Test
 	public void noFilterChangesNothing()
 	{
-		List<SetupResult> defaults = search(settings().build());
-		List<SetupResult> explicit = search(settings().spellFilter(SpellFilter.NONE).build());
+		List<Setup> defaults = search(settings().build());
+		List<Setup> explicit = search(settings().spellFilter(SpellFilter.NONE).build());
 		assertEquals(defaults.size(), explicit.size());
 		for (int i = 0; i < defaults.size(); i++)
 		{
-			Loadout a = defaults.get(i).getLoadout();
-			Loadout b = explicit.get(i).getLoadout();
+			Outfit a = defaults.get(i).getLoadout();
+			Outfit b = explicit.get(i).getLoadout();
 			assertEquals(a.getWeapon().getId(), b.getWeapon().getId());
 			assertEquals(a.getStyle(), b.getStyle());
 			assertEquals(spellName(a.getSpell()), spellName(b.getSpell()));

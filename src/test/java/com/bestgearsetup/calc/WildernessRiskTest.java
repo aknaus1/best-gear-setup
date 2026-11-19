@@ -10,8 +10,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.ItemCosts;
 import com.bestgearsetup.OwnershipRules;
-import com.bestgearsetup.data.CombatClass;
-import com.bestgearsetup.data.GearItem;
+import com.bestgearsetup.data.Combat;
+import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Slot;
 import com.google.gson.Gson;
 import java.util.Arrays;
@@ -32,11 +32,11 @@ public class WildernessRiskTest
 		OwnershipRules.init(RuneLiteAPI.GSON);
 	}
 
-	private final GearItem sword = weapon(1, "sword", "sword", 4, "slash,slash,aggressive");
-	private final GearItem cheapHelm = item(2, "cheap helm", Slot.HEAD);
-	private final GearItem expensiveHelm = item(3, "expensive helm", Slot.HEAD);
-	private final GearItem ring = item(4, "expensive ring", Slot.RING);
-	private final GearItem boots = item(5, "expensive boots", Slot.FEET);
+	private final Gear sword = weapon(1, "sword", "sword", 4, "slash,slash,aggressive");
+	private final Gear cheapHelm = item(2, "cheap helm", Slot.HEAD);
+	private final Gear expensiveHelm = item(3, "expensive helm", Slot.HEAD);
+	private final Gear ring = item(4, "expensive ring", Slot.RING);
+	private final Gear boots = item(5, "expensive boots", Slot.FEET);
 
 	public WildernessRiskTest()
 	{
@@ -65,12 +65,12 @@ public class WildernessRiskTest
 		CombatContext context = new CombatContext(monster(1, 0), PlayerLevels.maxed(), false,
 			99, 99, 99, 99, null, false);
 		return com.bestgearsetup.calc.Optimizers.of(gameData(Arrays.asList(sword, cheapHelm, expensiveHelm, ring, boots),
-			Collections.emptyList()), context, settings, id -> owned, GearItem::getPrice);
+			Collections.emptyList()), context, settings, id -> owned, Gear::getPrice);
 	}
 
-	private SetupResult best(Optimizer optimizer)
+	private Setup best(Optimizer optimizer)
 	{
-		List<SetupResult> results = optimizer.optimize(CombatClass.MELEE, () -> false, done -> { });
+		List<Setup> results = optimizer.optimize(Combat.MELEE, () -> false, done -> { });
 		assertFalse(results.isEmpty());
 		return results.get(0);
 	}
@@ -81,7 +81,7 @@ public class WildernessRiskTest
 		for (SearchMode mode : SearchMode.values())
 		{
 			Optimizer optimizer = optimizer(settings().mode(mode).budget(0).build(), true);
-			SetupResult result = best(optimizer);
+			Setup result = best(optimizer);
 			assertEquals(cheapHelm, result.getLoadout().get(Slot.HEAD));
 			assertEquals(ring, result.getLoadout().get(Slot.RING));
 			assertEquals(1, optimizer.expensiveItemCount(result.getLoadout()));
@@ -93,7 +93,7 @@ public class WildernessRiskTest
 	public void zeroLimitAllowsOnlyCheapEquipment()
 	{
 		Optimizer optimizer = optimizer(settings().maxExpensiveItems(0).build(), false);
-		SetupResult result = best(optimizer);
+		Setup result = best(optimizer);
 		assertEquals(cheapHelm, result.getLoadout().get(Slot.HEAD));
 		assertEquals(0, optimizer.expensiveItemCount(result.getLoadout()));
 	}
@@ -104,7 +104,7 @@ public class WildernessRiskTest
 		for (OptimizerSettings config : Arrays.asList(settings().wildernessRiskLimited(false).build(),
 			settings().maxExpensiveItems(2).build()))
 		{
-			SetupResult result = best(optimizer(config, true));
+			Setup result = best(optimizer(config, true));
 			assertEquals(expensiveHelm, result.getLoadout().get(Slot.HEAD));
 			assertEquals(ring, result.getLoadout().get(Slot.RING));
 		}
@@ -117,7 +117,7 @@ public class WildernessRiskTest
 			Collections.singletonMap(Slot.FEET, SlotLock.fill())))
 		{
 			Optimizer optimizer = optimizer(settings().fillMode(FillMode.PRAYER).locks(locks).build(), true);
-			SetupResult result = best(optimizer);
+			Setup result = best(optimizer);
 			assertEquals(1, optimizer.expensiveItemCount(result.getLoadout()));
 			assertNull(result.getLoadout().get(Slot.FEET));
 		}
@@ -130,7 +130,7 @@ public class WildernessRiskTest
 		locks.put(Slot.HEAD, SlotLock.item(expensiveHelm.getId()));
 		locks.put(Slot.RING, SlotLock.item(ring.getId()));
 		assertTrue(optimizer(settings().locks(locks).build(), true)
-			.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
+			.optimize(Combat.MELEE, () -> false, done -> { }).isEmpty());
 	}
 
 	@Test
@@ -138,29 +138,29 @@ public class WildernessRiskTest
 	{
 		sword.setPrice(1_000);
 		assertTrue(optimizer(settings().maxExpensiveItems(0).build(), true)
-			.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
+			.optimize(Combat.MELEE, () -> false, done -> { }).isEmpty());
 	}
 
 	@Test
 	public void setBonusSeedsCannotBypassTheCap()
 	{
-		GearItem head = item(11665, "void melee helm", Slot.HEAD);
-		GearItem body = item(8839, "void knight top", Slot.BODY);
-		GearItem legs = item(8840, "void knight robe", Slot.LEGS);
-		GearItem hands = item(8842, "void knight gloves", Slot.HANDS);
-		for (GearItem item : Arrays.asList(head, body, legs, hands))
+		Gear head = item(11665, "void melee helm", Slot.HEAD);
+		Gear body = item(8839, "void knight top", Slot.BODY);
+		Gear legs = item(8840, "void knight robe", Slot.LEGS);
+		Gear hands = item(8842, "void knight gloves", Slot.HANDS);
+		for (Gear item : Arrays.asList(head, body, legs, hands))
 		{
 			item.setPrice(1_000);
 		}
 		CombatContext context = new CombatContext(monster(1, 0), PlayerLevels.maxed(), false,
 			99, 99, 99, 99, null, false);
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(gameData(Arrays.asList(sword, head, body, legs, hands),
-			Collections.emptyList()), context, settings().build(), id -> true, GearItem::getPrice);
-		for (SetupResult result : optimizer.optimize(CombatClass.MELEE, () -> false, done -> { }))
+			Collections.emptyList()), context, settings().build(), id -> true, Gear::getPrice);
+		for (Setup result : optimizer.optimize(Combat.MELEE, () -> false, done -> { }))
 		{
 			assertTrue(optimizer.expensiveItemCount(result.getLoadout()) <= 1);
 		}
-		assertFalse(optimizer.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
+		assertFalse(optimizer.optimize(Combat.MELEE, () -> false, done -> { }).isEmpty());
 	}
 
 	@Test
@@ -168,13 +168,13 @@ public class WildernessRiskTest
 	{
 		expensiveHelm.setPrice(ItemCosts.UNKNOWN);
 		Optimizer optimizer = optimizer(settings().build(), true);
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		loadout.set(Slot.HEAD, expensiveHelm);
 		loadout.set(Slot.RING, ring);
 		loadout.set(Slot.WEAPON, sword);
 		loadout.set(Slot.BODY, cheapHelm);
 		assertEquals(2, optimizer.expensiveItemCount(loadout));
-		SetupResult result = best(optimizer(settings().maxExpensiveItems(0).build(), true));
+		Setup result = best(optimizer(settings().maxExpensiveItems(0).build(), true));
 		assertEquals(cheapHelm, result.getLoadout().get(Slot.HEAD));
 		expensiveHelm.setPrice(1_000);
 		assertEquals(2, optimizer(settings().build(), false).expensiveItemCount(loadout));
@@ -183,19 +183,19 @@ public class WildernessRiskTest
 	@Test
 	public void freeBreakableUntradeablesCountTheirRepairFee()
 	{
-		GearItem fireCape = item(6570, "fire cape", Slot.CAPE);
+		Gear fireCape = item(6570, "fire cape", Slot.CAPE);
 		fireCape.setMeleeStr(4);
 		fireCape.setPrice(0);
 		CombatContext context = new CombatContext(monster(1, 0), PlayerLevels.maxed(), false,
 			99, 99, 99, 99, null, false);
 		OptimizerSettings limit = settings().expensiveItemThreshold(100_000).build();
 		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(gameData(Arrays.asList(sword, cheapHelm, expensiveHelm, fireCape),
-			Collections.emptyList()), context, limit, id -> true, GearItem::getPrice);
-		Loadout loadout = new Loadout();
+			Collections.emptyList()), context, limit, id -> true, Gear::getPrice);
+		Outfit loadout = new Outfit();
 		loadout.set(Slot.CAPE, fireCape);
 		assertEquals("A 150k repair fee reaches the 100k threshold", 1, optimizer.expensiveItemCount(loadout));
 		expensiveHelm.setPrice(100_000);
-		SetupResult result = best(optimizer);
+		Setup result = best(optimizer);
 		assertEquals(1, optimizer.expensiveItemCount(result.getLoadout()));
 		assertEquals(expensiveHelm, result.getLoadout().get(Slot.HEAD));
 		assertNull("The stronger helm takes the only allowance, so the cape can't join it",
@@ -206,7 +206,7 @@ public class WildernessRiskTest
 	public void budgetAndRiskAreIndependentConstraints()
 	{
 		Optimizer optimizer = optimizer(settings().mode(SearchMode.BUDGET).budget(1_009).build(), false);
-		SetupResult result = best(optimizer);
+		Setup result = best(optimizer);
 		assertTrue(result.getBuyCost() <= 1_009);
 		assertEquals(cheapHelm, result.getLoadout().get(Slot.HEAD));
 		assertEquals(0, optimizer.expensiveItemCount(result.getLoadout()));
@@ -216,7 +216,7 @@ public class WildernessRiskTest
 	public void ammunitionCountsPerEquippedItemAndLoadedAmmoIsExcluded()
 	{
 		Optimizer optimizer = optimizer(settings().ammoCount(10_000).build(), true);
-		Loadout loadout = new Loadout();
+		Outfit loadout = new Outfit();
 		loadout.set(Slot.AMMO, cheapHelm);
 		loadout.setLoadedAmmo(ring);
 		assertEquals(0, optimizer.expensiveItemCount(loadout));

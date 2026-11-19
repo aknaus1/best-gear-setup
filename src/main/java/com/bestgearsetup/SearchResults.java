@@ -17,11 +17,11 @@ public class SearchResults
 	/** Effective starting HP used by the calculator, which may be below the target's maximum. */
 	int startingHitpoints;
 	/** Best setups per attack type (stab, slash, crush, ranged, magic), best first. */
-	Map<AttackStyle.Type, List<SetupResult>> byType;
+	Map<Style.Type, List<Setup>> byType;
 	List<String> notes;
-	Map<CombatClass, OffensivePrayer> prayers;
+	Map<Combat, OffensivePrayer> prayers;
 	/** Potions used per combat class (melee may use one for Attack and another for Strength). */
-	Map<CombatClass, List<Potion>> potions;
+	Map<Combat, List<Potion>> potions;
 	boolean assumedLevels;
 	/** How each slot lock affected the search; empty when nothing is locked. */
 	List<LockStatus> locks;
