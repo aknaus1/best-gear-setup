@@ -81,48 +81,20 @@ class BestGearSetupBankView
 		this.eventBus = eventBus;
 	}
 
-	/** Publish a selection from the sidebar; the bank reads one immutable snapshot per rebuild. */
-	void setSelection(SetupResult setup)
-	{
-		setSelection(setup, Collections.emptyList());
-	}
-
-	void setSelection(SetupResult setup, List<Potion> potions)
-	{
-		setSelection(setup, potions, BestGearSetupBankView::itemIds);
-	}
-
-	/** As {@link #setSelection(SetupResult, List)}, with each item's ids in the order they may take its cell. */
-	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds)
-	{
-		setSelection(setup, potions, itemIds, Collections.emptyList());
-	}
-
-	/** With a trip's restores, cure and food after the boosts; its boost bottles already have their boost's cell. */
+	/**
+	 * Publish a selection from the sidebar; the bank reads one immutable snapshot per rebuild. Each item's ids are in
+	 * the order they may take its cell; a trip's restores, cure and food follow the boosts, whose bottles already
+	 * have their boost's cell.
+	 */
 	void setSelection(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,
 		List<TripSupplies.Supply> supplies)
 	{
 		selection = layoutFor(setup, potions, itemIds, supplies);
 	}
 
-	static Map<Integer, Integer> cellsFor(SetupResult setup)
-	{
-		return cellsFor(setup, Collections.emptyList());
-	}
-
-	static Map<Integer, Integer> cellsFor(SetupResult setup, List<Potion> potions)
-	{
-		return cellsFor(setup, potions, Collections.emptyList());
-	}
-
 	static Map<Integer, Integer> cellsFor(SetupResult setup, List<Potion> potions, List<TripSupplies.Supply> supplies)
 	{
 		return Collections.unmodifiableMap(layoutFor(setup, potions, BestGearSetupBankView::itemIds, supplies).cells);
-	}
-
-	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds)
-	{
-		return layoutFor(setup, potions, itemIds, Collections.emptyList());
 	}
 
 	static Layout layoutFor(SetupResult setup, List<Potion> potions, Function<GearItem, List<Integer>> itemIds,

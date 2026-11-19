@@ -2,7 +2,6 @@ package com.bestgearsetup;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -40,19 +39,15 @@ final class LiveSpecs
 {
 	static final String AUTO_KEY = "autoSpecs";
 	/** Preparation keys this tracker fills, with each setting's upper bound. */
-	private static final Map<String, Integer> LIMITS = new LinkedHashMap<>();
-
-	static
-	{
-		LIMITS.put("specElderMaul", 10);
-		LIMITS.put("specDwh", 10);
-		LIMITS.put("specEmberlight", 20);
-		LIMITS.put("specArclight", 20);
-		LIMITS.put("specTonalztics", 20);
-		LIMITS.put("specBgsDamage", 2000);
-		LIMITS.put("specSeercullDamage", 2000);
-		LIMITS.put("specAyakDamage", 2000);
-	}
+	private static final Map<String, Integer> LIMITS = Map.of(
+		"specElderMaul", 10,
+		"specDwh", 10,
+		"specEmberlight", 20,
+		"specArclight", 20,
+		"specTonalztics", 20,
+		"specBgsDamage", 2000,
+		"specSeercullDamage", 2000,
+		"specAyakDamage", 2000);
 
 	private final Client client;
 	private final ClientThread clientThread;

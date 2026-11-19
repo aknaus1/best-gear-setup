@@ -36,13 +36,13 @@ public class BankHighlightTest
 		ranged.set(Slot.WEAPON, item(12926, 12924));
 		ranged.set(Slot.HEAD, item(11826, 11827));
 		ranged.setLoadedAmmo(item(11230, 11231));
-		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.RANGED, ranged, null, 0));
+		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.RANGED, ranged, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 		Set<Integer> first = plugin.getBankHighlightIds();
 		assertEquals(new HashSet<>(Arrays.asList(12926, 12924, 11826, 11230)), first);
 
 		Loadout melee = new Loadout();
 		melee.set(Slot.WEAPON, item(4151));
-		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, melee, null, 0));
+		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, melee, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 		assertEquals(new HashSet<>(Arrays.asList(4151)), plugin.getBankHighlightIds());
 		// Rendering can still hold an older snapshot while the sidebar changes its selection.
 		assertEquals(4, first.size());
@@ -62,7 +62,7 @@ public class BankHighlightTest
 		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
 		Loadout loadout = new Loadout();
 		loadout.set(Slot.WEAPON, item(4151));
-		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout, null, 0));
+		plugin.setBankHighlightedSetup(new SetupResult(CombatClass.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 		// No ItemManager is installed: these paths must stop before any cache or sprite lookup.
 		BestGearSetupBankOverlay overlay = new BestGearSetupBankOverlay(plugin, new BestGearSetupConfig() {}, null);
 		Graphics2D graphics = new BufferedImage(40, 40, BufferedImage.TYPE_INT_ARGB).createGraphics();

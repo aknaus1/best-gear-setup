@@ -35,8 +35,15 @@ public class DragonfireProtectionTest
 
 	private static boolean allowed(String name, String shield, Antifire potion, boolean magic)
 	{
-		return DragonfireProtection.allowed(target(name), gear(shield),
+		return allowed(target(name), gear(shield),
 			OptimizerSettings.builder().antifire(potion).protectMagic(magic).build(), PlayerLevels.maxed());
+	}
+
+	/** Meets normal protection requirements, as the search checks them. */
+	private static boolean allowed(Monster monster, Loadout loadout, OptimizerSettings settings, PlayerLevels levels)
+	{
+		return !DragonfireProtection.required(monster, settings)
+			|| DragonfireProtection.protects(monster, loadout, settings, levels);
 	}
 
 	@Test
@@ -89,11 +96,11 @@ public class DragonfireProtectionTest
 	{
 		PlayerLevels lowPrayer = new PlayerLevels(99, 99, 99, 99, 99, 1, 99, 99);
 		OptimizerSettings settings = OptimizerSettings.builder().antifire(Antifire.REGULAR).protectMagic(true).build();
-		assertFalse(DragonfireProtection.allowed(target("black dragon"), gear(null), settings, lowPrayer));
+		assertFalse(allowed(target("black dragon"), gear(null), settings, lowPrayer));
 		Loadout twoHanded = gear("anti-dragon shield");
 		twoHanded.getWeapon().setTwoHanded(true);
-		assertFalse(DragonfireProtection.allowed(target("iron dragon"), twoHanded, settings, PlayerLevels.maxed()));
-		assertTrue(DragonfireProtection.allowed(target("iron dragon"), twoHanded,
+		assertFalse(allowed(target("iron dragon"), twoHanded, settings, PlayerLevels.maxed()));
+		assertTrue(allowed(target("iron dragon"), twoHanded,
 			settings.toBuilder().requireFireProtection(false).build(), PlayerLevels.maxed()));
 	}
 
@@ -113,14 +120,14 @@ public class DragonfireProtectionTest
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.emptySet()).antifire(Antifire.REGULAR).protectMagic(true)
 			.fillMode(FillMode.DEFENCE).fillMarginPercent(100).build();
-		CombatContext ctx = new CombatContext(dragon, PlayerLevels.maxed(), false, true, TestData.piety());
+		CombatContext ctx = TestFactories.combatContext(dragon, PlayerLevels.maxed(), false, true, TestData.piety());
 		for (boolean locked : new boolean[]{false, true})
 		{
 			OptimizerSettings s = locked ? settings.toBuilder()
 				.locks(Collections.singletonMap(Slot.SHIELD, SlotLock.item(defender.getId()))).build() : settings;
-			Optimizer optimizer = new Optimizer(TestData.gameData(Arrays.asList(whip, fire, defender), Collections.emptyList()),
+			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(whip, fire, defender), Collections.emptyList()),
 				ctx, s, id -> true, GearItem::getPrice);
-			List<SetupResult> setups = optimizer.optimize(CombatClass.MELEE, () -> false);
+			List<SetupResult> setups = optimizer.optimize(CombatClass.MELEE, () -> false, done -> { });
 			if (locked)
 			{
 				assertTrue(setups.isEmpty());

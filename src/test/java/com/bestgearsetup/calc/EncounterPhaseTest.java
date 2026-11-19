@@ -44,7 +44,7 @@ public class EncounterPhaseTest
 
 	private static DpsResult calculate(Loadout l, Monster m)
 	{
-		return DpsCalculator.calculate(l, new CombatContext(m, PlayerLevels.maxed(), false, false, null));
+		return DpsCalculator.calculate(l, TestFactories.combatContext(m, PlayerLevels.maxed(), false, false, null));
 	}
 
 	@Test

@@ -35,7 +35,7 @@ public class PyrefiendOptimizerTest
 		Gson gson = RuneLiteAPI.GSON;
 		data = WikiGameData.get(gson).gameData(gson);
 		Monster monster = WikiMonsters.get(gson).monster(data.matchNpc(433, null, 0).getName());
-		ctx = new CombatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 67), true, false, null);
+		ctx = TestFactories.combatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 67), true, false, null);
 	}
 
 	private static Set<Integer> meleeOwned()
@@ -46,9 +46,9 @@ public class PyrefiendOptimizerTest
 
 	private static SetupResult best(AttackStyle.Type type, Set<Integer> owned, OptimizerSettings settings)
 	{
-		return new Optimizer(data, ctx, settings.toBuilder().styles(Collections.singleton(type)).build(),
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().styles(Collections.singleton(type)).build(),
 			owned::contains, item -> 1_000).optimize(type == AttackStyle.Type.RANGED ? CombatClass.RANGED
-				: CombatClass.MELEE, () -> false).get(0);
+				: CombatClass.MELEE, () -> false, done -> { }).get(0);
 	}
 
 	@Test

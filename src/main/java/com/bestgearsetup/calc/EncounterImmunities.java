@@ -5,6 +5,7 @@ import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
+import static com.bestgearsetup.calc.EncounterDamage.*;
 
 /** Combat-class and equipment requirements shared by search filtering and direct DPS scoring. */
 final class EncounterImmunities
@@ -23,29 +24,21 @@ final class EncounterImmunities
 	static boolean classAllowed(Monster monster, CombatClass cls)
 	{
 		int id = monster.getId();
-		if (CombatRules.eclipseClone(monster))
-		{
-			return cls == CombatClass.MELEE;
-		}
 		boolean dusk = id == 7851 || id == 7854 || id == 7855 || id == 7882 || id == 7883
-			|| id >= 7886 && id <= 7889 || EncounterDamage.named(monster, "dusk");
-		if (dusk || EncounterDamage.guardian(monster))
+			|| id >= 7886 && id <= 7889 || named(monster, "dusk");
+		if (CombatRules.eclipseClone(monster) || dusk || guardian(monster)
+			|| id >= 2463 && id <= 2468 || id >= 2137 && id <= 2142)
 		{
 			return cls == CombatClass.MELEE;
 		}
-		if (id == 2463 || id == 2464 || id == 2465 || id == 2466 || id == 2467 || id == 2468
-			|| id >= 2137 && id <= 2142)
-		{
-			return cls == CombatClass.MELEE;
-		}
-		if (EncounterDamage.tekton(monster) || EncounterDamage.crystal(monster))
+		if (tekton(monster) || crystal(monster))
 		{
 			// Crystals can take reduced Magic damage even where a broader "melee only" tag says otherwise.
 			return cls != CombatClass.RANGED;
 		}
 		if (cls == CombatClass.MELEE && (AttackReach.isMeleeBlocked(monster)
 			|| AttackReach.isVespula(monster) || AttackReach.isAbyssalPortal(monster)
-			|| id == 12214 || id == 12215 || id == 12219 || EncounterDamage.named(monster, "the leviathan")))
+			|| id == 12214 || id == 12215 || id == 12219 || named(monster, "the leviathan")))
 		{
 			return false;
 		}
@@ -68,8 +61,8 @@ final class EncounterImmunities
 		{
 			return false;
 		}
-		String weapon = EncounterDamage.lower(loadout.getWeapon());
-		String ammo = EncounterDamage.lower(loadout.get(Slot.AMMO));
+		String weapon = lower(loadout.getWeapon());
+		String ammo = lower(loadout.get(Slot.AMMO));
 		boolean gauntlet = CombatRules.gauntlet(monster);
 		for (Slot slot : SLOTS)
 		{
@@ -87,31 +80,30 @@ final class EncounterImmunities
 		{
 			return false;
 		}
-		if (CombatRules.phase(monster, EncounterPhase.MOKHAIOTL_SHIELDED) && !EncounterDamage.demonbane(loadout))
+		if (CombatRules.phase(monster, EncounterPhase.MOKHAIOTL_SHIELDED) && !demonbane(loadout))
 		{
 			// The shield blocks everything except demonbane attacks.
 			return false;
 		}
-		if (EncounterDamage.named(monster, "fire warrior of lesarkus")
+		if (named(monster, "fire warrior of lesarkus")
 			&& (cls != CombatClass.RANGED || !ammo.equals("ice arrows")))
 		{
 			return false;
 		}
-		if (EncounterDamage.named(monster, "fareed") && (cls == CombatClass.MAGIC
+		if (named(monster, "fareed") && (cls == CombatClass.MAGIC
 			&& !SpellRules.element(loadout.getSpell()).equals("water") || cls == CombatClass.RANGED && !ammo.contains("arrow")))
 		{
 			return false;
 		}
-		if (EncounterDamage.guardian(monster)
+		if (guardian(monster)
 			&& !loadout.getWeapon().getSubcategory().equals("pickaxe"))
 		{
 			return false;
 		}
-		if (monster.hasAttribute("leafy") || EncounterDamage.named(monster, "kurask")
-			|| EncounterDamage.named(monster, "turoth"))
+		if (leafy(monster))
 		{
 			boolean leaf = cls == CombatClass.MELEE && weapon.startsWith("leaf-bladed ")
-				|| cls == CombatClass.MAGIC && EncounterDamage.spell(loadout).equals("magic dart")
+				|| cls == CombatClass.MAGIC && spell(loadout).equals("magic dart")
 				|| cls == CombatClass.RANGED && WeaponRules.firesAmmoSlot(loadout.getWeapon())
 				&& BROAD_AMMUNITION.matches(ammo);
 			if (!leaf)
@@ -124,7 +116,7 @@ final class EncounterImmunities
 			return false;
 		}
 		if (monster.hasAttribute("vampyre (t2)") && !vampyrebane(loadout, false)
-			&& !EncounterDamage.lower(loadout.get(Slot.RING)).equals("efaritay's aid") && !silver(loadout))
+			&& !lower(loadout.get(Slot.RING)).equals("efaritay's aid") && !silver(loadout))
 		{
 			return false;
 		}
@@ -133,7 +125,7 @@ final class EncounterImmunities
 
 	static boolean vampyrebane(Loadout loadout, boolean tierThree)
 	{
-		String weapon = EncounterDamage.lower(loadout.getWeapon());
+		String weapon = lower(loadout.getWeapon());
 		if (loadout.getStyle().getType() == AttackStyle.Type.RANGED && weapon.startsWith("blisterwood stake"))
 		{
 			return true;
@@ -146,11 +138,11 @@ final class EncounterImmunities
 	{
 		if (loadout.getStyle().getType() == AttackStyle.Type.RANGED)
 		{
-			return EncounterDamage.lower(loadout.getWeapon()).startsWith("blisterwood stake")
+			return lower(loadout.getWeapon()).startsWith("blisterwood stake")
 				|| WeaponRules.firesAmmoSlot(loadout.getWeapon())
-				&& EncounterDamage.lower(loadout.get(Slot.AMMO)).startsWith("silver bolts");
+				&& lower(loadout.get(Slot.AMMO)).startsWith("silver bolts");
 		}
-		String weapon = EncounterDamage.lower(loadout.getWeapon());
+		String weapon = lower(loadout.getWeapon());
 		return loadout.getStyle().isMelee() && SILVER_MELEE.matches(weapon);
 	}
 }

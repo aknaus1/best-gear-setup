@@ -3,12 +3,7 @@ package com.bestgearsetup.calc;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Potion;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -27,50 +22,8 @@ public final class PotionChoice
 	{
 	}
 
-	/** Skills each combat class boosts. */
-	public static List<String> skillsFor(com.bestgearsetup.data.CombatClass cls)
-	{
-		switch (cls)
-		{
-			case RANGED:
-				return Arrays.asList("ranged");
-			case MAGIC:
-				return Arrays.asList("magic");
-			default:
-				return Arrays.asList("attack", "strength");
-		}
-	}
-
-	/** Potion names selectable for a combat class, in data order. */
-	public static List<String> namesFor(GameData data, com.bestgearsetup.data.CombatClass cls)
-	{
-		Set<String> names = new LinkedHashSet<>();
-		for (String skill : skillsFor(cls))
-		{
-			for (Potion p : data.getPotions(skill))
-			{
-				if (p.getPercentageIncrease() >= 0 && p.getBaseIncrease() >= 0)
-				{
-					names.add(p.getName());
-				}
-			}
-		}
-		return new ArrayList<>(names);
-	}
-
-	/** Boosted level for one skill under the given choice. */
-	public static int boostedLevel(GameData data, String skill, int level, String choice)
-	{
-		return boostedLevel(data, skill, level, choice, p -> true);
-	}
-
-	/** Boosted level for one skill; "best" only considers potions {@code available} accepts. */
-	public static int boostedLevel(GameData data, String skill, int level, String choice, Predicate<Potion> available)
-	{
-		return boostedLevel(data, skill, level, choice, available, null);
-	}
-
-	/** As above; "best" also considers raid supplies usable against {@code target} (null for none). */
+	/** Boosted level for one skill; "best" only considers potions {@code available} accepts, plus raid supplies
+	 * usable against {@code target} (null for none). */
 	public static int boostedLevel(GameData data, String skill, int level, String choice, Predicate<Potion> available,
 		Monster target)
 	{
@@ -78,22 +31,8 @@ public final class PotionChoice
 		return p == null ? level : p.boost(level);
 	}
 
-	/** The potion a choice resolves to for a skill, or null for none / no boost. */
-	public static Potion resolve(GameData data, String skill, int level, String choice)
-	{
-		return resolve(data, skill, level, choice, p -> true);
-	}
-
-	/** As {@link #resolve(GameData, String, int, String)}; "best" only considers potions {@code available} accepts. */
-	public static Potion resolve(GameData data, String skill, int level, String choice, Predicate<Potion> available)
-	{
-		return resolve(data, skill, level, choice, available, null);
-	}
-
-	/**
-	 * As {@link #resolve(GameData, String, int, String, Predicate)}; "best" also considers raid supplies usable
-	 * against {@code target} (null for none).
-	 */
+	/** The potion a choice resolves to for a skill, or null for none / no boost. "Best" only considers potions
+	 * {@code available} accepts, plus raid supplies usable against {@code target} (null for none). */
 	public static Potion resolve(GameData data, String skill, int level, String choice, Predicate<Potion> available,
 		Monster target)
 	{
@@ -159,12 +98,5 @@ public final class PotionChoice
 			}
 		}
 		return null;
-	}
-
-	/** Display name of the potion a choice resolves to for a skill, or null. */
-	public static String describe(GameData data, String skill, int level, String choice)
-	{
-		Potion p = resolve(data, skill, level, choice);
-		return p == null ? null : GameData.titleCase(p.getName());
 	}
 }

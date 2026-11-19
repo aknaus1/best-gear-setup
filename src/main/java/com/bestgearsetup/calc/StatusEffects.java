@@ -9,8 +9,8 @@ import com.bestgearsetup.data.StatusImmunities;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Pattern;
 import lombok.Value;
+import static com.bestgearsetup.calc.EncounterDamage.*;
 
 /**
  * Damage over time from poison, venom and burns, integrated over the kill (OSRS Wiki Poison, Venom and
@@ -30,11 +30,8 @@ public final class StatusEffects
 	static final int BURN_STACKS = 5;
 	private static final double SECONDS_PER_TICK = 0.6;
 	private static final int VENOM_AS_POISON = 26;
-	private static final Pattern POISONABLE_MELEE = Pattern.compile(
-		"(bronze|iron|steel|black|white|mithril|adamant|rune|dragon) (dagger|spear|hasta)|abyssal dagger|bone dagger");
-	private static final Pattern POISONABLE_AMMO = Pattern.compile(
-		"(bronze|iron|steel|black|mithril|adamant|rune|amethyst|dragon) (arrows?|dart|knife|javelin)"
-			+ "|(bronze|iron|steel|mithril|adamant|runite|dragon|silver|blurite|bone) bolts");
+	private static final NameLists.NameList POISONABLE_MELEE = NameLists.list("poisonable melee weapons");
+	private static final NameLists.NameList POISONABLE_AMMO = NameLists.list("poisonable ammunition");
 
 	private StatusEffects()
 	{
@@ -61,7 +58,7 @@ public final class StatusEffects
 	/** Whether a charged serpentine helm, or its recolour, is worn: immune to poison and venom (Wiki). */
 	public static boolean serpentineHelm(Loadout l)
 	{
-		String head = EncounterDamage.lower(l.get(Slot.HEAD));
+		String head = lower(l.get(Slot.HEAD));
 		return VENOM_HELMS.matches(head) && !head.contains("uncharged");
 	}
 
@@ -73,10 +70,10 @@ public final class StatusEffects
 		{
 			return false;
 		}
-		String w = EncounterDamage.lower(weapon);
+		String w = lower(weapon);
 		if (l.getStyle().isMelee())
 		{
-			return POISONABLE_MELEE.matcher(w).matches();
+			return POISONABLE_MELEE.matches(w);
 		}
 		if (l.getStyle().getType() != AttackStyle.Type.RANGED)
 		{
@@ -84,9 +81,9 @@ public final class StatusEffects
 		}
 		if (WeaponRules.firesAmmoSlot(weapon))
 		{
-			return POISONABLE_AMMO.matcher(EncounterDamage.lower(l.get(Slot.AMMO))).matches();
+			return POISONABLE_AMMO.matches(lower(l.get(Slot.AMMO)));
 		}
-		return weapon.getSubcategory().equals("thrown") && POISONABLE_AMMO.matcher(w).matches();
+		return weapon.getSubcategory().equals("thrown") && POISONABLE_AMMO.matches(w);
 	}
 
 	static Sources sources(Loadout l, CombatContext ctx, double accuracy)
@@ -94,7 +91,7 @@ public final class StatusEffects
 		Monster m = ctx.getMonster();
 		List<String> notes = new ArrayList<>();
 		GearItem weapon = l.getWeapon();
-		String w = EncounterDamage.lower(weapon);
+		String w = lower(weapon);
 		CombatClass cls = WeaponRules.classOf(l.getStyle());
 		boolean serpentine = serpentineHelm(l);
 		WeaponPoison option = ctx.getModifiers().getWeaponPoison();
@@ -138,7 +135,7 @@ public final class StatusEffects
 					poisonMiss *= 1 - accuracy / 8;
 					severity = Math.max(severity, option.getSeverity() - 14);
 				}
-				String ammo = EncounterDamage.lower(l.get(Slot.AMMO));
+				String ammo = lower(l.get(Slot.AMMO));
 				if (weapon.getSubcategory().equals("crossbow") && WeaponRules.firesAmmoSlot(weapon)
 					&& (ammo.equals("emerald bolts (e)") || ammo.equals("emerald dragon bolts (e)")))
 				{
@@ -155,7 +152,7 @@ public final class StatusEffects
 				break;
 			default:
 			{
-				String spell = EncounterDamage.spell(l);
+				String spell = spell(l);
 				if (spell.startsWith("smoke "))
 				{
 					int base = spell.endsWith("rush") || spell.endsWith("burst") ? 10 : 20;
@@ -241,7 +238,7 @@ public final class StatusEffects
 		{
 			return 0;
 		}
-		return EncounterDamage.rule(m, l, CombatClass.RANGED).mean(BURN_HITS) / BURN_HITS;
+		return rule(m, l, CombatClass.RANGED).mean(BURN_HITS) / BURN_HITS;
 	}
 
 	/** Add expected damage over time to a sustained-attack result. */
@@ -260,7 +257,7 @@ public final class StatusEffects
 		double speed = Math.max(1, r.getExpectedSpeedTicks());
 		double direct = r.getPrimaryDps() * SECONDS_PER_TICK;
 		Fight fight = new Fight(s, speed);
-		boolean infinite = m.getId() == 14779 || EncounterDamage.named(m, "gemstone crab");
+		boolean infinite = gemstoneCrab(m);
 		int hp = ctx.getModifiers().targetHp(m);
 		double extra;
 		String when;

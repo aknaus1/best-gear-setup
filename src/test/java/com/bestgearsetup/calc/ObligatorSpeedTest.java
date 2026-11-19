@@ -28,7 +28,7 @@ public class ObligatorSpeedTest
 		Loadout l = new Loadout();
 		l.set(Slot.WEAPON, weapon);
 		l.setStyle(AttackStyle.parse(style));
-		return DpsCalculator.calculate(l, new CombatContext(m, PlayerLevels.maxed(), false, true, piety()));
+		return DpsCalculator.calculate(l, TestFactories.combatContext(m, PlayerLevels.maxed(), false, true, piety()));
 	}
 
 	@Test

@@ -26,7 +26,7 @@ import org.junit.Test;
 
 public class ManualCastTest
 {
-	private final CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+	private final CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 	private GearItem bow;
 	private GearItem staff;
 	private Spell fireBolt;
@@ -69,10 +69,10 @@ public class ManualCastTest
 	private List<SetupResult> magic(OptimizerSettings.OptimizerSettingsBuilder settings, IntPredicate owned,
 		GearItem... weapons)
 	{
-		return new Optimizer(TestData.gameData(Arrays.asList(weapons), Arrays.asList(fireBolt, iceBarrage)), ctx,
+		return com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(weapons), Arrays.asList(fireBolt, iceBarrage)), ctx,
 			settings.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient")))
 				.styles(EnumSet.allOf(AttackStyle.Type.class)).build(), owned, GearItem::getPrice)
-			.optimize(CombatClass.MAGIC, () -> false);
+			.optimize(CombatClass.MAGIC, () -> false, done -> { });
 	}
 
 	private static OptimizerSettings.OptimizerSettingsBuilder settings()
@@ -131,9 +131,9 @@ public class ManualCastTest
 		OptimizerSettings s = settings().spellbooks(new HashSet<>(Arrays.asList("standard", "ancient")))
 			.styles(EnumSet.allOf(AttackStyle.Type.class)).resultsPerClass(10).build();
 		// The staff of air has the higher Magic bonus, but can't cast Iban Blast by hand.
-		List<SetupResult> results = new Optimizer(TestData.gameData(Arrays.asList(bow, staff, ibans),
+		List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(bow, staff, ibans),
 			Arrays.asList(fireBolt, ibanBlast)), ctx, s, id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MAGIC, () -> false);
+			.optimize(CombatClass.MAGIC, () -> false, done -> { });
 		assertFalse(results.isEmpty());
 		for (SetupResult r : results)
 		{
@@ -146,9 +146,9 @@ public class ManualCastTest
 		}
 		assertSame(ibans, results.get(0).getLoadout().getWeapon());
 		// With no staff that casts it, the spell is not offered at all.
-		for (SetupResult r : new Optimizer(TestData.gameData(Arrays.asList(bow, staff),
+		for (SetupResult r : com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(bow, staff),
 			Arrays.asList(fireBolt, ibanBlast)), ctx, s, id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MAGIC, () -> false))
+			.optimize(CombatClass.MAGIC, () -> false, done -> { }))
 		{
 			assertEquals(fireBolt, r.getLoadout().getSpell());
 		}
@@ -164,13 +164,13 @@ public class ManualCastTest
 			SlotLock.item(zamorak.getId()))).spellbooks(new HashSet<>(Arrays.asList("standard", "ancient")))
 			.styles(EnumSet.allOf(AttackStyle.Type.class));
 		GameData data = TestData.gameData(Arrays.asList(bow, staff, zamorak), Arrays.asList(fireBolt, flames));
-		Loadout l = new Optimizer(data, ctx, s.build(), id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MAGIC, () -> false).get(0).getLoadout();
+		Loadout l = com.bestgearsetup.calc.Optimizers.of(data, ctx, s.build(), id -> true, GearItem::getPrice)
+			.optimize(CombatClass.MAGIC, () -> false, done -> { }).get(0).getLoadout();
 		assertEquals(flames, l.getSpell());
 		assertTrue(l.getStyle().isManualCast());
 		// Autocast only: the staff still autocasts ordinary spells, but not its god spell.
-		l = new Optimizer(data, ctx, s.preventManualCast(true).build(), id -> true, GearItem::getPrice)
-			.optimize(CombatClass.MAGIC, () -> false).get(0).getLoadout();
+		l = com.bestgearsetup.calc.Optimizers.of(data, ctx, s.preventManualCast(true).build(), id -> true, GearItem::getPrice)
+			.optimize(CombatClass.MAGIC, () -> false, done -> { }).get(0).getLoadout();
 		assertEquals(fireBolt, l.getSpell());
 		assertFalse(l.getStyle().isManualCast());
 	}

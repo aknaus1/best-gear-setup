@@ -34,7 +34,7 @@ public class AtlatlAmmoRecoveryTest
 	private GearItem fireCape;
 	private GearItem accumulator;
 	private GameData data;
-	private final CombatContext ctx = new CombatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
+	private final CombatContext ctx = TestFactories.combatContext(monster(100, 20), PlayerLevels.maxed(), false, true, piety());
 
 	@BeforeClass
 	public static void ownershipRules()
@@ -68,12 +68,12 @@ public class AtlatlAmmoRecoveryTest
 
 	private Optimizer optimizer(OptimizerSettings settings, IntPredicate owned)
 	{
-		return new Optimizer(data, ctx, settings, owned, GearItem::getPrice);
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned, GearItem::getPrice);
 	}
 
 	private List<SetupResult> run(OptimizerSettings.OptimizerSettingsBuilder settings)
 	{
-		return optimizer(settings.build(), id -> true).optimize(CombatClass.RANGED, () -> false);
+		return optimizer(settings.build(), id -> true).optimize(CombatClass.RANGED, () -> false, done -> { });
 	}
 
 	@Test
@@ -114,7 +114,7 @@ public class AtlatlAmmoRecoveryTest
 		for (SearchMode mode : Arrays.asList(SearchMode.OWNED_ONLY, SearchMode.INVENTORY_ONLY, SearchMode.BUDGET))
 		{
 			List<SetupResult> results = optimizer(settings().mode(mode).budget(1_000_000).build(),
-				id -> id != accumulator.getId()).optimize(CombatClass.RANGED, () -> false);
+				id -> id != accumulator.getId()).optimize(CombatClass.RANGED, () -> false, done -> { });
 			assertEquals(mode.name(), fireCape, results.get(0).getLoadout().get(Slot.CAPE));
 		}
 		assertEquals(fireCape, run(settings().excluded(Collections.singleton(accumulator.getId())))
@@ -129,7 +129,7 @@ public class AtlatlAmmoRecoveryTest
 		for (SearchMode mode : Arrays.asList(SearchMode.OWNED_ONLY, SearchMode.INVENTORY_ONLY))
 		{
 			assertEquals(mode.name(), accumulator, optimizer(settings().mode(mode).build(), id -> true)
-				.optimize(CombatClass.RANGED, () -> false).get(0).getLoadout().get(Slot.CAPE));
+				.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getLoadout().get(Slot.CAPE));
 		}
 	}
 
@@ -144,11 +144,11 @@ public class AtlatlAmmoRecoveryTest
 		quiver.setRangedBonus(20);
 		data = TestData.gameData(Arrays.asList(atlatl, darts, accumulator, quiver), Collections.emptyList());
 		OptimizerSettings budget = settings().mode(SearchMode.BUDGET).budget(300).build();
-		List<SetupResult> results = optimizer(budget, id -> false).optimize(CombatClass.RANGED, () -> false);
+		List<SetupResult> results = optimizer(budget, id -> false).optimize(CombatClass.RANGED, () -> false, done -> { });
 		assertEquals(accumulator, results.get(0).getLoadout().get(Slot.CAPE));
 		assertEquals(300, results.get(0).getBuyCost());
 		assertTrue(optimizer(budget.toBuilder().budget(299).build(), id -> false)
-			.optimize(CombatClass.RANGED, () -> false).isEmpty());
+			.optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
 	}
 
 	@Test
@@ -159,7 +159,7 @@ public class AtlatlAmmoRecoveryTest
 			OptimizerSettings locked = settings().locks(Collections.singletonMap(Slot.CAPE, lock)).build();
 			Optimizer optimizer = optimizer(locked, id -> true);
 			assertEquals(lock.getKind() == SlotLock.Kind.EMPTY ? null : fireCape,
-				optimizer.optimize(CombatClass.RANGED, () -> false).get(0).getLoadout().get(Slot.CAPE));
+				optimizer.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getLoadout().get(Slot.CAPE));
 			assertNull(optimizer.weaponLockReason(atlatl));
 		}
 		for (SlotLock lock : Arrays.asList(SlotLock.fill(), SlotLock.item(accumulator.getId())))
@@ -211,7 +211,7 @@ public class AtlatlAmmoRecoveryTest
 			}
 			Optimizer excluded = optimizer(rangedSettings.excluded(Collections.singleton(accumulator.getId())).build(), id -> true);
 			// With the only recovery cape excluded, the requirement lapses rather than removing the weapon.
-			assertEquals(kind[0], fireCape, excluded.optimize(CombatClass.RANGED, () -> false).get(0).getLoadout().get(Slot.CAPE));
+			assertEquals(kind[0], fireCape, excluded.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getLoadout().get(Slot.CAPE));
 			assertNull(kind[0], excluded.weaponLockReason(ranged));
 		}
 	}
@@ -235,7 +235,7 @@ public class AtlatlAmmoRecoveryTest
 			for (SlotLock lock : Arrays.asList(SlotLock.empty(), SlotLock.item(fireCape.getId())))
 			{
 				Optimizer locked = optimizer(rangedSettings.locks(Collections.singletonMap(Slot.CAPE, lock)).build(), id -> true);
-				assertFalse(kind[0], locked.optimize(CombatClass.RANGED, () -> false).isEmpty());
+				assertFalse(kind[0], locked.optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
 				assertNull(kind[0], locked.weaponLockReason(ranged));
 			}
 		}
@@ -296,13 +296,13 @@ public class AtlatlAmmoRecoveryTest
 		data = TestData.gameData(Arrays.asList(bowfa, crossbow, bolts, fireCape, accumulator), Collections.emptyList());
 		Monster target = monster(250, 20);
 		target.setHitpoints(600);
-		CombatContext rangedCtx = new CombatContext(target, PlayerLevels.maxed(), false, true, null);
+		CombatContext rangedCtx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, null);
 		OptimizerSettings.OptimizerSettingsBuilder specs = settings().styles(EnumSet.of(AttackStyle.Type.RANGED))
 			.spellbooks(Collections.singleton("standard")).killSpecials(true).specEnergy(SpecEnergy.FULL_BAR);
 
 		// The worn fire cape stays on for the crossbow's spec switch, which the requirement doesn't cover.
-		List<SetupResult> locked = new Optimizer(data, rangedCtx, specs.locks(Collections.singletonMap(Slot.CAPE,
-			SlotLock.item(fireCape.getId()))).build(), id -> true, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false);
+		List<SetupResult> locked = com.bestgearsetup.calc.Optimizers.of(data, rangedCtx, specs.locks(Collections.singletonMap(Slot.CAPE,
+			SlotLock.item(fireCape.getId()))).build(), id -> true, GearItem::getPrice).optimize(CombatClass.RANGED, () -> false, done -> { });
 		SetupResult worn = locked.stream().filter(s -> s.getLoadout().getWeapon() == bowfa).findFirst().orElse(null);
 		assertNotNull(worn);
 		assertNotNull("spec switch dropped", worn.getSpecial());
@@ -313,8 +313,8 @@ public class AtlatlAmmoRecoveryTest
 		assertTrue(locked.stream().filter(s -> s.getLoadout().getWeapon() == crossbow)
 			.allMatch(s -> s.getLoadout().get(Slot.CAPE) == fireCape));
 
-		List<SetupResult> free = new Optimizer(data, rangedCtx, specs.locks(Collections.emptyMap()).build(), id -> true,
-			GearItem::getPrice).optimize(CombatClass.RANGED, () -> false);
+		List<SetupResult> free = com.bestgearsetup.calc.Optimizers.of(data, rangedCtx, specs.locks(Collections.emptyMap()).build(), id -> true,
+			GearItem::getPrice).optimize(CombatClass.RANGED, () -> false, done -> { });
 		assertTrue(free.stream().anyMatch(s -> s.getLoadout().getWeapon() == crossbow));
 		assertTrue(free.stream().filter(s -> s.getLoadout().getWeapon() == crossbow)
 			.allMatch(s -> s.getLoadout().get(Slot.CAPE) == accumulator));

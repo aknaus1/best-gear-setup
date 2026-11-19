@@ -36,11 +36,11 @@ public class AttackReachTest
 	private List<SetupResult> run(Monster target, CombatClass cls,
 		OptimizerSettings.OptimizerSettingsBuilder builder, GearItem... weapons)
 	{
-		CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety());
 		OptimizerSettings settings = builder.mode(SearchMode.UNLIMITED)
 			.spellbooks(Collections.singleton("standard")).resultsPerClass(3).build();
-		return new Optimizer(TestData.gameData(Arrays.asList(weapons), Collections.emptyList()), ctx,
-			settings, id -> true, GearItem::getPrice).optimize(cls, () -> false);
+		return com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(weapons), Collections.emptyList()), ctx,
+			settings, id -> true, GearItem::getPrice).optimize(cls, () -> false, done -> { });
 	}
 
 	@Test

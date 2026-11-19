@@ -32,7 +32,7 @@ public class DpsCalculatorTest
 		// max = floor((156 * (130 + 64) + 320) / 640) = 47
 		GearItem w = weapon(1, "test sword", "slash sword", 4, "chop,slash,aggressive");
 		w.setMeleeStr(130);
-		CombatContext ctx = new CombatContext(monster(1, 0), MAXED, false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(1, 0), MAXED, false, true, piety());
 		DpsResult r = DpsCalculator.calculate(meleeLoadout(w, "chop,slash,aggressive"), ctx);
 		assertEquals(47, r.getMaxHit());
 		assertEquals(4, r.getAttackSpeedTicks());
@@ -48,7 +48,7 @@ public class DpsCalculatorTest
 		{
 			bow.setRangedStr(strength);
 			Monster ordinary = monster(100, 20);
-			DpsResult normal = DpsCalculator.calculate(l, new CombatContext(ordinary, MAXED, false, true, piety()));
+			DpsResult normal = DpsCalculator.calculate(l, TestFactories.combatContext(ordinary, MAXED, false, true, piety()));
 			long total = 1;
 			for (int hit = 1; hit <= normal.getMaxHit(); hit++)
 			{
@@ -58,7 +58,7 @@ public class DpsCalculatorTest
 			{
 				Monster kraken = ordinary.copy();
 				kraken.setId(id);
-				DpsResult reduced = DpsCalculator.calculate(l, new CombatContext(kraken, MAXED, false, true, piety()));
+				DpsResult reduced = DpsCalculator.calculate(l, TestFactories.combatContext(kraken, MAXED, false, true, piety()));
 				assertEquals(normal.getAccuracy(), reduced.getAccuracy(), 1e-12);
 				assertEquals(Math.max(1, normal.getMaxHit() / 7), reduced.getMaxHit());
 				double expected = normal.getAccuracy() * total / (normal.getMaxHit() + 1.0);
@@ -75,12 +75,12 @@ public class DpsCalculatorTest
 		bow.setRangedStr(100);
 		Loadout l = meleeLoadout(bow, "rapid,ranged,rapid");
 		Monster target = monster(100, 20);
-		DpsResult ordinary = DpsCalculator.calculate(l, new CombatContext(target, MAXED, false, true, piety()));
+		DpsResult ordinary = DpsCalculator.calculate(l, TestFactories.combatContext(target, MAXED, false, true, piety()));
 		target.setId(5535);
 		assertEquals(ordinary.getDps(), DpsCalculator.calculate(l,
-			new CombatContext(target, MAXED, false, true, piety())).getDps(), 1e-12);
+			TestFactories.combatContext(target, MAXED, false, true, piety())).getDps(), 1e-12);
 		target.setId(494);
-		CombatContext ctx = new CombatContext(target, MAXED, false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(target, MAXED, false, true, piety());
 		DpsResult withoutThrall = DpsCalculator.calculate(l, ctx);
 		CombatContext thrall = new CombatContext(target, MAXED, false, ctx.getAttack(), ctx.getStrength(),
 			ctx.getRanged(), ctx.getMagic(), piety(), true);
@@ -104,7 +104,7 @@ public class DpsCalculatorTest
 			Monster target = monster(100, 20);
 			target.setId(id);
 			assertEquals(0, DpsCalculator.calculate(meleeLoadout(halberd, "swipe,slash,aggressive"),
-				new CombatContext(target, MAXED, false, true, piety())).getDps(), 0);
+				TestFactories.combatContext(target, MAXED, false, true, piety())).getDps(), 0);
 		}
 	}
 
@@ -114,7 +114,7 @@ public class DpsCalculatorTest
 		GearItem w = weapon(1, "test sword", "slash sword", 4, "chop,slash,aggressive");
 		w.setMeleeStr(130);
 		w.setSlashBonus(100);
-		CombatContext ctx = new CombatContext(monster(100, 50), MAXED, false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(100, 50), MAXED, false, true, piety());
 		DpsResult r = DpsCalculator.calculate(meleeLoadout(w, "chop,slash,aggressive"), ctx);
 		double expected = r.getAccuracy() * (r.getMaxHit() / 2.0 + 1.0 / (r.getMaxHit() + 1)) / (4 * 0.6);
 		assertEquals(expected, r.getDps(), 1e-9);
@@ -148,7 +148,7 @@ public class DpsCalculatorTest
 
 		Monster highMagic = monster(100, 0);
 		highMagic.setMagicLevel(250);
-		CombatContext ctx = new CombatContext(highMagic, MAXED, false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(highMagic, MAXED, false, true, piety());
 
 		Loadout l = new Loadout();
 		l.set(Slot.AMMO, arrows);
@@ -170,7 +170,7 @@ public class DpsCalculatorTest
 		bofa.setRangedStr(106);
 		GearItem arrows = item(11212, "dragon arrow", Slot.AMMO);
 		arrows.setRangedStr(60);
-		CombatContext ctx = new CombatContext(monster(1, 0), MAXED, false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(1, 0), MAXED, false, true, piety());
 
 		Loadout l = new Loadout();
 		l.set(Slot.WEAPON, bofa);
@@ -189,8 +189,8 @@ public class DpsCalculatorTest
 		l.set(Slot.HEAD, item(11864, "slayer helmet", Slot.HEAD));
 		l.set(Slot.NECK, item(10588, "salve amulet (e)", Slot.NECK));
 
-		CombatContext plain = new CombatContext(monster(1, 0), MAXED, false, true, piety());
-		CombatContext undeadOnTask = new CombatContext(monster(1, 0, "undead"), MAXED, true, true, piety());
+		CombatContext plain = TestFactories.combatContext(monster(1, 0), MAXED, false, true, piety());
+		CombatContext undeadOnTask = TestFactories.combatContext(monster(1, 0, "undead"), MAXED, true, true, piety());
 
 		Loadout bare = meleeLoadout(w, "chop,slash,aggressive");
 		int base = DpsCalculator.calculate(bare, plain).getMaxHit();
@@ -203,7 +203,7 @@ public class DpsCalculatorTest
 	{
 		GearItem w = weapon(1, "test sword", "slash sword", 4, "chop,slash,aggressive");
 		w.setMeleeStr(100);
-		CombatContext ctx = new CombatContext(monster(1, 0), MAXED, false, false, null);
+		CombatContext ctx = TestFactories.combatContext(monster(1, 0), MAXED, false, false, null);
 		Loadout l = meleeLoadout(w, "chop,slash,aggressive");
 		int base = DpsCalculator.calculate(l, ctx).getMaxHit();
 
@@ -225,8 +225,8 @@ public class DpsCalculatorTest
 		Monster large = monster(1, 0);
 		large.setSize(3);
 		Loadout l = meleeLoadout(scythe, "chop,slash,aggressive");
-		double one = DpsCalculator.calculate(l, new CombatContext(small, MAXED, false, true, piety())).getDps();
-		double three = DpsCalculator.calculate(l, new CombatContext(large, MAXED, false, true, piety())).getDps();
+		double one = DpsCalculator.calculate(l, TestFactories.combatContext(small, MAXED, false, true, piety())).getDps();
+		double three = DpsCalculator.calculate(l, TestFactories.combatContext(large, MAXED, false, true, piety())).getDps();
 		assertTrue(three > one * 1.7);
 	}
 
@@ -234,7 +234,7 @@ public class DpsCalculatorTest
 	public void poweredStaffAndAutocast()
 	{
 		GearItem sang = weapon(22323, "sanguinesti staff", "powered staff", 4, "accurate,magic,accurate");
-		CombatContext ctx = new CombatContext(monster(1, 0), MAXED, false, false, null);
+		CombatContext ctx = TestFactories.combatContext(monster(1, 0), MAXED, false, false, null);
 		Loadout l = new Loadout();
 		l.set(Slot.WEAPON, sang);
 		l.setStyle(AttackStyle.parse("accurate,magic,accurate"));
@@ -269,7 +269,7 @@ public class DpsCalculatorTest
 		l.set(Slot.WEAPON, atlatl);
 		l.set(Slot.NECK, strengthAmulet);
 		l.setStyle(AttackStyle.parse("rapid,ranged,rapid"));
-		CombatContext ctx = new CombatContext(monster(1, 0), MAXED, false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(1, 0), MAXED, false, true, piety());
 		// Strength 99 + super combat = 118; x1.23 (rigour damage) = 145; + 0 (rapid) + 8 = 153
 		// max = floor((153 * (140 + 64) + 320) / 640) = 49
 		DpsResult r = DpsCalculator.calculate(l, ctx);
@@ -286,7 +286,7 @@ public class DpsCalculatorTest
 		Loadout l = new Loadout();
 		l.set(Slot.WEAPON, atlatl);
 		l.setStyle(AttackStyle.parse("rapid,ranged,rapid"));
-		CombatContext ctx = new CombatContext(monster(50, 0), MAXED, false, true, piety());
+		CombatContext ctx = TestFactories.combatContext(monster(50, 0), MAXED, false, true, piety());
 		DpsResult without = DpsCalculator.calculate(l, ctx);
 		l.set(Slot.HEAD, item(29010, "eclipse moon helm", Slot.HEAD));
 		l.set(Slot.BODY, item(29004, "eclipse moon chestplate", Slot.BODY));

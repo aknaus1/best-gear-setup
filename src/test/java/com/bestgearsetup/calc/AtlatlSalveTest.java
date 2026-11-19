@@ -19,7 +19,7 @@ import org.junit.Test;
 public class AtlatlSalveTest
 {
 	private static GameData data;
-	private static final CombatContext CONTEXT = new CombatContext(TestData.monster(30, 0, "undead"),
+	private static final CombatContext CONTEXT = TestFactories.combatContext(TestData.monster(30, 0, "undead"),
 		new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 68), true, false, null);
 	private static final OptimizerSettings SETTINGS = OptimizerSettings.builder()
 		.mode(SearchMode.OWNED_ONLY)
@@ -59,13 +59,13 @@ public class AtlatlSalveTest
 	public void ownedOnlySelectsImbuedWhenAvailableAndRegularOtherwise()
 	{
 		Set<Integer> owned = new HashSet<>(Arrays.asList(29000, 28991, 10588));
-		SetupResult regular = new Optimizer(data, CONTEXT, SETTINGS, owned::contains, item -> 0)
-			.optimize(CombatClass.RANGED, () -> false).get(0);
+		SetupResult regular = com.bestgearsetup.calc.Optimizers.of(data, CONTEXT, SETTINGS, owned::contains, item -> 0)
+			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(10588, regular.getLoadout().get(Slot.NECK).getId());
 
 		owned.add(12018);
-		SetupResult imbued = new Optimizer(data, CONTEXT, SETTINGS, owned::contains, item -> 0)
-			.optimize(CombatClass.RANGED, () -> false).get(0);
+		SetupResult imbued = com.bestgearsetup.calc.Optimizers.of(data, CONTEXT, SETTINGS, owned::contains, item -> 0)
+			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(12018, imbued.getLoadout().get(Slot.NECK).getId());
 		assertTrue(imbued.getDps().getDps() > regular.getDps().getDps());
 	}

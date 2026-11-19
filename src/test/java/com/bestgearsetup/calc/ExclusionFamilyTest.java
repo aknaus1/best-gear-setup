@@ -69,18 +69,18 @@ public class ExclusionFamilyTest
 		List<MonsterGroup> groups = data.searchMonsterGroups("vorkath", 1, true);
 		assertFalse(groups.isEmpty());
 		Monster vorkath = WikiMonsters.get(GSON).monster(groups.get(0).getPrimary().getName());
-		CombatContext ctx = new CombatContext(vorkath, PlayerLevels.maxed(), false, true, TestData.piety());
+		CombatContext ctx = TestFactories.combatContext(vorkath, PlayerLevels.maxed(), false, true, TestData.piety());
 		OptimizerSettings base = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.resultsPerClass(40).antifire(Antifire.SUPER).protectMagic(false).spellbooks(Collections.emptySet()).build();
 
-		Optimizer onlyBase = new Optimizer(data, ctx, base.toBuilder().excluded(Collections.singleton(crossbow.getId()))
+		Optimizer onlyBase = com.bestgearsetup.calc.Optimizers.of(data, ctx, base.toBuilder().excluded(Collections.singleton(crossbow.getId()))
 			.build(), id -> false, item -> 1L);
 		assertNull(onlyBase.unusableReason(crossbowB));
 
 		Set<Integer> family = ids(data.variantFamily(crossbow));
-		Optimizer whole = new Optimizer(data, ctx, base.toBuilder().excluded(family).build(), id -> false, item -> 1L);
+		Optimizer whole = com.bestgearsetup.calc.Optimizers.of(data, ctx, base.toBuilder().excluded(family).build(), id -> false, item -> 1L);
 		assertEquals("you excluded it", whole.unusableReason(crossbowB));
-		for (SetupResult r : whole.optimize(CombatClass.RANGED, () -> false))
+		for (SetupResult r : whole.optimize(CombatClass.RANGED, () -> false, done -> { }))
 		{
 			assertFalse(r.getLoadout().getWeapon().getName(), family.contains(r.getLoadout().getWeapon().getId()));
 		}

@@ -4,6 +4,7 @@ import com.bestgearsetup.data.CombatClass;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
+import static com.bestgearsetup.calc.EncounterDamage.*;
 
 /** Static encounter identity rules from the OSRS Wiki calculator; phases remain separate targets. */
 final class CombatRules
@@ -40,14 +41,14 @@ final class CombatRules
 				return titanBoss(m);
 			case ABYSSAL_SIRE_TRANSITION:
 				return m.getId() == 5886 || m.getId() == 5889 || m.getId() == 5891
-					|| EncounterDamage.named(m, "abyssal sire") && !m.getLowerName().contains("stage 2");
+					|| named(m, "abyssal sire") && !m.getLowerName().contains("stage 2");
 			case MOKHAIOTL_SHIELDED:
 			case MOKHAIOTL_BURROWING:
-				return EncounterDamage.named(m, "doom of mokhaiotl") || m.getId() == 14707;
+				return named(m, "doom of mokhaiotl") || m.getId() == 14707;
 			case TD_UNSHIELDED:
 			case TD_DEFENCELESS:
 				// Variants whose names already fix the shield state ignore the phase option.
-				return EncounterDamage.tormented(m) && !m.getLowerName().contains("shielded)")
+				return tormented(m) && !m.getLowerName().contains("shielded)")
 					&& !m.getLowerName().contains("100% accuracy");
 			case YAMA_MELEE_TANK:
 				return yamaTankDependent(m);
@@ -65,7 +66,7 @@ final class CombatRules
 	static boolean yamaTankDependent(Monster m)
 	{
 		String name = m.getLowerName();
-		return EncounterDamage.named(m, "yama") && !name.contains("enraged") && !name.contains("phase 3")
+		return named(m, "yama") && !name.contains("enraged") && !name.contains("phase 3")
 			&& !name.contains("mage tank") && !name.contains("deadman");
 	}
 
@@ -74,14 +75,14 @@ final class CombatRules
 	{
 		String name = m.getLowerName();
 		int id = m.getId();
-		return EncounterDamage.named(m, "the hueycoatl") ? name.contains("(head)") || name.contains("(tail)")
+		return named(m, "the hueycoatl") ? name.contains("(head)") || name.contains("(tail)")
 			: id == 14009 || id == 14010 || id == 14013 || id == 14014;
 	}
 
 	static boolean titanBoss(Monster m)
 	{
-		return m.getId() == 12596 || m.getId() == 14147 || EncounterDamage.named(m, "branda the fire queen")
-			|| EncounterDamage.named(m, "eldric the ice king");
+		return m.getId() == 12596 || m.getId() == 14147 || named(m, "branda the fire queen")
+			|| named(m, "eldric the ice king");
 	}
 
 	static boolean titanElemental(Monster m)
@@ -95,7 +96,7 @@ final class CombatRules
 	static boolean burnImmune(Monster m)
 	{
 		int id = m.getId();
-		return EncounterDamage.tekton(m) || EncounterDamage.crystal(m) || EncounterDamage.named(m, "dusk")
+		return tekton(m) || crystal(m) || named(m, "dusk")
 			|| id == 7851 || id == 7854 || id == 7855 || id == 7882 || id == 7883 || id >= 7886 && id <= 7889
 			|| id >= 2463 && id <= 2468 || id >= 2137 && id <= 2142;
 	}
@@ -114,7 +115,7 @@ final class CombatRules
 	/** @param gauntlet {@link #gauntlet(Monster)}, worked out once when checking every slot of a setup */
 	static boolean equipmentAllowed(Monster m, boolean gauntlet, GearItem item)
 	{
-		String name = EncounterDamage.lower(item);
+		String name = lower(item);
 		boolean activity = (name.startsWith("crystal ") || name.startsWith("corrupted "))
 			&& (name.contains("(basic)") || name.contains("(attuned)") || name.contains("(perfected)")
 			|| name.contains("(gauntlet)") || name.endsWith("sceptre") || name.equals("corrupted axe")
@@ -123,13 +124,13 @@ final class CombatRules
 		{
 			return activity && name.startsWith(m.hasAttribute("corrupted") || m.getId() >= 9035 ? "corrupted " : "crystal ");
 		}
-		return !activity && (!name.startsWith("dawnbringer") || EncounterDamage.verzikP1(m))
+		return !activity && (!name.startsWith("dawnbringer") || verzikP1(m))
 			&& (!name.contains("(inside toa)") || toa(m)) && (!name.contains("(outside toa)") || !toa(m));
 	}
 
 	static int defenceFloor(Monster m)
 	{
-		if (EncounterDamage.named(m, "vardorvis") || EncounterDamage.named(m, "verzik vitur"))
+		if (named(m, "vardorvis") || named(m, "verzik vitur"))
 		{
 			return m.getDefenceLevel();
 		}
@@ -138,9 +139,9 @@ final class CombatRules
 			: name.startsWith("akkha") && !name.contains("shadow") ? 70 : name.startsWith("ba-ba") ? 60
 			: name.startsWith("kephri") || name.startsWith("obelisk") && toa(m) ? 60
 			: name.startsWith("zebak") ? 50 : name.contains("warden") && name.contains("phase 3") ? 120
-			: EncounterDamage.named(m, "nex") ? 250 : EncounterDamage.named(m, "araxxor") ? 90
-			: EncounterDamage.named(m, "the hueycoatl") ? 120 : EncounterDamage.named(m, "yama") ? 145
-			: EncounterDamage.named(m, "doom of mokhaiotl") ? 60
+			: named(m, "nex") ? 250 : named(m, "araxxor") ? 90
+			: named(m, "the hueycoatl") ? 120 : named(m, "yama") ? 145
+			: named(m, "doom of mokhaiotl") ? 60
 			: tfaDrainCapped(m) ? m.getDefenceLevel() * 3 / 5 : 0;
 		return Math.min(m.getDefenceLevel(), Math.max(floor, m.getDefenceFloor()));
 	}
@@ -156,10 +157,10 @@ final class CombatRules
 		{
 			return false;
 		}
-		return EncounterDamage.named(m, "archive guardian") || EncounterDamage.named(m, "bork")
-			|| EncounterDamage.named(m, "ezekiel") || EncounterDamage.named(m, "moia")
-			|| EncounterDamage.named(m, "xarth")
-			|| EncounterDamage.named(m, "ocellus") && RaidScaling.tfaScaled(m);
+		return named(m, "archive guardian") || named(m, "bork")
+			|| named(m, "ezekiel") || named(m, "moia")
+			|| named(m, "xarth")
+			|| named(m, "ocellus") && RaidScaling.tfaScaled(m);
 	}
 
 	static boolean wardenCore(Monster m)
@@ -187,7 +188,7 @@ final class CombatRules
 	{
 		if (!wardenP2(m))
 		{
-			return new long[]{EncounterDamage.named(m, "respiratory system") ? max / 2 : 0, max};
+			return new long[]{named(m, "respiratory system") ? max / 2 : 0, max};
 		}
 		double modifier = Math.max(15, Math.min(40, 15 + Math.max(0, attack - defence / 3) * 25.0 / 42000));
 		return new long[]{(long) (max * modifier / 100), (long) (max * (modifier + 20) / 100)};
@@ -196,11 +197,9 @@ final class CombatRules
 	static boolean defenceBasedMagic(Monster m)
 	{
 		int id = m.getId();
-		return id == 7584 || id == 7585 || id >= 8917 && id <= 8920
+		return iceDemon(m) || seren(m)
 			|| id >= 8369 && id <= 8374 || id >= 10830 && id <= 10835 || id >= 10847 && id <= 10852
-			|| id == 11709 || id == 11712 || id == 9118
-			|| EncounterDamage.named(m, "ice demon") || EncounterDamage.named(m, "fragment of seren")
-			|| EncounterDamage.named(m, "verzik vitur");
+			|| id == 11709 || id == 11712 || id == 9118 || named(m, "verzik vitur");
 	}
 
 	static int demonVulnerability(Monster m)
@@ -209,11 +208,11 @@ final class CombatRules
 		{
 			return Math.max(0, m.getDemonbaneVulnerability());
 		}
-		if (EncounterDamage.named(m, "duke sucellus"))
+		if (named(m, "duke sucellus"))
 		{
 			return 70;
 		}
-		if (EncounterDamage.named(m, "yama"))
+		if (named(m, "yama"))
 		{
 			return 120;
 		}
@@ -221,13 +220,13 @@ final class CombatRules
 		{
 			return 200;
 		}
-		return m.getId() == 7584 || m.getId() == 7585 || EncounterDamage.named(m, "ice demon") ? 115 : 100;
+		return iceDemon(m) ? 115 : 100;
 	}
 
 	/** Yama's void flares (ids shared by the fire and shadow flares, matched by name for older data). */
 	static boolean voidFlare(Monster m)
 	{
-		return m.getId() == 14179 || EncounterDamage.named(m, "void flare");
+		return m.getId() == 14179 || named(m, "void flare");
 	}
 
 	/**
@@ -289,23 +288,23 @@ final class CombatRules
 			|| phase(m, EncounterPhase.MOKHAIOTL_SHIELDED) || phase(m, EncounterPhase.MOKHAIOTL_BURROWING)
 			|| phase(m, EncounterPhase.TD_DEFENCELESS)
 			|| eclipseClone(m) && l.getStyle().isMelee()
-			|| EncounterDamage.unshielded(m) || EncounterDamage.verzikP1(m)
-			&& EncounterDamage.lower(l.getWeapon()).equals("dawnbringer") ? 1 : normal;
+			|| unshielded(m) || verzikP1(m)
+			&& lower(l.getWeapon()).equals("dawnbringer") ? 1 : normal;
 	}
 
 	static boolean eclipseClone(Monster m)
 	{
 		// By name: the clone shares no reliable NPC id across data sources.
-		return EncounterDamage.named(m, "eclipse moon") && m.getLowerName().contains("clone");
+		return named(m, "eclipse moon") && m.getLowerName().contains("clone");
 	}
 
 	static boolean araxyteMax(Monster m, Loadout l)
 	{
-		if (!EncounterDamage.named(m, "acidic araxyte") && !EncounterDamage.named(m, "mirrorback araxyte"))
+		if (!named(m, "acidic araxyte") && !named(m, "mirrorback araxyte"))
 		{
 			return false;
 		}
-		if (EncounterDamage.lower(l.getWeapon()).equals("noxious halberd"))
+		if (lower(l.getWeapon()).equals("noxious halberd"))
 		{
 			return true;
 		}
@@ -318,7 +317,7 @@ final class CombatRules
 
 	static boolean tormentedBonus(Monster m, Loadout l)
 	{
-		if (!EncounterDamage.unshielded(m))
+		if (!unshielded(m))
 		{
 			return false;
 		}

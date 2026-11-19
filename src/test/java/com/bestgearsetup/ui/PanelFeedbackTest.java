@@ -140,7 +140,7 @@ public class PanelFeedbackTest
 			BestGearSetupPanel panel = new BestGearSetupPanel(plugin(), new BestGearSetupConfig()
 			{
 			}, null, null, null);
-			panel.showResults(new SearchResults(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
+			panel.showResults(com.bestgearsetup.TestResults.of(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
 				Collections.emptyMap(), Collections.emptyMap(), false, Collections.emptyList(), false, false,
 				Collections.singletonList("Ranged potion picked by name: Smelling Salts - only usable in the Tombs of Amascut.")));
 			JLabel warnings = (JLabel) named(panel, "assumptionWarnings");
@@ -160,7 +160,7 @@ public class PanelFeedbackTest
 			}, null, null, null);
 			LockStatus used = new LockStatus(Slot.FEET, SlotLock.item(1), null, null, null);
 			LockStatus blocked = new LockStatus(Slot.HEAD, SlotLock.item(2), null, "its requirements are too high", null);
-			panel.showResults(new SearchResults(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
+			panel.showResults(com.bestgearsetup.TestResults.of(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
 				Collections.emptyMap(), Collections.emptyMap(), false, Arrays.asList(used, blocked), false, false,
 				Collections.emptyList()));
 			assertTrue("No lock rows above the results", named(panel, "lockFEET") == null && named(panel, "lockHEAD") == null);
@@ -223,7 +223,7 @@ public class PanelFeedbackTest
 			BestGearSetupPanel panel = new BestGearSetupPanel(recording, new BestGearSetupConfig()
 			{
 			}, null, null, null);
-			panel.showResults(new SearchResults(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
+			panel.showResults(com.bestgearsetup.TestResults.of(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
 				Collections.emptyMap(), Collections.emptyMap(), false, Collections.emptyList(), false, false,
 				Collections.singletonList("Earlier search warning")));
 			highlights.clear();
@@ -234,7 +234,7 @@ public class PanelFeedbackTest
 			assertTrue("The bank layout isn't dropped while searching", highlights.isEmpty());
 			assertTrue(panel.statusLabel.getText().contains("Searching setups for"));
 			// Clearing forgets the shown view, so a supplies-only setting change can't bring its bank layout back.
-			panel.resultView = new ResultView(new SearchResults(new Monster(), 100, Collections.emptyMap(),
+			panel.resultView = new ResultView(com.bestgearsetup.TestResults.of(new Monster(), 100, Collections.emptyMap(),
 				Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), false), null, null, null, null, 0, null, style -> { });
 			panel.clearResults("Account changed");
 			highlights.clear();

@@ -47,8 +47,8 @@ public class PotionChoiceTest
 	public void bestSkipsRaidOnlyPotions()
 	{
 		// 99 + 4 + 9 = 112 (overloads and smelling salts are raid-only)
-		assertEquals(112, PotionChoice.boostedLevel(data(), "ranged", 99, PotionChoice.BEST));
-		assertEquals("Ranging Potion", PotionChoice.describe(data(), "ranged", 99, PotionChoice.BEST));
+		assertEquals(112, PotionChoice.boostedLevel(data(), "ranged", 99, PotionChoice.BEST, p -> true, null));
+		assertEquals("Ranging Potion", GameData.titleCase(PotionChoice.resolve(data(), "ranged", 99, PotionChoice.BEST, p -> true, null).getName()));
 	}
 
 	@Test
@@ -71,15 +71,15 @@ public class PotionChoiceTest
 	public void namedAndNoneChoices()
 	{
 		// 99 + 11 + 15 = 125
-		assertEquals(125, PotionChoice.boostedLevel(data(), "ranged", 99, "smelling salts"));
-		assertEquals(99, PotionChoice.boostedLevel(data(), "ranged", 99, PotionChoice.NONE));
-		assertTrue(PotionChoice.namesFor(data(), CombatClass.RANGED).contains("overload (+)"));
+		assertEquals(125, PotionChoice.boostedLevel(data(), "ranged", 99, "smelling salts", p -> true, null));
+		assertEquals(99, PotionChoice.boostedLevel(data(), "ranged", 99, PotionChoice.NONE, p -> true, null));
+		assertTrue(PotionNames.namesFor(data(), CombatClass.RANGED).contains("overload (+)"));
 	}
 
 	@Test
 	public void dragonBattleaxeIsNotOffered()
 	{
-		assertTrue(PotionChoice.namesFor(data(), CombatClass.MELEE).isEmpty());
+		assertTrue(PotionNames.namesFor(data(), CombatClass.MELEE).isEmpty());
 	}
 
 	@Test

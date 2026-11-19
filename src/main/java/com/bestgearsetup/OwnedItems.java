@@ -280,21 +280,9 @@ public class OwnedItems
 		{
 			return statusChanged;
 		}
-		// A newer DWMS timestamp alone moves no items: keep it, but don't report a change.
-		boolean itemsChanged = !contents(storedLocations).equals(contents(locations));
 		storedLocations = Collections.unmodifiableList(new ArrayList<>(locations));
-		moved |= itemsChanged;
-		return statusChanged || itemsChanged;
-	}
-
-	private static List<List<Object>> contents(List<StoredLocation> locations)
-	{
-		List<List<Object>> contents = new ArrayList<>();
-		for (StoredLocation location : locations)
-		{
-			contents.add(Arrays.asList(location.getCategory(), location.getName(), location.getItems()));
-		}
-		return contents;
+		moved = true;
+		return true;
 	}
 
 	/** Where the item or one of its reviewed ownership equivalents is, for tooltips: "Bank", "POH: Toy Box"... */
@@ -339,16 +327,11 @@ public class OwnedItems
 		return containers;
 	}
 
-	private void rebuild()
-	{
-		rebuild(true);
-	}
-
 	/**
 	 * Publish the current totals at once, without waiting for them to settle: on loading a profile, marking an
 	 * item owned by hand, reading the live containers at start-up or clearing recorded storage.
 	 */
-	synchronized void rebuild(boolean itemsChanged)
+	synchronized void rebuild()
 	{
 		owned = snapshot(owned, combine(allContainers(), manual));
 		carried = snapshot(carried, combine(Arrays.asList(inventory, worn), Collections.emptySet()));

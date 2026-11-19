@@ -1,9 +1,7 @@
 package com.bestgearsetup.calc;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-@Getter
 @RequiredArgsConstructor
 public enum SearchMode
 {

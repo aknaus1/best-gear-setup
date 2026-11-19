@@ -37,7 +37,7 @@ public class CombatEdgeCasesTest
 
 	private static CombatContext context(Monster m)
 	{
-		return new CombatContext(m, PlayerLevels.maxed(), false, false, null);
+		return TestFactories.combatContext(m, PlayerLevels.maxed(), false, false, null);
 	}
 
 	private static Loadout crossbow(String ammo)
@@ -246,7 +246,7 @@ public class CombatEdgeCasesTest
 	@Test
 	public void realApiFlatFieldIsRetainedInCopies()
 	{
-		Monster m = RuneLiteAPI.GSON.fromJson("{\"id\":13012,\"name\":\"eclipse moon\",\"flat\":6}", Monster.class);
+		Monster m = RuneLiteAPI.GSON.fromJson("{\"id\":13012,\"name\":\"eclipse moon\",\"flatArmour\":6}", Monster.class);
 		assertEquals(Integer.valueOf(6), m.getFlatArmour());
 		assertEquals(Integer.valueOf(6), m.copy().getFlatArmour());
 	}
@@ -315,7 +315,7 @@ public class CombatEdgeCasesTest
 		l.set(Slot.HEAD, item(50005, "slayer helmet (i)", Slot.HEAD));
 		Monster m = monster(100, 50);
 		m.setMagicLevel(100);
-		CombatContext ctx = new CombatContext(m, PlayerLevels.maxed(), true, false, null);
+		CombatContext ctx = TestFactories.combatContext(m, PlayerLevels.maxed(), true, false, null);
 		// Base 17 -> task 19 -> 131% Twisted bow multiplier = 24. Reversing order incorrectly gives 25.
 		assertEquals(24, DpsCalculator.calculate(l, ctx).getMaxHit());
 	}

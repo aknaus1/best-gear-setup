@@ -53,7 +53,7 @@ public class ChaosDwarfOptimizerTest
 			}
 		}, id -> false);
 		Monster monster = WikiMonsters.get(gson).monster(data.matchNpc(291, null, 0).getName());
-		context = new CombatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 68),
+		context = TestFactories.combatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 68),
 			false, false, null).withModifiers(CombatModifiers.builder().wilderness(true).build());
 	}
 
@@ -79,8 +79,8 @@ public class ChaosDwarfOptimizerTest
 	@Test
 	public void mixedEquipmentBeatsTheEclipseSetWithinFourExpensiveItems()
 	{
-		Optimizer optimizer = new Optimizer(data, context, settings(), OWNED::contains, ChaosDwarfOptimizerTest::price);
-		SetupResult result = optimizer.optimize(CombatClass.RANGED, () -> false).get(0);
+		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, context, settings(), OWNED::contains, ChaosDwarfOptimizerTest::price);
+		SetupResult result = optimizer.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(5.542224536007131, result.getDps().getDps(), 1e-9);
 		assertEquals(22, result.getDps().getMaxHit());
 		assertEquals(0.9033389604375305, result.getDps().getAccuracy(), 1e-8);
@@ -126,9 +126,9 @@ public class ChaosDwarfOptimizerTest
 	@Test
 	public void stanceAndNecklaceChangeTogether()
 	{
-		Optimizer optimizer = new Optimizer(data, crushContext(), crushSettings(), CRUSH_BANK::containsKey,
+		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, crushContext(), crushSettings(), CRUSH_BANK::containsKey,
 			item -> CRUSH_BANK.getOrDefault(item.getId(), 1_000L));
-		SetupResult result = optimizer.optimize(CombatClass.MELEE, () -> false).get(0);
+		SetupResult result = optimizer.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
 		Loadout l = result.getLoadout();
 		assertEquals(28997, l.getWeapon().getId());
 		assertEquals(1725, l.get(Slot.NECK).getId());
@@ -176,8 +176,8 @@ public class ChaosDwarfOptimizerTest
 		locks.put(Slot.CAPE, SlotLock.item(22114));
 		OptimizerSettings locked = settings().toBuilder().mode(SearchMode.BUDGET).budget(0)
 			.locks(locks).build();
-		Optimizer optimizer = new Optimizer(data, context, locked, OWNED::contains, ChaosDwarfOptimizerTest::price);
-		SetupResult result = optimizer.optimize(CombatClass.RANGED, () -> false).get(0);
+		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, context, locked, OWNED::contains, ChaosDwarfOptimizerTest::price);
+		SetupResult result = optimizer.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(29035, result.getLoadout().get(Slot.HEAD).getId());
 		assertEquals(22114, result.getLoadout().get(Slot.CAPE).getId());
 		assertEquals(0, result.getBuyCost());

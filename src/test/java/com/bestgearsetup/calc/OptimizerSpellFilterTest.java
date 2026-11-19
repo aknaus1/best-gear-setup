@@ -44,9 +44,9 @@ public class OptimizerSpellFilterTest
 
 	private static List<SetupResult> search(OptimizerSettings settings)
 	{
-		CombatContext ctx = new CombatContext(monster, PlayerLevels.maxed(), false, false, TestData.piety());
-		return new Optimizer(data, ctx, settings, id -> false, item -> 1_000_000L)
-			.optimize(CombatClass.MAGIC, () -> false);
+		CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, false, TestData.piety());
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, item -> 1_000_000L)
+			.optimize(CombatClass.MAGIC, () -> false, done -> { });
 	}
 
 	private static String spellName(Spell spell)

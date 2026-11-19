@@ -30,7 +30,7 @@ public class WholeFightTest
 
 	private static CombatContext context(Monster m)
 	{
-		return new CombatContext(m, PlayerLevels.maxed(), false, true, null);
+		return TestFactories.combatContext(m, PlayerLevels.maxed(), false, true, null);
 	}
 
 	/** Sum of 1/DPS over every integer HP from the start down to 1: the exact fluid kill time. */

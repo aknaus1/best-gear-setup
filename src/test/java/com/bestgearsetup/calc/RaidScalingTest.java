@@ -77,7 +77,7 @@ public class RaidScalingTest
 		l.getWeapon().setStabBonus(100);
 		l.getWeapon().setMeleeStr(50);
 		l.setStyle(AttackStyle.parse("lunge,stab,accurate"));
-		DpsResult r = DpsCalculator.calculate(l, new CombatContext(target, PlayerLevels.maxed(), false, false, null));
+		DpsResult r = DpsCalculator.calculate(l, TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null));
 		long defence = 89L * 184 * 550 / 250;
 		assertEquals(36027, defence);
 		assertEquals(HitChance.single(110L * 164, defence), r.getAccuracy(), 1e-12);

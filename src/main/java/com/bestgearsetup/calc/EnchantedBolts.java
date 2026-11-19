@@ -35,12 +35,11 @@ final class EnchantedBolts
 			&& ctx.getModifiers().targetHp(monster) > 0)
 		{
 			chance = 0.06 * diary;
-			boolean infinite = monster.getId() == 14779 || EncounterDamage.named(monster, "gemstone crab");
+			boolean infinite = EncounterDamage.gemstoneCrab(monster);
 			int cap = infinite ? zaryte ? 66 : 60 : zaryte ? 110 : 100;
 			int damage = Math.min(cap, ctx.getModifiers().targetHp(monster) * (zaryte ? 22 : 20) / 100);
 			// Corp's reduction precedes ruby replacement, so ruby effect damage bypasses it.
-			EncounterDamage.Rule rubyRule = EncounterDamage.named(monster, "corporeal beast")
-				|| monster.getId() == 319 ? EncounterDamage.unmitigated() : rule;
+			EncounterDamage.Rule rubyRule = EncounterDamage.corp(monster) ? EncounterDamage.unmitigated() : rule;
 			effectHit = rubyRule.mean(Math.max(1, damage));
 			effectMiss = effectHit;
 			missBecomesAccurate = true;

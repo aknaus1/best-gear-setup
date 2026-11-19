@@ -1,9 +1,18 @@
 package com.bestgearsetup;
 
+import java.util.Locale;
+
 /** Selectable boosts from the bundled potion catalog; legacy names are retained. */
 public final class PotionOptions
 {
 	private PotionOptions() {}
+
+	/** A choice's stored potion name, from its constant: OVERLOAD_PLUS is "overload (+)", WIZARD_S_MIND_BOMB "wizard's mind bomb". */
+	static String value(Enum<?> choice)
+	{
+		return choice.name().toLowerCase(Locale.ROOT).replace("_s_", "'s ").replace('_', ' ').replaceAll(" (minus|plus|nmz)$", " ($1)")
+			.replace("(minus)", "(-)").replace("(plus)", "(+)");
+	}
 
 	/** Short sentence-case labels so the settings dropdowns leave room for their names. */
 	static String display(String name)
@@ -16,69 +25,60 @@ public final class PotionOptions
 
 	public enum Melee
 	{
-		BEST("best"),
-		NONE("none"),
-		ATTACK_POTION("attack potion"),
-		COMBAT_POTION("combat potion"),
-		SUPER_ATTACK("super attack"),
-		SUPER_COMBAT_POTION("super combat potion"),
-		ZAMORAK_BREW("zamorak brew"),
-		RUBY_HARVEST("ruby harvest"),
-		OVERLOAD_MINUS("overload (-)"),
-		OVERLOAD("overload"),
-		OVERLOAD_PLUS("overload (+)"),
-		OVERLOAD_NMZ("overload (nmz)"),
-		SMELLING_SALTS("smelling salts"),
-		STRENGTH_POTION("strength potion"),
-		SUPER_STRENGTH("super strength"),
-		BLACK_WARLOCK("black warlock");
-		private final String name;
-		Melee(String name) { this.name = name; }
-		public String value() { return name; }
-		@Override public String toString() { return display(name); }
+		BEST,
+		NONE,
+		ATTACK_POTION,
+		COMBAT_POTION,
+		SUPER_ATTACK,
+		SUPER_COMBAT_POTION,
+		ZAMORAK_BREW,
+		RUBY_HARVEST,
+		OVERLOAD_MINUS,
+		OVERLOAD,
+		OVERLOAD_PLUS,
+		OVERLOAD_NMZ,
+		SMELLING_SALTS,
+		STRENGTH_POTION,
+		SUPER_STRENGTH,
+		BLACK_WARLOCK;
+		@Override public String toString() { return display(value(this)); }
 	}
 
 	public enum Ranged
 	{
-		BEST("best"),
-		NONE("none"),
-		RANGING_POTION("ranging potion"),
-		BASTION_POTION("bastion potion"),
-		LIZARDKICKER("lizardkicker"),
-		WILD_PIE("wild pie"),
-		OVERLOAD_MINUS("overload (-)"),
-		OVERLOAD("overload"),
-		OVERLOAD_PLUS("overload (+)"),
-		OVERLOAD_NMZ("overload (nmz)"),
-		SUPER_RANGING("super ranging"),
-		SMELLING_SALTS("smelling salts");
-		private final String name;
-		Ranged(String name) { this.name = name; }
-		public String value() { return name; }
-		@Override public String toString() { return display(name); }
+		BEST,
+		NONE,
+		RANGING_POTION,
+		BASTION_POTION,
+		LIZARDKICKER,
+		WILD_PIE,
+		OVERLOAD_MINUS,
+		OVERLOAD,
+		OVERLOAD_PLUS,
+		OVERLOAD_NMZ,
+		SUPER_RANGING,
+		SMELLING_SALTS;
+		@Override public String toString() { return display(value(this)); }
 	}
 
 	public enum Magic
 	{
-		BEST("best"),
-		NONE("none"),
-		MAGIC_POTION("magic potion"),
-		BATTLEMAGE_POTION("battlemage potion"),
-		ANCIENT_BREW("ancient brew"),
-		FORGOTTEN_BREW("forgotten brew"),
-		IMBUED_HEART("imbued heart"),
-		SATURATED_HEART("saturated heart"),
-		WIZARD_S_MIND_BOMB("wizard's mind bomb"),
-		MATURE_WIZARD_S_MIND_BOMB("mature wizard's mind bomb"),
-		OVERLOAD_MINUS("overload (-)"),
-		OVERLOAD("overload"),
-		OVERLOAD_PLUS("overload (+)"),
-		OVERLOAD_NMZ("overload (nmz)"),
-		SUPER_MAGIC_POTION("super magic potion"),
-		SMELLING_SALTS("smelling salts");
-		private final String name;
-		Magic(String name) { this.name = name; }
-		public String value() { return name; }
-		@Override public String toString() { return display(name); }
+		BEST,
+		NONE,
+		MAGIC_POTION,
+		BATTLEMAGE_POTION,
+		ANCIENT_BREW,
+		FORGOTTEN_BREW,
+		IMBUED_HEART,
+		SATURATED_HEART,
+		WIZARD_S_MIND_BOMB,
+		MATURE_WIZARD_S_MIND_BOMB,
+		OVERLOAD_MINUS,
+		OVERLOAD,
+		OVERLOAD_PLUS,
+		OVERLOAD_NMZ,
+		SUPER_MAGIC_POTION,
+		SMELLING_SALTS;
+		@Override public String toString() { return display(value(this)); }
 	}
 }

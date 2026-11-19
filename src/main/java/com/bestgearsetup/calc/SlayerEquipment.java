@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Protective equipment some Slayer monsters require, on or off task: without it they drain stats and hit
@@ -161,6 +162,7 @@ public final class SlayerEquipment
 		return notes;
 	}
 
+	@RequiredArgsConstructor
 	private static final class Rule
 	{
 		private final Slot slot;
@@ -169,15 +171,6 @@ public final class SlayerEquipment
 		private final boolean karuulm;
 		private final NameLists.NameList monster;
 		private final NameLists.NameList item;
-
-		private Rule(Slot slot, String items, boolean karuulm, NameLists.NameList monster, NameLists.NameList item)
-		{
-			this.slot = slot;
-			this.items = items;
-			this.karuulm = karuulm;
-			this.monster = monster;
-			this.item = item;
-		}
 
 		private boolean satisfiedBy(GearItem worn)
 		{

@@ -1,21 +1,12 @@
 package com.bestgearsetup.data;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Monster stats from the bundled OSRS Wiki snapshot (tools/wiki_monsters.py), in the plugin's monster
@@ -29,6 +20,19 @@ public final class WikiMonsters
 	private final List<MonsterSummary> summaries;
 	private final Map<String, Monster> byName;
 	private final String retrieved;
+
+	/** The snapshot as written by the tool. */
+	private static final class Snapshot
+	{
+		private String retrievedUtc;
+		private List<Entry> monsters;
+	}
+
+	/** A monster record, which also lists every NPC id of the variant. */
+	private static final class Entry extends Monster
+	{
+		private List<Integer> ids;
+	}
 
 	private WikiMonsters(List<MonsterSummary> summaries, Map<String, Monster> byName, String retrieved)
 	{
@@ -63,50 +67,29 @@ public final class WikiMonsters
 
 	private static WikiMonsters load(Gson gson) throws IOException
 	{
-		InputStream in = WikiMonsters.class.getResourceAsStream(RESOURCE);
-		if (in == null)
+		return WikiGameData.read(gson, RESOURCE, Snapshot.class, "monster", root ->
 		{
-			throw new IOException("Bundled Wiki monster data is missing");
-		}
-		List<MonsterSummary> summaries = new ArrayList<>();
-		Map<String, Monster> byName = new HashMap<>();
-		String retrieved;
-		try (Reader reader = new InputStreamReader(new GZIPInputStream(in), StandardCharsets.UTF_8))
-		{
-			JsonObject root = new JsonParser().parse(reader).getAsJsonObject();
-			String stamp = root.has("retrievedUtc") ? root.get("retrievedUtc").getAsString() : "";
-			retrieved = stamp.length() >= 10 ? stamp.substring(0, 10) : "unknown date";
-			for (JsonElement element : root.getAsJsonArray("monsters"))
+			List<MonsterSummary> summaries = new ArrayList<>();
+			Map<String, Monster> byName = new HashMap<>();
+			for (Entry monster : root.monsters)
 			{
-				JsonObject record = element.getAsJsonObject();
-				Monster monster = gson.fromJson(record, Monster.class);
 				MonsterSummary summary = new MonsterSummary();
 				summary.setId(monster.getId());
 				summary.setName(monster.getName());
 				summary.setCombatLevel(monster.getCombatLevel());
-				summary.setBoss(record.has("boss") && record.get("boss").getAsBoolean());
-				List<Integer> ids = new ArrayList<>();
-				for (JsonElement id : record.getAsJsonArray("ids"))
-				{
-					ids.add(id.getAsInt());
-				}
-				summary.setIds(ids);
+				summary.setBoss(monster.isBoss());
+				summary.setIds(monster.ids);
 				List<String> attributes = new ArrayList<>();
-				JsonArray attrs = record.getAsJsonArray("attributes");
-				for (JsonElement a : attrs == null ? new JsonArray() : attrs)
+				for (Monster.Attribute a : monster.getAttributes() == null ? List.<Monster.Attribute>of() : monster.getAttributes())
 				{
-					attributes.add(a.getAsJsonObject().get("name").getAsString());
+					attributes.add(a.getName());
 				}
 				summary.setAttributes(attributes);
 				summaries.add(summary);
 				byName.put(monster.getName(), monster);
 			}
-		}
-		catch (RuntimeException e)
-		{
-			throw new IOException("Bundled Wiki monster data is unreadable", e);
-		}
-		return new WikiMonsters(Collections.unmodifiableList(summaries), byName, retrieved);
+			return new WikiMonsters(Collections.unmodifiableList(summaries), byName, WikiGameData.date(root.retrievedUtc));
+		});
 	}
 
 	public List<MonsterSummary> getSummaries()

@@ -1,22 +1,17 @@
 package com.bestgearsetup.data;
 
+import com.google.common.base.Suppliers;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.IntPredicate;
 import java.util.function.IntUnaryOperator;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import lombok.Getter;
 import net.runelite.api.ItemComposition;
@@ -32,22 +27,9 @@ public final class EquipmentRequirements
 	private static final String RESOURCE = "/com/bestgearsetup/equipment-requirements.json";
 	private static final int[][] PAIRS = {{434, 436}, {435, 437}, {191, 613}, {579, 614},
 		{610, 615}, {611, 616}, {612, 617}};
-	private static final Map<Integer, String> SKILLS;
-	private static volatile EquipmentRequirements instance;
-
-	static
-	{
-		Map<Integer, String> skills = new LinkedHashMap<>();
-		skills.put(0, "attack");
-		skills.put(1, "defence");
-		skills.put(2, "strength");
-		skills.put(3, "hitpoints");
-		skills.put(4, "ranged");
-		skills.put(5, "prayer");
-		skills.put(6, "magic");
-		skills.put(18, "slayer");
-		SKILLS = Collections.unmodifiableMap(skills);
-	}
+	private static final Map<Integer, String> SKILLS = Map.of(0, "attack", 1, "defence", 2, "strength", 3, "hitpoints",
+		4, "ranged", 5, "prayer", 6, "magic", 18, "slayer");
+	private static final Supplier<EquipmentRequirements> INSTANCE = Suppliers.memoize(EquipmentRequirements::load);
 
 	private final List<Rule> rules;
 
@@ -59,33 +41,15 @@ public final class EquipmentRequirements
 	/** Load the bundled rules, without any network or client access. */
 	public static EquipmentRequirements get()
 	{
-		EquipmentRequirements loaded = instance;
-		if (loaded == null)
-		{
-			synchronized (EquipmentRequirements.class)
-			{
-				loaded = instance;
-				if (loaded == null)
-				{
-					loaded = load();
-					instance = loaded;
-				}
-			}
-		}
-		return loaded;
+		return INSTANCE.get();
 	}
 
 	private static EquipmentRequirements load()
 	{
-		InputStream in = EquipmentRequirements.class.getResourceAsStream(RESOURCE);
-		if (in == null)
-		{
-			throw new IllegalStateException("Bundled equipment requirements are missing");
-		}
 		List<Rule> rules = new ArrayList<>();
-		try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8))
+		try
 		{
-			JsonObject root = new JsonParser().parse(reader).getAsJsonObject();
+			JsonObject root = NameLists.load(RESOURCE);
 			if (root.get("schema").getAsInt() != 1)
 			{
 				throw new IllegalStateException("Unsupported equipment requirements schema");
@@ -95,7 +59,6 @@ public final class EquipmentRequirements
 				JsonObject row = element.getAsJsonObject();
 				Rule rule = new Rule();
 				rule.label = row.get("label").getAsString();
-				rule.source = row.get("source").getAsString();
 				rule.pattern = Pattern.compile(row.get("pattern").getAsString());
 				rule.combat = row.get("combat").getAsInt();
 				rule.reviewRequired = row.get("reviewRequired").getAsBoolean();
@@ -124,7 +87,7 @@ public final class EquipmentRequirements
 				rules.add(rule);
 			}
 		}
-		catch (IOException | RuntimeException e)
+		catch (RuntimeException e)
 		{
 			throw new IllegalStateException("Bundled equipment requirements are unreadable", e);
 		}
@@ -195,8 +158,7 @@ public final class EquipmentRequirements
 		Source source = invalid || !unmodelled.isEmpty() || review ? Source.REVIEW_REQUIRED
 			: rule != null ? cache ? Source.RULE_AND_CACHE : Source.RULE
 			: cache ? Source.CACHE : Source.UNRESOLVED;
-		return new Resolution(requirements, unmodelled, source, rule == null ? "" : rule.label,
-			rule == null ? "" : rule.source, rule == null ? 0 : rule.combat);
+		return new Resolution(requirements, unmodelled, source, rule == null ? 0 : rule.combat);
 	}
 
 	private Rule match(GearItem item)
@@ -240,18 +202,14 @@ public final class EquipmentRequirements
 		private final Map<String, Integer> requirements;
 		private final Map<Integer, Integer> unmodelledSkills;
 		private final Source source;
-		private final String rule;
-		private final String citation;
 		private final int combat;
 
 		private Resolution(Map<String, Integer> requirements, Map<Integer, Integer> unmodelledSkills,
-			Source source, String rule, String citation, int combat)
+			Source source, int combat)
 		{
 			this.requirements = Collections.unmodifiableMap(new HashMap<>(requirements));
 			this.unmodelledSkills = Collections.unmodifiableMap(new HashMap<>(unmodelledSkills));
 			this.source = source;
-			this.rule = rule;
-			this.citation = citation;
 			this.combat = combat;
 		}
 
@@ -309,7 +267,6 @@ public final class EquipmentRequirements
 	private static final class Rule
 	{
 		private String label;
-		private String source;
 		private Pattern pattern;
 		private int combat;
 		private boolean reviewRequired;

@@ -4,6 +4,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -19,6 +20,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.components.IconTextField;
@@ -32,20 +35,13 @@ final class Controls
 	/** Inputs sit in a recessed well with a visible outline; buttons are raised above the panel. */
 	static final Color WELL = ColorScheme.DARKER_GRAY_COLOR;
 	static final Color OUTLINE = new Color(0x3E3E3E);
-	static final Color OUTLINE_HOVER = new Color(0x5C5C5C);
 	static final Color RAISED = new Color(0x363636);
-	static final Color RAISED_HOVER = new Color(0x424242);
-	static final Color RAISED_PRESSED = new Color(0x2C2C2C);
-	static final Color RAISED_BORDER = new Color(0x4A4A4A);
-	static final Color PRIMARY_HOVER = new Color(0xF09C14);
-	static final Color PRIMARY_PRESSED = new Color(0xB87300);
 	static final Color PRIMARY_TEXT = new Color(0x1A1A1A);
 	static final Color DISABLED_TEXT = new Color(0x7A7A7A);
 	static final Color ROW_HOVER = ColorScheme.DARKER_GRAY_HOVER_COLOR;
 	/** Collapsible sections are cards raised above the panel; their inputs stay recessed wells. */
 	static final Color CARD = new Color(0x323232);
 	static final Color CARD_OUTLINE = new Color(0x424242);
-	static final Color CARD_HOVER = new Color(0x3B3B3B);
 
 	/** FlatLaf applies a minimum height only to buttons that keep their default margins; others size by margin. */
 	static final int PRIMARY_HEIGHT = 30;
@@ -73,9 +69,9 @@ final class Controls
 	{
 		button.putClientProperty(MINIMUM_HEIGHT, PRIMARY_HEIGHT);
 		button.putClientProperty(STYLE, "borderWidth: 0; focusWidth: 0; arc: 0"
-			+ "; hoverBackground: " + hex(PRIMARY_HOVER)
-			+ "; pressedBackground: " + hex(PRIMARY_PRESSED)
-			+ "; disabledBackground: " + hex(RAISED_PRESSED)
+			+ "; hoverBackground: #F09C14"
+			+ "; pressedBackground: #B87300"
+			+ "; disabledBackground: #2C2C2C"
 			+ "; disabledText: " + hex(DISABLED_TEXT));
 		button.setBackground(ColorScheme.BRAND_ORANGE);
 		button.setForeground(PRIMARY_TEXT);
@@ -86,10 +82,10 @@ final class Controls
 	static void secondary(AbstractButton button)
 	{
 		button.putClientProperty(STYLE, "focusWidth: 0; arc: 0"
-			+ "; borderColor: " + hex(RAISED_BORDER)
-			+ "; hoverBorderColor: " + hex(OUTLINE_HOVER)
-			+ "; hoverBackground: " + hex(RAISED_HOVER)
-			+ "; pressedBackground: " + hex(RAISED_PRESSED)
+			+ "; borderColor: #4A4A4A"
+			+ "; hoverBorderColor: #5C5C5C"
+			+ "; hoverBackground: #424242"
+			+ "; pressedBackground: #2C2C2C"
 			+ "; disabledBackground: " + hex(ColorScheme.DARK_GRAY_COLOR)
 			+ "; disabledBorderColor: " + hex(OUTLINE)
 			+ "; disabledText: " + hex(DISABLED_TEXT));
@@ -103,10 +99,10 @@ final class Controls
 	static void badge(AbstractButton button)
 	{
 		button.putClientProperty(STYLE, "focusWidth: 0; arc: 0"
-			+ "; borderColor: " + hex(PRIMARY_PRESSED)
+			+ "; borderColor: #B87300"
 			+ "; hoverBorderColor: " + hex(ColorScheme.BRAND_ORANGE)
-			+ "; hoverForeground: " + hex(PRIMARY_HOVER)
-			+ "; hoverBackground: " + hex(RAISED_PRESSED)
+			+ "; hoverForeground: #F09C14"
+			+ "; hoverBackground: #2C2C2C"
 			+ "; pressedBackground: " + hex(WELL));
 		button.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		button.setForeground(ColorScheme.BRAND_ORANGE);
@@ -120,7 +116,7 @@ final class Controls
 		button.putClientProperty(STYLE, "buttonType: borderless; focusWidth: 0; arc: 0"
 			+ "; hoverForeground: #FFFFFF"
 			+ "; hoverBackground: " + hex(RAISED)
-			+ "; pressedBackground: " + hex(RAISED_PRESSED));
+			+ "; pressedBackground: #2C2C2C");
 		button.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		button.setFont(plain(FontManager.getRunescapeSmallFont()));
 		button.setHorizontalAlignment(SwingConstants.LEFT);
@@ -131,8 +127,8 @@ final class Controls
 	static void cardHeader(AbstractButton button)
 	{
 		button.putClientProperty(STYLE, "buttonType: borderless; focusWidth: 0; arc: 0"
-			+ "; hoverBackground: " + hex(CARD_HOVER)
-			+ "; pressedBackground: " + hex(RAISED_PRESSED));
+			+ "; hoverBackground: #3B3B3B"
+			+ "; pressedBackground: #2C2C2C");
 		button.setForeground(Color.WHITE);
 		button.setHorizontalAlignment(SwingConstants.LEFT);
 		button.setMargin(new Insets(5, 6, 5, 6));
@@ -144,7 +140,7 @@ final class Controls
 	static void listRow(AbstractButton button)
 	{
 		button.putClientProperty(STYLE, "hoverBackground: " + hex(ROW_HOVER)
-			+ "; pressedBackground: " + hex(RAISED_PRESSED));
+			+ "; pressedBackground: #2C2C2C");
 		button.setBackground(WELL);
 		button.setHorizontalAlignment(SwingConstants.LEFT);
 	}
@@ -168,8 +164,8 @@ final class Controls
 	{
 		box.putClientProperty(STYLE, "icon.borderColor: " + hex(OUTLINE)
 			+ "; icon.selectedBorderColor: " + hex(OUTLINE)
-			+ "; icon.hoverBorderColor: " + hex(OUTLINE_HOVER)
-			+ "; icon.hoverSelectedBorderColor: " + hex(OUTLINE_HOVER)
+			+ "; icon.hoverBorderColor: #5C5C5C"
+			+ "; icon.hoverSelectedBorderColor: #5C5C5C"
 			+ "; icon.background: " + hex(WELL)
 			+ "; icon.selectedBackground: " + hex(WELL));
 	}
@@ -181,10 +177,32 @@ final class Controls
 
 	/**
 	 * RuneLite's search box: outline it like the other fields, turn the outline orange on focus,
-	 * and show a placeholder while it is empty.
+	 * show a placeholder while it is empty, and run {@code onChange} whenever its text changes.
 	 */
-	static void search(IconTextField search, String placeholder)
+	static void search(IconTextField search, int width, String placeholder, Runnable onChange)
 	{
+		search.setIcon(IconTextField.Icon.SEARCH);
+		search.setPreferredSize(new Dimension(width, 30));
+		search.getDocument().addDocumentListener(new DocumentListener()
+		{
+			@Override
+			public void insertUpdate(DocumentEvent e)
+			{
+				onChange.run();
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent e)
+			{
+				onChange.run();
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e)
+			{
+				onChange.run();
+			}
+		});
 		search.setBackground(WELL);
 		search.setHoverBackgroundColor(ColorScheme.DARK_GRAY_HOVER_COLOR);
 		search.setBorder(BorderFactory.createLineBorder(OUTLINE));

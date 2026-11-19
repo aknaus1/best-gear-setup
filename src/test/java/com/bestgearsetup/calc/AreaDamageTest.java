@@ -26,7 +26,7 @@ public class AreaDamageTest
 
 	private static CombatContext context(Monster target, int targets)
 	{
-		return new CombatContext(target, PlayerLevels.maxed(), false, true, piety()).withFightOptions(targets, 0);
+		return TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, piety()).withFightOptions(targets, 0);
 	}
 
 	@Test
@@ -147,9 +147,9 @@ public class AreaDamageTest
 			.spellbooks(Collections.emptySet()).build();
 		for (int targets : new int[]{1, 3})
 		{
-			Optimizer optimizer = new Optimizer(TestData.gameData(Arrays.asList(hallowfell, fast), Collections.emptyList()),
+			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(hallowfell, fast), Collections.emptyList()),
 				context(monster(100, 0), targets), settings, id -> false, GearItem::getPrice);
-			SetupResult best = optimizer.optimize(CombatClass.MELEE, () -> false).get(0);
+			SetupResult best = optimizer.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
 			assertEquals(targets == 1 ? fast : hallowfell, best.getLoadout().getWeapon());
 		}
 	}
@@ -276,9 +276,9 @@ public class AreaDamageTest
 			.spellbooks(Collections.singleton("ancient")).build();
 		for (int targets : new int[]{1, 9})
 		{
-			Optimizer optimizer = new Optimizer(TestData.gameData(Collections.singletonList(staff), Arrays.asList(burst, blitz)),
+			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Collections.singletonList(staff), Arrays.asList(burst, blitz)),
 				context(monster(1, 0), targets), settings, id -> false, GearItem::getPrice);
-			SetupResult best = optimizer.optimize(CombatClass.MAGIC, () -> false).get(0);
+			SetupResult best = optimizer.optimize(CombatClass.MAGIC, () -> false, done -> { }).get(0);
 			assertEquals(targets == 1 ? blitz : burst, best.getLoadout().getSpell());
 		}
 	}

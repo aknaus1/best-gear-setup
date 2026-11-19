@@ -92,12 +92,12 @@ public class SpellPruningTest
 	private static List<SetupResult> search(Monster monster, boolean preventManualCast, int aoeTargets, boolean prune)
 	{
 		Optimizer.pruneSpells = prune;
-		CombatContext ctx = new CombatContext(monster, PlayerLevels.maxed(), false, false, TestData.piety())
+		CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, false, TestData.piety())
 			.withFightOptions(aoeTargets, 0);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.BUDGET).budget(Long.MAX_VALUE)
 			.preventManualCast(preventManualCast)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus"))).build();
-		return new Optimizer(data, ctx, settings, id -> false, GearItem::getPrice).optimize(CombatClass.MAGIC, () -> false);
+		return com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, GearItem::getPrice).optimize(CombatClass.MAGIC, () -> false, done -> { });
 	}
 
 	@Test

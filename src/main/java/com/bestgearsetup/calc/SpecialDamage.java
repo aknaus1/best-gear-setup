@@ -1,10 +1,13 @@
 package com.bestgearsetup.calc;
 
 import com.bestgearsetup.data.CombatClass;
+import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.StatusImmunities;
 import java.util.function.LongFunction;
+import lombok.RequiredArgsConstructor;
+import static com.bestgearsetup.calc.EquipmentEffects.*;
 
 /**
  * Expected damage of one special attack, from its accuracy and min/max roll. Hit structures follow each
@@ -19,7 +22,7 @@ final class SpecialDamage
 	/** One ordinary roll: accurate damage with equipment effects, or a miss. */
 	private static double single(EncounterDamage.Rule rule, Loadout l, CombatContext ctx, double acc, long min, long max)
 	{
-		return acc * EquipmentEffects.average(rule, l, ctx, min, max) + (1 - acc) * rule.missDamage();
+		return acc * average(rule, l, ctx, min, max) + (1 - acc) * rule.missDamage();
 	}
 
 	static DpsResult melee(SpecialAttack s, Loadout l, CombatContext ctx, EncounterDamage.Rule rule, double acc,
@@ -27,7 +30,7 @@ final class SpecialDamage
 	{
 		Monster m = ctx.getMonster();
 		double average;
-		int shown = EquipmentEffects.maximum(rule, l, ctx, max);
+		int shown = maximum(rule, l, ctx, max);
 		double shownAccuracy = acc;
 		double interval = speed;
 		switch (s.getKind())
@@ -38,7 +41,7 @@ final class SpecialDamage
 				break;
 			case ABYSSAL_DAGGER:
 				// The second hit always lands when the first does.
-				average = acc * 2 * EquipmentEffects.average(rule, l, ctx, min, max) + (1 - acc) * rule.missDamage();
+				average = acc * 2 * average(rule, l, ctx, min, max) + (1 - acc) * rule.missDamage();
 				shown *= 2;
 				break;
 			case DRAGON_CLAWS:
@@ -60,10 +63,10 @@ final class SpecialDamage
 				for (int passes = 1; passes <= 4; passes++)
 				{
 					int i = passes - 1;
-					average += binomial(acc, passes, 4) * EquipmentEffects.average(rule, l, ctx,
+					average += binomial(acc, passes, 4) * average(rule, l, ctx,
 						max * (70 + 20 * i) / 100, max * (110 + 20 * i) / 100);
 				}
-				shown = EquipmentEffects.maximum(rule, l, ctx, max * 170 / 100);
+				shown = maximum(rule, l, ctx, max * 170 / 100);
 				shownAccuracy = 1 - Math.pow(1 - acc, 4);
 				break;
 			case HALBERD:
@@ -92,18 +95,18 @@ final class SpecialDamage
 				break;
 			}
 			case GRANITE_HAMMER:
-				average = acc * HitDamage.averageTransformed(rule, min, max, h -> EquipmentEffects.damage(l, ctx, h) + 5)
+				average = acc * HitDamage.averageTransformed(rule, min, max, h -> damage(l, ctx, h) + 5)
 					+ (1 - acc) * rule.meanInaccurate(5);
-				shown = rule.maximum(EquipmentEffects.damage(l, ctx, max) + 5);
+				shown = rule.maximum(damage(l, ctx, max) + 5);
 				break;
 			case SUNSPEAR:
-				average = acc * rule.mean(Math.max(1, EquipmentEffects.damage(l, ctx, max)));
+				average = acc * rule.mean(Math.max(1, damage(l, ctx, max)));
 				break;
 			case VOIDWAKER:
 			{
 				EncounterDamage.Rule magic = EncounterDamage.rule(m, l, CombatClass.MAGIC);
-				average = EquipmentEffects.average(magic, l, ctx, min, max);
-				shown = EquipmentEffects.maximum(magic, l, ctx, max);
+				average = average(magic, l, ctx, min, max);
+				shown = maximum(magic, l, ctx, max);
 				shownAccuracy = 1;
 				break;
 			}
@@ -112,9 +115,9 @@ final class SpecialDamage
 				// Dual macuahuitl: the second half lands only after the first; the set shortens the attack.
 				long first = max / 2;
 				long second = max - first;
-				average = acc * EquipmentEffects.average(rule, l, ctx, min, Math.max(min, first))
+				average = acc * average(rule, l, ctx, min, Math.max(min, first))
 					+ (1 - acc) * rule.missDamage() + acc * single(rule, l, ctx, acc, min, Math.max(min, second));
-				shown = EquipmentEffects.maximum(rule, l, ctx, first) + EquipmentEffects.maximum(rule, l, ctx, second);
+				shown = maximum(rule, l, ctx, first) + maximum(rule, l, ctx, second);
 				interval = speed - (1 - (1 - acc) * (1 - acc));
 				break;
 			}
@@ -144,7 +147,7 @@ final class SpecialDamage
 				// Each arrow deals at least the minimum even on a miss, and at most 48.
 				long low = min;
 				double hit = acc * HitDamage.averageTransformed(rule, min, max,
-					h -> Math.max(low, Math.min(48, EquipmentEffects.damage(l, ctx, h))))
+					h -> Math.max(low, Math.min(48, damage(l, ctx, h))))
 					+ (1 - acc) * rule.meanInaccurate(min);
 				average = 2 * hit;
 				shown = 2 * rule.maximum(Math.max(min, Math.min(48, max)));
@@ -158,13 +161,13 @@ final class SpecialDamage
 				double afterHit = CombatRules.accuracy(m, l, HitChance.single(attRoll, defence));
 				double first = single(rule, l, ctx, acc, min, max);
 				average = first + acc * single(rule, l, ctx, afterHit, min, max) + (1 - acc) * first;
-				shown = 2 * EquipmentEffects.maximum(rule, l, ctx, max);
+				shown = 2 * maximum(rule, l, ctx, max);
 				break;
 			}
 			default:
 			{
 				double hit = single(rule, l, ctx, acc, min, max);
-				int hitMax = EquipmentEffects.maximum(rule, l, ctx, max);
+				int hitMax = maximum(rule, l, ctx, max);
 				if (l.getWeapon().getSubcategory().equals("crossbow") && WeaponRules.firesAmmoSlot(l.getWeapon()))
 				{
 					EnchantedBolts.Result bolts = EnchantedBolts.calculate(l, ctx, rule, acc, min, max);
@@ -203,18 +206,12 @@ final class SpecialDamage
 	 * between {@code quarters / 4} of the max hit and that plus the max hit ({@code + extra}), then splits the
 	 * total into hitsplats. Later rolls start lower, so a late success deals less.
 	 */
+	@RequiredArgsConstructor
 	private static final class ClawRoll
 	{
 		private final int quarters;
 		private final int extra;
 		private final LongFunction<long[]> split;
-
-		private ClawRoll(int quarters, int extra, LongFunction<long[]> split)
-		{
-			this.quarters = quarters;
-			this.extra = extra;
-			this.split = split;
-		}
 	}
 
 	/**
@@ -313,7 +310,7 @@ final class SpecialDamage
 	}
 
 	/** Staves whose specials cast a built-in spell even when the staff normally autocasts. */
-	static boolean builtInSpell(com.bestgearsetup.data.GearItem weapon)
+	static boolean builtInSpell(GearItem weapon)
 	{
 		String n = EncounterDamage.lower(weapon);
 		return n.startsWith("accursed sceptre") || n.startsWith("volatile nightmare staff")
@@ -321,17 +318,11 @@ final class SpecialDamage
 	}
 
 	/** Built-in spec max hits of the nightmare staves; other staves use their powered formula. */
-	static int builtInMax(com.bestgearsetup.data.GearItem weapon, int magic)
+	static int builtInMax(GearItem weapon, int magic)
 	{
 		String n = EncounterDamage.lower(weapon);
-		if (n.startsWith("volatile nightmare staff"))
-		{
-			return Math.max(1, Math.min(58, (99 + 58 * magic) / 99));
-		}
-		if (n.startsWith("eldritch nightmare staff"))
-		{
-			return Math.max(1, Math.min(44, (99 + 44 * magic) / 99));
-		}
-		return WeaponRules.poweredStaffMaxHit(weapon, magic);
+		int cap = n.startsWith("volatile nightmare staff") ? 58 : n.startsWith("eldritch nightmare staff") ? 44 : 0;
+		return cap == 0 ? WeaponRules.poweredStaffMaxHit(weapon, magic)
+			: Math.max(1, Math.min(cap, (99 + cap * magic) / 99));
 	}
 }

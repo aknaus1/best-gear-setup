@@ -115,7 +115,7 @@ public class GearRulesTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			String[] cards = {"locks", "exclusions", "forcedSpells", "blockedSpells", "extraOwnedItems"};
 			for (String card : cards)
 			{
@@ -151,7 +151,7 @@ public class GearRulesTest
 		excluded.add(torva.getId());
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			panel.refresh();
 			Container lockCard = (Container) named(panel, "locksContent");
 			Container excludedCard = (Container) named(panel, "exclusionsContent");
@@ -174,7 +174,7 @@ public class GearRulesTest
 		GearItem lightbearer = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);
 		SwingUtilities.invokeAndWait(() ->
 		{
-			ConstraintsPanel panel = new ConstraintsPanel(plugin);
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
 			panel.refresh();
 			IconTextField search = (IconTextField) named(panel, "excludeSearch");
 			Container suggestions = (Container) named(panel, "excludeSuggestions");

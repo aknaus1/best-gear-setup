@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import javax.swing.AbstractButton;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -36,8 +38,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
@@ -61,32 +61,12 @@ class ConstraintsPanel extends JPanel
 	/** Null in tests, which show the rules without icons. */
 	private final ItemManager itemManager;
 	private final SpriteCache sprites;
-	private final SidebarSection locksSection;
-	private final SidebarSection excludedSection;
-	private final SidebarSection blockedSpellsSection;
-	private final SidebarSection forcedSpellsSection;
-	private final SidebarSection ownedSection;
-	private final JPanel locksList = ruleList();
-	private final JPanel excludedList = ruleList();
-	private final JPanel blockedSpellsList = ruleList();
-	private final JPanel forcedSpellsList = ruleList();
-	private final JPanel ownedList = ruleList();
 	private final JComboBox<String> lockSlot = new JComboBox<>();
-	private final IconTextField lockSearch = new IconTextField();
-	private final JPanel lockSuggestions = new JPanel();
-	private final IconTextField excludeSearch = new IconTextField();
-	private final JPanel excludeSuggestions = new JPanel();
-	private final IconTextField blockedSpellsSearch = new IconTextField();
-	private final JPanel blockedSpellsSuggestions = new JPanel();
-	private final IconTextField forcedSpellsSearch = new IconTextField();
-	private final JPanel forcedSpellsSuggestions = new JPanel();
-	private final IconTextField ownedSearch = new IconTextField();
-	private final JPanel ownedSuggestions = new JPanel();
-
-	ConstraintsPanel(BestGearSetupPlugin plugin)
-	{
-		this(plugin, null, null);
-	}
+	private final RuleCard locks;
+	private final RuleCard exclusions;
+	private final RuleCard forcedSpells;
+	private final RuleCard blockedSpells;
+	private final RuleCard owned;
 
 	ConstraintsPanel(BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites)
 	{
@@ -98,11 +78,8 @@ class ConstraintsPanel extends JPanel
 		SidebarSection.Accordion accordion = new SidebarSection.Accordion(true);
 		add(BestGearSetupPanel.left(accordion.expandCollapseAll("gear")));
 
-		locksSection = card(accordion, "locks", "Locked items");
-		JPanel body = locksSection.getContent();
-		body.add(hint("Always use an item, or keep a slot empty or filled. Right-click an item in a result for more."));
-		body.add(transparent(locksList));
-		body.add(caption("Add a lock"));
+		locks = new RuleCard(accordion, "locks", "Locked items",
+			"Always use an item, or keep a slot empty or filled. Right-click an item in a result for more.", "Add a lock");
 		lockSlot.setName("lockSlot");
 		lockSlot.setToolTipText("Slot to search");
 		lockSlot.addItem("Any slot");
@@ -110,51 +87,32 @@ class ConstraintsPanel extends JPanel
 		{
 			lockSlot.addItem(slot.getDisplayName());
 		}
-		lockSlot.addActionListener(e -> updateLockSuggestions());
+		lockSlot.addActionListener(e -> locks.suggest());
 		Controls.field(lockSlot);
 		JPanel slotRow = transparent(lockSlot);
 		slotRow.setBorder(new EmptyBorder(0, 0, 4, 0));
-		body.add(slotRow);
-		lockSearch.setName("lockSearch");
-		addSearch(body, lockSearch, lockSuggestions, "lockSuggestions", "Search items to lock...",
-			"Find an item to lock its slot to", this::updateLockSuggestions);
+		locks.section.getContent().add(slotRow);
+		locks.addSearch("lock", "Search items to lock...", "Find an item to lock its slot to", this::suggestLocks);
 
-		excludedSection = card(accordion, "exclusions", "Excluded items");
-		body = excludedSection.getContent();
-		body.add(hint("Never used in a setup. Right-click an item in a result to exclude it or all its variants."));
-		body.add(transparent(excludedList));
-		body.add(caption("Exclude an item"));
-		excludeSearch.setName("excludeSearch");
-		addSearch(body, excludeSearch, excludeSuggestions, "excludeSuggestions", "Search items to exclude...",
-			"Find an item the search should never use", this::updateExcludeSuggestions);
+		exclusions = new RuleCard(accordion, "exclusions", "Excluded items",
+			"Never used in a setup. Right-click an item in a result to exclude it or all its variants.", "Exclude an item");
+		exclusions.addSearch("exclude", "Search items to exclude...", "Find an item the search should never use",
+			this::suggestExclusions);
 
-		forcedSpellsSection = card(accordion, "forcedSpells", "Allowed spells");
-		forcedSpellsSection.setToolTip("Only these spells; powered staves and salamanders still work");
-		body = forcedSpellsSection.getContent();
-		body.add(hint("Only these spells are cast. Powered staves and salamanders are still used."));
-		body.add(transparent(forcedSpellsList));
-		body.add(caption("Allow a spell"));
-		forcedSpellsSearch.setName("forcedSpellsSearch");
-		addSearch(body, forcedSpellsSearch, forcedSpellsSuggestions, "forcedSpellsSuggestions",
-			"Search spells to allow...", "Find a spell to always cast", this::updateForcedSpellSuggestions);
+		forcedSpells = new RuleCard(accordion, "forcedSpells", "Allowed spells",
+			"Only these spells are cast. Powered staves and salamanders are still used.", "Allow a spell");
+		forcedSpells.section.setToolTip("Only these spells; powered staves and salamanders still work");
+		forcedSpells.addSearch("forcedSpells", "Search spells to allow...", "Find a spell to always cast",
+			() -> suggestSpells(forcedSpells, plugin.getSpellFilter().getForced(), SpellRule.FORCE));
 
-		blockedSpellsSection = card(accordion, "blockedSpells", "Excluded spells");
-		body = blockedSpellsSection.getContent();
-		body.add(hint("Never cast these spells."));
-		body.add(transparent(blockedSpellsList));
-		body.add(caption("Exclude a spell"));
-		blockedSpellsSearch.setName("blockedSpellsSearch");
-		addSearch(body, blockedSpellsSearch, blockedSpellsSuggestions, "blockedSpellsSuggestions",
-			"Search spells to exclude...", "Find a spell the search should never cast", this::updateBlockedSpellSuggestions);
+		blockedSpells = new RuleCard(accordion, "blockedSpells", "Excluded spells", "Never cast these spells.",
+			"Exclude a spell");
+		blockedSpells.addSearch("blockedSpells", "Search spells to exclude...", "Find a spell the search should never cast",
+			() -> suggestSpells(blockedSpells, plugin.getSpellFilter().getBlocked(), SpellRule.BLOCK));
 
-		ownedSection = card(accordion, "extraOwnedItems", "Extra owned items");
-		body = ownedSection.getContent();
-		body.add(hint("For items the bank scan can't see, e.g. the POH costume room."));
-		body.add(transparent(ownedList));
-		body.add(caption("Mark an item as owned"));
-		ownedSearch.setName("ownedSearch");
-		addSearch(body, ownedSearch, ownedSuggestions, "ownedSuggestions", "Search items you own...",
-			"Find an item to mark as owned", this::updateOwnedSuggestions);
+		owned = new RuleCard(accordion, "extraOwnedItems", "Extra owned items",
+			"For items the bank scan can't see, e.g. the POH costume room.", "Mark an item as owned");
+		owned.addSearch("owned", "Search items you own...", "Find an item to mark as owned", this::suggestOwned);
 
 		JLabel more = new JLabel(BestGearSetupPanel.html("Persistent preferences (equipment, styles, experience and fill slots) are in "
 			+ "<b>Settings</b>."));
@@ -163,20 +121,13 @@ class ConstraintsPanel extends JPanel
 		add(BestGearSetupPanel.left(more));
 	}
 
-	private SidebarSection card(SidebarSection.Accordion accordion, String key, String title)
-	{
-		SidebarSection section = accordion.create(key, title);
-		add(BestGearSetupPanel.left(section));
-		return section;
-	}
-
 	/** Limit the lock search to a slot (null for any) and put the cursor in it. */
 	void startLockSearch(Slot slot)
 	{
-		locksSection.setExpanded(true);
+		locks.section.setExpanded(true);
 		lockSlot.setSelectedIndex(slot == null ? 0 : slot.ordinal() + 1);
-		lockSearch.setText("");
-		lockSearch.requestFocusInWindow();
+		locks.search.setText("");
+		locks.search.requestFocusInWindow();
 	}
 
 	private Slot selectedLockSlot()
@@ -193,42 +144,30 @@ class ConstraintsPanel extends JPanel
 		rebuildExcluded(data);
 		rebuildSpells(plugin.getSpellFilter());
 		rebuildOwned(data);
-		updateLockSuggestions();
-		updateExcludeSuggestions();
-		updateOwnedSuggestions();
+		locks.suggest();
+		exclusions.suggest();
+		owned.suggest();
 	}
 
 	/** Rebuild the owned list after the manual list changed. */
 	void refreshOwned()
 	{
 		rebuildOwned(plugin.getGameData());
-		updateOwnedSuggestions();
+		owned.suggest();
 	}
 
 	private void rebuildLocks(GameData data)
 	{
-		locksList.removeAll();
-		Map<Slot, SlotLock> locks = plugin.getLocks();
-		for (Map.Entry<Slot, SlotLock> e : locks.entrySet())
+		locks.list.removeAll();
+		Map<Slot, SlotLock> current = plugin.getLocks();
+		current.forEach((slot, lock) ->
 		{
-			Slot slot = e.getKey();
-			SlotLock lock = e.getValue();
 			String slotName = slot.getDisplayName();
-			Runnable unlock = () -> plugin.setLock(slot, null);
-			switch (lock.getKind())
-			{
-				case EMPTY:
-				case FILL:
-					locksList.add(ruleRow(slotIcon(slot), lockLabel(data, slot, lock), slotName, "Unlock " + slotName, unlock));
-					break;
-				default:
-					locksList.add(ruleRow(itemIcon(lock.getItemId()), lockLabel(data, slot, lock), slotName,
-						"Unlock " + slotName, unlock));
-					break;
-			}
-		}
-		finishList(locksList, locks.size(), "No locks.", "Clear locks", plugin::clearLocks);
-		locksSection.setSummary(locks.size());
+			JLabel icon = lock.getKind() == SlotLock.Kind.ITEM ? itemIcon(lock.getItemId()) : slotIcon(slot);
+			locks.list.add(ruleRow(icon, lockLabel(data, slot, lock), slotName, "Unlock " + slotName,
+				() -> plugin.setLock(slot, null)));
+		});
+		locks.finish(current.size(), "No locks.", "Clear locks", plugin::clearLocks);
 	}
 
 	/** What the lock list calls a lock: "Keep empty", "Always fill", or the locked item's name. */
@@ -248,32 +187,30 @@ class ConstraintsPanel extends JPanel
 
 	private void rebuildExcluded(GameData data)
 	{
-		excludedList.removeAll();
+		exclusions.list.removeAll();
 		Set<Integer> excluded = plugin.getExcluded();
 		for (int id : excluded)
 		{
 			GearItem item = data == null ? null : data.findItem(id);
 			String name = item == null ? "Item " + id : GameData.titleCase(item.getName());
-			excludedList.add(ruleRow(itemIcon(id), name, item == null ? null : item.getSlot().getDisplayName(),
+			exclusions.list.add(ruleRow(itemIcon(id), name, item == null ? null : item.getSlot().getDisplayName(),
 				"Use " + name + " again", () -> plugin.setExcluded(id, false)));
 		}
-		finishList(excludedList, excluded.size(), "No excluded items.", "Clear exclusions", plugin::clearExclusions);
-		excludedSection.setSummary(excluded.size());
+		exclusions.finish(excluded.size(), "No excluded items.", "Clear exclusions", plugin::clearExclusions);
 	}
 
 	private void rebuildOwned(GameData data)
 	{
-		ownedList.removeAll();
+		owned.list.removeAll();
 		Set<Integer> manual = plugin.getOwnedItems().getManual();
 		for (int id : manual)
 		{
 			GearItem item = data == null ? null : data.findItem(id);
 			String name = item == null ? "Item " + id : GameData.titleCase(item.getName());
-			ownedList.add(ruleRow(itemIcon(id), name, item == null ? null : item.getSlot().getDisplayName(),
+			owned.list.add(ruleRow(itemIcon(id), name, item == null ? null : item.getSlot().getDisplayName(),
 				"Unmark " + name, () -> plugin.setManualOwned(id, false)));
 		}
-		finishList(ownedList, manual.size(), "None marked.", null, null);
-		ownedSection.setSummary(manual.size());
+		owned.finish(manual.size(), "None marked.", null, null);
 	}
 
 	/** Rebuild the blocked and forced cards from the current spell rules. */
@@ -287,33 +224,26 @@ class ConstraintsPanel extends JPanel
 			known.putIfAbsent(spell.getLowerName(), spell);
 			order.putIfAbsent(spell.getLowerName(), position++);
 		}
-		blockedSpellsList.removeAll();
-		for (String name : orderedSpellNames(filter.getBlocked(), order))
-		{
-			blockedSpellsList.add(spellRow(name, known.get(name)));
-		}
-		finishList(blockedSpellsList, filter.getBlocked().size(), "No excluded spells",
-			"Clear excluded spells", plugin::clearBlockedSpells);
-		blockedSpellsSection.setSummary(filter.getBlocked().size());
-
-		forcedSpellsList.removeAll();
-		for (String name : orderedSpellNames(filter.getForced(), order))
-		{
-			forcedSpellsList.add(spellRow(name, known.get(name)));
-		}
-		finishList(forcedSpellsList, filter.getForced().size(), "No allowed spells",
-			"Clear allowed spells", plugin::clearForcedSpells);
-		forcedSpellsSection.setSummary(filter.getForced().size());
-		updateBlockedSpellSuggestions();
-		updateForcedSpellSuggestions();
+		listSpells(blockedSpells, filter.getBlocked(), known, order, "No excluded spells", "Clear excluded spells",
+			plugin::clearBlockedSpells);
+		listSpells(forcedSpells, filter.getForced(), known, order, "No allowed spells", "Clear allowed spells",
+			plugin::clearForcedSpells);
+		blockedSpells.suggest();
+		forcedSpells.suggest();
 	}
 
-	/** Sort known names by the combat spell list, leaving stale names in stored order. */
-	private static List<String> orderedSpellNames(Set<String> names, Map<String, Integer> order)
+	/** List a card's spells in combat spell list order, leaving stale names in stored order. */
+	private void listSpells(RuleCard card, Set<String> names, Map<String, Spell> known, Map<String, Integer> order,
+		String empty, String clearText, Runnable clear)
 	{
+		card.list.removeAll();
 		List<String> sorted = new ArrayList<>(names);
 		sorted.sort(Comparator.comparingInt(name -> order.getOrDefault(name, Integer.MAX_VALUE)));
-		return sorted;
+		for (String name : sorted)
+		{
+			card.list.add(spellRow(name, known.get(name)));
+		}
+		card.finish(names.size(), empty, clearText, clear);
 	}
 
 	/** A spell rule shows its level and spellbook, or flags a stale name. */
@@ -321,8 +251,9 @@ class ConstraintsPanel extends JPanel
 	{
 		String title = GameData.titleCase(name);
 		String detail = spell == null ? "not in game data" : spellDetail(spell);
-		return ruleRow(spellIcon(name), title, detail, "Remove " + title,
-			() -> plugin.setSpellRule(name, SpellRule.ALLOW));
+		JLabel icon = iconLabel();
+		showSpellIcon(icon::setIcon, name);
+		return ruleRow(icon, title, detail, "Remove " + title, () -> plugin.setSpellRule(name, SpellRule.ALLOW));
 	}
 
 	/** Show a spell's unlock level and spellbook, with fallbacks for incomplete game data. */
@@ -333,56 +264,23 @@ class ConstraintsPanel extends JPanel
 		return spell.getLevel() > 0 ? "lvl " + spell.getLevel() + ", " + label : label;
 	}
 
-	/** An empty list says so; a list of several rules ends with a button that clears them all. */
-	private static void finishList(JPanel list, int count, String empty, String clearText, Runnable clear)
+	private void suggestLocks()
 	{
-		if (count == 0)
-		{
-			JLabel none = new JLabel(empty);
-			BestGearSetupPanel.setSmall(none, Controls.DISABLED_TEXT);
-			none.setBorder(new EmptyBorder(0, 0, 4, 0));
-			list.add(transparent(none));
-		}
-		else if (clear != null && count > 1)
-		{
-			JButton button = new JButton(clearText);
-			Controls.ghost(button);
-			button.setHorizontalAlignment(SwingConstants.RIGHT);
-			button.addActionListener(e -> clear.run());
-			list.add(transparent(button));
-		}
-		list.revalidate();
-		list.repaint();
-	}
-
-	private void updateLockSuggestions()
-	{
-		lockSuggestions.removeAll();
 		GameData data = plugin.getGameData();
 		if (data != null)
 		{
 			Slot only = selectedLockSlot();
-			Map<Slot, SlotLock> locks = plugin.getLocks();
-			List<GearItem> matches = data.searchItems(lockSearch.getText(), MAX_SUGGESTIONS + locks.size(), only).stream()
-				.filter(item -> !isLockedTo(locks.get(item.getSlot()), item))
-				.limit(MAX_SUGGESTIONS)
-				.collect(Collectors.toList());
-			for (GearItem item : matches)
+			Map<Slot, SlotLock> current = plugin.getLocks();
+			matches(data, locks, only, current.size(), item -> !isLockedTo(current.get(item.getSlot()), item)).forEach(item ->
 			{
 				String name = GameData.titleCase(item.getName());
 				String slotName = item.getSlot().getDisplayName();
-				SlotLock current = locks.get(item.getSlot());
+				SlotLock lock = current.get(item.getSlot());
 				// The button names the item and slot; the tooltip names the lock it would replace.
-				String tooltip = current == null ? "Lock to " + name : "Replaces lock: " + lockLabel(data, item.getSlot(), current);
-				lockSuggestions.add(itemButton(item, only == null ? name + " (" + slotName + ")" : name, tooltip, () ->
-				{
-					plugin.lockItem(item);
-					updateLockSuggestions();
-					lockSearch.requestFocusInWindow();
-				}));
-			}
+				String tooltip = lock == null ? "Lock to " + name : "Replaces lock: " + lockLabel(data, item.getSlot(), lock);
+				itemButton(locks, item, only == null ? name + " (" + slotName + ")" : name, tooltip, () -> plugin.lockItem(item));
+			});
 		}
-		showSuggestions(lockSuggestions);
 	}
 
 	private static boolean isLockedTo(SlotLock lock, GearItem item)
@@ -390,71 +288,45 @@ class ConstraintsPanel extends JPanel
 		return lock != null && lock.getKind() == SlotLock.Kind.ITEM && lock.getItemId() == item.getId();
 	}
 
-	private void updateExcludeSuggestions()
+	private void suggestExclusions()
 	{
-		excludeSuggestions.removeAll();
 		GameData data = plugin.getGameData();
 		if (data != null)
 		{
 			Set<Integer> excluded = plugin.getExcluded();
-			List<GearItem> matches = data.searchItems(excludeSearch.getText(), MAX_SUGGESTIONS + excluded.size()).stream()
-				.filter(item -> !excluded.contains(item.getId()))
-				.limit(MAX_SUGGESTIONS)
-				.collect(Collectors.toList());
-			for (GearItem item : matches)
+			matches(data, exclusions, null, excluded.size(), item -> !excluded.contains(item.getId())).forEach(item ->
 			{
 				String name = GameData.titleCase(item.getName());
-				excludeSuggestions.add(itemButton(item, name + " (" + item.getSlot().getDisplayName() + ")", "Exclude " + name, () ->
-				{
-					plugin.setExcluded(item.getId(), true);
-					updateExcludeSuggestions();
-					excludeSearch.requestFocusInWindow();
-				}));
-			}
+				itemButton(exclusions, item, name + " (" + item.getSlot().getDisplayName() + ")", "Exclude " + name,
+					() -> plugin.setExcluded(item.getId(), true));
+			});
 		}
-		showSuggestions(excludeSuggestions);
 	}
 
-	private void updateOwnedSuggestions()
+	private void suggestOwned()
 	{
-		ownedSuggestions.removeAll();
 		GameData data = plugin.getGameData();
 		if (data != null)
 		{
 			Set<Integer> manual = plugin.getOwnedItems().getManual();
-			List<GearItem> matches = data.searchItems(ownedSearch.getText(), MAX_SUGGESTIONS + manual.size()).stream()
-				.filter(item -> !manual.contains(item.getId()))
-				.limit(MAX_SUGGESTIONS)
-				.collect(Collectors.toList());
-			for (GearItem item : matches)
-			{
-				ownedSuggestions.add(itemButton(item, GameData.titleCase(item.getName()), "Mark as owned", () ->
-				{
-					plugin.setManualOwned(item.getId(), true);
-					updateOwnedSuggestions();
-					ownedSearch.requestFocusInWindow();
-				}));
-			}
+			matches(data, owned, null, manual.size(), item -> !manual.contains(item.getId())).forEach(item ->
+				itemButton(owned, item, GameData.titleCase(item.getName()), "Mark as owned",
+					() -> plugin.setManualOwned(item.getId(), true)));
 		}
-		showSuggestions(ownedSuggestions);
 	}
 
-	/** Suggest spells that are not already in the selected rule list. */
-	private void updateBlockedSpellSuggestions()
+	/** Items matching the card's search that {@code isNew} keeps; {@code taken} more are searched to make up for those it drops. */
+	private static Stream<GearItem> matches(GameData data, RuleCard card, Slot only, int taken, Predicate<GearItem> isNew)
 	{
-		updateSpellSuggestions(blockedSpellsSearch, blockedSpellsSuggestions, plugin.getSpellFilter().getBlocked(), SpellRule.BLOCK);
-	}
-
-	private void updateForcedSpellSuggestions()
-	{
-		updateSpellSuggestions(forcedSpellsSearch, forcedSpellsSuggestions, plugin.getSpellFilter().getForced(), SpellRule.FORCE);
+		return data.searchItems(card.search.getText(), MAX_SUGGESTIONS + taken, only).stream()
+			.filter(isNew)
+			.limit(MAX_SUGGESTIONS);
 	}
 
 	/** Like the item searches: nothing until the user types, then name-prefix matches before the rest. */
-	private void updateSpellSuggestions(IconTextField search, JPanel suggestions, Set<String> existing, SpellRule rule)
+	private void suggestSpells(RuleCard card, Set<String> existing, SpellRule rule)
 	{
-		suggestions.removeAll();
-		String query = search.getText().trim().toLowerCase(Locale.ROOT);
+		String query = card.search.getText().trim().toLowerCase(Locale.ROOT);
 		if (!query.isEmpty())
 		{
 			plugin.getCombatSpells().stream()
@@ -464,81 +336,52 @@ class ConstraintsPanel extends JPanel
 				.forEach(spell ->
 				{
 					String name = GameData.titleCase(spell.getName());
-					suggestions.add(spellButton(spell, name + " (" + spellDetail(spell) + ")",
-						(rule == SpellRule.BLOCK ? "Exclude " : "Allow ") + name, () ->
-						{
-							plugin.setSpellRule(spell.getLowerName(), rule);
-							if (rule == SpellRule.BLOCK)
-							{
-								updateBlockedSpellSuggestions();
-							}
-							else
-							{
-								updateForcedSpellSuggestions();
-							}
-							search.requestFocusInWindow();
-						}));
+					JButton row = suggestion(card, name + " (" + spellDetail(spell) + ")", Color.WHITE,
+						(rule == SpellRule.BLOCK ? "Exclude " : "Allow ") + name, () -> plugin.setSpellRule(spell.getLowerName(), rule));
+					showSpellIcon(row::setIcon, spell.getName());
 				});
 		}
-		showSuggestions(suggestions);
-	}
-
-	/** A search suggestion with the spell's spellbook icon, styled like the item suggestions. */
-	private JPanel spellButton(Spell spell, String text, String tooltip, Runnable onClick)
-	{
-		JButton row = new JButton(text);
-		Controls.listRow(row);
-		row.setFont(Controls.plain(FontManager.getRunescapeSmallFont()));
-		row.setForeground(Color.WHITE);
-		row.setBorder(new EmptyBorder(1, 4, 1, 6));
-		row.setIconTextGap(6);
-		int sprite = BestGearSetupPlugin.spellSprite(spell.getName());
-		if (sprites != null && sprite >= 0)
-		{
-			showSprite(row, sprite);
-		}
-		row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		row.setToolTipText(tooltip);
-		row.addActionListener(e -> onClick.run());
-		return BestGearSetupPanel.left(row);
-	}
-
-	/** The spell's spellbook icon; blank for a stale name. */
-	private JLabel spellIcon(String name)
-	{
-		JLabel label = iconLabel();
-		int sprite = BestGearSetupPlugin.spellSprite(name);
-		if (sprites != null && sprite >= 0)
-		{
-			showSprite(label, sprite);
-		}
-		return label;
-	}
-
-	private static void showSuggestions(JPanel suggestions)
-	{
-		Controls.outlineList(suggestions);
-		suggestions.revalidate();
-		suggestions.repaint();
 	}
 
 	/** A search suggestion with the item's icon; items you own are green. */
-	private JPanel itemButton(GearItem item, String text, String tooltip, Runnable onClick)
+	private void itemButton(RuleCard card, GearItem item, String text, String tooltip, Runnable add)
 	{
-		JButton row = new JButton(text);
-		Controls.listRow(row);
-		row.setFont(Controls.plain(FontManager.getRunescapeSmallFont()));
-		row.setForeground(plugin.owns(item) ? OWNED_COLOR : Color.WHITE);
-		row.setBorder(new EmptyBorder(1, 4, 1, 6));
-		row.setIconTextGap(6);
+		JButton row = suggestion(card, text, plugin.owns(item) ? OWNED_COLOR : Color.WHITE, tooltip, add);
 		if (itemManager != null)
 		{
 			itemManager.getImage(item.getId()).addTo(row);
 		}
+	}
+
+	/** A row in the card's suggestions that adds a rule, then refreshes the suggestions and returns to the search. */
+	private static JButton suggestion(RuleCard card, String text, Color color, String tooltip, Runnable add)
+	{
+		JButton row = new JButton(text);
+		Controls.listRow(row);
+		row.setFont(Controls.plain(FontManager.getRunescapeSmallFont()));
+		row.setForeground(color);
+		row.setBorder(new EmptyBorder(1, 4, 1, 6));
+		row.setIconTextGap(6);
 		row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		row.setToolTipText(tooltip);
-		row.addActionListener(e -> onClick.run());
-		return BestGearSetupPanel.left(row);
+		row.addActionListener(e ->
+		{
+			add.run();
+			card.suggest();
+			card.search.requestFocusInWindow();
+		});
+		card.suggestions.add(BestGearSetupPanel.left(row));
+		return row;
+	}
+
+	/** The spell's spellbook icon; none for a stale name. */
+	private void showSpellIcon(Consumer<Icon> setIcon, String spell)
+	{
+		int sprite = BestGearSetupPlugin.spellSprite(spell);
+		if (sprites != null && sprite >= 0)
+		{
+			showSprite(setIcon, sprite);
+		}
 	}
 
 	/** One rule: its icon, name and slot in a recessed tile, with a button that removes it. */
@@ -596,27 +439,18 @@ class ConstraintsPanel extends JPanel
 		JLabel label = iconLabel();
 		if (sprites != null)
 		{
-			showSprite(label, EquipmentGrid.placeholderSprite(slot));
+			showSprite(label::setIcon, EquipmentGrid.placeholderSprite(slot));
 		}
 		return label;
 	}
 
 	/** Show the sprite now if it is loaded, or once it has loaded. */
-	private void showSprite(AbstractButton label, int sprite)
+	private void showSprite(Consumer<Icon> setIcon, int sprite)
 	{
-		BufferedImage image = sprites.get(sprite, () -> showSprite(label, sprite));
+		BufferedImage image = sprites.get(sprite, () -> showSprite(setIcon, sprite));
 		if (image != null)
 		{
-			label.setIcon(new ImageIcon(image));
-		}
-	}
-
-	private void showSprite(JLabel label, int sprite)
-	{
-		BufferedImage image = sprites.get(sprite, () -> showSprite(label, sprite));
-		if (image != null)
-		{
-			label.setIcon(new ImageIcon(image));
+			setIcon.accept(new ImageIcon(image));
 		}
 	}
 
@@ -643,40 +477,6 @@ class ConstraintsPanel extends JPanel
 		return transparent(label);
 	}
 
-	private static void addSearch(JPanel body, IconTextField field, JPanel suggestions, String suggestionsName,
-		String placeholder, String tooltip, Runnable onChange)
-	{
-		field.setIcon(IconTextField.Icon.SEARCH);
-		field.setPreferredSize(new Dimension(0, 30));
-		Controls.search(field, placeholder);
-		field.setToolTipText(tooltip);
-		onTextChange(field, onChange);
-		field.addKeyListener(new KeyAdapter()
-		{
-			@Override
-			public void keyPressed(KeyEvent e)
-			{
-				if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
-				{
-					field.setText("");
-				}
-			}
-		});
-		body.add(transparent(field));
-		suggestions.setName(suggestionsName);
-		suggestions.setLayout(new BoxLayout(suggestions, BoxLayout.Y_AXIS));
-		suggestions.setBackground(Controls.WELL);
-		body.add(transparent(suggestions));
-	}
-
-	private static JPanel ruleList()
-	{
-		JPanel list = new JPanel();
-		list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
-		list.setOpaque(false);
-		return list;
-	}
-
 	/** Lay a component out full width without painting over the card behind it. */
 	private static JPanel transparent(Component c)
 	{
@@ -685,27 +485,88 @@ class ConstraintsPanel extends JPanel
 		return p;
 	}
 
-	private static void onTextChange(IconTextField field, Runnable action)
+	/** A card listing the current rules of one kind above a search for adding another. */
+	private final class RuleCard
 	{
-		field.getDocument().addDocumentListener(new DocumentListener()
+		private final SidebarSection section;
+		private final JPanel list = new JPanel();
+		private final IconTextField search = new IconTextField();
+		private final JPanel suggestions = new JPanel();
+		/** Adds a suggestion for each match of the search's text. */
+		private Runnable suggester;
+
+		private RuleCard(SidebarSection.Accordion accordion, String key, String title, String hintText, String captionText)
 		{
-			@Override
-			public void insertUpdate(DocumentEvent e)
-			{
-				action.run();
-			}
+			section = accordion.create(key, title);
+			add(BestGearSetupPanel.left(section));
+			list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
+			list.setOpaque(false);
+			JPanel body = section.getContent();
+			body.add(hint(hintText));
+			body.add(transparent(list));
+			body.add(caption(captionText));
+		}
 
-			@Override
-			public void removeUpdate(DocumentEvent e)
+		/** The search below the card's rules, named {@code name}Search; Escape clears it. */
+		private void addSearch(String name, String placeholder, String tooltip, Runnable suggester)
+		{
+			this.suggester = suggester;
+			search.setName(name + "Search");
+			Controls.search(search, 0, placeholder, this::suggest);
+			search.setToolTipText(tooltip);
+			search.addKeyListener(new KeyAdapter()
 			{
-				action.run();
-			}
+				@Override
+				public void keyPressed(KeyEvent e)
+				{
+					if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
+					{
+						search.setText("");
+					}
+				}
+			});
+			JPanel body = section.getContent();
+			body.add(transparent(search));
+			suggestions.setName(name + "Suggestions");
+			suggestions.setLayout(new BoxLayout(suggestions, BoxLayout.Y_AXIS));
+			suggestions.setBackground(Controls.WELL);
+			body.add(transparent(suggestions));
+		}
 
-			@Override
-			public void changedUpdate(DocumentEvent e)
+		/** Show the suggestions for the search's text. */
+		private void suggest()
+		{
+			suggestions.removeAll();
+			suggester.run();
+			Controls.outlineList(suggestions);
+			suggestions.revalidate();
+			suggestions.repaint();
+		}
+
+		/**
+		 * Count the listed rules in the header. An empty list says so; a list of several rules ends with a button
+		 * that clears them all.
+		 */
+		private void finish(int count, String empty, String clearText, Runnable clear)
+		{
+			if (count == 0)
 			{
-				action.run();
+				JLabel none = new JLabel(empty);
+				BestGearSetupPanel.setSmall(none, Controls.DISABLED_TEXT);
+				none.setBorder(new EmptyBorder(0, 0, 4, 0));
+				list.add(transparent(none));
 			}
-		});
+			else if (clear != null && count > 1)
+			{
+				JButton button = new JButton(clearText);
+				Controls.ghost(button);
+				button.setHorizontalAlignment(SwingConstants.RIGHT);
+				button.addActionListener(e -> clear.run());
+				list.add(transparent(button));
+			}
+			list.revalidate();
+			list.repaint();
+			section.setSummary(count);
+		}
 	}
 }

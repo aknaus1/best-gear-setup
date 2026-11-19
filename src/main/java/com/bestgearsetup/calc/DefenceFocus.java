@@ -1,12 +1,10 @@
 package com.bestgearsetup.calc;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
  * Which defence bonus to maximise when filling slots.
  */
-@Getter
 @RequiredArgsConstructor
 public enum DefenceFocus
 {

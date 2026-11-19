@@ -35,8 +35,12 @@ import java.util.function.IntPredicate;
 import java.util.function.IntToLongFunction;
 import java.util.function.ToDoubleFunction;
 import java.util.function.ToLongFunction;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import net.runelite.api.gameval.ItemID;
+import static com.bestgearsetup.calc.WeaponRules.*;
+import static com.bestgearsetup.calc.EncounterDamage.*;
+import static com.bestgearsetup.calc.EquipmentEffects.*;
 
 /**
  * Searches for the best setup per combat class under the owned-items / budget rules and the
@@ -102,6 +106,8 @@ public class Optimizer
 
 	private final GameData data;
 	private final CombatContext ctx;
+	/** The fight with a special attack being thrown. */
+	private final CombatContext specCtx;
 	private final OptimizerSettings settings;
 	private final IntPredicate owned;
 	private final IntToLongFunction ownedQuantity;
@@ -148,13 +154,6 @@ public class Optimizer
 	/** Tests turn this off to compare the search against one that scores every spell. */
 	static boolean pruneSpells = true;
 
-	/** As the full constructor, with every owned item held in any quantity. */
-	public Optimizer(GameData data, CombatContext ctx, OptimizerSettings settings, IntPredicate owned,
-		ToLongFunction<GearItem> priceFn)
-	{
-		this(data, ctx, settings, owned, id -> owned.test(id) ? Long.MAX_VALUE : 0, priceFn);
-	}
-
 	/**
 	 * @param owned         whether the player owns an item id (bank, inventory, worn or marked owned)
 	 * @param ownedQuantity units of an item id held; ammunition beyond this is bought for the ammo quantity
@@ -165,6 +164,7 @@ public class Optimizer
 	{
 		this.data = data;
 		this.ctx = ctx.withFightOptions(ctx.getAoeTargets(), settings.getTargetDistance());
+		specCtx = this.ctx.withModifiers(this.ctx.getModifiers().toBuilder().specialAttack(true).build());
 		this.settings = settings;
 		this.owned = owned;
 		this.ownedQuantity = ownedQuantity;
@@ -176,20 +176,12 @@ public class Optimizer
 		this.fireProtectionRequired = DragonfireProtection.required(monster, settings);
 		this.slayerEquipmentRequired = SlayerEquipment.applies(monster, settings);
 		this.araxyte = EncounterDamage.named(monster, "acidic araxyte") || EncounterDamage.named(monster, "mirrorback araxyte");
-		this.hueyTail = monster.getId() == 14014 || EncounterDamage.named(monster, "the hueycoatl") && monster.getLowerName().contains("tail");
+		this.hueyTail = hueyTail(monster);
 	}
 
 	/**
-	 * Best setups for one combat class, best first, one per weapon.
-	 */
-	public List<SetupResult> optimize(CombatClass cls, BooleanSupplier cancelled)
-	{
-		return optimize(cls, cancelled, done -> { });
-	}
-
-	/**
-	 * As {@link #optimize(CombatClass, BooleanSupplier)}, reporting the fraction of work done (0 to 1, never
-	 * decreasing) on the calling thread. Each weapon solved or finished counts as one step.
+	 * Best setups for one combat class, best first, one per weapon, reporting the fraction of work done (0 to 1,
+	 * never decreasing) on the calling thread. Each weapon solved or finished counts as one step.
 	 */
 	public List<SetupResult> optimize(CombatClass cls, BooleanSupplier cancelled, DoubleConsumer progress)
 	{
@@ -332,11 +324,11 @@ public class Optimizer
 	private SetupResult pruned(SetupResult found, CombatClass cls)
 	{
 		Loadout l = found.getLoadout().copy();
-		prune(l, found.getFilledSlots(), Collections.emptyList());
+		prune(l, found.getFilledSlots(), null);
 		SetupResult again = withSpecial(l, cls, found.getFilledSlots(), calculate(l));
 		SetupResult kept = faster(again, found) ? again : found;
 		Loadout worn = kept.getLoadout().copy();
-		prune(worn, kept.getFilledSlots(), specPlans(kept.getSpecial()));
+		prune(worn, kept.getFilledSlots(), kept.getSpecial());
 		return result(cls, worn, kept.getDps(), kept.getFilledSlots(), kept.getSpecial());
 	}
 
@@ -397,12 +389,12 @@ public class Optimizer
 	private Found exactWeapon(GearItem weapon, CombatClass cls, Map<Slot, List<GearItem>> candidates)
 	{
 		List<Option> options = options(weapon, cls);
-		boolean fires = WeaponRules.firesAmmoSlot(weapon);
-		boolean loads = WeaponRules.loadsAmmo(weapon);
+		boolean fires = firesAmmoSlot(weapon);
+		boolean loads = loadsAmmo(weapon);
 		List<GearItem> ammo = fires || loads ? compatibleAmmo(weapon, fires) : Collections.singletonList(null);
 		if (options.isEmpty() || ammo.isEmpty())
 			return null;
-		boolean recovery = recoveryRequired() && WeaponRules.firesRecoverableAmmo(weapon, cls);
+		boolean recovery = recoveryRequired() && firesRecoverableAmmo(weapon, cls);
 		List<Slot> free = new ArrayList<>();
 		Map<Slot, List<GearItem>> choices = new EnumMap<>(Slot.class);
 		for (Slot slot : SLOTS)
@@ -458,8 +450,7 @@ public class Optimizer
 			if (o.getStyle().equals(best.loadout.getStyle()) && o.getSpell() == best.loadout.getSpell())
 				continue;
 			Loadout other = best.loadout.copy();
-			other.setStyle(o.getStyle());
-			other.setSpell(o.getSpell());
+			o.apply(other);
 			double s = metric(calculate(other));
 			if (s > 0 && s >= best.score * (1 - ALTERNATIVE_SHARE))
 				others.add(new Found(other, s, best.cost));
@@ -484,8 +475,7 @@ public class Optimizer
 		Map<List<Object>, List<Option>> groups = new LinkedHashMap<>();
 		for (Option o : options)
 		{
-			base.setStyle(o.getStyle());
-			base.setSpell(o.getSpell());
+			o.apply(base);
 			List<Object> key = new ArrayList<>(totals(base));
 			key.add(optionKey(base));
 			groups.computeIfAbsent(key, k -> new ArrayList<>()).add(o);
@@ -493,8 +483,7 @@ public class Optimizer
 		List<Map<Slot, List<GearItem>>> sets = wholeSets(base, free, choices);
 		for (List<Option> group : groups.values())
 		{
-			base.setStyle(group.get(0).getStyle());
-			base.setSpell(group.get(0).getSpell());
+			group.get(0).apply(base);
 			int[] totals = totals(base).stream().mapToInt(Integer::intValue).toArray();
 			// Effect items that differ only in their bonuses are searched together; the rest are plain.
 			Map<Slot, List<GearItem>> pools = new EnumMap<>(Slot.class);
@@ -516,8 +505,9 @@ public class Optimizer
 			// Slots offering several kinds of effect gear are fixed first, so the rest can be bounded early.
 			List<Slot> order = new ArrayList<>(free);
 			order.sort(Comparator.comparingInt((Slot slot) -> -effects.get(slot).size()));
+			GroupSearch search = new GroupSearch(base, order, pools, effects, totals, group);
 			for (Map<Slot, List<GearItem>> set : sets)
-				fixEffects(base, order, 0, new EnumMap<>(set), pools, effects, totals, group, best);
+				search.fixEffects(0, new EnumMap<>(set), best);
 		}
 	}
 
@@ -526,7 +516,7 @@ public class Optimizer
 	{
 		Spell spell = trial.getSpell();
 		return trial.getStyle().getType() + "/" + (spell == null ? "-" : spell.getSpellbook() + "/" + SpellRules.element(spell)
-			+ "/" + EncounterDamage.spell(trial).endsWith(" bolt")) + "/" + EquipmentEffects.named(trial, Slot.AMMO, "crystal blessing");
+			+ "/" + spell(trial).endsWith(" bolt")) + "/" + EquipmentEffects.named(trial, Slot.AMMO, "crystal blessing");
 	}
 
 	/** The best exact result so far, and the search that found it. */
@@ -558,14 +548,14 @@ public class Optimizer
 	{
 		AttackStyle style = trial.getStyle();
 		GearItem weapon = trial.getWeapon();
-		CombatClass cls = WeaponRules.classOf(style);
+		CombatClass cls = classOf(style);
 		int attack = cls == CombatClass.MAGIC ? MAGIC : cls == CombatClass.RANGED ? RANGED
 			: style.getType() == AttackStyle.Type.STAB ? STAB : style.getType() == AttackStyle.Type.SLASH ? SLASH : CRUSH;
 		List<Integer> out = new ArrayList<>();
 		out.add(attack);
 		out.add(cls == CombatClass.MAGIC ? MAGIC_STR
-			: cls == CombatClass.RANGED && !WeaponRules.scalesWithStrength(weapon) ? RANGED_STR : MELEE_STR);
-		if (EncounterDamage.lower(weapon).contains("bulwark"))
+			: cls == CombatClass.RANGED && !scalesWithStrength(weapon) ? RANGED_STR : MELEE_STR);
+		if (lower(weapon).contains("bulwark"))
 			out.add(DEFENCE);
 		// Huey's tail and the araxytes reward an attack bonus above the others (EncounterDamage, CombatRules.araxyteMax).
 		boolean lead = araxyte && (attack == CRUSH || attack == RANGED && weapon.getSubcategory().equals("crossbow"));
@@ -683,7 +673,7 @@ public class Optimizer
 	 */
 	private String effectKey(Loadout trial, GearItem item)
 	{
-		String name = EncounterDamage.lower(item);
+		String name = lower(item);
 		if (DragonfireProtection.isProtectiveShield(item) && !specialName(name))
 		{
 			Loadout l = trial.copy();
@@ -707,7 +697,7 @@ public class Optimizer
 				{
 					JsonArray names = piece.getAsJsonArray();
 					for (int i = 1; i < names.size(); i++)
-						known |= EquipmentEffects.namedWeapon(item, names.get(i).getAsString());
+						known |= namedWeapon(item, names.get(i).getAsString());
 				}
 			}
 			setPieces.put(item, known);
@@ -725,7 +715,7 @@ public class Optimizer
 		{
 			JsonObject set = element.getAsJsonObject();
 			if (boundClass != CombatClass.valueOf(set.get("class").getAsString()) || set.has("weapon")
-				&& !NameLists.NameList.of(set.get("weapon")).matches(EncounterDamage.lower(trial.getWeapon())))
+				&& !NameLists.NameList.of(set.get("weapon")).matches(lower(trial.getWeapon())))
 				continue;
 			// Each slot's pieces are searched together: a way to wear the set with a stronger effect (elite void) is
 			// listed as a set of its own, and only adds to the score here.
@@ -740,7 +730,7 @@ public class Optimizer
 				{
 					for (int i = 1; i < names.size(); i++)
 					{
-						if (EquipmentEffects.namedWeapon(item, names.get(i).getAsString()))
+						if (namedWeapon(item, names.get(i).getAsString()))
 						{
 							named.add(item);
 							break;
@@ -757,86 +747,161 @@ public class Optimizer
 		return out;
 	}
 
-	/** Fixes each free slot from {@code index} on to one kind of its effect items, or leaves it to the plain items. */
-	private void fixEffects(Loadout base, List<Slot> free, int index, Map<Slot, List<GearItem>> fixed,
-		Map<Slot, List<GearItem>> pools, Map<Slot, Collection<List<GearItem>>> effects, int[] totals, List<Option> options,
-		Exact best)
+	/** One option group's search around {@code base}: its free slots, their plain items and effect gear, and the totals. */
+	@RequiredArgsConstructor
+	private final class GroupSearch
 	{
-		if (cancelled.getAsBoolean())
-			return;
-		if (index == free.size())
-		{
-			Exact own = new Exact();
-			solveFixed(base, free, fixed, pools, totals, options, own, best.score * (1 - ALTERNATIVE_SHARE));
-			if (own.loadout == null)
-				return;
-			if (better(own.score, own.cost, best.score, best.cost))
-			{
-				best.loadout = own.loadout;
-				best.score = own.score;
-				best.cost = own.cost;
-				best.spare = own.spare;
-				best.tried.removeIf(e -> e.score < best.score * (1 - ALTERNATIVE_SHARE));
-			}
-			// Only those that can become alternatives are kept.
-			if (own.score >= best.score * (1 - ALTERNATIVE_SHARE))
-				best.tried.add(own);
-			return;
-		}
-		Slot slot = free.get(index);
-		if (!fixed.containsKey(slot) && !effects.get(slot).isEmpty()
-			&& !openBound(base, free, index, fixed, pools, effects, totals, options, best.score * (1 - ALTERNATIVE_SHARE)))
-			return;
-		fixEffects(base, free, index + 1, fixed, pools, effects, totals, options, best);
-		if (fixed.containsKey(slot))
-			return;
-		for (List<GearItem> alike : effects.get(slot))
-		{
-			fixed.put(slot, alike);
-			fixEffects(base, free, index + 1, fixed, pools, effects, totals, options, best);
-		}
-		fixed.remove(slot);
-	}
+		private final Loadout base;
+		private final List<Slot> free;
+		private final Map<Slot, List<GearItem>> plainPools;
+		private final Map<Slot, Collection<List<GearItem>>> effects;
+		private final int[] totals;
+		private final List<Option> options;
 
-	/**
-	 * Whether the choices still open from {@code index} on can reach {@code floor}, once every open slot has at most one
-	 * kind of effect gear: each holds an imaginary item with the highest of each total among its plain and effect items,
-	 * named as that effect gear when it has one. An effect never lowers the score below the same bonuses without it,
-	 * so this bounds the plain items too. True (no bound) while a slot still offers several kinds.
-	 */
-	private boolean openBound(Loadout base, List<Slot> free, int index, Map<Slot, List<GearItem>> fixed,
-		Map<Slot, List<GearItem>> pools, Map<Slot, Collection<List<GearItem>>> effects, int[] totals, List<Option> options,
-		double floor)
-	{
-		Loadout top = base.copy();
-		for (int i = 0; i < free.size(); i++)
+		/** Fixes each free slot from {@code index} on to one kind of its effect items, or leaves it to the plain items. */
+		void fixEffects(int index, Map<Slot, List<GearItem>> fixed, Exact best)
 		{
-			Slot slot = free.get(i);
-			List<GearItem> items = new ArrayList<>(fixed.getOrDefault(slot, pools.get(slot)));
-			GearItem like = fixed.containsKey(slot) ? items.get(0) : null;
-			if (i >= index && !fixed.containsKey(slot))
+			if (cancelled.getAsBoolean())
+				return;
+			if (index == free.size())
 			{
-				if (effects.get(slot).size() > 1)
-					return true;
-				for (List<GearItem> alike : effects.get(slot))
+				Exact own = new Exact();
+				solveFixed(fixed, own, best.score * (1 - ALTERNATIVE_SHARE));
+				if (own.loadout == null)
+					return;
+				if (better(own.score, own.cost, best.score, best.cost))
 				{
-					like = alike.get(0);
-					items.addAll(alike);
+					best.loadout = own.loadout;
+					best.score = own.score;
+					best.cost = own.cost;
+					best.spare = own.spare;
+					best.tried.removeIf(e -> e.score < best.score * (1 - ALTERNATIVE_SHARE));
+				}
+				// Only those that can become alternatives are kept.
+				if (own.score >= best.score * (1 - ALTERNATIVE_SHARE))
+					best.tried.add(own);
+				return;
+			}
+			Slot slot = free.get(index);
+			if (!fixed.containsKey(slot) && !effects.get(slot).isEmpty()
+				&& !openBound(index, fixed, best.score * (1 - ALTERNATIVE_SHARE)))
+				return;
+			fixEffects(index + 1, fixed, best);
+			if (fixed.containsKey(slot))
+				return;
+			for (List<GearItem> alike : effects.get(slot))
+			{
+				fixed.put(slot, alike);
+				fixEffects(index + 1, fixed, best);
+			}
+			fixed.remove(slot);
+		}
+
+		/**
+		 * Whether the choices still open from {@code index} on can reach {@code floor}, once every open slot has at most one
+		 * kind of effect gear: each holds an imaginary item with the highest of each total among its plain and effect items,
+		 * named as that effect gear when it has one. An effect never lowers the score below the same bonuses without it,
+		 * so this bounds the plain items too. True (no bound) while a slot still offers several kinds.
+		 */
+		boolean openBound(int index, Map<Slot, List<GearItem>> fixed, double floor)
+		{
+			Loadout top = base.copy();
+			for (int i = 0; i < free.size(); i++)
+			{
+				Slot slot = free.get(i);
+				List<GearItem> items = new ArrayList<>(fixed.getOrDefault(slot, plainPools.get(slot)));
+				GearItem like = fixed.containsKey(slot) ? items.get(0) : null;
+				if (i >= index && !fixed.containsKey(slot))
+				{
+					if (effects.get(slot).size() > 1)
+						return true;
+					for (List<GearItem> alike : effects.get(slot))
+					{
+						like = alike.get(0);
+						items.addAll(alike);
+					}
+				}
+				top.set(slot, items.size() == 1 ? items.get(0) : boundItem(slot, like, items, totals));
+			}
+			for (Option o : options)
+			{
+				o.apply(top);
+				if (!protectedSetup(top))
+					continue;
+				double bound = metric(DpsCalculator.calculate(top, ctx));
+				if (bound <= 0 || bound >= floor - EPS - BOUND_MARGIN)
+					return true;
+			}
+			return false;
+		}
+
+		/** The best plain items around the fixed effect gear, for each option of the group. */
+		void solveFixed(Map<Slot, List<GearItem>> fixed, Exact best, double floor)
+		{
+			Loadout l = base.copy();
+			List<Slot> plainSlots = new ArrayList<>();
+			Map<Slot, List<GearItem>> pools = new EnumMap<>(Slot.class);
+			for (Slot slot : free)
+			{
+				List<GearItem> items = fixed.getOrDefault(slot, plainPools.get(slot));
+				l.set(slot, items.size() == 1 ? items.get(0) : null);
+				if (items.size() == 1)
+					continue;
+				plainSlots.add(slot);
+				pools.put(slot, items);
+			}
+			if (!withinBudget(cost(l)) || overCap(l) > 0)
+				return;
+			// Each option's bound: every searched slot holding the highest of each total among its items (as one of its
+			// effect items, when they are).
+			Loadout top = l.copy();
+			for (Slot slot : plainSlots)
+				top.set(slot, boundItem(slot, fixed.containsKey(slot) ? pools.get(slot).get(0) : null, pools.get(slot), totals));
+			List<Option> open = new ArrayList<>();
+			Map<Option, Double> bounds = new IdentityHashMap<>();
+			for (Option o : options)
+			{
+				o.apply(top);
+				double bound = protectedSetup(top) ? metric(DpsCalculator.calculate(top, ctx)) : 0;
+				// Gear rules can reject the imaginary items (the Gauntlet): then there is no bound.
+				if (bound <= 0 && protectedSetup(top))
+					bound = Double.POSITIVE_INFINITY;
+				if (bound > 0 && bound >= floor - EPS - BOUND_MARGIN)
+				{
+					open.add(o);
+					bounds.put(o, bound);
 				}
 			}
-			top.set(slot, items.size() == 1 ? items.get(0) : boundItem(slot, like, items, totals));
+			if (open.isEmpty())
+				return;
+			open.sort(Comparator.comparingDouble(o -> -bounds.get(o)));
+
+			best.frame = l.copy();
+			best.plain = plainSlots;
+			best.pools = pools;
+			best.totals = totals;
+			best.options = options;
+			List<Partial> partials = loadouts(l, plainSlots, pools, totals, Double.NaN);
+			List<Partial> strongest = undominated(partials, false);
+			partials.sort(Comparator.comparingLong((Partial p) -> -p.cost));
+			for (Option o : open)
+			{
+				if (bounds.get(o) < Math.max(floor, best.score) - EPS - BOUND_MARGIN)
+					continue;
+				o.apply(l);
+				// The highest score is on a loadout no other beats in every total; then look for a cheaper one as good.
+				for (Partial p : strongest)
+					consider(l, plainSlots, p, best);
+				List<Partial> lower = new ArrayList<>();
+				for (Partial p : partials)
+				{
+					if (p.cost >= best.cost || lower.stream().anyMatch(s -> s.covers(p, false)))
+						continue;
+					if (!consider(l, plainSlots, p, best))
+						lower.add(p);
+				}
+			}
 		}
-		for (Option o : options)
-		{
-			top.setStyle(o.getStyle());
-			top.setSpell(o.getSpell());
-			if (!protectedSetup(top))
-				continue;
-			double bound = metric(DpsCalculator.calculate(top, ctx));
-			if (bound <= 0 || bound >= floor - EPS - BOUND_MARGIN)
-				return true;
-		}
-		return false;
 	}
 
 	/** An imaginary item with the highest of each total among the items (a lead's other bonus at its lowest). */
@@ -859,6 +924,7 @@ public class Optimizer
 	}
 
 	/** A partial loadout over the plain slots: its totals, cost and expensive items, and the item it last added. */
+	@RequiredArgsConstructor
 	private static final class Partial
 	{
 		final double[] totals;
@@ -869,17 +935,6 @@ public class Optimizer
 		final Slot slot;
 		final GearItem item;
 		final Partial previous;
-
-		Partial(double[] totals, long cost, int expensive, double spare, Slot slot, GearItem item, Partial previous)
-		{
-			this.totals = totals;
-			this.cost = cost;
-			this.expensive = expensive;
-			this.spare = spare;
-			this.slot = slot;
-			this.item = item;
-			this.previous = previous;
-		}
 
 		void wear(Loadout l)
 		{
@@ -919,77 +974,6 @@ public class Optimizer
 		for (Partial p : loadouts(l, e.plain, e.pools, e.totals, e.score))
 			consider(l, e.plain, p, e);
 		return e.loadout != found;
-	}
-
-	/** The best plain items around the fixed effect gear, for each option of the group. */
-	private void solveFixed(Loadout base, List<Slot> free, Map<Slot, List<GearItem>> fixed, Map<Slot, List<GearItem>> plainPools,
-		int[] totals, List<Option> options, Exact best, double floor)
-	{
-		Loadout l = base.copy();
-		List<Slot> plainSlots = new ArrayList<>();
-		Map<Slot, List<GearItem>> pools = new EnumMap<>(Slot.class);
-		for (Slot slot : free)
-		{
-			List<GearItem> items = fixed.getOrDefault(slot, plainPools.get(slot));
-			l.set(slot, items.size() == 1 ? items.get(0) : null);
-			if (items.size() == 1)
-				continue;
-			plainSlots.add(slot);
-			pools.put(slot, items);
-		}
-		if (!withinBudget(cost(l)) || overCap(l) > 0)
-			return;
-		// Each option's bound: every searched slot holding the highest of each total among its items (as one of its
-		// effect items, when they are).
-		Loadout top = l.copy();
-		for (Slot slot : plainSlots)
-			top.set(slot, boundItem(slot, fixed.containsKey(slot) ? pools.get(slot).get(0) : null, pools.get(slot), totals));
-		List<Option> open = new ArrayList<>();
-		Map<Option, Double> bounds = new IdentityHashMap<>();
-		for (Option o : options)
-		{
-			top.setStyle(o.getStyle());
-			top.setSpell(o.getSpell());
-			double bound = protectedSetup(top) ? metric(DpsCalculator.calculate(top, ctx)) : 0;
-			// Gear rules can reject the imaginary items (the Gauntlet): then there is no bound.
-			if (bound <= 0 && protectedSetup(top))
-				bound = Double.POSITIVE_INFINITY;
-			if (bound > 0 && bound >= floor - EPS - BOUND_MARGIN)
-			{
-				open.add(o);
-				bounds.put(o, bound);
-			}
-		}
-		if (open.isEmpty())
-			return;
-		open.sort(Comparator.comparingDouble(o -> -bounds.get(o)));
-
-		best.frame = l.copy();
-		best.plain = plainSlots;
-		best.pools = pools;
-		best.totals = totals;
-		best.options = options;
-		List<Partial> partials = loadouts(l, plainSlots, pools, totals, Double.NaN);
-		List<Partial> strongest = undominated(partials, false);
-		partials.sort(Comparator.comparingLong((Partial p) -> -p.cost));
-		for (Option o : open)
-		{
-			if (bounds.get(o) < Math.max(floor, best.score) - EPS - BOUND_MARGIN)
-				continue;
-			l.setStyle(o.getStyle());
-			l.setSpell(o.getSpell());
-			// The highest score is on a loadout no other beats in every total; then look for a cheaper one as good.
-			for (Partial p : strongest)
-				consider(l, plainSlots, p, best);
-			List<Partial> lower = new ArrayList<>();
-			for (Partial p : partials)
-			{
-				if (p.cost >= best.cost || lower.stream().anyMatch(s -> s.covers(p, false)))
-					continue;
-				if (!consider(l, plainSlots, p, best))
-					lower.add(p);
-			}
-		}
 	}
 
 	/**
@@ -1090,7 +1074,6 @@ public class Optimizer
 			codes.add(code);
 		codes.addAll(totals(heldFor(frame, plan)));
 		int[] totals = codes.stream().mapToInt(Integer::intValue).toArray();
-		CombatContext specCtx = ctx.withModifiers(ctx.getModifiers().toBuilder().specialAttack(true).build());
 		List<double[]> scores = new ArrayList<>();
 		List<Loadout> loadouts = new ArrayList<>();
 		for (Partial p : undominated(loadouts(frame, found.plain, found.pools, totals, Double.NaN), false))
@@ -1128,8 +1111,7 @@ public class Optimizer
 		double best = Double.NEGATIVE_INFINITY;
 		for (Option o : options)
 		{
-			l.setStyle(o.getStyle());
-			l.setSpell(o.getSpell());
+			o.apply(l);
 			double s = metric(calculate(l));
 			if (s > best + EPS)
 			{
@@ -1139,8 +1121,7 @@ public class Optimizer
 		}
 		if (kept != null)
 		{
-			l.setStyle(kept.getStyle());
-			l.setSpell(kept.getSpell());
+			kept.apply(l);
 		}
 		return best;
 	}
@@ -1243,8 +1224,8 @@ public class Optimizer
 	{
 		return protectedEquipment(l)
 			&& (!recoveryRequired() || l.getStyle() == null
-				|| !WeaponRules.firesRecoverableAmmo(l.getWeapon(), WeaponRules.classOf(l.getStyle()))
-				|| WeaponRules.isAmmoRecoveryCape(l.get(Slot.CAPE)));
+				|| !firesRecoverableAmmo(l.getWeapon(), classOf(l.getStyle()))
+				|| isAmmoRecoveryCape(l.get(Slot.CAPE)));
 	}
 
 	/** Special switches must meet the equipment protection rules, but keep the worn cape: no recovery cape is required. */
@@ -1341,7 +1322,6 @@ public class Optimizer
 	 */
 	private Specced special(Loadout worn, CombatClass cls, DpsResult ordinary, long wornCost, double regen)
 	{
-		CombatContext specCtx = ctx.withModifiers(ctx.getModifiers().toBuilder().specialAttack(true).build());
 		int hp = ctx.getTargetHitpoints();
 		// Ordinary attacks after each set of landed drains, shared by every draining candidate.
 		Map<SpecialAttacks, DpsResult> drainedOrdinary = new HashMap<>();
@@ -1359,8 +1339,7 @@ public class Optimizer
 			long weaponCost = same ? 0 : itemCost(weapon) + ammoCost(base.getLoadedAmmo());
 			for (Option o : options(weapon, cls, true))
 			{
-				base.setStyle(o.getStyle());
-				base.setSpell(o.getSpell());
+				o.apply(base);
 				SpecialAttack spec = SpecialAttack.of(base, specCtx);
 				if (spec == null || spec.getEnergy() <= 0)
 				{
@@ -1368,10 +1347,9 @@ public class Optimizer
 				}
 				// The ammunition, then the off-hand, that make this spec hit hardest (they hardly interact, and
 				// trying every pair would multiply the candidates).
-				Held ammoChoice = strongest(worn, base, Slot.AMMO, specAmmo(worn, weapon), weaponCost, wornCost, specCtx);
+				Held ammoChoice = strongest(worn, base, Slot.AMMO, specAmmo(worn, weapon), weaponCost, wornCost);
 				Held choice = ammoChoice == null ? null
-					: strongest(worn, ammoChoice.getLoadout(), Slot.SHIELD, offhands(worn, weapon), ammoChoice.getCost(), wornCost,
-					specCtx);
+					: strongest(worn, ammoChoice.getLoadout(), Slot.SHIELD, offhands(worn, weapon), ammoChoice.getCost(), wornCost);
 				if (choice == null)
 				{
 					continue;
@@ -1387,7 +1365,7 @@ public class Optimizer
 				}
 				else
 				{
-					SpecialRotation.Fight fight = drainingFight(worn, held, opening, specCtx, drainedOrdinary);
+					SpecialRotation.Fight fight = drainingFight(worn, held, opening, drainedOrdinary);
 					blend = SpecialRotation.draining(fight, spec.getDrain(), spec.getEnergy(), hp,
 						settings.getSpecEnergy(), regen, settings.getDrainSpecs() == DrainSpecs.ALL_MISS);
 					// Shown as the ordinary attacks after one landed spec of average damage.
@@ -1418,7 +1396,7 @@ public class Optimizer
 	}
 
 	/** Ordinary and spec attacks once drains land; each state is calculated once. */
-	private SpecialRotation.Fight drainingFight(Loadout worn, Loadout held, DpsResult opening, CombatContext specCtx,
+	private SpecialRotation.Fight drainingFight(Loadout worn, Loadout held, DpsResult opening,
 		Map<SpecialAttacks, DpsResult> drainedOrdinary)
 	{
 		Map<SpecialAttacks, DpsResult> specs = new HashMap<>();
@@ -1461,8 +1439,7 @@ public class Optimizer
 	 * cheapest on ties, or null when none is protected, affordable and within the Wilderness risk limit together
 	 * with the {@code worn} setup it is carried alongside.
 	 */
-	private Held strongest(Loadout worn, Loadout base, Slot slot, List<GearItem> items, long baseCost, long wornCost,
-		CombatContext specCtx)
+	private Held strongest(Loadout worn, Loadout base, Slot slot, List<GearItem> items, long baseCost, long wornCost)
 	{
 		Held best = null;
 		for (GearItem item : items)
@@ -1499,7 +1476,7 @@ public class Optimizer
 	 */
 	private List<GearItem> specAmmo(Loadout worn, GearItem weapon)
 	{
-		if (weapon == worn.getWeapon() || !WeaponRules.firesAmmoSlot(weapon))
+		if (weapon == worn.getWeapon() || !firesAmmoSlot(weapon))
 		{
 			return Collections.singletonList(null);
 		}
@@ -1529,7 +1506,7 @@ public class Optimizer
 		{
 			l.set(Slot.SHIELD, null);
 		}
-		if (WeaponRules.loadsAmmo(weapon))
+		if (loadsAmmo(weapon))
 		{
 			List<GearItem> darts = compatibleAmmo(weapon, false);
 			if (darts.isEmpty())
@@ -1549,7 +1526,7 @@ public class Optimizer
 			List<GearItem> out = new ArrayList<>();
 			for (GearItem w : data.getItems(Slot.WEAPON))
 			{
-				if (usable(w) && WeaponRules.supports(w, c) && hasSpecialAttack(w, c))
+				if (usable(w) && supports(w, c) && hasSpecialAttack(w, c))
 				{
 					out.add(w);
 				}
@@ -1572,7 +1549,7 @@ public class Optimizer
 			return Collections.emptySet();
 		}
 		GearItem weapon = l.getWeapon();
-		boolean firesAmmo = WeaponRules.firesAmmoSlot(weapon);
+		boolean firesAmmo = firesAmmoSlot(weapon);
 		DpsResult base = DpsCalculator.calculate(l, ctx);
 		double minDps = base.getDps() * (1 - Math.max(0, settings.getFillMarginPercent()) / 100) - EPS;
 		double basePrimary = primary(base);
@@ -1632,46 +1609,33 @@ public class Optimizer
 
 	/**
 	 * Take off every piece that makes no meaningful difference to the setup: its ordinary attack's rates and calc-mode
-	 * figure, and the hit of every spec weapon the kill switches to, are the same (within {@link #MEANINGFUL_BENEFIT})
+	 * figure, and the hit of the spec weapon the kill switches to ({@code spec}, null without one), are the same (within {@link #MEANINGFUL_BENEFIT})
 	 * with the slot empty. Such a piece was worn for a bonus that never paid off, e.g. strength short of the next max
 	 * hit, and would otherwise be carried or bought for nothing. Set pieces, salve and slayer
 	 * effects, protection the target demands and anything moving accuracy, max hit or speed all change a rate, so they
 	 * stay. The weapon, the ammunition it fires, locked slots, slots filled for prayer or defence, pieces with the fill
 	 * mode's bonus (the mode asked for them) and lightbearer behind a spec plan (it pays in energy, not rates) also stay.
 	 */
-	private void prune(Loadout l, Set<Slot> filled, List<SpecialPlan> specs)
+	private void prune(Loadout l, Set<Slot> filled, SpecialPlan spec)
 	{
-		boolean firesAmmo = WeaponRules.firesAmmoSlot(l.getWeapon());
+		boolean firesAmmo = firesAmmoSlot(l.getWeapon());
 		ToDoubleFunction<GearItem> fillBonus = settings.getFillMode() == FillMode.NONE ? null : fillMetric(settings.getFillMode());
-		CombatContext specCtx = specs.isEmpty() ? null
-			: ctx.withModifiers(ctx.getModifiers().toBuilder().specialAttack(true).build());
 		DpsResult worn = calculate(l);
 		for (Slot slot : SLOTS)
 		{
 			GearItem item = l.get(slot);
 			if (item == null || slot == Slot.WEAPON || (slot == Slot.AMMO && firesAmmo) || isLocked(slot) || filled.contains(slot)
 				|| (fillBonus != null && fillBonus.applyAsDouble(item) > 0)
-				|| (slot == Slot.RING && !specs.isEmpty() && lightbearer(l)))
+				|| (slot == Slot.RING && spec != null && lightbearer(l)))
 			{
 				continue;
 			}
 			l.set(slot, null);
-			boolean needed = differs(worn, calculate(l));
-			for (int i = 0; i < specs.size() && !needed; i++)
-			{
-				needed = specDiffers(l, slot, item, specs.get(i), specCtx);
-			}
-			if (needed)
+			if (differs(worn, calculate(l)) || spec != null && specDiffers(l, slot, item, spec))
 			{
 				l.set(slot, item);
 			}
 		}
-	}
-
-	/** The plan's spec weapons; empty without specs. */
-	private static List<SpecialPlan> specPlans(SpecialPlan plan)
-	{
-		return plan == null ? Collections.emptyList() : Collections.singletonList(plan);
 	}
 
 	/**
@@ -1679,7 +1643,7 @@ public class Optimizer
 	 * has it off). An item the spec replaces with its own off-hand or ammunition, or a shield a two-handed spec weapon
 	 * takes off, isn't held during the spec.
 	 */
-	private boolean specDiffers(Loadout worn, Slot slot, GearItem item, SpecialPlan plan, CombatContext specCtx)
+	private boolean specDiffers(Loadout worn, Slot slot, GearItem item, SpecialPlan plan)
 	{
 		Loadout without = heldFor(worn, plan);
 		if (without.get(slot) != null || slot == Slot.SHIELD && plan.getWeapon().isTwoHanded())
@@ -1827,7 +1791,7 @@ public class Optimizer
 			{
 				if (isSpecial(item) || DragonfireProtection.isProtectiveShield(item)
 					|| SlayerEquipment.isRequired(monster, settings, item)
-					|| recoveryRequired() && WeaponRules.isAmmoRecoveryCape(item) && !outranked(item, pool))
+					|| recoveryRequired() && isAmmoRecoveryCape(item) && !outranked(item, pool))
 				{
 					keep.add(item);
 				}
@@ -1881,7 +1845,7 @@ public class Optimizer
 	{
 		for (GearItem weapon : data.getItems(Slot.WEAPON))
 		{
-			if (WeaponRules.scalesWithStrength(weapon) && !WeaponRules.isAtlatl(weapon) && usable(weapon))
+			if (scalesWithStrength(weapon) && !isAtlatl(weapon) && usable(weapon))
 			{
 				return true;
 			}
@@ -1942,13 +1906,13 @@ public class Optimizer
 	{
 		GearItem weapon = trial.getWeapon();
 		if (DragonfireProtection.isProtectiveShield(item) || SlayerEquipment.isRequired(monster, settings, item)
-			|| WeaponRules.isAmmoRecoveryCape(item) && recoveryRequired()
-				&& WeaponRules.firesRecoverableAmmo(weapon, boundClass))
+			|| isAmmoRecoveryCape(item) && recoveryRequired()
+				&& firesRecoverableAmmo(weapon, boundClass))
 		{
 			return false;
 		}
 		// Effects match the calculator's name, which drops the "corrupted " of Deadman items.
-		String name = EncounterDamage.lower(item);
+		String name = lower(item);
 		// Coloured slayer helmets ("hydra slayer helmet") have the effect without the special name.
 		if (!specialName(item.getLowerCombatName()) && !specialName(name) && !name.contains("max cape")
 			&& !DpsCalculator.isSlayerHelm(item))
@@ -1963,40 +1927,11 @@ public class Optimizer
 	{
 		CombatClass cls = boundClass;
 		GearItem weapon = trial.getWeapon();
-		String w = EncounterDamage.lower(weapon);
-		boolean ahrim = cls == CombatClass.MAGIC && EquipmentEffects.namedWeapon(weapon, "ahrim's staff");
-		boolean karil = cls == CombatClass.RANGED && EquipmentEffects.namedWeapon(weapon, "karil's crossbow");
+		String w = lower(weapon);
 		// Target stats can follow its remaining HP; keep target-specific effects whenever they might.
 		boolean fixedTarget = ctx.getHealthStates() == null;
-		if (name.startsWith("dharok's "))
-		{
-			return cls == CombatClass.MELEE && EquipmentEffects.namedWeapon(weapon, "dharok's greataxe");
-		}
-		if (name.startsWith("verac's "))
-		{
-			return cls == CombatClass.MELEE && EquipmentEffects.namedWeapon(weapon, "verac's flail");
-		}
-		if (name.startsWith("blood moon "))
-		{
-			return cls == CombatClass.MELEE && EquipmentEffects.namedWeapon(weapon, "dual macuahuitl");
-		}
-		if (name.startsWith("ahrim's "))
-		{
-			return ahrim;
-		}
-		if (name.startsWith("karil's "))
-		{
-			return karil;
-		}
-		if (name.startsWith("amulet of the damned"))
-		{
-			return ahrim || karil;
-		}
-		if (name.startsWith("eclipse moon "))
-		{
-			return cls == CombatClass.RANGED && WeaponRules.isAtlatl(weapon);
-		}
-		if (name.startsWith("obsidian ") || name.startsWith("berserker necklace"))
+		// The pieces of whole sets (Barrows, moon, obsidian, void) never get here: effect() takes them first.
+		if (name.startsWith("berserker necklace"))
 		{
 			return cls == CombatClass.MELEE && (w.startsWith("toktz-") || w.startsWith("tzhaar-ket-"));
 		}
@@ -2009,18 +1944,6 @@ public class Optimizer
 			return cls == CombatClass.MELEE && EquipmentEffects.named(trial, Slot.AMMO, "crystal blessing")
 				|| cls == CombatClass.RANGED && (w.startsWith("bow of faerdhinen") || w.startsWith("crystal bow"));
 		}
-		if (name.startsWith("void melee helm"))
-		{
-			return cls == CombatClass.MELEE;
-		}
-		if (name.startsWith("void ranger helm"))
-		{
-			return cls == CombatClass.RANGED;
-		}
-		if (name.startsWith("void mage helm"))
-		{
-			return cls == CombatClass.MAGIC;
-		}
 		if (MAGIC_ONLY_GEAR.matches(name))
 		{
 			// Each needs its spellbook, spell or element (DpsCalculator's magic rules).
@@ -2028,7 +1951,7 @@ public class Optimizer
 			String book = spell == null || spell.getSpellbook() == null ? "" : spell.getSpellbook().toLowerCase(Locale.ROOT);
 			String element = SpellRules.element(spell);
 			return cls == CombatClass.MAGIC && (name.startsWith("virtus ") ? book.equals("ancient")
-				: name.startsWith("chaos gauntlets") ? book.equals("standard") && EncounterDamage.spell(trial).endsWith(" bolt")
+				: name.startsWith("chaos gauntlets") ? book.equals("standard") && spell(trial).endsWith(" bolt")
 				: name.startsWith("confliction gauntlets") ? !weapon.isTwoHanded()
 				: name.startsWith("brimstone ring") || !element.isEmpty() && !name.contains("empty")
 					&& (name.startsWith("elemental amulet") || name.contains(element)));
@@ -2046,7 +1969,7 @@ public class Optimizer
 		{
 			// Ranged and Magic need it imbued, except the atlatl's strength-scaled max hit.
 			return (!fixedTarget || monster.hasAttribute("undead"))
-				&& (cls == CombatClass.MELEE || name.contains("i)") || WeaponRules.isAtlatl(weapon));
+				&& (cls == CombatClass.MELEE || name.contains("i)") || isAtlatl(weapon));
 		}
 		if (name.startsWith("amulet of avarice"))
 		{
@@ -2130,7 +2053,8 @@ public class Optimizer
 		return noWorseBonuses(candidate, current) && !noWorseBonuses(current, candidate);
 	}
 
-	private static boolean noWorseBonuses(GearItem candidate, GearItem current)
+	/** Package-private: {@link CosmeticVariants#equivalent} compares the same bonuses. */
+	static boolean noWorseBonuses(GearItem candidate, GearItem current)
 	{
 		return candidate != null && current != null
 			&& candidate.getStabBonus() >= current.getStabBonus()
@@ -2191,7 +2115,7 @@ public class Optimizer
 			{
 				continue;
 			}
-			if (!WeaponRules.supports(w, cls))
+			if (!supports(w, cls))
 			{
 				if (cls == CombatClass.MAGIC && !ctx.getModifiers().isSpecialAttack() && !settings.isPreventManualCast())
 				{
@@ -2276,7 +2200,7 @@ public class Optimizer
 			recoveryRequired = false;
 			for (GearItem cape : data.getItems(Slot.CAPE))
 			{
-				recoveryRequired |= settings.isRequireAtlatlAmmoRecovery() && WeaponRules.isAmmoRecoveryCape(cape) && usable(cape)
+				recoveryRequired |= settings.isRequireAtlatlAmmoRecovery() && isAmmoRecoveryCape(cape) && usable(cape)
 					&& (lock == null || lock.getKind() == SlotLock.Kind.FILL
 						|| lock.getKind() == SlotLock.Kind.ITEM && lock.getItemId() == cape.getId());
 			}
@@ -2292,7 +2216,7 @@ public class Optimizer
 		for (String raw : weapon.getStyles() == null ? java.util.Collections.<String>emptyList() : weapon.getStyles())
 		{
 			AttackStyle style = AttackStyle.parse(raw);
-			if (style != null && WeaponRules.classOf(style) == cls)
+			if (style != null && classOf(style) == cls)
 			{
 				l.setStyle(style);
 				if (SpecialAttack.of(l, ctx) != null)
@@ -2324,14 +2248,14 @@ public class Optimizer
 		for (String raw : weapon.getStyles())
 		{
 			AttackStyle s = AttackStyle.parse(raw);
-			if (s == null || WeaponRules.classOf(s) != cls || !seen.add(s.getType() + "/" + s.getStance())
+			if (s == null || classOf(s) != cls || !seen.add(s.getType() + "/" + s.getStance())
 				|| !styleAllowed(weapon, s, anyType))
 			{
 				continue;
 			}
 			if (cls == CombatClass.MAGIC)
 			{
-				if (weapon.getSubcategory().equals("salamander") && WeaponRules.salamanderMaxHit(weapon, ctx.getMagic()) > 0)
+				if (weapon.getSubcategory().equals("salamander") && salamanderMaxHit(weapon, ctx.getMagic()) > 0)
 				{
 					out.add(new Option(s, null));
 				}
@@ -2346,7 +2270,7 @@ public class Optimizer
 						}
 					}
 				}
-				else if (WeaponRules.isPoweredStaff(weapon) && WeaponRules.poweredStaffMaxHit(weapon, ctx.getMagic()) > 0)
+				else if (isPoweredStaff(weapon) && poweredStaffMaxHit(weapon, ctx.getMagic()) > 0)
 				{
 					out.add(new Option(s, null));
 				}
@@ -2372,15 +2296,10 @@ public class Optimizer
 	}
 
 	/** Reach, attack type and experience filter. */
-	boolean styleAllowed(GearItem weapon, AttackStyle s)
-	{
-		return styleAllowed(weapon, s, false);
-	}
-
 	private boolean styleAllowed(GearItem weapon, AttackStyle s, boolean anyType)
 	{
 		if (!AttackReach.canReach(monster, weapon, s, settings.getTargetDistance())
-			|| !anyType && !settings.getStyles().contains(WeaponRules.tabType(weapon, s)))
+			|| !anyType && !settings.getStyles().contains(tabType(weapon, s)))
 		{
 			return false;
 		}
@@ -2678,7 +2597,7 @@ public class Optimizer
 		boolean anyStyle = false;
 		for (CombatClass cls : CombatClass.values())
 		{
-			if (!WeaponRules.supports(weapon, cls) || !classAllowed(monster, cls) || options(weapon, cls).isEmpty())
+			if (!supports(weapon, cls) || !classAllowed(monster, cls) || options(weapon, cls).isEmpty())
 			{
 				continue;
 			}
@@ -2687,8 +2606,8 @@ public class Optimizer
 			{
 				continue;
 			}
-			boolean fires = WeaponRules.firesAmmoSlot(weapon);
-			if ((fires || WeaponRules.loadsAmmo(weapon)) && compatibleAmmo(weapon, fires).isEmpty())
+			boolean fires = firesAmmoSlot(weapon);
+			if ((fires || loadsAmmo(weapon)) && compatibleAmmo(weapon, fires).isEmpty())
 			{
 				return "none of its ammunition can be used" + (fires && settings.getLocks().containsKey(Slot.AMMO)
 					? " with the ammo slot lock" : "");
@@ -2726,7 +2645,7 @@ public class Optimizer
 		long price = price(item);
 		if (!ItemCosts.isKnown(price))
 		{
-			return settings.getAmmoCount() <= 0 && WeaponRules.consumedPerAttack(item);
+			return settings.getAmmoCount() <= 0 && consumedPerAttack(item);
 		}
 		return price <= settings.getBudget();
 	}
@@ -2737,7 +2656,7 @@ public class Optimizer
 		{
 			return false;
 		}
-		if (WeaponRules.consumedPerAttack(item))
+		if (consumedPerAttack(item))
 		{
 			// Only the units still to buy need a price; none are needed when the quantity isn't counted.
 			return ammoShortfall(item) > 0;
@@ -2762,7 +2681,7 @@ public class Optimizer
 	 */
 	private long itemCost(GearItem item)
 	{
-		if (WeaponRules.consumedPerAttack(item))
+		if (consumedPerAttack(item))
 		{
 			return ammoCost(item);
 		}
@@ -2790,7 +2709,7 @@ public class Optimizer
 	private long ammoShortfall(GearItem item)
 	{
 		long count = settings.getAmmoCount();
-		if (count <= 0 || !WeaponRules.consumedPerAttack(item))
+		if (count <= 0 || !consumedPerAttack(item))
 		{
 			return 0;
 		}
@@ -2896,6 +2815,13 @@ public class Optimizer
 	{
 		AttackStyle style;
 		Spell spell;
+
+		/** Leaves the loadout attacking this way. */
+		void apply(Loadout l)
+		{
+			l.setStyle(style);
+			l.setSpell(spell);
+		}
 	}
 
 	/** A spec loadout, one special attack with it, and the GP it adds to the worn setup. */

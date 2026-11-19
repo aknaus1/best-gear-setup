@@ -20,17 +20,8 @@ import lombok.Getter;
  */
 public class GameData
 {
-	private static final String[] EXCLUDED_NAME_PARTS = {
-		"(fractured archive)", "(uncharged)", "(no burn dmg)", "(unranked)", "(unfrozen target)",
-	};
-
-	/** Minigame-only items (Barbarian Assault arrows) that cannot be used elsewhere. */
-	private static final java.util.Set<String> EXCLUDED_NAMES = new java.util.HashSet<>(java.util.Arrays.asList(
-		"bullet arrow", "field arrow", "blunt arrow", "barbed arrow"));
-
-	private static final String[] EXCLUDED_NAME_PREFIXES = {
-		"starter staff",
-	};
+	/** Unusable states, minigame-only items and starter gear, by name. */
+	private static final NameLists.NameList EXCLUDED = NameLists.list("catalogue exclusions");
 
 	@Getter
 	private final List<MonsterSummary> monsters;
@@ -186,26 +177,7 @@ public class GameData
 		{
 			return true;
 		}
-		String name = item.getName().toLowerCase(Locale.ROOT);
-		if (EXCLUDED_NAMES.contains(name))
-		{
-			return true;
-		}
-		for (String part : EXCLUDED_NAME_PARTS)
-		{
-			if (name.contains(part))
-			{
-				return true;
-			}
-		}
-		for (String prefix : EXCLUDED_NAME_PREFIXES)
-		{
-			if (name.startsWith(prefix))
-			{
-				return true;
-			}
-		}
-		return false;
+		return EXCLUDED.matches(item.getName().toLowerCase(Locale.ROOT));
 	}
 
 	private void buildPrayers(Map<String, List<Prayer>> byCategory)

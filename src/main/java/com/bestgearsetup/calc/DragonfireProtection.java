@@ -4,14 +4,12 @@ import com.bestgearsetup.data.GearItem;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.NameLists;
 import com.bestgearsetup.data.Slot;
-import java.util.regex.Pattern;
 
 /** Equipment requirements for dragonfire, independent of ordinary defence bonuses. */
 public final class DragonfireProtection
 {
-	// Compiled once: the search checks protection for every setup it scores.
-	private static final Pattern METAL_DRAGON = Pattern.compile("(bronze|iron|steel|mithril|adamant|rune) dragon.*");
-	private static final Pattern CHROMATIC_DRAGON = Pattern.compile("(green|blue|red|black|lava|frost|reanimated) dragon.*");
+	private static final NameLists.NameList METAL_DRAGON = NameLists.list("metal dragons");
+	private static final NameLists.NameList CHROMATIC_DRAGON = NameLists.list("chromatic dragons");
 	private static final NameLists.NameList PROTECTIVE_SHIELDS = NameLists.list("protective shields");
 
 	private DragonfireProtection()
@@ -35,7 +33,7 @@ public final class DragonfireProtection
 
 	private static boolean metal(Monster monster)
 	{
-		return METAL_DRAGON.matcher(name(monster)).matches() || name(monster).startsWith("drake");
+		return METAL_DRAGON.matches(name(monster)) || name(monster).startsWith("drake");
 	}
 
 	/** Whether this encounter requires dragonfire or wyvern breath protection. */
@@ -44,7 +42,7 @@ public final class DragonfireProtection
 		String n = name(monster);
 		return !n.contains("baby") && (wyvern(monster) || metal(monster)
 			|| n.contains("brutal") && n.contains("dragon")
-			|| CHROMATIC_DRAGON.matcher(n).matches()
+			|| CHROMATIC_DRAGON.matches(n)
 			|| n.startsWith("vorkath") || n.startsWith("king black dragon") || n.startsWith("galvek")
 			|| n.startsWith("elvarg"));
 	}
@@ -58,7 +56,7 @@ public final class DragonfireProtection
 	/** Whether a metal dragon: it stays out of melee range and breathes from a distance (Wiki: Steel dragon). */
 	public static boolean keepsDistance(Monster monster)
 	{
-		return METAL_DRAGON.matcher(name(monster)).matches();
+		return METAL_DRAGON.matches(name(monster));
 	}
 
 	/**
@@ -71,18 +69,18 @@ public final class DragonfireProtection
 			|| antifire == Antifire.REGULAR && (fireShield(loadout) || protectMagic && !metal(monster)));
 	}
 
-	/** The worn shield, when it is a dragonfire shield (not elemental or mind) a one-handed weapon leaves on. */
-	private static boolean fireShield(Loadout loadout)
+	/** The shield a one-handed weapon leaves on, or null. */
+	private static GearItem shield(Loadout loadout)
 	{
-		GearItem item = loadout.getWeapon() == null || loadout.getWeapon().isTwoHanded() ? null : loadout.get(Slot.SHIELD);
-		return isProtectiveShield(item) && !item.getLowerCombatName().equals("elemental shield")
-			&& !item.getLowerCombatName().equals("mind shield");
+		return loadout.getWeapon() == null || loadout.getWeapon().isTwoHanded() ? null : loadout.get(Slot.SHIELD);
 	}
 
-	/** Meets normal protection requirements; boss chip damage and avoidable specials may remain. */
-	public static boolean allowed(Monster monster, Loadout loadout, OptimizerSettings settings, PlayerLevels levels)
+	/** Whether the worn shield is a dragonfire shield (not elemental or mind). */
+	private static boolean fireShield(Loadout loadout)
 	{
-		return !required(monster, settings) || protects(monster, loadout, settings, levels);
+		GearItem item = shield(loadout);
+		return isProtectiveShield(item) && !item.getLowerCombatName().equals("elemental shield")
+			&& !item.getLowerCombatName().equals("mind shield");
 	}
 
 	/** Whether this lookup makes the setup carry dragonfire protection at all; fixed for one search. */
@@ -91,32 +89,26 @@ public final class DragonfireProtection
 		return settings.isRequireFireProtection() && applies(monster);
 	}
 
-	/** {@link #allowed} once {@link #required} holds. */
+	/** Meets normal protection requirements once {@link #required} holds; boss chip damage and avoidable specials may remain. */
 	static boolean protects(Monster monster, Loadout loadout, OptimizerSettings settings, PlayerLevels levels)
 	{
-		GearItem item = loadout.getWeapon() == null || loadout.getWeapon().isTwoHanded() ? null : loadout.get(Slot.SHIELD);
-		String shieldName = item == null ? "" : item.getLowerCombatName();
-		boolean shield = isProtectiveShield(item);
 		if (wyvern(monster))
 		{
-			return shield && !shieldName.startsWith("anti-dragon shield");
+			GearItem item = shield(loadout);
+			return isProtectiveShield(item) && !item.getLowerCombatName().startsWith("anti-dragon shield");
 		}
-		shield &= !shieldName.equals("elemental shield") && !shieldName.equals("mind shield");
+		boolean shield = fireShield(loadout);
 		boolean magic = settings.isProtectMagic() && levels.getPrayer() >= 37;
 		boolean potion = settings.getAntifire() != Antifire.NONE;
 		boolean superPotion = settings.getAntifire() == Antifire.SUPER;
 		String n = name(monster);
-		if (n.startsWith("vorkath"))
+		if (n.startsWith("vorkath") || n.startsWith("king black dragon"))
 		{
 			return potion && shield || superPotion && magic;
 		}
 		if (n.startsWith("galvek") || n.startsWith("elvarg"))
 		{
 			return potion && shield;
-		}
-		if (n.startsWith("king black dragon"))
-		{
-			return potion && shield || superPotion && magic;
 		}
 		return superPotion || potion && (shield || magic && !metal(monster));
 	}

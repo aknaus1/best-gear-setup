@@ -88,7 +88,6 @@ import net.runelite.api.NPCComposition;
 import net.runelite.api.Player;
 import net.runelite.api.Quest;
 import net.runelite.api.QuestState;
-import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
@@ -132,10 +131,13 @@ import net.runelite.client.util.Text;
 public class BestGearSetupPlugin extends Plugin
 {
 	private static final String MENU_OPTION = "Best setup";
-	/** RuneScape-profile key remembering whether the Elite Kourend & Kebos Diary is complete. */
-	private static final String KOUREND_ELITE_KEY = "kourendEliteDiary";
-	/** RuneScape-profile key remembering whether A Kingdom Divided (needed for thralls) is complete. */
-	private static final String KINGDOM_DIVIDED_KEY = "kingdomDivided";
+	/** The skills a potion can boost, each with the combat class whose potion setting applies to it. */
+	private static final String[] BOOST_SKILLS = {"attack", "strength", "ranged", "magic"};
+	private static final CombatClass[] BOOST_CLASSES = {CombatClass.MELEE, CombatClass.MELEE, CombatClass.RANGED, CombatClass.MAGIC};
+	/** Settings that change neither a search nor the sidebar. */
+	private static final List<String> NO_SEARCH_KEYS = Arrays.asList("showMenuOption",
+		BestGearSetupConfig.HIGHLIGHT_BANK_GEAR_KEY, BestGearSetupConfig.BANK_HIGHLIGHT_COLOR_KEY,
+		BestGearSetupConfig.HIGHLIGHT_INVENTORY_GEAR_KEY, BestGearSetupConfig.INVENTORY_HIGHLIGHT_COLOR_KEY);
 
 	@Inject
 	Client client;
@@ -207,6 +209,7 @@ public class BestGearSetupPlugin extends Plugin
 	BestGearSetupPanel panel;
 	private NavigationButton navButton;
 	ExecutorService executor;
+	@Getter
 	volatile GameData gameData;
 	volatile Future<?> search;
 	final AtomicInteger searchGeneration = new AtomicInteger();
@@ -362,6 +365,30 @@ public class BestGearSetupPlugin extends Plugin
 		}
 	}
 
+	/** Swing thread, later: act on the panel unless the plugin has stopped by then. */
+	private void onPanel(Consumer<BestGearSetupPanel> action)
+	{
+		SwingUtilities.invokeLater(() ->
+		{
+			if (panel != null)
+			{
+				action.accept(panel);
+			}
+		});
+	}
+
+	/** As {@link #onPanel(Consumer)}, and only while the search of this generation is still the current one. */
+	private void onPanel(int generation, Consumer<BestGearSetupPanel> action)
+	{
+		onPanel(p ->
+		{
+			if (generation == searchGeneration.get())
+			{
+				action.accept(p);
+			}
+		});
+	}
+
 	private boolean cacheReady()
 	{
 		return client.getGameState().getState() >= GameState.LOGIN_SCREEN.getState();
@@ -437,26 +464,22 @@ public class BestGearSetupPlugin extends Plugin
 
 	static Set<Integer> gearIds(GameData data)
 	{
-		Set<Integer> ids = new HashSet<>();
-		for (Slot slot : Slot.values())
-		{
-			for (GearItem item : data.getItems(slot))
-			{
-				ids.add(item.getId());
-				ids.addAll(item.getVariants());
-			}
-		}
-		return Collections.unmodifiableSet(ids);
+		return idsWithVariants(data, item -> true);
 	}
 
 	static Set<Integer> consumableIds(GameData data)
+	{
+		return idsWithVariants(data, WeaponRules::consumedPerAttack);
+	}
+
+	private static Set<Integer> idsWithVariants(GameData data, Predicate<GearItem> wanted)
 	{
 		Set<Integer> ids = new HashSet<>();
 		for (Slot slot : Slot.values())
 		{
 			for (GearItem item : data.getItems(slot))
 			{
-				if (WeaponRules.consumedPerAttack(item))
+				if (wanted.test(item))
 				{
 					ids.add(item.getId());
 					ids.addAll(item.getVariants());
@@ -545,13 +568,7 @@ public class BestGearSetupPlugin extends Plugin
 		if (event.getGameState().getState() < GameState.LOGGING_IN.getState())
 		{
 			ownedItems.clearEquipped();
-			SwingUtilities.invokeLater(() ->
-			{
-				if (panel != null)
-				{
-					panel.updateOwnedStatus();
-				}
-			});
+			onPanel(BestGearSetupPanel::updateOwnedStatus);
 		}
 	}
 
@@ -571,14 +588,8 @@ public class BestGearSetupPlugin extends Plugin
 			}
 		}
 		// Nothing is moving: publish what was read rather than waiting for it to settle.
-		ownedItems.rebuild(true);
-		SwingUtilities.invokeLater(() ->
-		{
-			if (panel != null)
-			{
-				panel.updateOwnedStatus();
-			}
-		});
+		ownedItems.rebuild();
+		onPanel(BestGearSetupPanel::updateOwnedStatus);
 	}
 
 	@Subscribe
@@ -590,13 +601,7 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			containersChanged = true;
 		}
-		SwingUtilities.invokeLater(() ->
-		{
-			if (panel != null)
-			{
-				panel.updateOwnedStatus();
-			}
-		});
+		onPanel(BestGearSetupPanel::updateOwnedStatus);
 	}
 
 	/**
@@ -641,21 +646,7 @@ public class BestGearSetupPlugin extends Plugin
 		boolean listsChanged = locationsChanged || ownedItems.snapshot() != idsBefore;
 		if (changed || listsChanged)
 		{
-			SwingUtilities.invokeLater(() ->
-			{
-				if (panel == null)
-				{
-					return;
-				}
-				if (listsChanged)
-				{
-					panel.onManualOwnedChanged();
-				}
-				else
-				{
-					panel.updateOwnedStatus();
-				}
-			});
+			onPanel(listsChanged ? BestGearSetupPanel::onManualOwnedChanged : BestGearSetupPanel::updateOwnedStatus);
 		}
 	}
 
@@ -722,30 +713,13 @@ public class BestGearSetupPlugin extends Plugin
 	static boolean supplyDiffers(Map<Integer, Long> before, Map<Integer, Long> now, Set<Integer> consumables,
 		long ammoCount)
 	{
-		if (before == null || ammoCount <= 0)
-		{
-			return false;
-		}
-		for (int id : consumables)
-		{
-			if (Math.min(before.getOrDefault(id, 0L), ammoCount) != Math.min(now.getOrDefault(id, 0L), ammoCount))
-			{
-				return true;
-			}
-		}
-		return false;
+		return before != null && ammoCount > 0 && consumables.stream().anyMatch(id ->
+			Math.min(before.getOrDefault(id, 0L), ammoCount) != Math.min(now.getOrDefault(id, 0L), ammoCount));
 	}
 
 	static boolean gearOwnershipDiffers(Set<Integer> before, Set<Integer> now, Set<Integer> gear)
 	{
-		for (int id : gear)
-		{
-			if (before.contains(id) != now.contains(id))
-			{
-				return true;
-			}
-		}
-		return false;
+		return gear.stream().anyMatch(id -> before.contains(id) != now.contains(id));
 	}
 
 	@Subscribe
@@ -769,49 +743,43 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			clientThread.invoke(bridge::reset);
 		}
-		SwingUtilities.invokeLater(() ->
+		onPanel(p ->
 		{
-			if (panel != null)
+			if (generation == searchGeneration.get())
 			{
-				if (generation == searchGeneration.get())
-				{
-					panel.clearResults("Account changed. Find best setup again to use this account's levels and items.");
-				}
-				panel.syncFromConfig();
-				panel.updateOwnedStatus();
+				p.clearResults("Account changed. Find best setup again to use this account's levels and items.");
 			}
+			p.syncFromConfig();
+			p.updateOwnedStatus();
 		});
 	}
 
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (BestGearSetupConfig.GROUP.equals(event.getGroup()) && BestGearSetupConfig.BOSSES_ONLY_KEY.equals(event.getKey()) && panel != null)
+		String key = event.getKey();
+		if (!BestGearSetupConfig.GROUP.equals(event.getGroup()) || panel == null)
 		{
-			SwingUtilities.invokeLater(() -> { if (panel != null) { panel.refreshSearchFilter(); } });
 			return;
 		}
-		// Per-account keys (owned items) change with every bank update; they must not trigger a search. The
-		// boss filter only changes search suggestions.
-		if (!BestGearSetupConfig.GROUP.equals(event.getGroup()) || panel == null || event.getProfile() != null
-			|| "showMenuOption".equals(event.getKey()) || BestGearSetupConfig.BOSSES_ONLY_KEY.equals(event.getKey())
-			|| BestGearSetupConfig.HIGHLIGHT_BANK_GEAR_KEY.equals(event.getKey())
-			|| BestGearSetupConfig.BANK_HIGHLIGHT_COLOR_KEY.equals(event.getKey())
-			|| BestGearSetupConfig.HIGHLIGHT_INVENTORY_GEAR_KEY.equals(event.getKey())
-			|| BestGearSetupConfig.INVENTORY_HIGHLIGHT_COLOR_KEY.equals(event.getKey()))
+		// The boss filter only changes search suggestions.
+		if (BestGearSetupConfig.BOSSES_ONLY_KEY.equals(key))
+		{
+			onPanel(BestGearSetupPanel::refreshSearchFilter);
+			return;
+		}
+		// Per-account keys (owned items) change with every bank update; they must not trigger a search.
+		if (event.getProfile() != null || NO_SEARCH_KEYS.contains(key))
 		{
 			return;
 		}
 		// Kills per trip and food filling change only the trip's supplies, not the gear.
-		boolean suppliesOnly = "killsPerTrip".equals(event.getKey()) || "fillFood".equals(event.getKey());
-		SwingUtilities.invokeLater(() ->
+		boolean suppliesOnly = "killsPerTrip".equals(key) || "fillFood".equals(key);
+		onPanel(p ->
 		{
-			if (panel != null)
-			{
-				panel.syncFromConfig();
-				if (suppliesOnly)
-					panel.refreshSupplies();
-			}
+			p.syncFromConfig();
+			if (suppliesOnly)
+				p.refreshSupplies();
 		});
 		if (!suppliesOnly)
 			rerun();
@@ -846,18 +814,8 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			comp = npc.getComposition();
 		}
-		if (comp == null || comp.getActions() == null)
-		{
-			return false;
-		}
-		for (String action : comp.getActions())
-		{
-			if (action != null && "attack".equalsIgnoreCase(Text.removeTags(action)))
-			{
-				return true;
-			}
-		}
-		return false;
+		return comp != null && comp.getActions() != null && Arrays.stream(comp.getActions())
+			.anyMatch(action -> action != null && "attack".equalsIgnoreCase(Text.removeTags(action)));
 	}
 
 	/** Client thread: resolve the clicked NPC and open the panel on it. */
@@ -867,27 +825,23 @@ public class BestGearSetupPlugin extends Plugin
 		int id = npc.getId();
 		String name = npc.getName();
 		int level = npc.getCombatLevel();
-		SwingUtilities.invokeLater(() ->
+		onPanel(p ->
 		{
-			if (panel == null)
-			{
-				return;
-			}
 			clientToolbar.openPanel(navButton);
 			GameData data = gameData;
 			if (data == null)
 			{
-				panel.showStatus("Game data is still loading, try again in a moment.");
+				p.showStatus("Game data is still loading, try again in a moment.");
 				return;
 			}
 			MonsterSummary match = data.matchNpc(id, name, level);
 			if (match == null)
 			{
-				panel.showSearch(name == null ? "" : Text.removeTags(name));
-				panel.showError("No monster data for " + name + " (id " + id + ").");
+				p.showSearch(name == null ? "" : Text.removeTags(name));
+				p.showError("No monster data for " + name + " (id " + id + ").");
 				return;
 			}
-			panel.selectMonster(match, true);
+			p.selectMonster(match, true);
 		});
 	}
 
@@ -994,17 +948,14 @@ public class BestGearSetupPlugin extends Plugin
 			detected.putAll(landed);
 			if (!landed.isEmpty())
 			{ detectedNotes.add("Pre-fight preparation: specs landed on this target so far, in place of the Fight settings."); }
-			detected.put("potionMelee", getPotionChoice(CombatClass.MELEE));
-			detected.put("potionRanged", getPotionChoice(CombatClass.RANGED));
-			detected.put("potionMagic", getPotionChoice(CombatClass.MAGIC));
+			detected.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MELEE", getPotionChoice(CombatClass.MELEE));
+			detected.put(BestGearSetupConfig.POTION_KEY_PREFIX + "RANGED", getPotionChoice(CombatClass.RANGED));
+			detected.put(BestGearSetupConfig.POTION_KEY_PREFIX + "MAGIC", getPotionChoice(CombatClass.MAGIC));
 			BestGearSetupConfig assumptions = SearchAssumptions.capture(config, detected);
 			String assumptionDetail = taskNote;
-			SwingUtilities.invokeLater(() ->
-			{
-				if (panel != null && generation == searchGeneration.get())
-				{ panel.showAssumptions("Task: " + (matched == null && assumptions.taskMode() == AutoState.AUTO ? "unknown" : onTask ? "on" : "off")
-					+ (assumptions.taskMode() == AutoState.AUTO ? " (Auto)" : " (override)"), assumptionDetail); }
-			});
+			onPanel(generation, p -> p.showAssumptions("Task: "
+				+ (matched == null && assumptions.taskMode() == AutoState.AUTO ? "unknown" : onTask ? "on" : "off")
+				+ (assumptions.taskMode() == AutoState.AUTO ? " (Auto)" : " (override)"), assumptionDetail));
 			// ItemManager prices must be read on the client thread; snapshot them for the search and UI.
 			Map<Integer, Long> quotes = snapshotPrices(data);
 			prices = quotes;
@@ -1044,16 +995,7 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			return null;
 		}
-		return new RememberedLevels(new PlayerLevels(
-			client.getRealSkillLevel(Skill.ATTACK),
-			client.getRealSkillLevel(Skill.STRENGTH),
-			client.getRealSkillLevel(Skill.DEFENCE),
-			client.getRealSkillLevel(Skill.RANGED),
-			client.getRealSkillLevel(Skill.MAGIC),
-			client.getRealSkillLevel(Skill.PRAYER),
-			client.getRealSkillLevel(Skill.HITPOINTS),
-			client.getRealSkillLevel(Skill.SLAYER)),
-			client.getRealSkillLevel(Skill.MINING));
+		return RememberedLevels.of(Arrays.stream(RememberedLevels.SKILLS).mapToInt(client::getRealSkillLevel).toArray());
 	}
 
 	/** Persist the account's levels for logged-out searches, once they have all loaded and only when changed. */
@@ -1102,14 +1044,7 @@ public class BestGearSetupPlugin extends Plugin
 	 */
 	private Boolean readKourendEliteDiary()
 	{
-		if (client.getGameState() == GameState.LOGGED_IN)
-		{
-			boolean complete = client.getVarbitValue(VarbitID.KOUREND_DIARY_ELITE_COMPLETE) == 1;
-			configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, KOUREND_ELITE_KEY, complete);
-			return complete;
-		}
-		String remembered = configManager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, KOUREND_ELITE_KEY);
-		return remembered == null ? null : Boolean.valueOf(remembered);
+		return readRemembered("kourendEliteDiary", () -> client.getVarbitValue(VarbitID.KOUREND_DIARY_ELITE_COMPLETE) == 1);
 	}
 
 	/**
@@ -1118,13 +1053,19 @@ public class BestGearSetupPlugin extends Plugin
 	 */
 	private Boolean readKingdomDivided()
 	{
+		return readRemembered("kingdomDivided", () -> Quest.A_KINGDOM_DIVIDED.getState(client) == QuestState.FINISHED);
+	}
+
+	/** Client thread: the live answer while logged in, saved under the profile key; otherwise the saved one. */
+	private Boolean readRemembered(String key, BooleanSupplier live)
+	{
 		if (client.getGameState() == GameState.LOGGED_IN)
 		{
-			boolean complete = Quest.A_KINGDOM_DIVIDED.getState(client) == QuestState.FINISHED;
-			configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, KINGDOM_DIVIDED_KEY, complete);
+			boolean complete = live.getAsBoolean();
+			configManager.setRSProfileConfiguration(BestGearSetupConfig.GROUP, key, complete);
 			return complete;
 		}
-		String remembered = configManager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, KINGDOM_DIVIDED_KEY);
+		String remembered = configManager.getRSProfileConfiguration(BestGearSetupConfig.GROUP, key);
 		return remembered == null ? null : Boolean.valueOf(remembered);
 	}
 
@@ -1190,12 +1131,13 @@ public class BestGearSetupPlugin extends Plugin
 				}
 			}
 			Predicate<Potion> boosts = BoostAccess.allowed(settings.getMode(), owned, config.raidPotions());
+			int[] boosted = boostBases(levels);
+			for (int i = 0; i < boosted.length; i++)
+			{
+				boosted[i] = PotionChoice.boostedLevel(data, BOOST_SKILLS[i], boosted[i], potionChoice(config, BOOST_CLASSES[i]), boosts, monster);
+			}
 			CombatContext ctx = new CombatContext(monster, levels, config.onSlayerTask(),
-				PotionChoice.boostedLevel(data, "attack", levels.getAttack(), potionChoice(config, CombatClass.MELEE), boosts, monster),
-				PotionChoice.boostedLevel(data, "strength", levels.getStrength(), potionChoice(config, CombatClass.MELEE), boosts, monster),
-				PotionChoice.boostedLevel(data, "ranged", levels.getRanged(), potionChoice(config, CombatClass.RANGED), boosts, monster),
-				PotionChoice.boostedLevel(data, "magic", levels.getMagic(), potionChoice(config, CombatClass.MAGIC), boosts, monster),
-				prayers, config.thrall()).withFightOptions(config.aoe() ? config.aoeTargets() : 1, 0)
+				boosted[0], boosted[1], boosted[2], boosted[3], prayers, config.thrall()).withFightOptions(config.aoe() ? config.aoeTargets() : 1, 0)
 				.withModifiers(CombatModifiers.builder().currentHitpoints(config.currentHitpoints())
 					.wilderness(config.wilderness())
 					.forinthrySurge(config.forinthrySurge())
@@ -1207,23 +1149,12 @@ public class BestGearSetupPlugin extends Plugin
 				// HP-dependent target stats are re-derived in the same order for whole-fight averages.
 				.withHealthStates(hp -> specials.apply(MonsterStates.atHealth(scaled, hp)));
 			// One tab per attack type: melee is optimised separately for stab, slash and crush.
-			List<AttackStyle.Type> types = new ArrayList<>();
-			for (AttackStyle.Type type : AttackStyle.Type.values())
-			{
-				if (settings.getStyles().contains(type))
-				{
-					types.add(type);
-				}
-			}
+			// An EnumSet, so already in declaration order.
+			List<AttackStyle.Type> types = new ArrayList<>(settings.getStyles());
 			// A newer search, a cleared search or shutdown bumps the generation.
 			BooleanSupplier cancelled = () -> generation != searchGeneration.get();
-			SearchProgress progress = new SearchProgress(types.size(), percent -> SwingUtilities.invokeLater(() ->
-			{
-				if (panel != null && generation == searchGeneration.get())
-				{
-					panel.showProgress(percent);
-				}
-			}));
+			SearchProgress progress = new SearchProgress(types.size(),
+				percent -> onPanel(generation, p -> p.showProgress(percent)));
 			List<List<SetupResult>> tabs = new ArrayList<>();
 			for (int i = 0; i < types.size() && !cancelled.getAsBoolean(); i++)
 			{
@@ -1250,7 +1181,7 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				return;
 			}
-			List<String> notes = describeSearch(data, levels, baseMonster, scaled, monster, specials, ctx, settings, raid, config);
+			List<String> notes = describeSearch(baseMonster, scaled, monster, specials, ctx, settings, raid, config);
 			notes.addAll(detectedNotes);
 			if (config.usePrayers() && prayerUnlocks == null)
 			{
@@ -1276,15 +1207,8 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				List<Spell> castable = Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings);
 				String spellNote = spellFilterNote(settings.getSpellFilter(), castable);
-				if (spellNote == null)
-				{
-					spellNote = staffBoundNote(settings.getSpellFilter(), castable,
-						byType.getOrDefault(AttackStyle.Type.MAGIC, Collections.emptyList()));
-				}
-				if (spellNote != null)
-				{
-					warnings.add(spellNote);
-				}
+				addNote(warnings, spellNote != null ? spellNote : staffBoundNote(settings.getSpellFilter(), castable,
+					byType.getOrDefault(AttackStyle.Type.MAGIC, Collections.emptyList())));
 			}
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
 				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
@@ -1293,26 +1217,17 @@ public class BestGearSetupPlugin extends Plugin
 				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels);
 			// Loads the overhead notes here rather than on the Swing thread when the first result is shown.
 			Overheads.recommend(monster, CombatClass.MELEE);
-			SwingUtilities.invokeLater(() ->
-			{
-				if (panel != null && generation == searchGeneration.get())
-				{
-					panel.showResults(found);
-				}
-			});
+			onPanel(generation, p -> p.showResults(found));
 		}
 		catch (IOException | RuntimeException | Error e)
 		{
 			// Errors (e.g. assertion failures) would otherwise vanish inside the executor's Future.
 			log.warn("Best setup search failed", e);
-			SwingUtilities.invokeLater(() ->
+			onPanel(generation, p ->
 			{
-				if (panel != null && generation == searchGeneration.get())
-				{
-					// The kept results belong to an earlier search; don't leave them beside the failure.
-					panel.clearResults("");
-					panel.showError("Search failed: " + e.getMessage());
-				}
+				// The kept results belong to an earlier search; don't leave them beside the failure.
+				p.clearResults("");
+				p.showError("Search failed: " + e.getMessage());
 			});
 		}
 	}
@@ -1320,12 +1235,7 @@ public class BestGearSetupPlugin extends Plugin
 	/** Clear the bank highlights, or publish a setup without its boosts. */
 	public void setBankHighlightedSetup(SetupResult setup)
 	{
-		setBankHighlightedSetup(setup, Collections.emptyList());
-	}
-
-	public void setBankHighlightedSetup(SetupResult setup, List<Potion> potions)
-	{
-		setBankHighlightedSetup(setup, potions, Collections.emptyList());
+		setBankHighlightedSetup(setup, Collections.emptyList(), Collections.emptyList());
 	}
 
 	/** Publish the displayed setup's equipment, loaded ammunition, spell runes, boosts and trip supplies to the bank. */
@@ -1450,30 +1360,25 @@ public class BestGearSetupPlugin extends Plugin
 		Predicate<Potion> boosts, BestGearSetupConfig config)
 	{
 		List<String> warnings = new ArrayList<>();
-		String[] skills = {"attack", "strength", "ranged", "magic"};
-		CombatClass[] classes = {CombatClass.MELEE, CombatClass.MELEE, CombatClass.RANGED, CombatClass.MAGIC};
-		int[] base = {levels.getAttack(), levels.getStrength(), levels.getRanged(), levels.getMagic()};
+		CombatClass[] classes = BOOST_CLASSES;
+		int[] base = boostBases(levels);
 		Set<String> seen = new HashSet<>();
-		for (int i = 0; i < skills.length; i++)
+		for (int i = 0; i < base.length; i++)
 		{
 			String choice = potionChoice(config, classes[i]);
-			Potion p = PotionChoice.isExplicit(choice) ? PotionChoice.resolve(data, skills[i], base[i], choice) : null;
+			Potion p = PotionChoice.isExplicit(choice) ? PotionChoice.resolve(data, BOOST_SKILLS[i], base[i], choice, potion -> true, null) : null;
 			if (p == null || !seen.add(classes[i] + "/" + p.getName()))
 			{
 				continue;
 			}
 			List<String> problems = new ArrayList<>();
-			String restriction = PotionChoice.restriction(p, target);
-			if (restriction != null)
-			{
-				problems.add(restriction);
-			}
+			addNote(problems, PotionChoice.restriction(p, target));
 			if (mode != SearchMode.UNLIMITED && !boosts.test(p))
 			{
 				problems.add(mode == SearchMode.INVENTORY_ONLY ? "not in your inventory" : mode == SearchMode.OWNED_ONLY ? "not owned"
 					: "not owned and can't be bought");
 			}
-			warnings.add(GameData.titleCase(classes[i].name().toLowerCase(java.util.Locale.ROOT)) + " potion picked by name: "
+			warnings.add(GameData.titleCase(classes[i].name().toLowerCase(Locale.ROOT)) + " potion picked by name: "
 				+ GameData.titleCase(p.getName()) + (problems.isEmpty() ? "."
 				: " - " + String.join(", ", problems) + ". The estimates assume it anyway; choose Best available for a practical setup."));
 		}
@@ -1484,23 +1389,27 @@ public class BestGearSetupPlugin extends Plugin
 		BestGearSetupConfig config)
 	{
 		Map<CombatClass, List<Potion>> out = new EnumMap<>(CombatClass.class);
-		String[] skills = {"attack", "strength", "ranged", "magic"};
-		CombatClass[] classes = {CombatClass.MELEE, CombatClass.MELEE, CombatClass.RANGED, CombatClass.MAGIC};
-		int[] base = {levels.getAttack(), levels.getStrength(), levels.getRanged(), levels.getMagic()};
-		for (int i = 0; i < skills.length; i++)
+		int[] base = boostBases(levels);
+		for (int i = 0; i < base.length; i++)
 		{
-			Potion p = PotionChoice.resolve(data, skills[i], base[i], potionChoice(config, classes[i]), boosts, target);
+			Potion p = PotionChoice.resolve(data, BOOST_SKILLS[i], base[i], potionChoice(config, BOOST_CLASSES[i]), boosts, target);
 			if (p == null)
 			{
 				continue;
 			}
-			List<Potion> list = out.computeIfAbsent(classes[i], k -> new ArrayList<>());
+			List<Potion> list = out.computeIfAbsent(BOOST_CLASSES[i], k -> new ArrayList<>());
 			if (list.stream().noneMatch(x -> x.getId() == p.getId()))
 			{
 				list.add(p);
 			}
 		}
 		return out;
+	}
+
+	/** Base levels of the boosted skills, in the order of {@link #BOOST_SKILLS}. */
+	private static int[] boostBases(PlayerLevels levels)
+	{
+		return new int[]{levels.getAttack(), levels.getStrength(), levels.getRanged(), levels.getMagic()};
 	}
 
 	OptimizerSettings buildSettings(BestGearSetupConfig config)
@@ -1630,6 +1539,15 @@ public class BestGearSetupPlugin extends Plugin
 		return scaling + (live ? " (live)" : " (Fight settings)");
 	}
 
+	/** Adds a note that applies; null means it doesn't. */
+	private static void addNote(List<String> notes, String note)
+	{
+		if (note != null)
+		{
+			notes.add(note);
+		}
+	}
+
 	/** The damage-over-time effects this target resists, or null when it takes them all. */
 	private static String statusNote(Monster target)
 	{
@@ -1650,7 +1568,7 @@ public class BestGearSetupPlugin extends Plugin
 		return resisted.isEmpty() ? null : "Damage over time: " + String.join(", ", resisted) + ".";
 	}
 
-	private List<String> describeSearch(GameData data, PlayerLevels levels, Monster unscaled, Monster base, Monster drained,
+	private List<String> describeSearch(Monster unscaled, Monster base, Monster drained,
 		SpecialAttacks specials, CombatContext ctx, OptimizerSettings settings, RaidScaling.Settings raid, BestGearSetupConfig config)
 	{
 		// Only what changed this result or needs the player's attention; the header shows party scaling and Defence.
@@ -1674,22 +1592,10 @@ public class BestGearSetupPlugin extends Plugin
 			notes.add("Ranged attacks firing ammo an Ava's device recovers require an Ava's device, an assembler cape or "
 				+ "Dizana's quiver when one is available to this search; special-attack switches are exempt.");
 		}
-		String statusNote = statusNote(base);
-		if (statusNote != null)
-		{
-			notes.add(statusNote);
-		}
-		String raidNote = RaidScaling.describe(unscaled, base, raid);
-		if (raidNote != null)
-		{
-			notes.add(raidNote);
-		}
-		String phaseNote = EncounterPhases.describe(base);
-		if (phaseNote != null)
-		{
-			notes.add(phaseNote);
-		}
-		if (base.getName().toLowerCase(java.util.Locale.ROOT).startsWith("vardorvis"))
+		addNote(notes, statusNote(base));
+		addNote(notes, RaidScaling.describe(unscaled, base, raid));
+		addNote(notes, EncounterPhases.describe(base));
+		if (base.getName().toLowerCase(Locale.ROOT).startsWith("vardorvis"))
 		{
 			notes.add("Vardorvis: Defence and Strength follow his HP; DPS is averaged over the fight.");
 		}
@@ -1706,22 +1612,14 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			notes.add("AoE: " + ctx.getAoeTargets() + " grouped enemies; ranked by total DPS.");
 		}
-		String fireNote = DragonfireProtection.note(base, settings);
-		if (fireNote != null)
-		{
-			notes.add(fireNote);
-		}
+		addNote(notes, DragonfireProtection.note(base, settings));
 		notes.addAll(SlayerEquipment.notes(base, settings));
 		int distance = AttackReach.distance(base, settings.getTargetDistance());
 		if (distance > 1)
 		{
 			notes.add("Fighting distance: " + distance + " tiles; attacks that can't reach are excluded.");
 		}
-		String reachNote = AttackReach.restrictionNote(base);
-		if (reachNote != null)
-		{
-			notes.add(reachNote);
-		}
+		addNote(notes, AttackReach.restrictionNote(base));
 		Thrall.Type thrallType = Thrall.eligibleType(base);
 		if (Thrall.immune(base) && ctx.getThrall() != null)
 		{
@@ -1756,11 +1654,6 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	// ------------------------------------------------------------ locks, exclusions, potions (panel API)
-
-	public GameData getGameData()
-	{
-		return gameData;
-	}
 
 	/** Returns the current blocked and forced spell rules. */
 	public SpellFilter getSpellFilter()
@@ -1970,13 +1863,7 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			ownedItems.setManual(itemId, owned);
 			// Owned items are per-account settings, which onConfigChanged ignores, so refresh the lists here.
-			SwingUtilities.invokeLater(() ->
-			{
-				if (panel != null)
-				{
-					panel.onManualOwnedChanged();
-				}
-			});
+			onPanel(BestGearSetupPanel::onManualOwnedChanged);
 			rerun();
 		});
 	}
@@ -1984,7 +1871,7 @@ public class BestGearSetupPlugin extends Plugin
 	public String getPotionChoice(CombatClass cls)
 	{
 		// The plugin settings are canonical; legacy free-text choices were migrated at startup.
-		return potionValue(cls == CombatClass.MELEE ? config.meleePotion() : cls == CombatClass.RANGED ? config.rangedPotion() : config.magicPotion());
+		return PotionOptions.value(cls == CombatClass.MELEE ? config.meleePotion() : cls == CombatClass.RANGED ? config.rangedPotion() : config.magicPotion());
 	}
 
 	/**
@@ -2018,11 +1905,8 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			for (GearItem item : data.getItems(slot))
 			{
-				if (!map.containsKey(item.getId()))
-				{
-					map.put(item.getId(), ItemCosts.price(item, itemManager::getItemPrice,
-						id -> itemManager.getItemComposition(id).isTradeable()));
-				}
+				map.computeIfAbsent(item.getId(), key -> ItemCosts.price(item, itemManager::getItemPrice,
+					id -> itemManager.getItemComposition(id).isTradeable()));
 			}
 		}
 		return map;
@@ -2031,35 +1915,13 @@ public class BestGearSetupPlugin extends Plugin
 	/** Owned directly or through a reviewed equivalent charge state. */
 	public boolean owns(GearItem item)
 	{
-		if (ownedItems.owns(item.getId()))
-		{
-			return true;
-		}
-		for (int variant : item.getOwnershipVariants())
-		{
-			if (ownedItems.owns(variant))
-			{
-				return true;
-			}
-		}
-		return false;
+		return ownedItems.owns(item.getId()) || item.getOwnershipVariants().stream().anyMatch(ownedItems::owns);
 	}
 
 	/** Worn directly or as a reviewed equivalent charge state. */
 	public boolean wears(GearItem item)
 	{
-		if (ownedItems.isWorn(item.getId()))
-		{
-			return true;
-		}
-		for (int variant : item.getOwnershipVariants())
-		{
-			if (ownedItems.isWorn(variant))
-			{
-				return true;
-			}
-		}
-		return false;
+		return ownedItems.isWorn(item.getId()) || item.getOwnershipVariants().stream().anyMatch(ownedItems::isWorn);
 	}
 
 	/** Where the item and its reviewed ownership variants are: "Bank", "Inventory", "POH: Toy Box"... */
@@ -2095,8 +1957,7 @@ public class BestGearSetupPlugin extends Plugin
 
 	private static long price(Map<Integer, Long> quotes, GearItem item)
 	{
-		Long price = quotes.get(item.getId());
-		return price != null ? price : ItemCosts.UNKNOWN;
+		return quotes.getOrDefault(item.getId(), ItemCosts.UNKNOWN);
 	}
 
 	/** Budget searches cannot buy what has no price; say how much of the catalogue that removed. */
@@ -2121,23 +1982,15 @@ public class BestGearSetupPlugin extends Plugin
 			+ " budget search only uses them if owned. Prices load after login; search again if this is unexpected.";
 	}
 
-
 	private static String potionChoice(BestGearSetupConfig config, CombatClass cls)
 	{
 		return cls == CombatClass.MELEE ? config.potionMelee() : cls == CombatClass.RANGED ? config.potionRanged() : config.potionMagic();
 	}
 
-	private static String potionValue(Object selected)
-	{
-		if (selected instanceof PotionOptions.Melee) { return ((PotionOptions.Melee) selected).value(); }
-		if (selected instanceof PotionOptions.Ranged) { return ((PotionOptions.Ranged) selected).value(); }
-		return ((PotionOptions.Magic) selected).value();
-	}
-
 	static Object potionOption(CombatClass cls, String name)
 	{
 		Object[] choices = cls == CombatClass.MELEE ? PotionOptions.Melee.values() : cls == CombatClass.RANGED ? PotionOptions.Ranged.values() : PotionOptions.Magic.values();
-		for (Object choice : choices) { if (potionValue(choice).equalsIgnoreCase(name)) { return choice; } }
+		for (Object choice : choices) { if (PotionOptions.value((Enum<?>) choice).equalsIgnoreCase(name)) { return choice; } }
 		return null;
 	}
 

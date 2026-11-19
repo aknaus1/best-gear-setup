@@ -1,6 +1,5 @@
 package com.bestgearsetup.data;
 
-import com.google.gson.annotations.SerializedName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -16,57 +15,35 @@ public class Monster
 {
 	private int id;
 	private String name;
-	@SerializedName("level_cb")
 	private int combatLevel;
-	@SerializedName("level_hp")
 	private int hitpoints;
-	@SerializedName("level_attack")
 	private int attackLevel;
-	@SerializedName("level_strength")
 	private int strengthLevel;
-	@SerializedName("level_defence")
 	private int defenceLevel;
 	/** Specials cannot drain Defence below this level. */
-	@SerializedName("defence_floor")
 	private int defenceFloor;
-	@SerializedName("immune_thrall")
 	private boolean immuneThrall;
-	@SerializedName("immune_poison")
 	private boolean immunePoison;
-	@SerializedName("immune_venom")
 	private boolean immuneVenom;
 	/** "poison" or "venom" when the monster's attacks poison or envenom the player (Wiki infobox); null otherwise. */
 	private String poisons;
-	@SerializedName("level_magic")
 	private int magicLevel;
-	@SerializedName("level_ranged")
 	private int rangedLevel;
-	@SerializedName("agg_magic")
 	private int magicAttackBonus;
 
-	@SerializedName("def_stab")
 	private int defStab;
-	@SerializedName("def_slash")
 	private int defSlash;
-	@SerializedName("def_crush")
 	private int defCrush;
-	@SerializedName("def_magic")
 	private int defMagic;
 	/** Standard ranged defence (arrows). */
-	@SerializedName("def_ranged")
 	private int defRanged;
 	/** Light ranged defence (darts, knives, thrown). Null when the API has no split value. */
-	@SerializedName("def_light")
 	private Integer defLight;
 	/** Heavy ranged defence (bolts). Null when the API has no split value. */
-	@SerializedName("def_heavy")
 	private Integer defHeavy;
-	@SerializedName("weakness_type")
 	private String weaknessType;
 	private int weakness;
-	@SerializedName(value = "flat", alternate = {"flat_armour"})
 	private Integer flatArmour;
-	@SerializedName("demonbane_vulnerability")
 	private Integer demonbaneVulnerability;
 
 	private int size = 1;
@@ -97,7 +74,6 @@ public class Monster
 	@Data
 	public static class MonsterAttack
 	{
-		@SerializedName("max_hit")
 		private int maxHit;
 		private double weighting;
 		private boolean typeless;

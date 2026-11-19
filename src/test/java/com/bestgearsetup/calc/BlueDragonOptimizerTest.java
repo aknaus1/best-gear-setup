@@ -38,7 +38,7 @@ public class BlueDragonOptimizerTest
 		Gson gson = RuneLiteAPI.GSON;
 		data = WikiGameData.get(gson).gameData(gson);
 		Monster monster = WikiMonsters.get(gson).monster(data.matchNpc(265, null, 0).getName());
-		ctx = new CombatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 67), true, false, null);
+		ctx = TestFactories.combatContext(monster, new PlayerLevels(82, 87, 80, 81, 76, 76, 87, 67), true, false, null);
 	}
 
 	private static Set<Integer> meleeOwned()
@@ -49,8 +49,8 @@ public class BlueDragonOptimizerTest
 
 	private static SetupResult best(Set<Integer> owned, CombatClass cls)
 	{
-		List<SetupResult> results = new Optimizer(data, ctx, SETTINGS, owned::contains, item -> 1_000)
-			.optimize(cls, () -> false);
+		List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, ctx, SETTINGS, owned::contains, item -> 1_000)
+			.optimize(cls, () -> false, done -> { });
 		return results.get(0);
 	}
 
@@ -82,8 +82,8 @@ public class BlueDragonOptimizerTest
 	{
 		Set<Integer> owned = new HashSet<>(Arrays.asList(11865, 6570, 6585, 28810, 1540, 7462, 13239, 11773));
 		OptimizerSettings crush = SETTINGS.toBuilder().styles(Collections.singleton(AttackStyle.Type.CRUSH)).build();
-		Loadout baseline = new Optimizer(data, ctx, crush, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false).get(0).getLoadout();
+		Loadout baseline = com.bestgearsetup.calc.Optimizers.of(data, ctx, crush, owned::contains, item -> 1_000)
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0).getLoadout();
 		double before = DpsCalculator.calculate(baseline, ctx).getDps();
 		for (Slot slot : Arrays.asList(Slot.BODY, Slot.LEGS))
 		{
@@ -93,8 +93,8 @@ public class BlueDragonOptimizerTest
 		}
 		owned.add(29022);
 		owned.add(29025);
-		SetupResult result = new Optimizer(data, ctx, crush, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false).get(0);
+		SetupResult result = com.bestgearsetup.calc.Optimizers.of(data, ctx, crush, owned::contains, item -> 1_000)
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(29022, result.getLoadout().get(Slot.BODY).getId());
 		assertEquals(29025, result.getLoadout().get(Slot.LEGS).getId());
 		assertEquals(38, result.getDps().getMaxHit());
@@ -124,8 +124,8 @@ public class BlueDragonOptimizerTest
 		OptimizerSettings settings = SETTINGS.toBuilder().antifire(Antifire.SUPER)
 			.styles(Collections.singleton(AttackStyle.Type.STAB)).build();
 		// The best setup with the cape and legs held at their stab plateau: either trade alone loses DPS.
-		Loadout baseline = new Optimizer(data, ctx, settings.toBuilder().locks(SlotLock.parse("CAPE:13121,LEGS:29283")).build(),
-			owned::contains, item -> 1_000).optimize(CombatClass.MELEE, () -> false).get(0).getLoadout();
+		Loadout baseline = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.toBuilder().locks(SlotLock.parse("CAPE:13121,LEGS:29283")).build(),
+			owned::contains, item -> 1_000).optimize(CombatClass.MELEE, () -> false, done -> { }).get(0).getLoadout();
 		double before = DpsCalculator.calculate(baseline, ctx).getDps();
 		for (Slot slot : Arrays.asList(Slot.CAPE, Slot.LEGS))
 		{
@@ -133,8 +133,8 @@ public class BlueDragonOptimizerTest
 			single.set(slot, data.getItem(slot, slot == Slot.CAPE ? 6570 : 29025));
 			assertTrue(DpsCalculator.calculate(single, ctx).getDps() < before);
 		}
-		SetupResult result = new Optimizer(data, ctx, settings, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false).get(0);
+		SetupResult result = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(6570, result.getLoadout().get(Slot.CAPE).getId());
 		assertEquals(29025, result.getLoadout().get(Slot.LEGS).getId());
 		assertEquals(33, result.getDps().getMaxHit());
@@ -142,16 +142,16 @@ public class BlueDragonOptimizerTest
 		assertEquals(0, result.getBuyCost());
 
 		OptimizerSettings locked = settings.toBuilder().locks(SlotLock.parse("CAPE:13121,LEGS:29283")).build();
-		SetupResult constrained = new Optimizer(data, ctx, locked, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false).get(0);
+		SetupResult constrained = com.bestgearsetup.calc.Optimizers.of(data, ctx, locked, owned::contains, item -> 1_000)
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(13121, constrained.getLoadout().get(Slot.CAPE).getId());
 		assertEquals(29283, constrained.getLoadout().get(Slot.LEGS).getId());
 		assertTrue(constrained.getDps().getDps() < result.getDps().getDps());
 
 		owned.removeAll(Arrays.asList(6570, 29025));
 		OptimizerSettings noSpend = settings.toBuilder().mode(SearchMode.BUDGET).budget(0).build();
-		SetupResult affordable = new Optimizer(data, ctx, noSpend, owned::contains, item -> 1_000)
-			.optimize(CombatClass.MELEE, () -> false).get(0);
+		SetupResult affordable = com.bestgearsetup.calc.Optimizers.of(data, ctx, noSpend, owned::contains, item -> 1_000)
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(0, affordable.getBuyCost());
 		assertTrue(affordable.getDps().getDps() < result.getDps().getDps());
 	}
@@ -189,8 +189,8 @@ public class BlueDragonOptimizerTest
 			29007, 7462, 13239, 11773, eclipseHelm.getId(), mixedBoots.getId()));
 		OptimizerSettings settings = SETTINGS.toBuilder().antifire(Antifire.SUPER)
 			.styles(Collections.singleton(AttackStyle.Type.ATLATL)).build();
-		SetupResult result = new Optimizer(data, ctx, settings, owned::contains, item -> 1_000)
-			.optimize(CombatClass.RANGED, () -> false).get(0);
+		SetupResult result = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
+			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(11865, result.getLoadout().get(Slot.HEAD).getId());
 		assertEquals(13239, result.getLoadout().get(Slot.FEET).getId());
 		assertEquals(5.16442935381305, result.getDps().getDps(), 1e-9);
@@ -214,8 +214,8 @@ public class BlueDragonOptimizerTest
 			29004, 22275, 2497, 7462, 22951));
 		OptimizerSettings settings = SETTINGS.toBuilder().antifire(Antifire.SUPER)
 			.styles(Collections.singleton(AttackStyle.Type.RANGED)).build();
-		SetupResult result = new Optimizer(data, ctx, settings, owned::contains, item -> 1_000)
-			.optimize(CombatClass.RANGED, () -> false).get(0);
+		SetupResult result = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, item -> 1_000)
+			.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0);
 		assertEquals(868, result.getLoadout().getWeapon().getId());
 		assertEquals(3.9831401730861367, result.getDps().getDps(), 1e-9);
 		Loadout crossbow = result.getLoadout().copy();

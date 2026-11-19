@@ -1,6 +1,9 @@
 package com.bestgearsetup.calc;
 
+import lombok.RequiredArgsConstructor;
+
 /** Active potion assumption; extended potions have identical protection. */
+@RequiredArgsConstructor
 public enum Antifire
 {
 	NONE("None"),
@@ -8,11 +11,6 @@ public enum Antifire
 	SUPER("Super antifire");
 
 	private final String label;
-
-	Antifire(String label)
-	{
-		this.label = label;
-	}
 
 	@Override
 	public String toString()

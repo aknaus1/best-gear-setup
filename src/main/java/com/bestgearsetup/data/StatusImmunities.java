@@ -3,11 +3,6 @@ package com.bestgearsetup.data;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
@@ -46,8 +41,6 @@ public final class StatusImmunities
 		int freezeResistance;
 		/** Highest burn severity this target ignores (0 = none). */
 		int burnImmunity;
-		/** Whether Wiki data was found; otherwise only the target's flags were used. */
-		boolean known;
 	}
 
 	/** The last target looked up and its answer: a search asks about the same target for every setup it scores. */
@@ -90,12 +83,12 @@ public final class StatusImmunities
 		if (record == null)
 		{
 			return new Immunity(m.isImmunePoison(), m.isImmuneVenom(), m.isImmuneVenom() && !m.isImmunePoison(),
-				-1, BURN_NONE, false);
+				-1, BURN_NONE);
 		}
 		boolean poison = record[0] >= 100 || m.isImmunePoison();
 		boolean venomPoisons = record[1] == -2;
 		boolean venom = venomPoisons || record[1] >= 100 || m.isImmuneVenom();
-		return new Immunity(poison, venom, venom && !poison, record[2], Math.max(0, record[3]), true);
+		return new Immunity(poison, venom, venom && !poison, record[2], Math.max(0, record[3]));
 	}
 
 	private static void load()
@@ -112,17 +105,11 @@ public final class StatusImmunities
 			}
 			Map<String, int[]> ids = new HashMap<>();
 			Map<String, int[]> names = new HashMap<>();
-			try (InputStream in = StatusImmunities.class.getResourceAsStream(RESOURCE))
+			try
 			{
-				if (in != null)
-				{
-					try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8))
-					{
-						JsonObject root = new JsonParser().parse(reader).getAsJsonObject();
-						read(root.getAsJsonObject("ids"), ids);
-						read(root.getAsJsonObject("names"), names);
-					}
-				}
+				JsonObject root = NameLists.load(RESOURCE);
+				read(root.getAsJsonObject("ids"), ids);
+				read(root.getAsJsonObject("names"), names);
 			}
 			catch (Exception ex)
 			{

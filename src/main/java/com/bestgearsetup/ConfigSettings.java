@@ -17,12 +17,6 @@ public final class ConfigSettings
 	private static final List<Function<BestGearSetupConfig, Object>> GETTERS = new ArrayList<>();
 	/** Each setting's value type, taken from its declared default, so overrides are checked when captured. */
 	private static final List<Class<?>> TYPES = new ArrayList<>();
-	/** Stored config keys that differ from their getter (and override) names. */
-	private static final Map<String, String> NAMES = Map.of(
-		"meleePotionChoice", "meleePotion", "rangedPotionChoice", "rangedPotion", "magicPotionChoice", "magicPotion",
-		BestGearSetupConfig.POTION_KEY_PREFIX + "MELEE", "potionMelee",
-		BestGearSetupConfig.POTION_KEY_PREFIX + "RANGED", "potionRanged",
-		BestGearSetupConfig.POTION_KEY_PREFIX + "MAGIC", "potionMagic");
 
 	static
 	{
@@ -102,12 +96,12 @@ public final class ConfigSettings
 		add("taskMode", BestGearSetupConfig::taskMode);
 		add("autoRaid", BestGearSetupConfig::autoRaid);
 		add("autoSpecs", BestGearSetupConfig::autoSpecs);
-		add("meleePotion", BestGearSetupConfig::meleePotion);
-		add("rangedPotion", BestGearSetupConfig::rangedPotion);
-		add("magicPotion", BestGearSetupConfig::magicPotion);
-		add("potionMelee", BestGearSetupConfig::potionMelee);
-		add("potionRanged", BestGearSetupConfig::potionRanged);
-		add("potionMagic", BestGearSetupConfig::potionMagic);
+		add("meleePotionChoice", BestGearSetupConfig::meleePotion);
+		add("rangedPotionChoice", BestGearSetupConfig::rangedPotion);
+		add("magicPotionChoice", BestGearSetupConfig::magicPotion);
+		add(BestGearSetupConfig.POTION_KEY_PREFIX + "MELEE", BestGearSetupConfig::potionMelee);
+		add(BestGearSetupConfig.POTION_KEY_PREFIX + "RANGED", BestGearSetupConfig::potionRanged);
+		add(BestGearSetupConfig.POTION_KEY_PREFIX + "MAGIC", BestGearSetupConfig::potionMagic);
 		add("locks", BestGearSetupConfig::locks);
 		add("excluded", BestGearSetupConfig::excluded);
 		add("blockedSpells", BestGearSetupConfig::blockedSpells);
@@ -131,7 +125,7 @@ public final class ConfigSettings
 		GETTERS.add(getter);
 	}
 
-	/** Position of a setting, by getter name, in captured values. */
+	/** Position of a setting, by config key, in captured values. */
 	static int index(String name)
 	{
 		Integer index = INDICES.get(name);
@@ -158,16 +152,12 @@ public final class ConfigSettings
 	/** Getter for a stored config key. A key without a binding fails before an editor is half built. */
 	public static Function<BestGearSetupConfig, Object> getter(String key)
 	{
-		return GETTERS.get(index(NAMES.getOrDefault(key, key)));
+		return GETTERS.get(index(key));
 	}
 
 	/** Every setting's current value, in table order; each getter is called once. */
 	static Object[] capture(BestGearSetupConfig config)
 	{
-		if (config instanceof SearchAssumptions)
-		{
-			return ((SearchAssumptions) config).copyValues();
-		}
 		Object[] values = new Object[GETTERS.size()];
 		for (int i = 0; i < values.length; i++)
 		{

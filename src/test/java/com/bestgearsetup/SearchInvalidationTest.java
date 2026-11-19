@@ -86,7 +86,7 @@ public class SearchInvalidationTest
 	{
 		owned = new OwnedItems(null, null);
 		owned.bank = Collections.singletonMap(9242, 159L);
-		owned.rebuild(true);
+		owned.rebuild();
 		plugin = new BestGearSetupPlugin()
 		{
 			@Override
@@ -117,7 +117,7 @@ public class SearchInvalidationTest
 		bank.put(9242, bolts);
 		owned.bank = bank;
 		owned.inventory = Collections.singletonMap(379, lobsters);
-		owned.rebuild(false);
+		owned.rebuild();
 		plugin.invalidateIfOwnershipChanged();
 		// Scheduling is queued on the Swing thread.
 		SwingUtilities.invokeAndWait(() ->
@@ -172,7 +172,7 @@ public class SearchInvalidationTest
 	{
 		owned = new OwnedItems(null, null);
 		owned.bank = Collections.singletonMap(4151, 1L);
-		owned.rebuild(true);
+		owned.rebuild();
 		plugin = new BestGearSetupPlugin()
 		{
 			@Override
@@ -189,12 +189,12 @@ public class SearchInvalidationTest
 		plugin.gearIds = ids(4151, 11840);
 
 		owned.bank = Collections.singletonMap(11840, 1L);
-		owned.rebuild(true);
+		owned.rebuild();
 		plugin.invalidateIfOwnershipChanged();
 		assertEquals("Bank changes don't affect carried gear", 0, reruns.get());
 
 		owned.inventory = Collections.singletonMap(4151, 1L);
-		owned.rebuild(true);
+		owned.rebuild();
 		plugin.invalidateIfOwnershipChanged();
 		assertEquals(1, reruns.get());
 	}
@@ -217,7 +217,7 @@ public class SearchInvalidationTest
 		owned = new OwnedItems(mock(ConfigManager.class), itemManager);
 		owned.onContainerChanged(InventoryID.BANK, holding());
 		owned.onContainerChanged(InventoryID.INV, holding(new Item(4151, 1)));
-		owned.rebuild(true);
+		owned.rebuild();
 		plugin = new BestGearSetupPlugin()
 		{
 			@Override

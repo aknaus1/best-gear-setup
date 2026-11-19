@@ -190,12 +190,12 @@ public class SlayerEquipmentTest
 				.spellbooks(Collections.singleton("standard")).build();
 			for (boolean onTask : new boolean[]{false, true})
 			{
-				CombatContext ctx = new CombatContext(wyrm, PlayerLevels.maxed(), onTask, true, TestData.piety());
-				Optimizer optimizer = new Optimizer(data, ctx, settings, owned::contains, PRICE);
+				CombatContext ctx = TestFactories.combatContext(wyrm, PlayerLevels.maxed(), onTask, true, TestData.piety());
+				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, PRICE);
 				int found = 0;
 				for (CombatClass cls : CombatClass.values())
 				{
-					List<SetupResult> results = optimizer.optimize(cls, () -> false);
+					List<SetupResult> results = optimizer.optimize(cls, () -> false, done -> { });
 					if (!mode.isHeldOnly()) { assertFalse(mode + " " + cls, results.isEmpty()); }
 					for (SetupResult result : results)
 					{
@@ -209,9 +209,9 @@ public class SlayerEquipmentTest
 		}
 		OptimizerSettings noBoots = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.karuulmDungeon(true).spellbooks(Collections.singleton("standard")).build();
-		CombatContext ctx = new CombatContext(wyrm, PlayerLevels.maxed(), false, true, TestData.piety());
-		assertTrue(new Optimizer(data, ctx, noBoots, id -> id == 4587 || id == 1704, PRICE)
-			.optimize(CombatClass.MELEE, () -> false).isEmpty());
+		CombatContext ctx = TestFactories.combatContext(wyrm, PlayerLevels.maxed(), false, true, TestData.piety());
+		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, ctx, noBoots, id -> id == 4587 || id == 1704, PRICE)
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
 	}
 
 	@Test
@@ -238,13 +238,13 @@ public class SlayerEquipmentTest
 				OptimizerSettings settings = OptimizerSettings.builder().mode(mode).budget(10_000_000L)
 					.resultsPerClass(3)
 					.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient"))).build();
-				CombatContext ctx = new CombatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety())
+				CombatContext ctx = TestFactories.combatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety())
 					.withFightOptions(targets, 0);
-				Optimizer optimizer = new Optimizer(data, ctx, settings, owned::contains, PRICE);
+				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, owned::contains, PRICE);
 				int found = 0;
 				for (CombatClass cls : CombatClass.values())
 				{
-					for (SetupResult r : optimizer.optimize(cls, () -> false))
+					for (SetupResult r : optimizer.optimize(cls, () -> false, done -> { }))
 					{
 						found++;
 						assertTrue(mode + " " + cls + " x" + targets, SlayerEquipment.allowed(dustDevil, settings, r.getLoadout()));
@@ -264,12 +264,12 @@ public class SlayerEquipmentTest
 			"basilisk knight", "harpie bug swarm", "hydra"})
 		{
 			Monster target = bundled(name);
-			CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
-			Optimizer optimizer = new Optimizer(data, ctx, settings, id -> false, PRICE);
+			CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
+			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, PRICE);
 			int found = 0;
 			for (CombatClass cls : CombatClass.values())
 			{
-				for (SetupResult r : optimizer.optimize(cls, () -> false))
+				for (SetupResult r : optimizer.optimize(cls, () -> false, done -> { }))
 				{
 					found++;
 					assertTrue(name + " " + cls + " " + r.getLoadout().getWeapon().getName(),
@@ -287,14 +287,14 @@ public class SlayerEquipmentTest
 		Monster dustDevil = bundled("dust devil (smoke dungeon)");
 		OptimizerSettings owned = OptimizerSettings.builder().mode(SearchMode.OWNED_ONLY)
 			.spellbooks(Collections.singleton("standard")).build();
-		CombatContext offTask = new CombatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety());
+		CombatContext offTask = TestFactories.combatContext(dustDevil, PlayerLevels.maxed(), false, true, TestData.piety());
 		Set<Integer> noMask = new HashSet<>(Arrays.asList(4587, 1704));
-		assertTrue(new Optimizer(data, offTask, owned, noMask::contains, PRICE).optimize(CombatClass.MELEE, () -> false)
+		assertTrue(com.bestgearsetup.calc.Optimizers.of(data, offTask, owned, noMask::contains, PRICE).optimize(CombatClass.MELEE, () -> false, done -> { })
 			.isEmpty());
 
-		CombatContext onTask = new CombatContext(dustDevil, PlayerLevels.maxed(), true, true, TestData.piety());
+		CombatContext onTask = TestFactories.combatContext(dustDevil, PlayerLevels.maxed(), true, true, TestData.piety());
 		OptimizerSettings unlimited = owned.toBuilder().mode(SearchMode.UNLIMITED).build();
-		GearItem head = new Optimizer(data, onTask, unlimited, id -> false, PRICE).optimize(CombatClass.MELEE, () -> false)
+		GearItem head = com.bestgearsetup.calc.Optimizers.of(data, onTask, unlimited, id -> false, PRICE).optimize(CombatClass.MELEE, () -> false, done -> { })
 			.get(0).getLoadout().get(Slot.HEAD);
 		assertTrue(head.getName().toLowerCase(Locale.ROOT).contains("slayer helmet"));
 	}
@@ -313,13 +313,13 @@ public class SlayerEquipmentTest
 			Slot slot = (Slot) c[1];
 			GearItem wrong = item(slot, (String) c[2]);
 			GearItem right = item(slot, (String) c[3]);
-			CombatContext ctx = new CombatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
+			CombatContext ctx = TestFactories.combatContext(target, PlayerLevels.maxed(), false, true, TestData.piety());
 			for (SlotLock lock : new SlotLock[]{SlotLock.item(wrong.getId()), SlotLock.empty(), SlotLock.fill()})
 			{
 				OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 					.spellbooks(Collections.singleton("standard")).locks(Collections.singletonMap(slot, lock)).build();
-				Optimizer optimizer = new Optimizer(data, ctx, settings, id -> false, PRICE);
-				assertTrue(target.getName() + " " + lock, optimizer.optimize(CombatClass.RANGED, () -> false).isEmpty());
+				Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> false, PRICE);
+				assertTrue(target.getName() + " " + lock, optimizer.optimize(CombatClass.RANGED, () -> false, done -> { }).isEmpty());
 				List<LockStatus> status = LockStatus.check(data, optimizer, settings.getLocks());
 				assertTrue(status.get(0).isBlocking());
 				assertTrue(status.get(0).getProblem().contains("requires"));
@@ -327,9 +327,9 @@ public class SlayerEquipmentTest
 			OptimizerSettings good = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 				.spellbooks(Collections.singleton("standard"))
 				.locks(Collections.singletonMap(slot, SlotLock.item(right.getId()))).build();
-			Optimizer optimizer = new Optimizer(data, ctx, good, id -> false, PRICE);
+			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(data, ctx, good, id -> false, PRICE);
 			assertFalse(LockStatus.check(data, optimizer, good.getLocks()).get(0).isBlocking());
-			assertEquals(right, optimizer.optimize(CombatClass.RANGED, () -> false).get(0).getLoadout().get(slot));
+			assertEquals(right, optimizer.optimize(CombatClass.RANGED, () -> false, done -> { }).get(0).getLoadout().get(slot));
 		}
 	}
 }

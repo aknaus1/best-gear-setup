@@ -6,6 +6,8 @@ import com.bestgearsetup.data.OffensivePrayer;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.IntFunction;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 
 /**
@@ -30,30 +32,16 @@ public class CombatContext
 	/** Target stats at a given HP (after pre-fight drains), or null when they do not depend on HP. */
 	private final IntFunction<Monster> healthStates;
 	/** Whether a thrall can attack the target, worked out on first use: the same for every setup. */
-	@Getter(lombok.AccessLevel.NONE)
+	@Getter(AccessLevel.NONE)
 	private Boolean thrallTarget;
 
 	public CombatContext(Monster monster, PlayerLevels levels, boolean onTask, int attack, int strength, int ranged,
 		int magic, Map<CombatClass, OffensivePrayer> prayers, boolean thrall)
 	{
-		this(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall, 1, 0);
+		this(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall, 1, 0, CombatModifiers.NONE, null);
 	}
 
-	private CombatContext(Monster monster, PlayerLevels levels, boolean onTask, int attack, int strength, int ranged,
-		int magic, Map<CombatClass, OffensivePrayer> prayers, boolean thrall, int aoeTargets, int targetDistance)
-	{
-		this(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall, aoeTargets, targetDistance,
-			CombatModifiers.NONE);
-	}
-
-	private CombatContext(Monster monster, PlayerLevels levels, boolean onTask, int attack, int strength, int ranged,
-		int magic, Map<CombatClass, OffensivePrayer> prayers, boolean thrall, int aoeTargets, int targetDistance,
-		CombatModifiers modifiers)
-	{
-		this(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall, aoeTargets, targetDistance,
-			modifiers, null);
-	}
-
+	@Builder(toBuilder = true, access = AccessLevel.PRIVATE)
 	private CombatContext(Monster monster, PlayerLevels levels, boolean onTask, int attack, int strength, int ranged,
 		int magic, Map<CombatClass, OffensivePrayer> prayers, boolean thrall, int aoeTargets, int targetDistance,
 		CombatModifiers modifiers, IntFunction<Monster> healthStates)
@@ -102,22 +90,19 @@ public class CombatContext
 	/** Grouped identical targets in multicombat; one target disables area damage. */
 	public CombatContext withFightOptions(int targets, int distance)
 	{
-		return new CombatContext(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall,
-			targets, distance, modifiers, healthStates);
+		return toBuilder().aoeTargets(targets).targetDistance(distance).build();
 	}
 
 	/** Change optional buffs without losing distance, group size or boosted levels. */
 	public CombatContext withModifiers(CombatModifiers buffs)
 	{
-		return new CombatContext(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall,
-			aoeTargets, targetDistance, buffs == null ? CombatModifiers.NONE : buffs, healthStates);
+		return toBuilder().modifiers(buffs == null ? CombatModifiers.NONE : buffs).build();
 	}
 
 	/** Supply target stats that change with its HP, such as Vardorvis's Defence. */
 	public CombatContext withHealthStates(IntFunction<Monster> states)
 	{
-		return new CombatContext(monster, levels, onTask, attack, strength, ranged, magic, prayers, thrall,
-			aoeTargets, targetDistance, modifiers, states);
+		return toBuilder().healthStates(states).build();
 	}
 
 	/** The same fight after further drains land on the target, at every HP state too. */
@@ -128,30 +113,14 @@ public class CombatContext
 			return this;
 		}
 		IntFunction<Monster> states = healthStates == null ? null : hp -> drains.apply(healthStates.apply(hp));
-		return new CombatContext(drains.apply(monster), levels, onTask, attack, strength, ranged, magic, prayers,
-			thrall, aoeTargets, targetDistance, modifiers, states);
+		return toBuilder().monster(drains.apply(monster)).healthStates(states).build();
 	}
 
 	/** The same fight with the target at the given HP. */
 	CombatContext atTargetHp(int hp)
 	{
 		Monster target = healthStates == null ? monster : healthStates.apply(hp);
-		return new CombatContext(target, levels, onTask, attack, strength, ranged, magic, prayers, thrall,
-			aoeTargets, targetDistance, modifiers.toBuilder().monsterHitpoints(hp).build(), healthStates);
-	}
-
-	/**
-	 * Convenience constructor: with potions, assumes super combat, ranging potion and saturated heart.
-	 */
-	public CombatContext(Monster monster, PlayerLevels levels, boolean onTask, boolean usePotions,
-		Map<CombatClass, OffensivePrayer> prayers)
-	{
-		this(monster, levels, onTask,
-			usePotions ? levels.getAttack() + 5 + levels.getAttack() * 15 / 100 : levels.getAttack(),
-			usePotions ? levels.getStrength() + 5 + levels.getStrength() * 15 / 100 : levels.getStrength(),
-			usePotions ? levels.getRanged() + 4 + levels.getRanged() / 10 : levels.getRanged(),
-			usePotions ? levels.getMagic() + 4 + levels.getMagic() / 10 : levels.getMagic(),
-			prayers, false);
+		return toBuilder().monster(target).modifiers(modifiers.toBuilder().monsterHitpoints(hp).build()).build();
 	}
 
 	public OffensivePrayer getPrayer(CombatClass combatClass)

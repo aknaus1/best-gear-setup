@@ -64,13 +64,13 @@ public class WildernessRiskTest
 	{
 		CombatContext context = new CombatContext(monster(1, 0), PlayerLevels.maxed(), false,
 			99, 99, 99, 99, null, false);
-		return new Optimizer(gameData(Arrays.asList(sword, cheapHelm, expensiveHelm, ring, boots),
+		return com.bestgearsetup.calc.Optimizers.of(gameData(Arrays.asList(sword, cheapHelm, expensiveHelm, ring, boots),
 			Collections.emptyList()), context, settings, id -> owned, GearItem::getPrice);
 	}
 
 	private SetupResult best(Optimizer optimizer)
 	{
-		List<SetupResult> results = optimizer.optimize(CombatClass.MELEE, () -> false);
+		List<SetupResult> results = optimizer.optimize(CombatClass.MELEE, () -> false, done -> { });
 		assertFalse(results.isEmpty());
 		return results.get(0);
 	}
@@ -130,7 +130,7 @@ public class WildernessRiskTest
 		locks.put(Slot.HEAD, SlotLock.item(expensiveHelm.getId()));
 		locks.put(Slot.RING, SlotLock.item(ring.getId()));
 		assertTrue(optimizer(settings().locks(locks).build(), true)
-			.optimize(CombatClass.MELEE, () -> false).isEmpty());
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
 	}
 
 	@Test
@@ -138,7 +138,7 @@ public class WildernessRiskTest
 	{
 		sword.setPrice(1_000);
 		assertTrue(optimizer(settings().maxExpensiveItems(0).build(), true)
-			.optimize(CombatClass.MELEE, () -> false).isEmpty());
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
 	}
 
 	@Test
@@ -154,13 +154,13 @@ public class WildernessRiskTest
 		}
 		CombatContext context = new CombatContext(monster(1, 0), PlayerLevels.maxed(), false,
 			99, 99, 99, 99, null, false);
-		Optimizer optimizer = new Optimizer(gameData(Arrays.asList(sword, head, body, legs, hands),
+		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(gameData(Arrays.asList(sword, head, body, legs, hands),
 			Collections.emptyList()), context, settings().build(), id -> true, GearItem::getPrice);
-		for (SetupResult result : optimizer.optimize(CombatClass.MELEE, () -> false))
+		for (SetupResult result : optimizer.optimize(CombatClass.MELEE, () -> false, done -> { }))
 		{
 			assertTrue(optimizer.expensiveItemCount(result.getLoadout()) <= 1);
 		}
-		assertFalse(optimizer.optimize(CombatClass.MELEE, () -> false).isEmpty());
+		assertFalse(optimizer.optimize(CombatClass.MELEE, () -> false, done -> { }).isEmpty());
 	}
 
 	@Test
@@ -189,7 +189,7 @@ public class WildernessRiskTest
 		CombatContext context = new CombatContext(monster(1, 0), PlayerLevels.maxed(), false,
 			99, 99, 99, 99, null, false);
 		OptimizerSettings limit = settings().expensiveItemThreshold(100_000).build();
-		Optimizer optimizer = new Optimizer(gameData(Arrays.asList(sword, cheapHelm, expensiveHelm, fireCape),
+		Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(gameData(Arrays.asList(sword, cheapHelm, expensiveHelm, fireCape),
 			Collections.emptyList()), context, limit, id -> true, GearItem::getPrice);
 		Loadout loadout = new Loadout();
 		loadout.set(Slot.CAPE, fireCape);

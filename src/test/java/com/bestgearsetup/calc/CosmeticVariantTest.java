@@ -59,11 +59,11 @@ public class CosmeticVariantTest
 
 	private static List<SetupResult> ranged(SearchMode mode, ToLongFunction<GearItem> price, Integer... held)
 	{
-		CombatContext context = new CombatContext(monsters.monster("general graardor"), PlayerLevels.maxed(), false,
+		CombatContext context = TestFactories.combatContext(monsters.monster("general graardor"), PlayerLevels.maxed(), false,
 			false, null);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).resultsPerClass(100).build();
 		Set<Integer> owned = new HashSet<>(Arrays.asList(held));
-		return new Optimizer(data, context, settings, owned::contains, price).optimize(CombatClass.RANGED, () -> false);
+		return com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, price).optimize(CombatClass.RANGED, () -> false, done -> { });
 	}
 
 	/** The results' weapons from the bow's recolour family. */
@@ -76,12 +76,12 @@ public class CosmeticVariantTest
 	private static SetupResult best(String monster, CombatClass cls, SearchMode mode, Integer... held)
 	{
 		Monster target = monsters.monster(monster);
-		CombatContext context = new CombatContext(target, PlayerLevels.maxed(), false, false, null);
+		CombatContext context = TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(mode).killSpecials(true)
 			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient"))).build();
 		Set<Integer> owned = new HashSet<>(Arrays.asList(held));
-		List<SetupResult> results = new Optimizer(data, context, settings, owned::contains, item -> 0L)
-			.optimize(cls, () -> false);
+		List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, context, settings, owned::contains, item -> 0L)
+			.optimize(cls, () -> false, done -> { });
 		assertFalse("no " + cls + " setup holding " + owned, results.isEmpty());
 		return results.get(0);
 	}

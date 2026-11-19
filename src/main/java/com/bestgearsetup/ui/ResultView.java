@@ -36,6 +36,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.LayoutManager;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -153,10 +154,7 @@ class ResultView extends JPanel
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 
 		tabs.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		JPanel tabRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-		tabRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		tabRow.add(tabs);
-		add(BestGearSetupPanel.left(tabRow));
+		add(centred(tabs));
 		body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
 		body.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		add(BestGearSetupPanel.left(body));
@@ -281,10 +279,7 @@ class ResultView extends JPanel
 		DpsResult d = selected.getDps();
 
 		body.add(spacer(6));
-		JPanel gridRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-		gridRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		gridRow.add(new EquipmentGrid(selected, locksBySlot(), plugin, itemManager, sprites, ammoCount));
-		body.add(BestGearSetupPanel.left(gridRow));
+		body.add(centred(new EquipmentGrid(selected, locksBySlot(), plugin, itemManager, sprites, ammoCount)));
 		body.add(spacer(6));
 		body.add(BestGearSetupPanel.left(styleRow(l)));
 		body.add(spacer(6));
@@ -331,78 +326,51 @@ class ResultView extends JPanel
 		return locks;
 	}
 
-	JPanel statsBox(DpsResult d, Thrall thrall)
-	{
-		return statsBox(d, thrall, null, false, false);
-	}
-
 	/** Statistics, followed by expected attack and support rune use per kill. */
 	JPanel statsBox(DpsResult d, Thrall thrall, RuneUse runes, boolean sunfire, boolean poweredStaff)
 	{
 		// One column, each row only as tall as its own text, so a wrapped max-hit note doesn't stretch every row
-		JPanel box = new JPanel(new GridBagLayout());
-		box.setBackground(BOX_BG);
-		box.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BOX_BORDER),
-			new EmptyBorder(2, 6, 4, 6)));
-		GridBagConstraints row = new GridBagConstraints();
-		row.gridx = 0;
-		row.weightx = 1;
-		row.fill = GridBagConstraints.HORIZONTAL;
-		row.insets = new Insets(2, 0, 0, 0);
+		JPanel box = box(new GridBagLayout(), 2, 4);
 		String max = d.getMaxHit() + (d.getMaxHitDetail() == null ? "" : " (" + d.getMaxHitDetail() + ")");
 		double ttk = d.getPrimaryDps() > 0 ? results.getStartingHitpoints() / d.getPrimaryDps() : 0;
 		boolean area = d.getTargetsHit() > 1;
-		box.add(stat("<b>" + (area ? "Total DPS: " : "DPS: ") + fmt(d.getDps(), 2) + "</b>"), row);
+		line(box, "<b>" + (area ? "Total DPS: " : "DPS: ") + fmt(d.getDps(), 2) + "</b>", null, null);
 		if (thrall != null)
 		{
-			JLabel thrallLabel = stat("Incl. thrall: +" + fmt(thrall.getDps(), 2));
-			thrallLabel.setName("thrallDps");
-			thrallLabel.setToolTipText(thrall.displayName(thrallType()) + ": max " + thrall.getMaxHit()
-				+ ", always hits");
-			box.add(thrallLabel, row);
+			line(box, "Incl. thrall: +" + fmt(thrall.getDps(), 2), "thrallDps",
+				thrall.displayName(thrallType()) + ": max " + thrall.getMaxHit() + ", always hits");
 		}
 		String maxText = (area ? "Primary max: " : "Max hit: ") + max;
-		JLabel maxHit = stat(maxText);
+		JLabel maxHit = line(box, maxText, null, null);
 		if (d.getMaxHitDetail() != null)
 		{
 			// A fixed width gives the long note its wrapped height; an unsized label only reports one line
 			maxHit.setText(BestGearSetupPanel.html(maxText, STAT_WRAP_WIDTH));
 		}
-		box.add(maxHit, row);
-		box.add(stat("Accuracy: " + fmt(d.getAccuracy() * 100, 1) + "%"), row);
-		box.add(stat((area ? "Avg attack: " : "Avg hit: ") + fmt(d.getAverageHit(), 2)), row);
-		box.add(stat("Speed: " + fmt(d.getExpectedSpeedTicks() * 0.6, 2) + "s"), row);
-		JLabel ttkLabel = stat("TTK: ~" + fmt(ttk, ttk < 9.95 ? 1 : 0) + "s");
-		ttkLabel.setToolTipText("Enemy hitpoints / DPS, ignoring overkill");
-		box.add(ttkLabel, row);
+		line(box, "Accuracy: " + fmt(d.getAccuracy() * 100, 1) + "%", null, null);
+		line(box, (area ? "Avg attack: " : "Avg hit: ") + fmt(d.getAverageHit(), 2), null, null);
+		line(box, "Speed: " + fmt(d.getExpectedSpeedTicks() * 0.6, 2) + "s", null, null);
+		line(box, "TTK: ~" + fmt(ttk, ttk < 9.95 ? 1 : 0) + "s", null, "Enemy hitpoints / DPS, ignoring overkill");
 		if (area)
 		{
-			box.add(stat("Primary DPS: " + fmt(d.getPrimaryDps(), 2)), row);
-			box.add(stat("Enemies hit: " + d.getTargetsHit()), row);
+			line(box, "Primary DPS: " + fmt(d.getPrimaryDps(), 2), null, null);
+			line(box, "Enemies hit: " + d.getTargetsHit(), null, null);
 		}
 		double kph = results.getMonster().getHitpoints() > 0 ? d.getDps() * 3600 / results.getMonster().getHitpoints() : 0;
-		JLabel kills = stat("Est. KPH: " + fmt(kph, 1));
-		kills.setToolTipText("DPS / enemy HP; continuous combat, no downtime");
-		box.add(kills, row);
+		line(box, "Est. KPH: " + fmt(kph, 1), null, "DPS / enemy HP; continuous combat, no downtime");
 		if (runes != null && !runes.getAttack().isEmpty())
 		{
-			JLabel attack = stat("Runes/kill: " + runeEntries(runes.getAttack(), sunfire));
-			attack.setName("runesPerKill");
-			attack.setToolTipText("Expected per kill, minus staff and tome supply");
-			box.add(attack, row);
+			line(box, "Runes/kill: " + runeEntries(runes.getAttack(), sunfire), "runesPerKill",
+				"Expected per kill, minus staff and tome supply");
 		}
 		else if (poweredStaff)
 		{
-			JLabel charges = stat("Runes/kill: uses charges, not counted");
-			charges.setName("runesPerKill");
-			box.add(charges, row);
+			line(box, "Runes/kill: uses charges, not counted", "runesPerKill", null);
 		}
 		if (runes != null && !runes.getSupport().isEmpty())
 		{
-			JLabel support = stat("Support/kill: " + runeEntries(runes.getSupport(), sunfire));
-			support.setName("supportRunesPerKill");
-			support.setToolTipText("Averaged over duration, without the Master Combat Achievements reward");
-			box.add(support, row);
+			line(box, "Support/kill: " + runeEntries(runes.getSupport(), sunfire), "supportRunesPerKill",
+				"Averaged over duration, without the Master Combat Achievements reward");
 		}
 		return box;
 	}
@@ -410,43 +378,29 @@ class ResultView extends JPanel
 	/** A trip's combat time, prayer use per kill and supplies (Kills per trip), then the overhead advice, below the setup's stats. */
 	void addTripLines(JPanel box, SetupResult setup, int kills, List<TripSupplies.Supply> supplies)
 	{
-		GridBagConstraints row = new GridBagConstraints();
-		row.gridx = 0;
-		row.weightx = 1;
-		row.fill = GridBagConstraints.HORIZONTAL;
-		row.insets = new Insets(2, 0, 0, 0);
 		int first = box.getComponentCount();
 		// Raid targets have no trip: the raid hands out its supplies. Their overhead advice still shows.
 		boolean trip = results.getMonster() == null || RaidScaling.raid(results.getMonster()) == RaidScaling.Raid.NONE;
 		double seconds = TripSupplies.killSeconds(setup, results) * kills;
 		if (trip && kills > 1 && Double.isFinite(seconds))
 		{
-			JLabel time = stat("Trip combat: ~" + duration(seconds));
-			time.setName("tripCombatTime");
-			time.setToolTipText(BestGearSetupPanel.tip("Kills per trip times TTK; no banking"));
-			box.add(time, row);
+			line(box, "Trip combat: ~" + duration(seconds), "tripCombatTime",
+				BestGearSetupPanel.tip("Kills per trip times TTK; no banking"));
 		}
 		double prayer = trip ? TripSupplies.prayerPerKill(setup, results) : 0;
 		if (prayer > 0)
 		{
-			JLabel points = stat("Prayer/kill: ~" + fmt(prayer, 1) + " points");
-			points.setName("prayerPerKill");
-			points.setToolTipText(BestGearSetupPanel.tip("Offensive prayer and the overhead below"));
-			box.add(points, row);
+			line(box, "Prayer/kill: ~" + fmt(prayer, 1) + " points", "prayerPerKill",
+				BestGearSetupPanel.tip("Offensive prayer and the overhead below"));
 		}
 		if (supplies != null && !supplies.isEmpty())
 		{
-			JLabel carried = stat("");
-			carried.setText(BestGearSetupPanel.html("Supplies: " + TripSupplies.summary(supplies), STAT_WRAP_WIDTH));
-			carried.setName("tripSupplies");
-			carried.setToolTipText(BestGearSetupPanel.tip("Bottles and food for one trip"));
-			box.add(carried, row);
+			line(box, "", "tripSupplies", BestGearSetupPanel.tip("Bottles and food for one trip"))
+				.setText(BestGearSetupPanel.html("Supplies: " + TripSupplies.summary(supplies), STAT_WRAP_WIDTH));
 			if (TripSupplies.usedSlots(setup, supplies) > TripSupplies.INVENTORY_SLOTS)
 			{
-				JLabel full = stat("Doesn't fit one inventory: fewer kills per trip");
-				full.setName("tripOverflow");
-				full.setForeground(BestGearSetupPanel.WARNING_COLOR);
-				box.add(full, row);
+				line(box, "Doesn't fit one inventory: fewer kills per trip", "tripOverflow", null)
+					.setForeground(BestGearSetupPanel.WARNING_COLOR);
 			}
 		}
 		divide(box, first);
@@ -457,17 +411,14 @@ class ResultView extends JPanel
 			// Hover text stays under 10 words, so a longer note, or one a switch or no prayer needs, shows inline.
 			boolean shortNote = advice.getNote().trim().split("\\s+").length < 10;
 			boolean inline = advice.isSwitching() || advice.getPrayer() == null || !shortNote;
-			JLabel overhead = stat("");
 			// A note that opens with the summary ("None needed at range: ...") continues it instead of repeating it.
 			String note = advice.getNote().startsWith(advice.summary())
 				? BestGearSetupPanel.escape(advice.getNote().substring(advice.summary().length()))
 				: "<br>" + BestGearSetupPanel.escape(advice.getNote());
-			overhead.setText(BestGearSetupPanel.html("Overhead: " + BestGearSetupPanel.escape(advice.summary())
-				+ (inline ? note : ""), STAT_WRAP_WIDTH));
-			overhead.setName("protectionPrayer");
-			overhead.setToolTipText(BestGearSetupPanel.tip(shortNote ? advice.getNote() : "Static advice from the Wiki"));
 			int at = box.getComponentCount();
-			box.add(overhead, row);
+			line(box, "", "protectionPrayer", BestGearSetupPanel.tip(shortNote ? advice.getNote() : "Static advice from the Wiki"))
+				.setText(BestGearSetupPanel.html("Overhead: " + BestGearSetupPanel.escape(advice.summary())
+					+ (inline ? note : ""), STAT_WRAP_WIDTH));
 			divide(box, at);
 		}
 	}
@@ -505,10 +456,7 @@ class ResultView extends JPanel
 	/** The special attack mixed into the kill: its weapon, energy, uses per kill and one spec's stats. */
 	private JPanel specBox(SpecialPlan plan, Loadout worn)
 	{
-		JPanel box = new JPanel(new BorderLayout(6, 0));
-		box.setBackground(BOX_BG);
-		box.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BOX_BORDER),
-			new EmptyBorder(3, 6, 3, 6)));
+		JPanel box = box(new BorderLayout(6, 0), 3, 3);
 		boolean newWeapon = plan.getWeapon() != worn.getWeapon();
 		JPanel icons = new JPanel(new GridLayout(1, 0, 2, 0));
 		icons.setOpaque(false);
@@ -516,11 +464,7 @@ class ResultView extends JPanel
 		{
 			if (item != null)
 			{
-				JLabel icon = new JLabel();
-				icon.setPreferredSize(new Dimension(36, 32));
-				icon.setToolTipText(GameData.titleCase(item.getName()));
-				itemManager.getImage(item.getId()).addTo(icon);
-				icons.add(icon);
+				icons.add(itemIcon(item.getId(), 36, GameData.titleCase(item.getName())));
 			}
 		}
 		if (icons.getComponentCount() > 0)
@@ -529,12 +473,10 @@ class ResultView extends JPanel
 		}
 		String uses = newWeapon ? "switch" : plan.getOffhand() != null ? "add off-hand" : "same weapon";
 		DpsResult spec = plan.getSpec();
-		JLabel label = new JLabel("<html><font color='#FF9F40'>" + BestGearSetupPanel.escape(
+		JLabel label = stat("<font color='#FF9F40'>" + BestGearSetupPanel.escape(
 			GameData.titleCase(plan.getSpecial().getName())) + "</font> spec (" + plan.getSpecial().getEnergy() + "%)"
 			+ "<br>~" + fmt(plan.getSpecsPerKill(), 1) + " per kill, " + uses
-			+ "<br>Max " + spec.getMaxHit() + ", " + fmt(spec.getAccuracy() * 100, 1) + "% acc</html>");
-		label.setFont(FontManager.getRunescapeSmallFont());
-		label.setForeground(Color.WHITE);
+			+ "<br>Max " + spec.getMaxHit() + ", " + fmt(spec.getAccuracy() * 100, 1) + "% acc");
 		// The label already shows energy, specs per kill, max hit and accuracy; the icons show the switch.
 		box.setToolTipText("Without specs: " + fmt(plan.getOrdinary().getDps(), 2) + " DPS"
 			+ (newWeapon ? "; switch weapons for it" : ""));
@@ -577,16 +519,11 @@ class ResultView extends JPanel
 		long buy = total - ownedValue;
 		String unknown = unpriced == 0 ? "" : " + <font color='#FF6B6B'>" + unpriced + " unpriced</font>";
 
-		JPanel box = new JPanel(new BorderLayout());
-		box.setBackground(BOX_BG);
-		box.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BOX_BORDER),
-			new EmptyBorder(3, 6, 3, 6)));
-		JLabel label = new JLabel("<html>Cost: <font color='#6BD56B'>" + Budget.format(total) + "</font>" + unknown
+		JPanel box = box(new BorderLayout(), 3, 3);
+		JLabel label = stat("Cost: <font color='#6BD56B'>" + Budget.format(total) + "</font>" + unknown
 			+ " (own <font color='#6BD56B'>" + Budget.format(ownedValue) + "</font>)<br>To buy: <font color='"
-			+ (buy == 0 && unpriced == 0 ? "#FFFFFF" : "#FFD24D") + "'>" + Budget.format(buy) + "</font>" + unknown
-			+ "</html>", JLabel.CENTER);
-		label.setFont(FontManager.getRunescapeSmallFont());
-		label.setForeground(Color.WHITE);
+			+ (buy == 0 && unpriced == 0 ? "#FFFFFF" : "#FFD24D") + "'>" + Budget.format(buy) + "</font>" + unknown);
+		label.setHorizontalAlignment(JLabel.CENTER);
 		label.setToolTipText("Cost minus owned = to buy; " + (unpriced > 0 ? "unpriced left out"
 			: ammoCount > 0 ? "ammo x" + ammoCount + " included" : "ammo not counted"));
 		box.add(label, BorderLayout.CENTER);
@@ -638,10 +575,9 @@ class ResultView extends JPanel
 		{
 			name = "Built-in spell";
 		}
-		JLabel styleLabel = new JLabel("<html><center><font color='#FF9F40'>" + BestGearSetupPanel.escape(name)
-			+ "</font><br>" + BestGearSetupPanel.escape(sub) + "</center></html>", JLabel.CENTER);
-		styleLabel.setFont(FontManager.getRunescapeSmallFont());
-		styleLabel.setForeground(Color.WHITE);
+		JLabel styleLabel = stat("<center><font color='#FF9F40'>" + BestGearSetupPanel.escape(name)
+			+ "</font><br>" + BestGearSetupPanel.escape(sub) + "</center>");
+		styleLabel.setHorizontalAlignment(JLabel.CENTER);
 		if (style != null)
 		{
 			int range = AttackReach.range(l.getWeapon(), style);
@@ -687,11 +623,7 @@ class ResultView extends JPanel
 		}
 		for (Potion p : potionsFor(selected))
 		{
-			JLabel icon = new JLabel();
-			icon.setPreferredSize(new Dimension(34, 32));
-			itemManager.getImage(p.getId()).addTo(icon);
-			icon.setToolTipText(GameData.titleCase(p.getName()));
-			boosts.add(icon);
+			boosts.add(itemIcon(p.getId(), 34, GameData.titleCase(p.getName())));
 		}
 		row.add(boosts, BorderLayout.CENTER);
 		return row;
@@ -746,10 +678,7 @@ class ResultView extends JPanel
 			BorderFactory.createMatteBorder(0, 2, 0, 0, ColorScheme.BRAND_ORANGE), new EmptyBorder(1, 0, 1, 4))
 			: new EmptyBorder(1, 2, 1, 4));
 		GearItem weapon = r.getLoadout().getWeapon();
-		JLabel icon = new JLabel();
-		icon.setPreferredSize(new Dimension(36, 32));
-		itemManager.getImage(weapon.getId()).addTo(icon);
-		row.add(icon, BorderLayout.WEST);
+		row.add(itemIcon(weapon.getId(), 36, null), BorderLayout.WEST);
 		JLabel name = new JLabel(GameData.titleCase(weapon.getName()));
 		BestGearSetupPanel.setSmall(name, Color.WHITE);
 		row.add(name, BorderLayout.CENTER);
@@ -788,6 +717,16 @@ class ResultView extends JPanel
 		return wrap;
 	}
 
+	/** An item's icon, {@code width} wide, with hover text when not null. */
+	private JLabel itemIcon(int itemId, int width, String tip)
+	{
+		JLabel icon = new JLabel();
+		icon.setPreferredSize(new Dimension(width, 32));
+		icon.setToolTipText(tip);
+		itemManager.getImage(itemId).addTo(icon);
+		return icon;
+	}
+
 	private final class SpriteIcon extends JComponent
 	{
 		private final int spriteId;
@@ -810,11 +749,45 @@ class ResultView extends JPanel
 		}
 	}
 
+	/** A dark box with the green edge, padded 6px at the sides. */
+	private static JPanel box(LayoutManager layout, int top, int bottom)
+	{
+		JPanel box = new JPanel(layout);
+		box.setBackground(BOX_BG);
+		box.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BOX_BORDER),
+			new EmptyBorder(top, 6, bottom, 6)));
+		return box;
+	}
+
+	/** A full-width row with {@code c} centred at its preferred size. */
+	private static JPanel centred(Component c)
+	{
+		JPanel row = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+		row.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		row.add(c);
+		return BestGearSetupPanel.left(row);
+	}
+
 	private static JLabel textChip(String text)
 	{
 		JLabel l = new JLabel(text);
 		BestGearSetupPanel.setSmall(l, YELLOW);
 		return l;
+	}
+
+	/** Adds a statistics line under the last, with its test name and hover text when not null. */
+	private static JLabel line(JPanel box, String html, String name, String tip)
+	{
+		JLabel label = stat(html);
+		label.setName(name);
+		label.setToolTipText(tip);
+		GridBagConstraints row = new GridBagConstraints();
+		row.gridx = 0;
+		row.weightx = 1;
+		row.fill = GridBagConstraints.HORIZONTAL;
+		row.insets = new Insets(2, 0, 0, 0);
+		box.add(label, row);
+		return label;
 	}
 
 	private static JLabel stat(String html)

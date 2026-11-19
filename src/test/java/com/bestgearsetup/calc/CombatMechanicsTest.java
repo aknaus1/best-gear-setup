@@ -40,7 +40,7 @@ public class CombatMechanicsTest
 
 	private static CombatContext context(Monster target)
 	{
-		return new CombatContext(target, PlayerLevels.maxed(), false, false, null);
+		return TestFactories.combatContext(target, PlayerLevels.maxed(), false, false, null);
 	}
 
 	private static void spell(Loadout l, String name, String book, int max)
@@ -376,9 +376,9 @@ public class CombatMechanicsTest
 		Loadout l = loadout("verac's flail", "flail", "pound,crush,aggressive");
 		set(l, "verac's helm", "verac's brassard", "verac's plateskirt");
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED).build();
-		SetupResult r = new Optimizer(TestData.gameData(Arrays.asList(l.getWeapon(), l.get(Slot.HEAD), l.get(Slot.BODY),
+		SetupResult r = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(l.getWeapon(), l.get(Slot.HEAD), l.get(Slot.BODY),
 			l.get(Slot.LEGS)), Collections.emptyList()), context(monster(300, 100)), settings, id -> false, GearItem::getPrice)
-			.optimize(CombatClass.MELEE, () -> false).get(0);
+			.optimize(CombatClass.MELEE, () -> false, done -> { }).get(0);
 		assertEquals(l.get(Slot.HEAD), r.getLoadout().get(Slot.HEAD));
 		assertEquals(l.get(Slot.BODY), r.getLoadout().get(Slot.BODY));
 		assertEquals(l.get(Slot.LEGS), r.getLoadout().get(Slot.LEGS));
@@ -387,8 +387,8 @@ public class CombatMechanicsTest
 	@Test
 	public void copiedMonsterRetainsWeaknessAndReplacedAttributesInvalidateCache()
 	{
-		Monster m = RuneLiteAPI.GSON.fromJson("{\"name\":\"target\",\"weakness_type\":\"air\",\"weakness\":50,"
-			+ "\"flat_armour\":6,\"attributes\":[{\"name\":\"undead\"}]}", Monster.class);
+		Monster m = RuneLiteAPI.GSON.fromJson("{\"name\":\"target\",\"weaknessType\":\"air\",\"weakness\":50,"
+			+ "\"flatArmour\":6,\"attributes\":[{\"name\":\"undead\"}]}", Monster.class);
 		assertTrue(m.hasAttribute("undead"));
 		Monster copy = m.copy();
 		assertEquals("air", copy.getWeaknessType());

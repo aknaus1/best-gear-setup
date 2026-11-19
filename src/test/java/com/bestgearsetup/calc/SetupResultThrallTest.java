@@ -29,8 +29,8 @@ public class SetupResultThrallTest
 		CombatContext ctx = new CombatContext(monster, levels, false, 99, 99, 99, magic, null, thrallsEnabled);
 		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
 			.styles(EnumSet.of(AttackStyle.Type.SLASH)).build();
-		List<SetupResult> results = new Optimizer(data, ctx, settings, id -> true, item -> 0)
-			.optimize(CombatClass.MELEE, () -> false);
+		List<SetupResult> results = com.bestgearsetup.calc.Optimizers.of(data, ctx, settings, id -> true, item -> 0)
+			.optimize(CombatClass.MELEE, () -> false, done -> { });
 		assertFalse(results.isEmpty());
 		return results.get(0);
 	}
