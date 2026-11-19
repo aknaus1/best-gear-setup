@@ -53,13 +53,13 @@ public class EncounterPhaseTest
 		Outfit crush = loadout("test maul", "blunt", "pound,crush,aggressive");
 		crush.getWeapon().setCrushBonus(101);
 		Monster tail = target(14014, "the hueycoatl (tail)", EncounterPhase.HUEYCOATL_PILLAR, "dragon");
-		Encounter.Rule rule = Encounter.rule(tail, crush);
+		Mitigation.Rule rule = Mitigation.rule(tail, crush);
 		// Caps 0-9 give max(1, trunc(cap * 1.3)): 1,1,2,3,5,6,7,9,10,11.
 		assertEquals(5.5, rule.mean(20), EPS);
 		assertEquals(11, rule.maximum(20));
 		assertEquals(1, rule.missDamage(), EPS);
 		tail.setPhase(EncounterPhase.STANDARD);
-		assertEquals(4.6, Encounter.rule(tail, crush).mean(20), EPS);
+		assertEquals(4.6, Mitigation.rule(tail, crush).mean(20), EPS);
 	}
 
 	@Test
@@ -67,9 +67,9 @@ public class EncounterPhaseTest
 	{
 		Outfit slash = loadout("test sword", "slash sword", "slash,slash,aggressive");
 		Monster head = target(14009, "the hueycoatl (head)", EncounterPhase.HUEYCOATL_PILLAR, "dragon");
-		assertEquals(13, Encounter.rule(head, slash).mean(10), EPS);
+		assertEquals(13, Mitigation.rule(head, slash).mean(10), EPS);
 		Monster body = target(14017, "the hueycoatl", EncounterPhase.HUEYCOATL_PILLAR, "dragon");
-		assertEquals(10, Encounter.rule(body, slash).mean(10), EPS);
+		assertEquals(10, Mitigation.rule(body, slash).mean(10), EPS);
 		assertTrue(EncounterPhases.describe(body).contains("ignored"));
 	}
 
@@ -78,7 +78,7 @@ public class EncounterPhaseTest
 	{
 		Outfit slash = loadout("test sword", "slash sword", "slash,slash,aggressive");
 		Monster sire = target(5886, "abyssal sire (phase 1)", EncounterPhase.ABYSSAL_SIRE_TRANSITION, "demon");
-		assertEquals(5, Encounter.rule(sire, slash).mean(11), EPS);
+		assertEquals(5, Mitigation.rule(sire, slash).mean(11), EPS);
 		Dps halved = calculate(slash, sire);
 		sire.setPhase(EncounterPhase.STANDARD);
 		Dps normal = calculate(slash, sire);

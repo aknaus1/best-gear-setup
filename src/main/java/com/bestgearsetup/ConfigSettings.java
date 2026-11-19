@@ -5,7 +5,7 @@ import java.util.function.Function;
 
 /**
  * Every setting's getter, in one table shared by search snapshots ({@link Assumptions}) and both settings
- * editors. Bindings are method references, so a renamed or removed getter fails to compile; SearchAssumptionsTest
+ * editors. Bindings are method references, so a renamed or removed getter fails to compile; AssumptionsTest
  * fails until a new config item is added here.
  */
 public final class ConfigSettings

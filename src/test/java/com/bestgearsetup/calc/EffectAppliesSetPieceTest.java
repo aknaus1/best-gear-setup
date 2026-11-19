@@ -52,7 +52,7 @@ public class EffectAppliesSetPieceTest
 			}
 			for (Gear item : data.getItems(slot))
 			{
-				String name = Encounter.lower(item);
+				String name = Mitigation.lower(item);
 				String rule = setRule(name);
 				if (rule == null)
 				{

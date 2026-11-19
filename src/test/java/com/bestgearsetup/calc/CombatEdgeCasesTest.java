@@ -57,12 +57,12 @@ public class CombatEdgeCasesTest
 	{
 		Outfit l = crossbow("diamond bolts (e)");
 		CombatContext ctx = context(monster(100, 50));
-		EnchantedBolts.Result result = EnchantedBolts.calculate(l, ctx, Encounter.unmitigated(), 0.25, 0, 20);
+		EnchantedBolts.Result result = EnchantedBolts.calculate(l, ctx, Mitigation.unmitigated(), 0.25, 0, 20);
 		assertEquals(0.9 * 0.25 * ordinary(20) + 0.1 * ordinary(23), result.getAverage(), EPS);
 		assertEquals(0.325, result.getAccuracy(), EPS);
 		assertEquals(23, result.getMaximum());
 		ctx = ctx.withModifiers(CombatModifiers.builder().kandarinDiary(true).build());
-		result = EnchantedBolts.calculate(l, ctx, Encounter.unmitigated(), 0.25, 0, 20);
+		result = EnchantedBolts.calculate(l, ctx, Mitigation.unmitigated(), 0.25, 0, 20);
 		assertEquals(0.89 * 0.25 * ordinary(20) + 0.11 * ordinary(23), result.getAverage(), EPS);
 	}
 
@@ -71,7 +71,7 @@ public class CombatEdgeCasesTest
 	{
 		Outfit l = crossbow("opal bolts (e)");
 		EnchantedBolts.Result result = EnchantedBolts.calculate(l, context(monster(100, 50)),
-			Encounter.unmitigated(), 0.25, 0, 20);
+			Mitigation.unmitigated(), 0.25, 0, 20);
 		assertEquals(0.95 * 0.25 * ordinary(20) + 0.05 * (0.25 * 19 + 0.75 * 9), result.getAverage(), EPS);
 		assertEquals(0.25, result.getAccuracy(), EPS);
 		assertEquals(29, result.getMaximum());
@@ -81,7 +81,7 @@ public class CombatEdgeCasesTest
 	public void opalRetainsBoundedWardenDamageRolls()
 	{
 		EnchantedBolts.Result result = EnchantedBolts.calculate(crossbow("opal bolts (e)"), context(monster(100, 50)),
-			Encounter.unmitigated(), 1, 6, 11);
+			Mitigation.unmitigated(), 1, 6, 11);
 		assertEquals(0.95 * 8.5 + 0.05 * 17.5, result.getAverage(), EPS);
 	}
 
@@ -92,16 +92,16 @@ public class CombatEdgeCasesTest
 		m.setHitpoints(1000);
 		Outfit l = crossbow("ruby bolts (e)");
 		CombatContext ctx = context(m);
-		EnchantedBolts.Result result = EnchantedBolts.calculate(l, ctx, Encounter.unmitigated(), 0, 0, 20);
+		EnchantedBolts.Result result = EnchantedBolts.calculate(l, ctx, Mitigation.unmitigated(), 0, 0, 20);
 		assertEquals(6, result.getAverage(), EPS);
 		assertEquals(0.06, result.getAccuracy(), EPS);
 		assertEquals(100, result.getMaximum());
 		ctx = ctx.withModifiers(CombatModifiers.builder().monsterHitpoints(100).currentHitpoints(10).build());
-		result = EnchantedBolts.calculate(l, ctx, Encounter.unmitigated(), 0, 0, 20);
+		result = EnchantedBolts.calculate(l, ctx, Mitigation.unmitigated(), 0, 0, 20);
 		assertEquals(1.2, result.getAverage(), EPS);
 		assertEquals(20, result.getMaximum());
 		assertNull(EnchantedBolts.calculate(l, ctx.withModifiers(CombatModifiers.builder().currentHitpoints(9).build()),
-			Encounter.unmitigated(), 0.25, 0, 20));
+			Mitigation.unmitigated(), 0.25, 0, 20));
 	}
 
 	@Test
@@ -111,9 +111,9 @@ public class CombatEdgeCasesTest
 		m.setHitpoints(1000);
 		Outfit l = crossbow("ruby dragon bolts (e)");
 		l.getWeapon().setName("zaryte crossbow");
-		assertEquals(110, EnchantedBolts.calculate(l, context(m), Encounter.unmitigated(), 0, 0, 20).getMaximum());
+		assertEquals(110, EnchantedBolts.calculate(l, context(m), Mitigation.unmitigated(), 0, 0, 20).getMaximum());
 		l.get(Slot.AMMO).setName("diamond dragon bolts (e)");
-		assertEquals(25, EnchantedBolts.calculate(l, context(m), Encounter.unmitigated(), 0, 0, 20).getMaximum());
+		assertEquals(25, EnchantedBolts.calculate(l, context(m), Mitigation.unmitigated(), 0, 0, 20).getMaximum());
 	}
 
 	@Test
@@ -123,7 +123,7 @@ public class CombatEdgeCasesTest
 		m.setHitpoints(1000);
 		m.setName("corporeal beast");
 		Outfit l = crossbow("ruby bolts (e)");
-		EnchantedBolts.Result result = EnchantedBolts.calculate(l, context(m), Encounter.rule(m, l), 0.25, 0, 20);
+		EnchantedBolts.Result result = EnchantedBolts.calculate(l, context(m), Mitigation.rule(m, l), 0.25, 0, 20);
 		double halfMean = 0;
 		for (int roll = 0; roll <= 20; roll++)
 		{
@@ -131,7 +131,7 @@ public class CombatEdgeCasesTest
 		}
 		assertEquals(0.94 * 0.25 * halfMean / 21 + 6, result.getAverage(), EPS);
 		m.setName("zulrah");
-		result = EnchantedBolts.calculate(l, context(m), Encounter.rule(m, l), 0, 0, 20);
+		result = EnchantedBolts.calculate(l, context(m), Mitigation.rule(m, l), 0, 0, 20);
 		assertEquals(0.06 * 47.5, result.getAverage(), EPS);
 		assertEquals(50, result.getMaximum());
 	}
@@ -140,14 +140,14 @@ public class CombatEdgeCasesTest
 	public void boltImmunitiesDoNotAddBlockedProcDamage()
 	{
 		assertNull(EnchantedBolts.calculate(crossbow("onyx bolts (e)"), context(monster(100, 50, "undead")),
-			Encounter.unmitigated(), 0.25, 0, 20));
+			Mitigation.unmitigated(), 0.25, 0, 20));
 		for (String tag : new String[]{"dragon", "fiery", "dragonfire immune"})
 		{
 			assertNull(EnchantedBolts.calculate(crossbow("dragonstone bolts (e)"), context(monster(100, 50, tag)),
-				Encounter.unmitigated(), 0.25, 0, 20));
+				Mitigation.unmitigated(), 0.25, 0, 20));
 		}
 		assertNull(EnchantedBolts.calculate(crossbow("emerald bolts (e)"), context(monster(100, 50)),
-			Encounter.unmitigated(), 0.25, 0, 20));
+			Mitigation.unmitigated(), 0.25, 0, 20));
 	}
 
 	@Test

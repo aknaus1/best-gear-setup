@@ -25,7 +25,7 @@ import net.runelite.client.config.ConfigItemDescriptor;
 import net.runelite.client.config.ConfigManager;
 import org.junit.Test;
 
-public class SearchAssumptionsTest
+public class AssumptionsTest
 {
 	/** Config defaults read their captured value through Assumptions.value; RuneLite's proxy must still serve them. */
 	@Test public void runeliteConfigurationDefaultsAndSnapshotsShareTheSameValues()

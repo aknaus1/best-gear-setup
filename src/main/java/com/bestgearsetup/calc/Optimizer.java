@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import net.runelite.api.gameval.ItemID;
 import static com.bestgearsetup.calc.Weapons.*;
-import static com.bestgearsetup.calc.Encounter.*;
+import static com.bestgearsetup.calc.Mitigation.*;
 import static com.bestgearsetup.calc.Effects.*;
 
 /**
@@ -145,7 +145,7 @@ public class Optimizer
 			: autocastSpells(data, this.ctx.getMagic(), monster, settings);
 		this.fireProtectionRequired = DragonfireProtection.required(monster, settings);
 		this.slayerEquipmentRequired = SlayerEquipment.applies(monster, settings);
-		this.araxyte = Encounter.named(monster, "acidic araxyte") || Encounter.named(monster, "mirrorback araxyte");
+		this.araxyte = Mitigation.named(monster, "acidic araxyte") || Mitigation.named(monster, "mirrorback araxyte");
 		this.hueyTail = hueyTail(monster);
 	}
 
@@ -527,7 +527,7 @@ public class Optimizer
 			: cls == Combat.RANGED && !scalesWithStrength(weapon) ? RANGED_STR : MELEE_STR);
 		if (lower(weapon).contains("bulwark"))
 			out.add(DEFENCE);
-		// Huey's tail and the araxytes reward an attack bonus above the others (Encounter, CombatRules.araxyteMax).
+		// Huey's tail and the araxytes reward an attack bonus above the others (Mitigation, CombatRules.araxyteMax).
 		boolean lead = araxyte && (attack == CRUSH || attack == RANGED && weapon.getSubcategory().equals("crossbow"));
 		if (lead || hueyTail && attack == CRUSH)
 		{

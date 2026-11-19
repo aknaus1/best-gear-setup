@@ -1,17 +1,20 @@
 package com.bestgearsetup;
 
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /** Selectable boosts from the bundled potion catalog; legacy names are retained. */
 public final class PotionOptions
 {
+	private static final Pattern SUFFIX = Pattern.compile(" (minus|plus|nmz)$");
+
 	private PotionOptions() {}
 
 	/** A choice's stored potion name, from its constant: OVERLOAD_PLUS is "overload (+)", WIZARD_S_MIND_BOMB "wizard's mind bomb". */
 	static String value(Enum<?> choice)
 	{
-		return choice.name().toLowerCase(Locale.ROOT).replace("_s_", "'s ").replace('_', ' ').replaceAll(" (minus|plus|nmz)$", " ($1)")
-			.replace("(minus)", "(-)").replace("(plus)", "(+)");
+		String name = choice.name().toLowerCase(Locale.ROOT).replace("_s_", "'s ").replace('_', ' ');
+		return SUFFIX.matcher(name).replaceAll(" ($1)").replace("(minus)", "(-)").replace("(plus)", "(+)");
 	}
 
 	/** Short sentence-case labels so the settings dropdowns leave room for their names. */

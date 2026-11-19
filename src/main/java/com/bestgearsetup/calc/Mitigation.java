@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Per-hit encounter mitigation, applied after player damage bonuses and before thralls. */
-final class Encounter
+final class Mitigation
 {
 	private static final Names.NameList DEMONBANE_MELEE = Names.list("demonbane melee weapons");
 	private static final Names.NameList ABYSSAL_WEAPONS = Names.list("abyssal weapons");
@@ -27,7 +27,7 @@ final class Encounter
 	private static final Rule HUEY_EARTH = capped(9, 0, false, "Tail: random 0-9 earth spell cap");
 	private static final Rule HUEY_CRUSH = capped(9, 0, true, "Tail: random 0-9 crush cap, minimum 1 including misses");
 
-	private Encounter()
+	private Mitigation()
 	{
 	}
 

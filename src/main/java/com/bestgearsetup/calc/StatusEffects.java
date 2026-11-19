@@ -3,7 +3,7 @@ package com.bestgearsetup.calc;
 import com.bestgearsetup.data.*;
 import java.util.*;
 import lombok.Value;
-import static com.bestgearsetup.calc.Encounter.*;
+import static com.bestgearsetup.calc.Mitigation.*;
 
 /**
  * Damage over time from poison, venom and burns, integrated over the kill (OSRS Wiki Poison, Venom and

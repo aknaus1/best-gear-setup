@@ -132,7 +132,7 @@ public final class RaidScaling
 	static boolean tfaScaled(Monster m)
 	{
 		String name = m.getLowerName();
-		return (m.hasAttribute("boss") || Encounter.named(m, "undead binder"))
+		return (m.hasAttribute("boss") || Mitigation.named(m, "undead binder"))
 			&& !name.equals("ocellus (phase 2)");
 	}
 
@@ -233,7 +233,7 @@ public final class RaidScaling
 		int offence = highestScalingLevel(m.getAttackLevel(), m.getStrengthLevel(), m.getRangedLevel(),
 			magicDefends ? 1 : m.getMagicLevel());
 		int defence = highestScalingLevel(m.getDefenceLevel(), magicDefends ? m.getMagicLevel() : 1);
-		boolean guardian = Encounter.guardian(m) || Encounter.named(m, "guardian");
+		boolean guardian = Mitigation.guardian(m) || Mitigation.named(m, "guardian");
 		int hp = guardian ? 151 + clamp(s.getPartyAverageMining(), 1, 99) : m.getHitpoints();
 
 		int[] scaled = coxScaledAlone(m) ? coxSolo(offence, defence, hp, s) : coxParty(m, offence, defence, hp, s);
@@ -295,12 +295,12 @@ public final class RaidScaling
 		{
 			// Challenge Mode: +50% to everything, except that Tekton's defence gains 20% (35% from four players)
 			// and the glowing crystal keeps its hitpoints and defence.
-			boolean crystal = Encounter.crystal(m);
+			boolean crystal = Mitigation.crystal(m);
 			offence = addPercent(offence, COX_CM_PERCENT);
 			if (!crystal)
 			{
 				hp = addPercent(hp, COX_CM_PERCENT);
-				defence = addPercent(defence, Encounter.tekton(m) ? party < 4 ? 20 : 35 : COX_CM_PERCENT);
+				defence = addPercent(defence, Mitigation.tekton(m) ? party < 4 ? 20 : 35 : COX_CM_PERCENT);
 			}
 		}
 		return new int[]{clamp(offence, 50, 5_000), clamp(defence, 50, 20_000), clamp(hp, 50, 30_000)};
@@ -325,9 +325,9 @@ public final class RaidScaling
 	{
 		String name = m.getLowerName();
 		int id = m.getId();
-		return Encounter.tekton(m) || olmHand(m) || id == 7533 || id == 7559
+		return Mitigation.tekton(m) || olmHand(m) || id == 7533 || id == 7559
 			|| id >= 7530 && id <= 7532 || id == 7538 || id == 7539 || name.startsWith("abyssal portal")
-			|| name.startsWith("deathly ranger") || Encounter.named(m, "vespula")
+			|| name.startsWith("deathly ranger") || Mitigation.named(m, "vespula")
 			|| name.startsWith("vespine soldier");
 	}
 

@@ -16,12 +16,12 @@ final class SpecialDamage
 	}
 
 	/** One ordinary roll: accurate damage with equipment effects, or a miss. */
-	private static double single(Encounter.Rule rule, Outfit l, CombatContext ctx, double acc, long min, long max)
+	private static double single(Mitigation.Rule rule, Outfit l, CombatContext ctx, double acc, long min, long max)
 	{
 		return acc * average(rule, l, ctx, min, max) + (1 - acc) * rule.missDamage();
 	}
 
-	static Dps melee(SpecialAttack s, Outfit l, CombatContext ctx, Encounter.Rule rule, double acc,
+	static Dps melee(SpecialAttack s, Outfit l, CombatContext ctx, Mitigation.Rule rule, double acc,
 		long min, long max, long attRoll, long defRoll, int speed)
 	{
 		Monster m = ctx.getMonster();
@@ -100,7 +100,7 @@ final class SpecialDamage
 				break;
 			case VOIDWAKER:
 			{
-				Encounter.Rule magic = Encounter.rule(m, l, Combat.MAGIC);
+				Mitigation.Rule magic = Mitigation.rule(m, l, Combat.MAGIC);
 				average = average(magic, l, ctx, min, max);
 				shown = maximum(magic, l, ctx, max);
 				shownAccuracy = 1;
@@ -128,7 +128,7 @@ final class SpecialDamage
 		return finish(s, average, shown, shownAccuracy, speed, interval, rule, null);
 	}
 
-	static Dps ranged(SpecialAttack s, Outfit l, CombatContext ctx, Encounter.Rule rule, double acc,
+	static Dps ranged(SpecialAttack s, Outfit l, CombatContext ctx, Mitigation.Rule rule, double acc,
 		long min, long max, long attRoll, int defBonus, int speed)
 	{
 		Monster m = ctx.getMonster();
@@ -189,7 +189,7 @@ final class SpecialDamage
 	}
 
 	private static Dps finish(SpecialAttack s, double average, int shown, double accuracy, int speed,
-		double interval, Encounter.Rule rule, String extra)
+		double interval, Mitigation.Rule rule, String extra)
 	{
 		String detail = s.describe() + (extra == null ? "" : "; " + extra) + (rule.detail == null ? "" : "; " + rule.detail);
 		Dps r = DpsCalculator.result(average, shown, accuracy, speed).withDetail(detail);
@@ -233,7 +233,7 @@ final class SpecialDamage
 	};
 
 	/** Expected damage and maximum of a claws special, with encounter rules per splat. Returns {mean, maximum}. */
-	static double[] claws(Encounter.Rule rule, double acc, long max, boolean dragon)
+	static double[] claws(Mitigation.Rule rule, double acc, long max, boolean dragon)
 	{
 		double total = 0;
 		long best = 0;
@@ -308,7 +308,7 @@ final class SpecialDamage
 	/** Staves whose specials cast a built-in spell even when the staff normally autocasts. */
 	static boolean builtInSpell(Gear weapon)
 	{
-		String n = Encounter.lower(weapon);
+		String n = Mitigation.lower(weapon);
 		return n.startsWith("accursed sceptre") || n.startsWith("volatile nightmare staff")
 			|| n.startsWith("eldritch nightmare staff");
 	}
@@ -316,7 +316,7 @@ final class SpecialDamage
 	/** Built-in spec max hits of the nightmare staves; other staves use their powered formula. */
 	static int builtInMax(Gear weapon, int magic)
 	{
-		String n = Encounter.lower(weapon);
+		String n = Mitigation.lower(weapon);
 		int cap = n.startsWith("volatile nightmare staff") ? 58 : n.startsWith("eldritch nightmare staff") ? 44 : 0;
 		return cap == 0 ? Weapons.poweredStaffMaxHit(weapon, magic)
 			: Math.max(1, Math.min(cap, (99 + cap * magic) / 99));

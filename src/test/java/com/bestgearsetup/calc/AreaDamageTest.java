@@ -108,7 +108,7 @@ public class AreaDamageTest
 		Monster verzik = regular.copy();
 		verzik.setId(8369);
 		verzik.setName("verzik vitur (phase 1)");
-		Encounter.Rule rule = Encounter.rule(verzik, l);
+		Mitigation.Rule rule = Mitigation.rule(verzik, l);
 		Dps area = DpsCalculator.calculate(l, context(verzik, 3));
 		assertEquals(area.getAccuracy() * (rule.average(0, raw) + rule.mean(1) / (raw + 1.0)
 			+ 2 * (rule.average(0, raw / 2) + rule.mean(1) / (raw / 2 + 1.0))),
@@ -184,7 +184,7 @@ public class AreaDamageTest
 		int raw = DpsCalculator.calculate(l, context(regular, 1)).getMaxHit();
 		Monster zulrah = regular.copy();
 		zulrah.setId(2042);
-		Encounter.Rule rule = Encounter.rule(zulrah, l);
+		Mitigation.Rule rule = Mitigation.rule(zulrah, l);
 		Dps area = DpsCalculator.calculate(l, context(zulrah, 3));
 		double expected = area.getAccuracy() * (rule.average(0, raw) + rule.mean(1) / (raw + 1.0)
 			+ 2 * (rule.average(0, raw * 2 / 3) + rule.mean(1) / (raw * 2 / 3 + 1.0)));

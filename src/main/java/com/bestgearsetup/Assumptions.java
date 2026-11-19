@@ -5,7 +5,7 @@ import java.util.Map;
 /**
  * Immutable configuration values for one search, including transient detected overrides. Overrides are keyed by
  * the config key. Each config default reads its captured value through {@link #value}, so this class needs
- * no override per setting; SearchAssumptionsTest checks that every config item is copied and can be overridden.
+ * no override per setting; AssumptionsTest checks that every config item is copied and can be overridden.
  */
 final class Assumptions implements Options
 {
