@@ -30,13 +30,14 @@ class BestGearSetupBankView
 	// The carried inventory fills the 4×7 grid right of the silhouette; a rune pouch's runes sit under it.
 	private static final int POUCH_ROW = 7 * 8 + 4;
 	private static final int POUCH_RUNES = 3;
-	// Extra matches go below the layout, each group starting its own row: gear, then spell items, then boosts.
+	// Extra matches go below the layout, each group starting its own row: gear, spell items, boosts, then food.
 	private static final int EXTRA_ROWS_START = 8 * 8;
 	/** A repeated entry's opacity, fainter than the stack it repeats. */
 	private static final int COPY_OPACITY = 100;
 	private static final int GEAR = 0;
 	private static final int SPELL = 1;
 	private static final int BOOST = 2;
+	private static final int FOOD = 3;
 	private static final int BANKTAB_POTIONSTORE = 15;
 	private final Client client;
 	private final ItemManager itemManager;
@@ -126,10 +127,12 @@ class BestGearSetupBankView
 					slot = layout.carry(ids, slot, count, BOOST);
 				}
 			}
-			// A food's other owned foods only fill its cell when it's missing, otherwise they join the boost rows.
+			// A food's other owned foods only fill its cell when it's missing, otherwise they share one row under the
+			// boost rows.
 			for (TripSupplies.Supply supply : supplies)
 				if (!layout.cells.containsKey(supply.getIds().get(0)))
-					slot = layout.carry(supply.getIds(), slot, supply.getCount(), BOOST);
+					slot = layout.carry(supply.getIds(), slot, supply.getCount(),
+						TripSupplies.isFood(supply.getIds().get(0)) ? FOOD : BOOST);
 		}
 		return layout;
 	}
@@ -399,7 +402,7 @@ class BestGearSetupBankView
 			.thenComparing((Widget w) -> !layout.primary.contains(matches.get(w)))
 			.thenComparingInt(w -> layout.ranks.get(matches.get(w)))
 			.thenComparingInt(Widget::getOriginalY).thenComparingInt(Widget::getOriginalX));
-		List<List<Widget>> extras = Arrays.asList(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+		List<List<Widget>> extras = Arrays.asList(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
 		Map<Integer, Widget> placed = new HashMap<>();
 		int lastCell = 34;
 		for (Widget item : ordered)
@@ -422,8 +425,8 @@ class BestGearSetupBankView
 				extras.get(layout.groups.get(key)).add(item);
 			}
 		}
-		// Extra rows start below every placed cell; gear, spell items and boosts each begin a new row,
-		// and so does each potion type (every dose of one potion together, highest first).
+		// Extra rows start below every placed cell; gear, spell items, boosts and food each begin a new row,
+		// and so does each potion type (every dose of one potion together, highest first). Spare foods share one row.
 		int next = Math.max(EXTRA_ROWS_START, (lastCell / 8 + 1) * 8);
 		for (int group = 0; group < extras.size(); group++)
 		{

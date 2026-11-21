@@ -87,6 +87,9 @@ is what the Plugin Hub shows.
 - Every card in Fight and Gear now opens and collapses on its own, and they start collapsed with their counts
   in the header, apart from Fight conditions, which starts open. **Expand all** and **Collapse all** sit at the
   top of both views. Locking an item from a result opens Locked items.
+- The atlatl's boosts and trip supplies no longer include an Attack potion: it aims with Ranged and only its
+  damage uses Strength, so only the Strength boost (or the combat potion or overload giving it) is shown.
+- The bank layout puts the other owned foods on one row under the boosts, instead of a row each.
 
 ## 1.1.3 (2026-11-10)
 

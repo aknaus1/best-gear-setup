@@ -1304,7 +1304,7 @@ public class BestGearSetupPlugin extends Plugin
 		return warnings;
 	}
 
-	private Map<Combat, List<Potion>> potionsUsed(GameData data, PlayerLevels levels, Monster target, Predicate<Potion> boosts,
+	static Map<Combat, List<Potion>> potionsUsed(GameData data, PlayerLevels levels, Monster target, Predicate<Potion> boosts,
 		Options config)
 	{
 		Map<Combat, List<Potion>> out = new EnumMap<>(Combat.class);
@@ -1317,9 +1317,15 @@ public class BestGearSetupPlugin extends Plugin
 				continue;
 			}
 			List<Potion> list = out.computeIfAbsent(BOOST_CLASSES[i], k -> new ArrayList<>());
-			if (list.stream().noneMatch(x -> x.getId() == p.getId()))
+			int same = list.stream().map(Potion::getId).collect(Collectors.toList()).indexOf(p.getId());
+			if (same < 0)
 			{
 				list.add(p);
+			}
+			else if (BOOST_SKILLS[i].equals("strength"))
+			{
+				// Keep a combat potion or overload as its Strength boost, the one the atlatl uses.
+				list.set(same, p);
 			}
 		}
 		return out;
