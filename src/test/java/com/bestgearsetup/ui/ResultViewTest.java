@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.calc.TestFactories;
 import com.bestgearsetup.RuneUse;
 import com.bestgearsetup.SearchResults;
+import com.bestgearsetup.TestResults;
 import com.bestgearsetup.calc.Style;
 import com.bestgearsetup.calc.CombatContext;
 import com.bestgearsetup.calc.CombatModifiers;
@@ -19,11 +20,17 @@ import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.Gear;
+import com.bestgearsetup.data.Potion;
 import com.bestgearsetup.data.Slot;
 import com.bestgearsetup.data.Spell;
 import java.awt.Component;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -280,6 +287,30 @@ public class ResultViewTest
 			String text = ((JLabel) box.getComponent(0)).getText();
 			assertTrue(text, text.contains(" (own <font color='#6BD56B'>0</font>)<br>To buy: "));
 		});
+	}
+
+	@Test
+	public void atlatlAddsOnlyTheStrengthBoost()
+	{
+		Map<Combat, List<Potion>> potions = new EnumMap<>(Combat.class);
+		potions.put(Combat.RANGED, Collections.singletonList(potion(2444, "ranging potion", "ranged")));
+		potions.put(Combat.MELEE, Arrays.asList(potion(2436, "super attack", "attack"),
+			potion(2440, "super strength", "strength")));
+		SearchResults results = TestResults.of(new Monster(), 100, Collections.emptyMap(), Collections.emptyList(),
+			Collections.emptyMap(), potions, false);
+		List<String> atlatl = new ArrayList<>();
+		ResultView.potionsFor(results, Style.Type.ATLATL, Combat.RANGED).forEach(p -> atlatl.add(p.getName()));
+		assertEquals(Arrays.asList("ranging potion", "super strength"), atlatl);
+		assertEquals(1, ResultView.potionsFor(results, Style.Type.RANGED, Combat.RANGED).size());
+	}
+
+	private static Potion potion(int id, String name, String skill)
+	{
+		Potion p = new Potion();
+		p.setId(id);
+		p.setName(name);
+		p.setSkill(skill);
+		return p;
 	}
 
 	private static JLabel label(JPanel box, String text)

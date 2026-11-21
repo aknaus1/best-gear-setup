@@ -585,16 +585,20 @@ class ResultView extends JPanel
 		return row;
 	}
 
-	/** Potions and hearts a setup in the selected tab assumes; the atlatl also uses the melee boosts. */
+	/** Potions and hearts a setup in the selected tab assumes; the atlatl also uses the Strength boost. */
 	private List<Potion> potionsFor(Setup setup)
 	{
-		List<Potion> potions = new ArrayList<>(results.getPotions().getOrDefault(setup.getCombatClass(),
-			Collections.emptyList()));
-		if (selectedType == Style.Type.ATLATL)
+		return potionsFor(results, selectedType, setup.getCombatClass());
+	}
+
+	static List<Potion> potionsFor(SearchResults results, Style.Type type, Combat cls)
+	{
+		List<Potion> potions = new ArrayList<>(results.getPotions().getOrDefault(cls, Collections.emptyList()));
+		if (type == Style.Type.ATLATL)
 		{
 			for (Potion p : results.getPotions().getOrDefault(Combat.MELEE, Collections.emptyList()))
 			{
-				if (potions.stream().noneMatch(x -> x.getId() == p.getId()))
+				if ("strength".equalsIgnoreCase(p.getSkill()) && potions.stream().noneMatch(x -> x.getId() == p.getId()))
 				{
 					potions.add(p);
 				}

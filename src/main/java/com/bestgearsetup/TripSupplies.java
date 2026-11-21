@@ -308,6 +308,15 @@ public final class TripSupplies
 			out.add(new Supply("Saradomin brew", brewIds, brews));
 	}
 
+	/** Whether {@code id} is one of the trip's one-bite foods. */
+	public static boolean isFood(int id)
+	{
+		for (JsonElement row : FOODS)
+			if (row.getAsJsonArray().get(1).getAsInt() == id)
+				return true;
+		return false;
+	}
+
 	/** The supplies by count and name, e.g. "2 Super combat potion, 3 Super restore". */
 	public static String summary(List<Supply> supplies)
 	{

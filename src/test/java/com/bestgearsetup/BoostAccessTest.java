@@ -4,8 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.calc.SearchMode;
+import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Potion;
@@ -14,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import net.runelite.api.gameval.ItemID;
@@ -37,6 +42,20 @@ public class BoostAccessTest
 		Predicate<Potion> boosts = BoostAccess.allowed(mode, expanded, true);
 		Potion p = PotionChoice.resolve(data, skill, 99, PotionChoice.BEST, boosts, null);
 		return p == null ? null : p.getName();
+	}
+
+	@Test
+	public void aCombatPotionIsKeptAsItsStrengthBoost()
+	{
+		Options config = mock(Options.class);
+		when(config.potionMelee()).thenReturn(PotionChoice.BEST);
+		Predicate<Potion> boosts = BoostAccess.allowed(SearchMode.OWNED_ONLY,
+			OwnedItems.expand(new HashSet<>(Collections.singletonList(ItemID._4DOSECOMBAT))), true);
+		List<Potion> melee = BestGearSetupPlugin.potionsUsed(data, PlayerLevels.builder().attack(99).strength(99).build(),
+			null, boosts, config).get(Combat.MELEE);
+		// One bottle boosts both, listed as the Strength boost the atlatl takes.
+		assertEquals(1, melee.size());
+		assertEquals("strength", melee.get(0).getSkill());
 	}
 
 	@Test

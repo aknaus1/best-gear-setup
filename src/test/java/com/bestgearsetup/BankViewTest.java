@@ -469,6 +469,26 @@ public class BankViewTest
 	}
 
 	@Test
+	public void spareFoodsShareOneRowUnderTheBoosts() throws Exception
+	{
+		Fixture bank = new Fixture(391, ItemID.SHARK, 11936, 7946);
+		bank.view.setSelection(setup(Slot.WEAPON, item(12926, 12924)), Collections.emptyList(), BestGearSetupBankView::itemIds,
+			Collections.singletonList(new TripSupplies.Supply("Manta ray",
+				Arrays.asList(391, ItemID.SHARK, 11936, 7946), 20)));
+		assertTrue(bank.view.show());
+		// The manta rays take the first inventory slot.
+		assertEquals(243, bank.items[4].value("OriginalX"));
+		assertEquals(0, bank.items[4].value("OriginalY"));
+		// The gear extra has its row; the three other foods share the next, unlike potion types.
+		assertEquals(288, bank.items[1].value("OriginalY"));
+		for (int i = 0; i < 3; i++)
+		{
+			assertEquals(324, bank.items[5 + i].value("OriginalY"));
+			assertEquals(51 + 48 * i, bank.items[5 + i].value("OriginalX"));
+		}
+	}
+
+	@Test
 	public void repeatedFoodFillsSpareSlotsWhoseClicksWithdrawFromTheRealStack() throws Exception
 	{
 		Fixture bank = new Fixture(ItemID.SHARK);
