@@ -217,7 +217,7 @@ public class TripSuppliesTest
 		IntPredicate owns = id -> id == ItemID.SHARK || id == ItemID.TBWT_COOKED_KARAMBWAN;
 		assertEquals("A non-boss hitting 0 needs no food", "", food("test monster", false, 0, "crush", owns));
 		assertEquals("A boss hitting 0 has missing data", "28 Shark", food("test monster", true, 0, "crush", owns));
-		assertEquals("28 Shark", food("test monster", false, 19, "crush", owns));
+		assertEquals("Without overhead advice its hits get through", "28 Shark", food("test monster", false, 19, "crush", owns));
 		assertEquals("21 Shark, 7 Cooked karambwan", food("test monster", false, 20, "crush", owns));
 		// Fire protection blocks dragonfire, so a 50 breath alone isn't a hard hit.
 		assertEquals("28 Shark", food("test monster", false, 50, "dragonfire", owns));
@@ -226,9 +226,10 @@ public class TripSuppliesTest
 	}
 
 	@Test
-	public void noFoodWhenProtectionBlocksEveryAttackOfAnOrdinaryTarget()
+	public void onlyEmergencyFoodWhenProtectionBlocksEveryAttackOfAnOrdinaryTarget()
 	{
 		IntPredicate owns = id -> id == ItemID.SHARK;
+		assertEquals(TripSupplies.EMERGENCY_FOOD + " Shark", food("chicken (normal)", false, 19, "crush", owns));
 		// A melee-only chicken's advice is Protect from Melee, which blocks all of an ordinary monster's damage.
 		assertFalse(packsFood("chicken (normal)", false, Combat.MELEE, Antifire.NONE, owns, "crush", 19));
 		// Magical melee is blocked by Protect from Melee too (Wiki: Magical melee).
@@ -243,7 +244,7 @@ public class TripSuppliesTest
 			PIETY, Collections.emptyMap(), false, Collections.emptyList(), false, false, Collections.emptyList(), null, null,
 			0, 99, 99, PlayerLevels.builder().prayer(42).build());
 		assertTrue(TripSupplies.summary(TripSupplies.plan(setup(5, 0), lowPrayer, Collections.emptyList(), 1, true, owns,
-			Antifire.NONE)).contains("Shark"));
+			Antifire.NONE)).contains("28 Shark"));
 	}
 
 	@Test
@@ -259,7 +260,7 @@ public class TripSuppliesTest
 		assertFalse(packsFood(steel, false, Combat.MELEE, Antifire.SUPER, owns, "slash", 22, "dragonfire", 50));
 	}
 
-	/** Whether a trip against {@code name}, with these attacks as name and max hit pairs, packs food. */
+	/** Whether a trip against {@code name}, with these attacks as name and max hit pairs, fills the inventory with food. */
 	private static boolean packsFood(String name, boolean boss, Combat cls, Antifire antifire, IntPredicate owns,
 		Object... attacks)
 	{
@@ -267,7 +268,7 @@ public class TripSuppliesTest
 		Setup melee = setup(5, 0);
 		Setup setup = new Setup(cls, melee.getLoadout(), melee.getDps(), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
 		return TripSupplies.plan(setup, results, Collections.emptyList(), 1, true, owns, antifire).stream()
-			.anyMatch(s -> s.getName().equals("Shark"));
+			.anyMatch(s -> s.getName().equals("Shark") && s.getCount() > TripSupplies.EMERGENCY_FOOD);
 	}
 
 	private static SearchResults target(String name, boolean boss, Object... attacks)
