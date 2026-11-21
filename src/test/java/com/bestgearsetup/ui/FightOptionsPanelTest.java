@@ -105,7 +105,12 @@ public class FightOptionsPanelTest
 			{
 				assertFalse(key, control(panel, key + "Row").isVisible());
 			}
+			assertTrue(control(panel, "killsPerTripRow").isVisible());
+			// One run is the trip in wave and challenge fights, and a raid hands out its own supplies.
+			panel.setTarget(target("tztok-jad"));
+			assertFalse(control(panel, "killsPerTripRow").isVisible());
 			panel.setTarget(target("kephri", "tombs of amascut"));
+			assertFalse(control(panel, "killsPerTripRow").isVisible());
 			assertTrue(control(panel, "raidScalingSection").getParent().isVisible());
 			assertTrue(control(panel, "toaRaidLevelRow").isVisible());
 			assertTrue(control(panel, "toaPathLevelRow").isVisible());
@@ -181,8 +186,8 @@ public class FightOptionsPanelTest
 			assertEquals(40, writes.get("specBgsDamage"));
 			assertEquals("Pre-fight preparation (3)", toggle.getText());
 			// Each card opens and collapses on its own; the buttons above them open or collapse them all.
-			assertFalse("Starts collapsed", control(panel, "fightConditionsContent").isVisible());
-			((JButton) control(panel, "fightConditionsToggle")).doClick();
+			assertTrue("Fight conditions start open", control(panel, "fightConditionsContent").isVisible());
+			assertFalse("Other cards start collapsed", control(panel, "raidScalingContent").isVisible());
 			toggle.doClick();
 			assertTrue(control(panel, "preparationContent").isVisible());
 			assertTrue("Fight conditions stay open", control(panel, "fightConditionsContent").isVisible());

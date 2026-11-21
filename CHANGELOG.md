@@ -5,6 +5,9 @@ is what the Plugin Hub shows.
 
 ## 1.1.4
 
+- **Kills per trip** no longer applies to the Fight Caves, Inferno, Fortis Colosseum, TzHaar-Ket-Rak's challenges
+  or the Gauntlet, where one run is the trip: their trip lines and supplies count one kill, and the setting is
+  hidden for them (and for raid targets, whose supplies come from the raid).
 - The Fractured Archive's bosses and Moia's undead binders now scale with **Raid party size**: a solo counts as
   a duo and a duo has 10% more than the listed hitpoints, as in the update posts, and three or more players
   have the listed hitpoints x (1.45 + 0.42 per player after the third), as on the Wiki's team-size tables. Set
@@ -42,10 +45,11 @@ is what the Plugin Hub shows.
   counts its own bites or sips.
 - Fill the trip's free inventory slots with the best food you own (sharks if none), with owned Saradomin brews
   (beside super restores) mixed in from four free slots, and owned cooked karambwans against targets hitting 20 or
-  more (dragonfire aside). No food against a target that can't hurt you: one that doesn't attack, or a non-boss
-  each of whose attacks hits 0 or is fully blocked, by the overhead its advice keeps up (magical and ranged melee
-  count as melee), by fire protection that takes dragonfire to 0 (a super antifire, or an antifire with a fire
-  shield or, but for metal dragons, Protect from Magic), or, for a metal dragon fought from range, by distance.
+  more (dragonfire aside). No food against a target that can't hurt you (one that doesn't attack, or whose every
+  attack hits 0), and just three emergency food against a non-boss whose every attack is fully blocked, by the
+  overhead its advice keeps up (magical and ranged melee count as melee), by fire protection that takes dragonfire
+  to 0 (a super antifire, or an antifire with a fire shield or, but for metal dragons, Protect from Magic), or, for
+  a metal dragon fought from range, by distance.
   The bank layout places the restores and food after the boosts and outlines them; up to three other owned foods
   are offered in the food's place. A two-handed spec weapon leaves a slot for the shield it takes off. Turn it off
   with **Fill inventory with food**.
@@ -81,8 +85,8 @@ is what the Plugin Hub shows.
 - The picked attack style tab stays selected when a Fight, Gear or Settings change recalculates the results; a new
   target or Find best setup opens on the best style again.
 - Every card in Fight and Gear now opens and collapses on its own, and they start collapsed with their counts
-  in the header. **Expand all** and **Collapse all** sit at the top of both views. Locking an item from a result
-  opens Locked items.
+  in the header, apart from Fight conditions, which starts open. **Expand all** and **Collapse all** sit at the
+  top of both views. Locking an item from a result opens Locked items.
 - The atlatl's boosts and trip supplies no longer include an Attack potion: it aims with Ranged and only its
   damage uses Strength, so only the Strength boost (or the combat potion or overload giving it) is shown.
 - The bank layout puts the other owned foods on one row under the boosts, instead of a row each.

@@ -245,7 +245,7 @@ class ResultView extends JPanel
 		boolean poweredStaff = selected.getCombatClass() == Combat.MAGIC && l.getSpell() == null;
 		JPanel stats = statsBox(d, thrallFor(selected), runes, plugin != null && plugin.isSunfireRunes(), poweredStaff);
 		if (plugin != null)
-			addTripLines(stats, selected, plugin.getKillsPerTrip(), supplies);
+			addTripLines(stats, selected, TripSupplies.kills(results.getMonster(), plugin.getKillsPerTrip()), supplies);
 		body.add(Sidebar.left(stats));
 		if (selected.getSpecial() != null)
 		{

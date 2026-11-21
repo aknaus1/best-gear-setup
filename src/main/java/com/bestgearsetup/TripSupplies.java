@@ -31,6 +31,8 @@ public final class TripSupplies
 	private static final Map<String, Integer> BOOST_DOSES = Names.exact("boost doses");
 	/** One-bite foods as [name, item id], best heal first. */
 	private static final JsonArray FOODS = Names.rows("trip foods");
+	/** Wave and challenge fights (Fight Caves, Inferno, Colosseum, Gauntlet), where one run is the trip. */
+	private static final Names.NameList ONE_RUN = Names.list("one-run fights");
 	public static final int INVENTORY_SLOTS = 28;
 	/** Fewest free slots that get a mix of foods; fewer hold the main food alone. */
 	static final int MIX_SLOTS = 4;
@@ -38,6 +40,8 @@ public final class TripSupplies
 	static final int MIX_SHARE = 4;
 	/** A max hit from which karambwans are mixed in for combo eating: one hit can outdo a shark's 20 healing. */
 	static final int COMBO_MAX_HIT = 20;
+	/** Food packed in case of a mistake when protection blocks every attack, instead of filling the inventory. */
+	static final int EMERGENCY_FOOD = 3;
 	/** Attack styles a protection from melee blocks, magical and ranged melee included (Wiki). */
 	private static final Set<String> MELEE_STYLES = new HashSet<>(Arrays.asList("crush", "slash", "stab", "melee",
 		"magical melee", "ranged melee"));
@@ -55,6 +59,18 @@ public final class TripSupplies
 		String name;
 		List<Integer> ids;
 		int count;
+	}
+
+	/** Whether {@code monster} is fought in a wave or challenge run, which Kills per trip doesn't repeat. */
+	public static boolean oneRun(Monster monster)
+	{
+		return monster != null && ONE_RUN.matches(monster.getLowerName());
+	}
+
+	/** The Kills per trip setting for {@code monster}: 1 for a {@link #oneRun} fight. */
+	public static int kills(Monster monster, int setting)
+	{
+		return oneRun(monster) ? 1 : setting;
 	}
 
 	/** Seconds one kill takes: the target's hitpoints over the setup's DPS; infinite when it deals no damage. */
@@ -115,6 +131,7 @@ public final class TripSupplies
 		if (setup == null || results.getMonster() == null || RaidScaling.raid(results.getMonster()) != RaidScaling.Raid.NONE)
 			return out;
 		PlayerLevels levels = results.getLevels() == null ? PlayerLevels.maxed() : results.getLevels();
+		kills = kills(results.getMonster(), kills);
 		double seconds = killSeconds(setup, results) * kills;
 		for (Potion potion : potions)
 			if (takes(potion, results.getMonster()))
@@ -136,8 +153,9 @@ public final class TripSupplies
 			out.add(new Supply("Anti-venom+", doses(ItemID.ANTIVENOM_4, ItemID.ANTIVENOM4), 1));
 		else if ("poison".equals(poisons))
 			out.add(new Supply("Superantipoison", doses(ItemID._4DOSE2ANTIPOISON, ItemID.ANTIDOTE__4, ItemID.ANTIVENOM_4), 1));
-		if (food && needsFood(results.getMonster(), setup, antifire, levels))
-			addFood(out, INVENTORY_SLOTS - usedSlots(setup, out), owns, maxHit(results.getMonster()) >= COMBO_MAX_HIT);
+		if (food)
+			addFood(out, foodSlots(results.getMonster(), setup, antifire, levels, INVENTORY_SLOTS - usedSlots(setup, out)),
+				owns, maxHit(results.getMonster()) >= COMBO_MAX_HIT);
 		return out;
 	}
 
@@ -150,37 +168,40 @@ public final class TripSupplies
 	}
 
 	/**
-	 * Whether the trip needs food: false when the target can't hurt you through your protection. That's a target whose
-	 * advice says it doesn't attack, or an ordinary target (not a boss) each of whose attacks hits 0 or is blocked: a
+	 * Food slots of the {@code free} ones: none against a target that can't hurt you (its advice says it doesn't attack,
+	 * or every attack hits 0), {@link #EMERGENCY_FOOD} when your protection blocks it: an ordinary target (not a boss)
+	 * each of whose attacks hits 0 or is blocked: a
 	 * melee, magic or ranged attack by the one overhead its advice keeps up (it blocks all of an ordinary monster's
 	 * damage, Wiki: Protect from Melee; magical and ranged melee count as melee, magical ranged as ranged), dragonfire by
 	 * full fire protection ({@link DragonfireProtection#blocksBreath}), and a metal dragon's melee by standing at range.
-	 * A boss, a typeless or unknown attack, a switching fight or missing data keeps the food.
+	 * A boss, a typeless or unknown attack, a switching fight or missing data fills them all.
 	 */
-	static boolean needsFood(Monster monster, Setup setup, Antifire antifire, PlayerLevels levels)
+	static int foodSlots(Monster monster, Setup setup, Antifire antifire, PlayerLevels levels, int free)
 	{
 		Overheads.Advice advice = Overheads.recommend(monster, setup.getCombatClass());
 		if (advice != null && advice.getNote().startsWith("It doesn't attack"))
-			return false;
+			return 0;
 		Map<String, Monster.MonsterAttack> attacks = monster.getAttackStyles();
 		if (monster.isBoss() || attacks == null || attacks.isEmpty())
-			return true;
+			return free;
 		Overheads.Overhead prayer = advice == null || advice.isSwitching() || advice.getPrayer() == null
 			|| advice.getPrayer().getLevel() > levels.getPrayer() ? null : advice.getPrayer();
 		boolean distant = setup.getCombatClass() != Combat.MELEE && DragonfireProtection.keepsDistance(monster);
+		boolean hits = false;
 		for (Map.Entry<String, Monster.MonsterAttack> attack : attacks.entrySet())
 		{
 			String style = attack.getKey();
 			Overheads.Overhead blocker = MELEE_STYLES.contains(style) ? Overheads.Overhead.MELEE
 				: style.equals("magic") ? Overheads.Overhead.MAGIC
 				: style.equals("ranged") || style.equals("magical ranged") ? Overheads.Overhead.MISSILES : null;
+			hits |= attack.getValue().getMaxHit() > 0;
 			boolean blocked = attack.getValue().getMaxHit() <= 0 || !attack.getValue().isTypeless()
 				&& (style.equals("dragonfire") ? DragonfireProtection.blocksBreath(monster, setup.getLoadout(), antifire,
 					prayer == Overheads.Overhead.MAGIC) : blocker == Overheads.Overhead.MELEE && distant || blocker != null && blocker == prayer);
 			if (!blocked)
-				return true;
+				return free;
 		}
-		return false;
+		return hits ? Math.min(free, EMERGENCY_FOOD) : 0;
 	}
 
 	/**
