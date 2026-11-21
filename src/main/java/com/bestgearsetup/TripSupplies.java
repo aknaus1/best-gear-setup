@@ -31,6 +31,8 @@ public final class TripSupplies
 	private static final Map<String, Integer> BOOST_DOSES = Names.exact("boost doses");
 	/** One-bite foods as [name, item id], best heal first. */
 	private static final JsonArray FOODS = Names.rows("trip foods");
+	/** Wave and challenge fights (Fight Caves, Inferno, Colosseum, Gauntlet), where one run is the trip. */
+	private static final Names.NameList ONE_RUN = Names.list("one-run fights");
 	public static final int INVENTORY_SLOTS = 28;
 	/** Fewest free slots that get a mix of foods; fewer hold the main food alone. */
 	static final int MIX_SLOTS = 4;
@@ -55,6 +57,18 @@ public final class TripSupplies
 		String name;
 		List<Integer> ids;
 		int count;
+	}
+
+	/** Whether {@code monster} is fought in a wave or challenge run, which Kills per trip doesn't repeat. */
+	public static boolean oneRun(Monster monster)
+	{
+		return monster != null && ONE_RUN.matches(monster.getLowerName());
+	}
+
+	/** The Kills per trip setting for {@code monster}: 1 for a {@link #oneRun} fight. */
+	public static int kills(Monster monster, int setting)
+	{
+		return oneRun(monster) ? 1 : setting;
 	}
 
 	/** Seconds one kill takes: the target's hitpoints over the setup's DPS; infinite when it deals no damage. */
@@ -115,6 +129,7 @@ public final class TripSupplies
 		if (setup == null || results.getMonster() == null || RaidScaling.raid(results.getMonster()) != RaidScaling.Raid.NONE)
 			return out;
 		PlayerLevels levels = results.getLevels() == null ? PlayerLevels.maxed() : results.getLevels();
+		kills = kills(results.getMonster(), kills);
 		double seconds = killSeconds(setup, results) * kills;
 		for (Potion potion : potions)
 			if (takes(potion, results.getMonster()))

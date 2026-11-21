@@ -97,6 +97,7 @@
 
   "karuulm monsters": ["hydra (*)", "colossal hydra (*)", "alchemical hydra (*)", "drake (*)", "guardian drake (*)", "sulphur lizard (*)"],
   "thrall-restricted fights": ["galvek (*)", "robert the strong (*)", "vanstrom klause (*)", "fragment of seren (*)", "lowerniel drakan (*)", "* (nightmare zone)*"],
+  "one-run fights": ["tz-kih", "tz-kek (*)", "tok-xil (standard)", "tok-xil (spawn point)", "yt-mejkot (*)", "ket-zek (*)", "yt-hurkot (*)", "tztok-jad (*)", "tztok-jad-rek", "jal-*", "jaltok-jad", "tzkal-zuk (*)", "sol heredit (*)", "javelin colossus", "shockwave colossus", "manticore", "minotaur (fortis colosseum)", "serpent shaman", "fremennik warband *", "jaguar warrior (*)", "crystalline *", "corrupted *"],
   "wyrms": ["wyrm (*)", "shadow wyrm (*)"],
   "slayer equipment": [
     {"slot": "HEAD", "items": "a facemask or slayer helmet",

@@ -182,6 +182,35 @@ public class TripSuppliesTest
 	}
 
 	@Test
+	public void oneRunFightsIgnoreKillsPerTrip()
+	{
+		SearchResults vorkath = results(100, PIETY);
+		assertEquals(10, TripSupplies.kills(vorkath.getMonster(), 10));
+		for (String name : Arrays.asList("tztok-jad", "tzkal-zuk (normal)", "jal-nib", "sol heredit", "javelin colossus",
+			"minotaur (fortis colosseum)", "jaguar warrior", "crystalline hunllef", "corrupted hunllef", "tztok-jad-rek",
+			"yt-hurkot (level 108)"))
+		{
+			Monster monster = new Monster();
+			monster.setName(name);
+			assertEquals(name, 1, TripSupplies.kills(monster, 10));
+		}
+		// City TzHaar and Player-owned house monsters are fought on ordinary trips.
+		for (String name : Arrays.asList("tzhaar-ket (level 149)", "tok-xil (construction)", "minotaur (level 27)"))
+		{
+			Monster monster = new Monster();
+			monster.setName(name);
+			assertEquals(name, 10, TripSupplies.kills(monster, 10));
+		}
+		// A Jad trip plans restores for one kill however many kills per trip are set.
+		SearchResults jad = results(100, PIETY);
+		jad.getMonster().setName("tztok-jad");
+		assertEquals(TripSupplies.summary(TripSupplies.plan(setup(5, 0), jad, Collections.emptyList(), 1, false, id -> false, Antifire.NONE)),
+			TripSupplies.summary(TripSupplies.plan(setup(5, 0), jad, Collections.emptyList(), 50, false, id -> false, Antifire.NONE)));
+		assertFalse(TripSupplies.summary(TripSupplies.plan(setup(5, 0), vorkath, Collections.emptyList(), 1, false, id -> false, Antifire.NONE))
+			.equals(TripSupplies.summary(TripSupplies.plan(setup(5, 0), vorkath, Collections.emptyList(), 50, false, id -> false, Antifire.NONE))));
+	}
+
+	@Test
 	public void foodFillsTheSlotsTheBottlesLeave()
 	{
 		// One restore bottle leaves 27 slots: sharks when no listed food is owned.
