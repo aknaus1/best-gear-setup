@@ -5,6 +5,9 @@ is what the Plugin Hub shows.
 
 ## 1.1.4
 
+- **Kills per trip** no longer applies to the Fight Caves, Inferno, Fortis Colosseum, TzHaar-Ket-Rak's challenges
+  or the Gauntlet, where one run is the trip: their trip lines and supplies count one kill, and the setting is
+  hidden for them (and for raid targets, whose supplies come from the raid).
 - The Fractured Archive's bosses and Moia's undead binders now scale with **Raid party size**: a solo counts as
   a duo and a duo has 10% more than the listed hitpoints, as in the update posts, and three or more players
   have the listed hitpoints x (1.45 + 0.42 per player after the third), as on the Wiki's team-size tables. Set

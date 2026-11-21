@@ -1,7 +1,6 @@
 package com.bestgearsetup.ui;
 
-import com.bestgearsetup.Options;
-import com.bestgearsetup.BestGearSetupPlugin;
+import com.bestgearsetup.*;
 import com.bestgearsetup.calc.RaidScaling;
 import com.bestgearsetup.calc.WildernessTargets;
 import com.bestgearsetup.data.Monster;
@@ -91,6 +90,7 @@ class FightOptionsPanel extends JPanel
 		settingRows.row("toaPathLevel").setVisible(raid == RaidScaling.Raid.TOA && RaidScaling.toaPath(target));
 		settingRows.row("coxChallengeMode").setVisible(raid == RaidScaling.Raid.COX);
 		settingRows.row("miningLevel").setVisible(raid == RaidScaling.Raid.COX && target.getName().contains("guardian"));
+		settingRows.row("killsPerTrip").setVisible(raid == RaidScaling.Raid.NONE && !TripSupplies.oneRun(target));
 		settingRows.row("aoeTargets").setVisible(selected("aoe"));
 		settingRows.row("limitWildernessRisk").setVisible(selected("wilderness"));
 		boolean riskLimited = selected("wilderness") && selected("limitWildernessRisk");

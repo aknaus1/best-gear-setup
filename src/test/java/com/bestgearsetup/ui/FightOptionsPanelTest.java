@@ -105,7 +105,12 @@ public class FightOptionsPanelTest
 			{
 				assertFalse(key, control(panel, key + "Row").isVisible());
 			}
+			assertTrue(control(panel, "killsPerTripRow").isVisible());
+			// One run is the trip in wave and challenge fights, and a raid hands out its own supplies.
+			panel.setTarget(target("tztok-jad"));
+			assertFalse(control(panel, "killsPerTripRow").isVisible());
 			panel.setTarget(target("kephri", "tombs of amascut"));
+			assertFalse(control(panel, "killsPerTripRow").isVisible());
 			assertTrue(control(panel, "raidScalingSection").getParent().isVisible());
 			assertTrue(control(panel, "toaRaidLevelRow").isVisible());
 			assertTrue(control(panel, "toaPathLevelRow").isVisible());
