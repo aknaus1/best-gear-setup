@@ -39,6 +39,7 @@ class FightOptionsPanel extends JPanel
 		addRows(conditions, "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
 			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "killsPerTrip");
 		wildernessTip = control("wilderness").getToolTipText();
+		conditions.setExpanded(true);
 		add(Sidebar.left(conditions));
 		raidSection = accordion.create("raidScaling", "Raid scaling");
 		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel");
