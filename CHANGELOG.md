@@ -90,6 +90,8 @@ is what the Plugin Hub shows.
 - The atlatl's boosts and trip supplies no longer include an Attack potion: it aims with Ranged and only its
   damage uses Strength, so only the Strength boost (or the combat potion or overload giving it) is shown.
 - The bank layout puts the other owned foods on one row under the boosts, instead of a row each.
+- Searching a target again with unchanged gear and settings now returns at once, and turning attack styles on or
+  off reuses the styles already searched.
 
 ## 1.1.3 (2026-11-10)
 

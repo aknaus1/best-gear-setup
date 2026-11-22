@@ -75,7 +75,7 @@ public class BestGearSetupPlugin extends Plugin
 	private ConfigManager configManager;
 
 	@Inject
-	private GameDataLoader api;
+	GameDataLoader api;
 
 	/** The client's Gson; Plugin Hub builds reject plugins that create their own. */
 	@Inject
@@ -138,6 +138,14 @@ public class BestGearSetupPlugin extends Plugin
 	volatile Summary lastSearched;
 	/** Equipment ids and their variants: the only ownership changes that can alter a result. */
 	volatile Set<Integer> gearIds = Collections.emptySet();
+	/**
+	 * Each style tab's setups by {@link SearchInputs}: repeating a search, toggling a style or rerunning after a
+	 * presentation change reuses the tabs whose inputs are unchanged. An entry is its key's small parts and at most
+	 * a few setups of catalogue items, a few KB; the large parts (prices, owned gear) are one copy per content (see
+	 * {@link SearchInputs#SHARED}). 64 tabs is about ten searches of every style: normally under a megabyte, and
+	 * only if every entry were searched under different Grand Exchange prices would each pin its own price map.
+	 */
+	final SearchCache<SearchInputs, List<Setup>> tabCache = new SearchCache<>(64);
 	/** Last levels written to the profile; client thread only. */
 	private String lastRememberedLevels;
 	/** Ownership the latest search was computed with; null when no results depend on it. */
@@ -243,6 +251,9 @@ public class BestGearSetupPlugin extends Plugin
 	{
 		lifecycle.incrementAndGet();
 		searchGeneration.incrementAndGet();
+		// Release the setups (and through them the catalogue) and stop running searches from storing more.
+		tabCache.clear();
+		SearchInputs.SHARED.clear();
 		overlayManager.remove(bankOverlay);
 		overlayManager.remove(inventoryOverlay);
 		eventBus.unregister(bankView);
@@ -353,6 +364,8 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				if (life == lifecycle.get())
 				{
+					// Searches of the earlier catalogue can no longer read or store tabs (see findBestSetup).
+					tabCache.clear();
 					gameData = data;
 					gearIds = gear;
 					consumableIds = consumables;
@@ -645,6 +658,7 @@ public class BestGearSetupPlugin extends Plugin
 	public void onRuneScapeProfileChanged(RuneScapeProfileChanged event)
 	{
 		int generation = searchGeneration.incrementAndGet();
+		tabCache.clear();
 		setBankHighlightedSetup(null);
 		if (search != null)
 		{
@@ -785,6 +799,9 @@ public class BestGearSetupPlugin extends Plugin
 	public void findBestSetup(Summary summary)
 	{
 		GameData data = gameData;
+		// Read with the data, on the Swing thread that publishes new data: a search of an earlier catalogue can
+		// then never store under a newer one.
+		long epoch = tabCache.epoch();
 		if (data == null || executor == null)
 		{
 			return;
@@ -893,7 +910,7 @@ public class BestGearSetupPlugin extends Plugin
 			Boolean eliteDiary = kourendElite == null && ownedItems.snapshot().contains(ItemID.ZEAH_BLESSING_ELITE)
 				? Boolean.TRUE : kourendElite;
 			search = executor.submit(() -> runSearch(data, summary, levels, rememberedLevels, prayerUnlocks,
-				eliteDiary, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes));
+				eliteDiary, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes, epoch));
 		});
 	}
 
@@ -1015,9 +1032,9 @@ public class BestGearSetupPlugin extends Plugin
 			PrayerUnlocks.CONFIG_KEY));
 	}
 
-	private void runSearch(GameData data, Summary summary, PlayerLevels knownLevels, boolean rememberedLevels,
+	void runSearch(GameData data, Summary summary, PlayerLevels knownLevels, boolean rememberedLevels,
 		Set<String> prayerUnlocks, Boolean kourendElite, boolean karuulmDungeon, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
-		Map<Integer, Long> quantities, int generation, Options config, LiveRaid liveRaid, List<String> detectedNotes)
+		Map<Integer, Long> quantities, int generation, Options config, LiveRaid liveRaid, List<String> detectedNotes, long epoch)
 	{
 		try
 		{
@@ -1074,14 +1091,19 @@ public class BestGearSetupPlugin extends Plugin
 			BooleanSupplier cancelled = () -> generation != searchGeneration.get();
 			SearchProgress progress = new SearchProgress(types.size(),
 				percent -> onPanel(generation, p -> p.showProgress(percent)));
+			// Built here, off the client thread; everything after the tabs (notes, locks, warnings) runs every time.
+			SearchInputs inputs = SearchInputs.of(data, summary.getName(), levels, boosted, prayerUnlocks, eliteDiary,
+				karuulmDungeon, mining, liveRaid.maxCombat, quotes, owned, quantities, config);
 			List<List<Setup>> tabs = new ArrayList<>();
 			for (int i = 0; i < types.size() && !cancelled.getAsBoolean(); i++)
 			{
 				int tab = i;
 				Style.Type type = types.get(i);
 				OptimizerSettings typeSettings = settings.toBuilder().styles(EnumSet.of(type)).build();
-				tabs.add(new Optimizer(data, ctx, typeSettings, owned::contains, id -> quantities.getOrDefault(id, 0L),
-					item -> price(quotes, item)).optimize(classOf(type), cancelled, done -> progress.update(tab, done)));
+				DoubleConsumer done = fraction -> progress.update(tab, fraction);
+				tabs.add(searchTab(inputs.tab(type), epoch, cancelled, done, () -> new Optimizer(data, ctx, typeSettings,
+					owned::contains, id -> quantities.getOrDefault(id, 0L), item -> price(quotes, item))
+					.optimize(classOf(type), cancelled, done)));
 			}
 			if (cancelled.getAsBoolean())
 			{
@@ -1149,6 +1171,29 @@ public class BestGearSetupPlugin extends Plugin
 				p.showError("Search failed: " + e.getMessage());
 			});
 		}
+	}
+
+	/**
+	 * One style tab's setups: those remembered for these inputs, else a new search's. A search is remembered only if
+	 * it was never cancelled (the generation only moves on, so not cancelled now means not cancelled while it ran):
+	 * a cancelled optimiser can return a partial list. Shared lists are read-only, and nothing changes a returned
+	 * setup or needs the optimiser that found it.
+	 */
+	List<Setup> searchTab(SearchInputs key, long epoch, BooleanSupplier cancelled, DoubleConsumer progress,
+		Supplier<List<Setup>> search)
+	{
+		List<Setup> found = tabCache.get(key, epoch);
+		if (found != null)
+		{
+			progress.accept(1);
+			return found;
+		}
+		found = Collections.unmodifiableList(search.get());
+		if (!cancelled.getAsBoolean())
+		{
+			tabCache.put(key, found, epoch);
+		}
+		return found;
 	}
 
 	/** Clear the bank highlights, or publish a setup without its boosts. */
@@ -1403,8 +1448,9 @@ public class BestGearSetupPlugin extends Plugin
 			.requireFireProtection(config.requireFireProtection())
 			.antifire(config.antifire())
 			.protectMagic(config.protectMagic())
-			.locks(getLocks())
-			.excluded(getExcluded())
+			// The search's own snapshot, not the live settings, which can change while it waits to run.
+			.locks(SlotLock.parse(config.locks()))
+			.excluded(excluded(config))
 			.build();
 	}
 
@@ -1569,8 +1615,9 @@ public class BestGearSetupPlugin extends Plugin
 			notes.add(String.format("After specials: Magic %d -> %d, magic defence %d -> %d.",
 				base.getMagicLevel(), drained.getMagicLevel(), base.getDefMagic(), drained.getDefMagic()));
 		}
-		int locks = getLocks().size();
-		int excluded = getExcluded().size();
+		// The search's own snapshot, matching the setups (see buildSettings).
+		int locks = settings.getLocks().size();
+		int excluded = settings.getExcluded().size();
 		if (locks > 0 || excluded > 0)
 		{
 			notes.add(locks + " slot lock(s), " + excluded + " excluded item(s)");
@@ -1737,6 +1784,11 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	public Set<Integer> getExcluded()
+	{
+		return excluded(config);
+	}
+
+	private static Set<Integer> excluded(Options config)
 	{
 		Set<Integer> ids = new LinkedHashSet<>();
 		for (String part : config.excluded().split(","))
