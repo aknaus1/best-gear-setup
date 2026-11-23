@@ -111,16 +111,16 @@ public final class RaidScaling
 
 	/**
 	 * The Fractured Archive's boss hitpoints. The raid scales for two to eight players and a solo raid uses duo
-	 * scaling ("Everything You Need To Know", 2026-10-06). The listed hitpoints are the solo/duo base, which the
-	 * 2026-11-11 update ("Quest Month: Week Two & TFA Changes") raised by 10% for solos and duos only. Three or more
-	 * players have base x (1.45 + 0.42 per player above three), in permille below, rounded to the nearest 10 (an
-	 * add's hitpoints to the nearest 1). That multiplier is fitted to the bosses' Wiki team-size tables, which no
-	 * post states; the tables list a solo at the base, but the posts say a solo uses duo scaling.
+	 * scaling ("Everything You Need To Know", 2026-10-06). The listed hitpoints are the solo/duo hitpoints: the
+	 * 2026-11-11 update's 10% duo increase was reverted on 2026-11-18 ("Quest Month Week 3 & TFA Practice Mode").
+	 * Three or more players have base x (1.45 + 0.42 per player above three), in permille below, rounded to the
+	 * nearest 10 (an add's hitpoints to the nearest 1). That multiplier is fitted to the bosses' Wiki team-size
+	 * tables, which no post states.
 	 */
 	private static void tfa(Monster m, Settings s)
 	{
 		int party = clamp(s.getPartySize(), 2, 8);
-		int permille = party == 2 ? 1100 : 1450 + 420 * (party - 3);
+		int permille = party == 2 ? 1000 : 1450 + 420 * (party - 3);
 		int step = m.hasAttribute("boss") ? 10 : 1;
 		m.setHitpoints((m.getHitpoints() * permille + 500 * step) / (1000 * step) * step);
 	}

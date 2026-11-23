@@ -201,13 +201,13 @@ public class RaidScalingTest
 	}
 
 	@Test
-	public void tfaSoloAndDuoBossesHaveTenPercentMoreThanTheirListedBase()
+	public void tfaSoloAndDuoBossesHaveTheirListedHitpoints()
 	{
-		// Xarth's Wiki table after the 2026-11-11 update: 2,450 listed, 2,700 in a duo (2,695 to the nearest 10).
+		// Xarth's Wiki table after the 2026-11-18 revert of the duo increase: 2,450 solo and duo.
 		Monster xarth = tfa("xarth", 2450, "boss");
 		assertEquals(RaidScaling.Raid.TFA, RaidScaling.raid(xarth));
-		assertEquals(2700, RaidScaling.apply(xarth, party(2).build()).getHitpoints());
-		assertEquals("A solo raid uses duo scaling", 2700, RaidScaling.apply(xarth, party(1).build()).getHitpoints());
+		assertEquals(2450, RaidScaling.apply(xarth, party(2).build()).getHitpoints());
+		assertEquals("A solo raid uses duo scaling", 2450, RaidScaling.apply(xarth, party(1).build()).getHitpoints());
 		assertEquals(2450, xarth.getHitpoints());
 	}
 
@@ -225,8 +225,9 @@ public class RaidScalingTest
 		Monster ocellus = tfa("ocellus (phase 3)", 5250, "boss");
 		assertEquals(7610, RaidScaling.apply(ocellus, party(3).build()).getHitpoints());
 		assertEquals(18640, RaidScaling.apply(ocellus, party(12).build()).getHitpoints());
-		// The flying Archive Guardian: 550 x 1.1 = 605, rounded up to 610.
-		assertEquals(610, RaidScaling.apply(tfa("archive guardian (flying)", 550, "boss"), party(2).build()).getHitpoints());
+		// The flying Archive Guardian: 550 in a duo, 800 in a trio (797.5 to the nearest 10).
+		assertEquals(550, RaidScaling.apply(tfa("archive guardian (flying)", 550, "boss"), party(2).build()).getHitpoints());
+		assertEquals(800, RaidScaling.apply(tfa("archive guardian (flying)", 550, "boss"), party(3).build()).getHitpoints());
 		// The Wiki's trio rows already on the 11 November bases: Bork 1,650 -> 2,390, the Smorks 650 -> 940.
 		assertEquals(2390, RaidScaling.apply(tfa("bork", 1650, "boss"), party(3).build()).getHitpoints());
 		assertEquals(940, RaidScaling.apply(tfa("the smorks", 650, "boss"), party(3).build()).getHitpoints());
@@ -239,12 +240,12 @@ public class RaidScalingTest
 		assertEquals(RaidScaling.Raid.NONE, RaidScaling.raid(jelly));
 		assertEquals(61, RaidScaling.apply(jelly, party(5).build()).getHitpoints());
 		assertNull(RaidScaling.describe(jelly, jelly, party(5).build()));
-		// 95 x 1.1 = 104.5: adds round to the nearest hitpoint, not 10.
-		assertEquals(105, RaidScaling.apply(tfa("undead binder", 95), party(2).build()).getHitpoints());
+		// 95 x 1.45 = 137.75: adds round to the nearest hitpoint, not 10.
+		assertEquals(138, RaidScaling.apply(tfa("undead binder", 95), party(3).build()).getHitpoints());
 		Monster blade = tfa("ocellus (phase 2)", 1000, "boss");
 		assertEquals(1000, RaidScaling.apply(blade, party(4).build()).getHitpoints());
 		Monster bork = tfa("bork", 1650, "boss");
-		assertEquals("TFA HP scaling: party 1 (a solo counts as 2); HP 1650 -> 1820.",
+		assertEquals("TFA HP scaling: party 1 (a solo counts as 2); HP 1650 -> 1650.",
 			RaidScaling.describe(bork, RaidScaling.apply(bork, party(1).build()), party(1).build()));
 		assertEquals("TFA HP scaling: party 3; HP 1650 -> 2390.",
 			RaidScaling.describe(bork, RaidScaling.apply(bork, party(3).build()), party(3).build()));
