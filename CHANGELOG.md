@@ -3,7 +3,7 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
-## 1.1.4
+## 1.1.4 (2026-11-23)
 
 - **Kills per trip** no longer applies to the Fight Caves, Inferno, Fortis Colosseum, TzHaar-Ket-Rak's challenges
   or the Gauntlet, where one run is the trip: their trip lines and supplies count one kill, and the setting is
