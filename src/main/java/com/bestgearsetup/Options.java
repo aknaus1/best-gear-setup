@@ -15,6 +15,9 @@ public interface Options extends Config
 	String BOSSES_ONLY_KEY = "bossesOnly";
 	String PHASE_KEY = "encounterPhase";
 	String POTION_KEY_PREFIX = "potion";
+	/** Pre-fight drains, counted in Fight's collapsed section heading when any is set. */
+	String[] PREPARATION = {"specVulnerability", "specTomeOfWater", "specElderMaul", "specDwh",
+		"specEmberlight", "specArclight", "specTonalztics", "specBgsDamage", "specSeercullDamage", "specAyakDamage"};
 	String LOCKS_KEY = "locks";
 	String EXCLUDED_KEY = "excluded";
 	String BLOCKED_SPELLS_KEY = "blockedSpells";
@@ -243,6 +246,14 @@ public interface Options extends Config
 		return value("killsPerTrip", 1);
 	}
 
+	@ConfigItem(keyName = "fightSwitchSlots", name = "Fight switches", hidden = true,
+		description = "Full-fight switch items to carry; 0 plans one setup")
+	@Range(max = 27)
+	default int fightSwitchSlots()
+	{
+		return value("fightSwitchSlots", 8);
+	}
+
 	@ConfigItem(keyName = "currentHitpoints", name = "Your HP (0 = full)", hidden = true,
 		description = "HP for Dharok and ruby bolts; 0 is full")
 	@Range(max = 99)
@@ -361,8 +372,8 @@ public interface Options extends Config
 		return value("miningLevel", 0);
 	}
 
-	@ConfigItem(keyName = "raidPartySize", name = "Raid party size", hidden = true,
-		description = "Players in the raid; scales boss HP and levels")
+	@ConfigItem(keyName = "raidPartySize", name = "Party size", hidden = true,
+		description = "Raid or team players; scales boss HP and levels")
 	@Range(min = 1, max = 100)
 	default int raidPartySize()
 	{

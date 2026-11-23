@@ -50,6 +50,30 @@ public class BankHighlightTest
 		assertTrue(plugin.getBankHighlightIds().isEmpty());
 	}
 
+	/** A full fight's kit owns the bank: the result view's setups don't replace it until it is released. */
+	@Test
+	public void aFightKitHoldsTheBankUntilReleased()
+	{
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
+		Outfit worn = new Outfit();
+		worn.set(Slot.WEAPON, item(12926));
+		Setup ranged = new Setup(Combat.RANGED, worn, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
+		plugin.showFightKit(new TripSupplies.Kit(ranged, java.util.Collections.singletonList(item(12899)), 0,
+			java.util.Collections.emptyList(), java.util.Collections.emptyList()), java.util.Collections.emptyList(),
+			java.util.Collections.emptyList());
+		Set<Integer> kit = plugin.getBankHighlightIds();
+		assertEquals(new HashSet<>(Arrays.asList(12926, 12899)), kit);
+		Outfit melee = new Outfit();
+		melee.set(Slot.WEAPON, item(4151));
+		Setup whip = new Setup(Combat.MELEE, melee, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null);
+		plugin.setBankHighlightedSetup(whip);
+		assertEquals(kit, plugin.getBankHighlightIds());
+		plugin.showFightKit(null, null, null);
+		assertTrue(plugin.getBankHighlightIds().isEmpty());
+		plugin.setBankHighlightedSetup(whip);
+		assertEquals(new HashSet<>(Arrays.asList(4151)), plugin.getBankHighlightIds());
+	}
+
 	@Test(expected = UnsupportedOperationException.class)
 	public void rendererCannotMutateTheSelection()
 	{

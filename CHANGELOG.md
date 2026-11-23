@@ -5,6 +5,17 @@ is what the Plugin Hub shows.
 
 ## 1.1.4
 
+- Bosses with several phases or targets (Zulrah, Alchemical Hydra, Vorkath and ten more) also show a **Full
+  fight** plan above the style tabs: one worn setup, up to **Fight switches** inventory items (default 8; 0 plans
+  one setup) and the setup for each phase, for the least total time. The plan includes special attacks: up to two
+  spec weapons in the slots they need, which targets to use them on and how often within one fight's energy
+  (following **Spec energy**), with Defence drains lasting over a shared health bar. Each target uses its own
+  slayer task, and The Nightmare's work follows **Party size**.
+- The **Full fight** card steps through the fight: click a phase or ◀ ▶ to show that target's style tabs (from the
+  cache), and click a style tab to pick that phase's style. The plan is made again around the picks; a pick that
+  can't be used (another style's switch that doesn't fit **Fight switches**) says so on its row. While the plan is
+  shown, the bank layout holds the whole fight's kit: the worn setup, the carried switches and spec weapons, room for
+  the items they take off, runes for every spell used, boosts for each style and the trip's supplies.
 - **Kills per trip** no longer applies to the Fight Caves, Inferno, Fortis Colosseum, TzHaar-Ket-Rak's challenges
   or the Gauntlet, where one run is the trip: their trip lines and supplies count one kill, and the setting is
   hidden for them (and for raid targets, whose supplies come from the raid).

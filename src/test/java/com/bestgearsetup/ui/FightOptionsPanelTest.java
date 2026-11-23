@@ -106,6 +106,12 @@ public class FightOptionsPanelTest
 				assertFalse(key, control(panel, key + "Row").isVisible());
 			}
 			assertTrue(control(panel, "killsPerTripRow").isVisible());
+			// A team fight's work follows the party size.
+			panel.setTarget(target("the nightmare"));
+			assertTrue(control(panel, "raidPartySizeRow").isVisible());
+			assertTrue(control(panel, "raidScalingSection").getParent().isVisible());
+			panel.setTarget(target("zulrah (magma)"));
+			assertFalse(control(panel, "raidPartySizeRow").isVisible());
 			// One run is the trip in wave and challenge fights, and a raid hands out its own supplies.
 			panel.setTarget(target("tztok-jad"));
 			assertFalse(control(panel, "killsPerTripRow").isVisible());

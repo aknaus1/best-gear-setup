@@ -1190,7 +1190,7 @@ public class Optimizer
 	}
 
 	/** Mandatory protection and, when required, an ammunition recovery cape are enforced throughout the search. */
-	private boolean protectedSetup(Outfit l)
+	public boolean protectedSetup(Outfit l)
 	{
 		return protectedEquipment(l)
 			&& (!recoveryRequired() || l.getStyle() == null
@@ -1199,7 +1199,7 @@ public class Optimizer
 	}
 
 	/** Special switches must meet the equipment protection rules, but keep the worn cape: no recovery cape is required. */
-	private boolean protectedEquipment(Outfit l)
+	public boolean protectedEquipment(Outfit l)
 	{
 		return (!fireProtectionRequired || DragonfireProtection.protects(monster, l, settings, levels))
 			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l));
@@ -1266,7 +1266,7 @@ public class Optimizer
 		return best;
 	}
 
-	private static boolean lightbearer(Outfit l)
+	public static boolean lightbearer(Outfit l)
 	{
 		Gear ring = l.get(Slot.RING);
 		return ring != null && ring.getId() == ItemID.LIGHTBEARER;
@@ -1486,6 +1486,34 @@ public class Optimizer
 			l.setLoadedAmmo(darts.get(0));
 		}
 		return l;
+	}
+
+	/** Each usable spec weapon of the class held with the worn armour, attacking the way its special hits hardest. */
+	public List<Outfit> specOutfits(Outfit worn, Combat cls)
+	{
+		List<Outfit> out = new ArrayList<>();
+		for (Gear weapon : specWeapons(cls))
+		{
+			Outfit base = specLoadout(worn, weapon);
+			Outfit best = null;
+			double most = 0;
+			for (Option o : base == null ? Collections.<Option>emptyList() : options(weapon, cls, true))
+			{
+				o.apply(base);
+				SpecialAttack spec = SpecialAttack.of(base, specCtx);
+				double dps = spec == null || spec.getEnergy() <= 0 ? 0 : DpsCalculator.calculate(base, specCtx).getDps();
+				if (dps > most)
+				{
+					most = dps;
+					best = base.copy();
+				}
+			}
+			if (best != null)
+			{
+				out.add(best);
+			}
+		}
+		return out;
 	}
 
 	/** Usable weapons of the class with a damaging special attack; weapon locks and hand limits apply to the worn weapon only. */
@@ -2649,7 +2677,7 @@ public class Optimizer
 	 * GP to acquire the item. Ammunition and thrown weapons cost price x the configured ammo count, less the
 	 * stack held; blessings and reusable weapons are bought once.
 	 */
-	private long itemCost(Gear item)
+	public long itemCost(Gear item)
 	{
 		if (consumedPerAttack(item))
 		{
@@ -2729,7 +2757,7 @@ public class Optimizer
 		return count;
 	}
 
-	private boolean expensive(Gear item)
+	public boolean expensive(Gear item)
 	{
 		if (item == null)
 		{

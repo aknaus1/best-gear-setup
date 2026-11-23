@@ -244,6 +244,11 @@ public final class Weapons
 		return style.getType() == Style.Type.RANGED && isAtlatl(weapon) ? Style.Type.ATLATL : style.getType();
 	}
 
+	public static Style.Type tabType(Outfit outfit)
+	{
+		return tabType(outfit.getWeapon(), outfit.getStyle());
+	}
+
 	public static boolean isShadow(Gear weapon)
 	{
 		return weapon != null && lower(weapon).startsWith("tumeken's shadow");

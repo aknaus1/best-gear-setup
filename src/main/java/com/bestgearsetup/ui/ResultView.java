@@ -83,7 +83,7 @@ class ResultView extends JPanel
 	private final SpriteCache sprites;
 	private final SkillIconManager skillIcons;
 	private final int ammoCount;
-	private final SearchResults results;
+	final SearchResults results;
 	/** Result tabs, highest DPS first. */
 	private final List<Style.Type> tabOrder = new ArrayList<>();
 	private final JPanel tabs = new JPanel(new GridLayout(0, 5, 2, 2));
@@ -138,7 +138,7 @@ class ResultView extends JPanel
 		selectedType = type;
 		selected = setup;
 		List<Potion> potions = potionsFor(setup);
-		supplies = plugin.tripSupplies(setup, results, potions);
+		supplies = plugin.tripSupplies(TripSupplies.Kit.of(setup), results, potions);
 		// The bank shows only the boosts the trip withdraws, as the Supplies line lists them.
 		if (results.getMonster() != null)
 			potions.removeIf(p -> !TripSupplies.takes(p, results.getMonster()));
@@ -160,7 +160,7 @@ class ResultView extends JPanel
 		tabs.repaint();
 	}
 
-	private static String typeName(Style.Type type)
+	static String typeName(Style.Type type)
 	{
 		return GameData.titleCase(type.name().toLowerCase(Locale.ROOT));
 	}
@@ -720,7 +720,7 @@ class ResultView extends JPanel
 	}
 
 	/** A full-width row with {@code c} centred at its preferred size. */
-	private static JPanel centred(Component c)
+	static JPanel centred(Component c)
 	{
 		JPanel row = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
 		row.setBackground(ColorScheme.DARK_GRAY_COLOR);

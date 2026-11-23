@@ -533,6 +533,37 @@ public class BankViewTest
 		verify(later, never()).setParam0(anyInt());
 	}
 
+	/** A Zulrah-like fight kit: switches first, room left empty, then the rune pouch and runes, boosts and food, within the 28. */
+	@Test
+	public void fightKitPacksSwitchesBeforeRunesBoostsAndFood()
+	{
+		TripSupplies.Kit kit = new TripSupplies.Kit(setup(Slot.WEAPON, item(12926)), Arrays.asList(item(12899), item(101),
+			item(102)), 1, Collections.singletonList(item(11230)),
+			Arrays.asList(ItemID.FIRERUNE, ItemID.CHAOSRUNE, ItemID.DEATHRUNE, ItemID.BLOODRUNE));
+		Potion ranging = new Potion();
+		ranging.setId(2444);
+		ranging.setName("ranging potion");
+		List<TripSupplies.Supply> supplies = new ArrayList<>(Arrays.asList(
+			new TripSupplies.Supply("Ranging Potion", Collections.singletonList(2444), 1),
+			new TripSupplies.Supply("Anti-venom+", Collections.singletonList(12913), 1)));
+		int food = TripSupplies.INVENTORY_SLOTS - TripSupplies.usedSlots(kit, supplies);
+		supplies.add(new TripSupplies.Supply("Shark", Collections.singletonList(ItemID.SHARK), food));
+		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(kit, Collections.singletonList(ranging), supplies);
+		// Switches in slots 0 to 2, slot 3 kept for what they take off, the pouch, the fourth rune, the bottles, then food.
+		int[] slots = {12899, 101, 102, -1, SpellRunes.POUCHES.get(0), ItemID.BLOODRUNE, 2444, 12913, ItemID.SHARK};
+		for (int slot = 0; slot < slots.length; slot++)
+		{
+			if (slots[slot] < 0)
+				assertFalse(cells.containsValue(BestGearSetupBankView.inventoryCell(slot)));
+			else
+				assertEquals(BestGearSetupBankView.inventoryCell(slot), (int) cells.get(slots[slot]));
+		}
+		assertEquals("food fills the rest", TripSupplies.INVENTORY_SLOTS, slots.length - 1 + food);
+		assertTrue("nothing past slot 28", cells.values().stream()
+			.allMatch(cell -> cell < BestGearSetupBankView.inventoryCell(TripSupplies.INVENTORY_SLOTS)));
+		assertEquals("a carried weapon's darts sit under the silhouette", 41, (int) cells.get(11230));
+	}
+
 	private static Setup setup(Slot slot, Gear item)
 	{
 		Outfit loadout = new Outfit();

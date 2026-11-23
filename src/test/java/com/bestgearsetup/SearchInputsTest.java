@@ -269,12 +269,13 @@ public class SearchInputsTest
 		settings.put("styleMagic", false);
 		settings.put("styleAtlatl", false);
 		search(plugin, target, settings);
-		assertEquals("stab, slash, crush and ranged", 4, searched[0]);
+		// Vorkath is a full fight: its zombified spawn, attacked from range, adds a ranged tab.
+		assertEquals("stab, slash, crush and ranged, then the spawn's ranged", 5, searched[0]);
 		List<List<Setup>> firstTabs = new ArrayList<>(returned);
 		assertFalse(firstTabs.get(3).isEmpty());
 		returned.clear();
 		search(plugin, target, settings);
-		assertEquals("nothing searched again", 4, searched[0]);
+		assertEquals("nothing searched again", 5, searched[0]);
 		for (int i = 0; i < firstTabs.size(); i++)
 		{
 			assertSame(firstTabs.get(i), returned.get(i));
@@ -285,19 +286,23 @@ public class SearchInputsTest
 		settings.put("styleCrush", false);
 		returned.clear();
 		search(plugin, target, settings);
-		assertEquals(4, searched[0]);
+		assertEquals(5, searched[0]);
 		assertSame(firstTabs.get(3), returned.get(0));
+		// Fight switches only change the plan built from the tabs.
+		settings.put("fightSwitchSlots", 0);
+		search(plugin, target, settings);
+		assertEquals(5, searched[0]);
 		// A setting the optimiser reads searches again.
 		settings.put("currentHitpoints", 50);
 		search(plugin, target, settings);
-		assertEquals(5, searched[0]);
+		assertEquals(7, searched[0]);
 		// Clearing (a data reload, account change or shutdown) drops every tab.
 		plugin.tabCache.clear();
 		settings.remove("currentHitpoints");
 		search(plugin, target, settings);
-		assertEquals(6, searched[0]);
+		assertEquals(9, searched[0]);
 		SwingUtilities.invokeAndWait(() -> { });
-		verify(plugin.panel, times(5)).showResults(any());
+		verify(plugin.panel, times(6)).showResults(any());
 		verify(plugin.panel, never()).showError(any());
 	}
 
@@ -324,6 +329,6 @@ public class SearchInputsTest
 	{
 		plugin.runSearch(data, target, null, false, null, null, false, 99, prices, Collections.singleton(WHIP),
 			Collections.emptyMap(), plugin.searchGeneration.get(), config(settings), new LiveRaid(), new ArrayList<>(),
-			plugin.tabCache.epoch());
+			plugin.tabCache.epoch(), Collections.emptyMap(), Collections.emptyMap(), -1);
 	}
 }

@@ -1,0 +1,74 @@
+{
+"_format": "One entry per full fight, keyed by the lower-case boss name. Fields: phases (list, at least two; each target belongs to one fight only) and note (optional, short fact shown with the fight). Each phase: target (required; a bundled monster name exactly as in the monster data), label (optional; shown name, default the title-cased target), share (optional, default 1; fraction of the target's hitpoints dealt in this phase, a number or an a/b fraction; forms sharing one health bar split it, separate health bars use 1), count (optional, default 1; times the target is fought per kill), phase (optional; an EncounterPhase name applied to that target), styles (optional; the combat classes that may attack it, from melee, ranged and magic, e.g. ranged and magic for a target attacked from a distance; default any). Work in a phase = count x share x the target's hitpoints. hp (optional): the damage to deal per count in place of the target's hitpoints, either a number or a team formula {base, per, from, cap} = min(cap, base + per x max(0, party - from)), with party = the Party size setting (from defaults to 1; no cap when absent); share still multiplies it. split (optional, default false): the party shares this damage, so your work is divided by the party size (also right for adds that pick a random player, whose expected share is 1/party). Searching any phase target plans the whole fight. Pre-fight drains and landed specs carry to phases with share below 1 (one shared health bar, so the same NPC); a phase with share 1 is a separate or reborn target and is planned undrained. Planned special attacks are paid from one fight's energy walking the phases in the listed order (an estimate where forms alternate); a planned drain counts on its phase and the later-listed ones on the same health bar, and none is planned on a phase with count above 1. bar (optional): the name of the phase's health bar, for a fight with more than one shared health bar; by default every phase with share below 1 is on the fight's one shared bar and any other phase has its own.",
+"zulrah": {"note": "Forms by how often each appears over the four rotations (Wiki); the rotation may end in any form.",
+	"phases": [
+	{"label": "Serpentine", "target": "zulrah (serpentine)", "share": "24/47"},
+	{"label": "Magma", "target": "zulrah (magma)", "share": "8/47"},
+	{"label": "Tanzanite", "target": "zulrah (tanzanite)", "share": "15/47"}]},
+"alchemical hydra": {"note": "A phase change at each of 75%, 50% and 25% of its health (Wiki).",
+	"phases": [
+	{"label": "Serpentine", "target": "alchemical hydra (serpentine)", "share": 0.25},
+	{"label": "Electric", "target": "alchemical hydra (electric)", "share": 0.25},
+	{"label": "Fire", "target": "alchemical hydra (fire)", "share": 0.25},
+	{"label": "Extinguished", "target": "alchemical hydra (extinguished)", "share": 0.25}]},
+"araxxor": {"note": "Enrages at 25% (Wiki). One araxyte of each attacked kind per kill is an estimate; ruptura araxytes are lured to explode, not attacked.",
+	"phases": [
+	{"label": "In combat", "target": "araxxor (in combat)", "share": 0.75},
+	{"label": "Mirrorback araxyte", "target": "mirrorback araxyte"},
+	{"label": "Acidic araxyte", "target": "acidic araxyte"},
+	{"label": "Enraged", "target": "araxxor (enraged)", "share": 0.25}]},
+"kalphite queen": {"note": "Each form has its own 255 HP (Wiki).",
+	"phases": [
+	{"label": "Crawling", "target": "kalphite queen (crawling)"},
+	{"label": "Airborne", "target": "kalphite queen (airborne)"}]},
+"vet'ion": {"note": "Two hellhounds in each form make him immune until they die; he is reborn enraged with full HP (Wiki).",
+	"phases": [
+	{"label": "Normal", "target": "vet'ion (normal)"},
+	{"label": "Skeleton hellhound", "target": "skeleton hellhound (vet'ion)", "count": 2},
+	{"label": "Enraged", "target": "vet'ion (enraged)"},
+	{"label": "Greater hellhound", "target": "greater skeleton hellhound (vet'ion)", "count": 2}]},
+"calvar'ion": {"note": "As Vet'ion.",
+	"phases": [
+	{"label": "Normal", "target": "calvar'ion (normal)"},
+	{"label": "Skeleton hellhound", "target": "skeleton hellhound (calvar'ion)", "count": 2},
+	{"label": "Enraged", "target": "calvar'ion (enraged)"},
+	{"label": "Greater hellhound", "target": "greater skeleton hellhound (calvar'ion)", "count": 2}]},
+"phantom muspah": {"note": "Shields below 127 of 850 HP; before that it switches form after about 100 damage in ranged form and 80 in melee (Wiki). The shield is drained with Smite, which isn't planned.",
+	"phases": [
+	{"label": "Ranged", "target": "phantom muspah (ranged)", "share": "241/510"},
+	{"label": "Melee", "target": "phantom muspah (melee)", "share": "482/1275"},
+	{"label": "Post-shield", "target": "phantom muspah (post-shield)", "share": "127/850"}]},
+"abyssal sire": {"note": "Phase 1 is spent on the four respiratory systems while the Sire is disoriented. Phase 3 starts below 210 of 425 HP, its second stage below 140 (Wiki).",
+	"phases": [
+	{"label": "Respiratory system", "target": "respiratory system", "count": 4},
+	{"label": "Phase 2", "target": "abyssal sire (phase 2)", "share": "215/425"},
+	{"label": "Phase 3, stage 1", "target": "abyssal sire (phase 3 (stage 1))", "share": "70/425"},
+	{"label": "Phase 3, stage 2", "target": "abyssal sire (phase 3 (stage 2))", "share": "140/425"}]},
+"yama": {"note": "A Judge at about 66% and 33%: it prays ranged and your last style, so melee and magic alternate and the Judge's HP is shared in a duo (Wiki). Void flares heal him unless killed: one fire and one shadow in each of phases 1 and 2, then two shadow waves of two in phase 3 (an estimate).",
+	"phases": [
+	{"label": "Phase 1", "target": "yama (normal)", "share": "2/3"},
+	{"label": "Fire flare", "target": "void flare (fire)", "count": 2, "styles": ["ranged", "magic"]},
+	{"label": "Shadow flare", "target": "void flare (shadow)", "count": 4, "styles": ["ranged", "magic"]},
+	{"label": "Judge of Yama", "target": "judge of yama", "count": 2},
+	{"label": "Phase 3", "target": "yama (phase 3)", "share": "1/3"}]},
+"vorkath": {"note": "A zombified spawn is summoned by each freeze special; two per kill is an estimate. The freeze holds you until it dies, so it is attacked from range (Wiki).",
+	"phases": [
+	{"label": "Vorkath", "target": "vorkath (post-quest)"},
+	{"label": "Zombified spawn", "target": "zombified spawn (post-quest)", "count": 2, "styles": ["ranged", "magic"]}]},
+"the nightmare": {"note": "Her own HP falls only to the totems. Each of three phases: break her shield, then charge four totems (double magic damage). Shield 2,000 and totems 300 for teams up to 5, then +200 and +30 per extra player (Wiki; caps 19,600 and 2,640). Two husks in phase 1 and two parasites in phase 2 go for random players; sleepwalkers die to any damage and aren't planned.",
+	"phases": [
+	{"label": "Shields", "target": "the nightmare", "count": 3, "hp": {"base": 2000, "per": 200, "from": 5, "cap": 19600}, "split": true},
+	{"label": "Husk", "target": "husk (magic)", "count": 2, "styles": ["melee"], "split": true},
+	{"label": "Parasite", "target": "parasite (regular)", "count": 2, "styles": ["melee"], "split": true},
+	{"label": "Totem", "target": "totem (the nightmare)", "count": 12, "hp": {"base": 300, "per": 30, "from": 5, "cap": 2640}, "split": true}]},
+"phosani's nightmare": {"note": "Of her 3,200 HP, three shields of 400 and 150 HP in the final phase are dealt (Wiki), planned as one phase; four totems are charged after each shield (double magic damage). Two husk specials and one parasite are an estimate; sleepwalkers die to any damage and aren't planned.",
+	"phases": [
+	{"label": "Shields", "target": "phosani's nightmare", "share": "1350/3200"},
+	{"label": "Husk", "target": "husk (phosani's nightmare) (magic)", "count": 4, "styles": ["melee"]},
+	{"label": "Parasite", "target": "parasite (phosani's nightmare) (regular)", "styles": ["melee"]},
+	{"label": "Totem", "target": "totem (phosani's nightmare)", "count": 12}]},
+"royal titans": {"note": "Branda and Eldric each have their own health bar (Wiki).",
+	"phases": [
+	{"label": "Branda", "target": "branda the fire queen"},
+	{"label": "Eldric", "target": "eldric the ice king"}]}
+}

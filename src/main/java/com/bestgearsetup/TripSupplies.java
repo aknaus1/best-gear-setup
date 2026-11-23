@@ -127,6 +127,14 @@ public final class TripSupplies
 	public static List<Supply> plan(Setup setup, SearchResults results, List<Potion> potions, int kills,
 		boolean food, IntPredicate owns, Antifire antifire)
 	{
+		return plan(setup == null ? null : Kit.of(setup), results, potions, kills, food, owns, antifire);
+	}
+
+	/** The supplies for the kit's setup, with food only in the slots the kit leaves. */
+	public static List<Supply> plan(Kit kit, SearchResults results, List<Potion> potions, int kills,
+		boolean food, IntPredicate owns, Antifire antifire)
+	{
+		Setup setup = kit == null ? null : kit.setup;
 		List<Supply> out = new ArrayList<>();
 		if (setup == null || results.getMonster() == null || RaidScaling.raid(results.getMonster()) != RaidScaling.Raid.NONE)
 			return out;
@@ -154,7 +162,7 @@ public final class TripSupplies
 		else if ("poison".equals(poisons))
 			out.add(new Supply("Superantipoison", doses(ItemID._4DOSE2ANTIPOISON, ItemID.ANTIDOTE__4, ItemID.ANTIVENOM_4), 1));
 		if (food)
-			addFood(out, foodSlots(results.getMonster(), setup, antifire, levels, INVENTORY_SLOTS - usedSlots(setup, out)),
+			addFood(out, foodSlots(results.getMonster(), setup, antifire, levels, INVENTORY_SLOTS - usedSlots(kit, out)),
 				owns, maxHit(results.getMonster()) >= COMBO_MAX_HIT);
 		return out;
 	}
@@ -271,17 +279,61 @@ public final class TripSupplies
 	/** Slots taken before food: a spec switch's items and a shield a two-handed spec weapon takes off, a rune pouch and spell items beyond its three, and each bottle. */
 	public static int usedSlots(Setup setup, List<Supply> supplies)
 	{
-		int used = supplies.stream().mapToInt(Supply::getCount).sum();
-		int spellItems = SpellRunes.required(setup).size();
-		if (spellItems > 0)
-			used += 1 + Math.max(0, spellItems - 3);
-		SpecialPlan special = setup.getSpecial();
-		if (special == null || !special.isSwitch(setup.getLoadout()))
-			return used;
-		if (takesShieldOff(setup))
-			used++;
-		return used + (int) Stream.of(special.getWeapon() == setup.getLoadout().getWeapon() ? null : special.getWeapon(),
-				special.getOffhand(), special.getAmmo()).filter(Objects::nonNull).count();
+		return usedSlots(Kit.of(setup), supplies);
+	}
+
+	public static int usedSlots(Kit kit, List<Supply> supplies)
+	{
+		int spellItems = kit.spellItems.size();
+		return supplies.stream().mapToInt(Supply::getCount).sum() + kit.carried.size() + kit.room
+			+ (spellItems > 0 ? 1 + Math.max(0, spellItems - 3) : 0);
+	}
+
+	/**
+	 * What the inventory and bank layout hold besides supplies: the worn setup, the switch items carried, free slots for
+	 * the items they take off, ammunition loaded into carried weapons (no slot of its own) and the spell items.
+	 */
+	@Value
+	public static class Kit
+	{
+		Setup setup;
+		List<Gear> carried;
+		int room;
+		List<Gear> loaded;
+		List<Integer> spellItems;
+
+		/** One setup's: its spec weapon switch and its spells. */
+		public static Kit of(Setup setup)
+		{
+			SpecialPlan special = setup.getSpecial();
+			Outfit worn = setup.getLoadout();
+			boolean switches = special != null && special.isSwitch(worn);
+			return new Kit(setup, !switches ? List.of() : Stream.of(special.getWeapon() == worn.getWeapon() ? null
+				: special.getWeapon(), special.getOffhand(), special.getAmmo()).filter(Objects::nonNull).collect(Collectors.toList()),
+				takesShieldOff(setup) ? 1 : 0, switches && special.getLoadedAmmo() != null ? List.of(special.getLoadedAmmo())
+				: List.of(), SpellRunes.required(setup));
+		}
+
+		/** A whole fight's: the plan's switches and spec weapons, and the items for every spell a phase casts. */
+		public static Kit of(FightPlan.Plan plan, Setup worn)
+		{
+			Set<Integer> spells = new LinkedHashSet<>();
+			Set<Gear> loaded = new LinkedHashSet<>();
+			// The plan casts from one spellbook; the worn setup's support spells of another book are left out.
+			String book = plan.outfits().stream().map(Outfit::getSpell).filter(Objects::nonNull).map(Spell::getSpellbook)
+				.findFirst().orElse(null);
+			Set<SupportSpell> support = worn.getSupportSpells().stream().filter(spell -> book == null
+				|| book.equalsIgnoreCase(spell == SupportSpell.CHARGE ? "standard" : "arceuus"))
+				.collect(Collectors.toCollection(() -> EnumSet.noneOf(SupportSpell.class)));
+			for (Outfit outfit : plan.outfits())
+			{
+				spells.addAll(SpellRunes.required(outfit, support, worn.getThrall()));
+				if (outfit.getLoadedAmmo() != null && !outfit.getLoadedAmmo().equals(plan.getWorn().getLoadedAmmo()))
+					loaded.add(outfit.getLoadedAmmo());
+			}
+			return new Kit(worn, plan.getCarried(), plan.getSlots() - plan.getCarried().size(), new ArrayList<>(loaded),
+				new ArrayList<>(spells));
+		}
 	}
 
 	/** Whether a two-handed spec weapon switch takes the worn shield off into the inventory. */

@@ -58,50 +58,53 @@ class BestGearSetupBankView
 		this.eventBus = eventBus;
 	}
 
-	/**
-	 * Publish a selection from the sidebar; the bank reads one immutable snapshot per rebuild. Each item's ids are in
-	 * the order they may take its cell; a trip's restores, cure and food follow the boosts, whose bottles already
-	 * have their boost's cell.
-	 */
+	/** Publish a layout from the sidebar; the bank reads one immutable snapshot per rebuild. */
+	void publish(Layout layout)
+	{
+		selection = layout;
+	}
+
 	void setSelection(Setup setup, List<Potion> potions, Function<Gear, List<Integer>> itemIds,
 		List<TripSupplies.Supply> supplies)
 	{
-		selection = layoutFor(setup, potions, itemIds, supplies);
+		publish(layoutFor(setup == null ? null : TripSupplies.Kit.of(setup), potions, itemIds, supplies));
 	}
 
 	static Map<Integer, Integer> cellsFor(Setup setup, List<Potion> potions, List<TripSupplies.Supply> supplies)
 	{
-		return Collections.unmodifiableMap(layoutFor(setup, potions, BestGearSetupBankView::itemIds, supplies).cells);
+		return cellsFor(setup == null ? null : TripSupplies.Kit.of(setup), potions, supplies);
 	}
 
-	static Layout layoutFor(Setup setup, List<Potion> potions, Function<Gear, List<Integer>> itemIds,
+	static Map<Integer, Integer> cellsFor(TripSupplies.Kit kit, List<Potion> potions, List<TripSupplies.Supply> supplies)
+	{
+		return Collections.unmodifiableMap(layoutFor(kit, potions, BestGearSetupBankView::itemIds, supplies).cells);
+	}
+
+	/**
+	 * Each item's ids are in the order they may take its cell; a trip's restores, cure and food follow the boosts, whose
+	 * bottles already have their boost's cell.
+	 */
+	static Layout layoutFor(TripSupplies.Kit kit, List<Potion> potions, Function<Gear, List<Integer>> itemIds,
 		List<TripSupplies.Supply> supplies)
 	{
 		Layout layout = new Layout();
-		if (setup != null)
+		if (kit != null)
 		{
-			Outfit loadout = setup.getLoadout();
+			Outfit loadout = kit.getSetup().getLoadout();
 			for (Slot slot : Slot.values())
 			{
 				addItem(layout, itemIds, loadout.get(slot), CELLS[slot.ordinal()]);
 			}
 			addItem(layout, itemIds, loadout.getLoadedAmmo(), loadout.get(Slot.AMMO) == null ? 10 : LOADED_CELL);
-			// The inventory is packed in the slots TripSupplies.usedSlots counts: the spec switch, the rune pouch
-			// and runes beyond its three, each bottle, then food.
+			// The inventory is packed in the slots TripSupplies.usedSlots counts: the switch items, room for what they
+			// take off (left empty at the bank), the rune pouch and runes beyond its three, each bottle, then food.
 			int slot = 0;
-			SpecialPlan special = setup.getSpecial();
-			if (special != null && special.isSwitch(loadout))
-			{
-				if (special.getWeapon() != loadout.getWeapon())
-					slot = carry(layout, itemIds, special.getWeapon(), slot);
-				slot = carry(layout, itemIds, special.getOffhand(), slot);
-				slot = carry(layout, itemIds, special.getAmmo(), slot);
-				addItem(layout, itemIds, special.getLoadedAmmo(), LOADED_CELL + 1);
-				// The worn shield a two-handed spec weapon takes off needs a slot, left empty at the bank.
-				if (TripSupplies.takesShieldOff(setup))
-					slot++;
-			}
-			List<Integer> spellItems = SpellRunes.required(setup);
+			for (Gear item : kit.getCarried())
+				slot = carry(layout, itemIds, item, slot);
+			for (int i = 0; i < kit.getLoaded().size(); i++)
+				addItem(layout, itemIds, kit.getLoaded().get(i), LOADED_CELL + 1 + i);
+			slot += kit.getRoom();
+			List<Integer> spellItems = kit.getSpellItems();
 			if (!spellItems.isEmpty())
 				slot = layout.carry(SpellRunes.POUCHES, slot, 1, SPELL);
 			for (int i = 0; i < spellItems.size(); i++)
@@ -213,6 +216,12 @@ class BestGearSetupBankView
 		boolean isEmpty()
 		{
 			return cells.isEmpty();
+		}
+
+		/** Every id the layout shows, which the bank highlights. */
+		Set<Integer> ids()
+		{
+			return Collections.unmodifiableSet(cells.keySet());
 		}
 	}
 

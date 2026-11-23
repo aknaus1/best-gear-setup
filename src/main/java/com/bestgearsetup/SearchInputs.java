@@ -22,11 +22,12 @@ import java.util.stream.Collectors;
 final class SearchInputs
 {
 	/**
-	 * Settings no style tab reads: menu and highlight presentation, trip supplies, the target list's boss filter,
-	 * and the style toggles, which only choose which tabs run (each tab searches its own {@link Style.Type}).
+	 * Settings no style tab reads: menu and highlight presentation, trip supplies, full-fight switches, the target
+	 * list's boss filter, and the style toggles, which only choose which tabs run (each tab searches its own
+	 * {@link Style.Type}).
 	 */
 	static final Set<String> UNSEARCHED = new HashSet<>(Arrays.asList("showMenuOption", "highlightBankGear",
-		"bankHighlightColor", "highlightInventoryGear", "inventoryHighlightColor", "fillFood", "killsPerTrip",
+		"bankHighlightColor", "highlightInventoryGear", "inventoryHighlightColor", "fillFood", "killsPerTrip", "fightSwitchSlots",
 		"bossesOnly", "styleStab", "styleSlash", "styleCrush", "styleRanged", "styleMagic", "styleAtlatl"));
 	/**
 	 * One copy of each large part (prices, owned ids) by content, shared by every key built with it: keys then

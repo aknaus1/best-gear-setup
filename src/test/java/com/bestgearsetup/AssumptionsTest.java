@@ -154,6 +154,7 @@ public class AssumptionsTest
 		GETTERS.put("membersItems", Options::membersItems);
 		GETTERS.put("ammoCount", Options::ammoCount);
 		GETTERS.put("killsPerTrip", Options::killsPerTrip);
+		GETTERS.put("fightSwitchSlots", Options::fightSwitchSlots);
 		GETTERS.put("currentHitpoints", Options::currentHitpoints);
 		GETTERS.put("wilderness", Options::wilderness);
 		GETTERS.put("limitWildernessRisk", Options::limitWildernessRisk);

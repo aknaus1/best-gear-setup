@@ -14,9 +14,6 @@ import net.runelite.client.ui.ColorScheme;
 /** Boss lookup assumptions, edited here while configuration stores their existing keys. */
 class FightOptionsPanel extends JPanel
 {
-	/** Pre-fight drains, counted in the collapsed section's heading when any is set. */
-	private static final String[] PREPARATION = {"specVulnerability", "specTomeOfWater", "specElderMaul", "specDwh",
-		"specEmberlight", "specArclight", "specTonalztics", "specBgsDamage", "specSeercullDamage", "specAyakDamage"};
 	/** Wide enough for the largest maximum shown here (2000 damage). */
 	private static final int SPINNER_COLUMNS = 4;
 	private final SettingRows settingRows;
@@ -36,17 +33,18 @@ class FightOptionsPanel extends JPanel
 		settingRows = new SettingRows(plugin, config, items, SPINNER_COLUMNS, this::updateVisibility);
 		SidebarSection conditions = accordion.create("fightConditions", "Fight conditions");
 		addRows(conditions, "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
-			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "killsPerTrip");
+			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "killsPerTrip",
+			"fightSwitchSlots");
 		wildernessTip = control("wilderness").getToolTipText();
 		conditions.setExpanded(true);
 		add(Sidebar.left(conditions));
-		raidSection = accordion.create("raidScaling", "Raid scaling");
+		raidSection = accordion.create("raidScaling", "Party and raid scaling");
 		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel");
 		add(Sidebar.left(raidSection));
 		preparationSection = accordion.create("preparation", "Pre-fight preparation");
 		preparationSection.setToolTipText("Specs and defence drains landed before the fight");
 		addRows(preparationSection, "autoSpecs");
-		addRows(preparationSection, PREPARATION);
+		addRows(preparationSection, Options.PREPARATION);
 		add(Sidebar.left(preparationSection));
 		refresh();
 	}
@@ -84,13 +82,15 @@ class FightOptionsPanel extends JPanel
 	private void updateVisibility()
 	{
 		RaidScaling.Raid raid = RaidScaling.raid(target);
-		raidSection.getParent().setVisible(raid != RaidScaling.Raid.NONE);
-		settingRows.row("raidPartySize").setVisible(raid != RaidScaling.Raid.NONE);
+		boolean party = raid != RaidScaling.Raid.NONE || FightPlan.partySized(FightPlan.fight(target.getName()));
+		raidSection.getParent().setVisible(party);
+		settingRows.row("raidPartySize").setVisible(party);
 		settingRows.row("toaRaidLevel").setVisible(raid == RaidScaling.Raid.TOA);
 		settingRows.row("toaPathLevel").setVisible(raid == RaidScaling.Raid.TOA && RaidScaling.toaPath(target));
 		settingRows.row("coxChallengeMode").setVisible(raid == RaidScaling.Raid.COX);
 		settingRows.row("miningLevel").setVisible(raid == RaidScaling.Raid.COX && target.getName().contains("guardian"));
 		settingRows.row("killsPerTrip").setVisible(raid == RaidScaling.Raid.NONE && !TripSupplies.oneRun(target));
+		settingRows.row("fightSwitchSlots").setVisible(FightPlan.fight(target.getName()) != null);
 		settingRows.row("aoeTargets").setVisible(selected("aoe"));
 		settingRows.row("limitWildernessRisk").setVisible(selected("wilderness"));
 		boolean riskLimited = selected("wilderness") && selected("limitWildernessRisk");
@@ -99,7 +99,7 @@ class FightOptionsPanel extends JPanel
 		settingRows.row("forinthrySurge").setVisible(target.getName().contains("revenant") && selected("wilderness"));
 		settingRows.row("specTomeOfWater").setVisible(selected("specVulnerability"));
 		int prepared = 0;
-		for (String key : PREPARATION)
+		for (String key : Options.PREPARATION)
 		{
 			JComponent control = control(key);
 			boolean set = control instanceof JCheckBox ? ((JCheckBox) control).isSelected()

@@ -25,6 +25,21 @@ public class Sidebar extends PluginPanel
 	ResultView resultView;
 	/** The style tab picked for the current target, kept across recalculations; null opens on the best style. */
 	Style.Type pickedStyle;
+	/** The full-fight plan's card above the style tabs, filled when the plan is ready and kept across its fight's steps. */
+	private JPanel fightCard = new JPanel();
+	/** The card's fight and the shown results' target; the plan's inputs, plan and worn setup, none while it is planned. */
+	private String shownFight;
+	private String shownTarget;
+	private Object shownInputs;
+	private FightPlan.Plan shownPlan;
+	private Setup shownWorn;
+	/** The results the kit's boosts and supplies were planned against, kept while the player steps. */
+	private SearchResults kitResults;
+	/** Per row: the style tab its results open on, its pick or else the planned style. */
+	private Style.Type[] tabStyles;
+	/** The card's selected row, and the card drawn with another row selected. */
+	private int fightRow = -1;
+	private java.util.function.IntConsumer showRow;
 	private static final int MAX_SUGGESTIONS = 10;
 	/** CSS width for wrapped labels; the RuneScape font renders wider than Swing's CSS px estimate. */
 	private static final int HTML_WIDTH = 160;
@@ -624,6 +639,8 @@ public class Sidebar extends PluginPanel
 		assumptionsLabel.setText("");
 		assumptionsLabel.setToolTipText(null);
 		plugin.setBankHighlightedSetup(null);
+		shownFight = null;
+		shownPlan = null;
 		showStatus(message);
 		resultsPanel.removeAll();
 		resultView = null;
@@ -645,6 +662,8 @@ public class Sidebar extends PluginPanel
 	{
 		if (resultView != null)
 			resultView.refreshSupplies();
+		if (shownPlan != null)
+			showKit();
 	}
 
 	/** Replace the previous results; the new best setup takes over the bank layout in place. */
@@ -654,6 +673,7 @@ public class Sidebar extends PluginPanel
 		if (found.isEmpty())
 		{
 			plugin.setBankHighlightedSetup(null);
+			shownPlan = null;
 		}
 		resultsPanel.removeAll();
 
@@ -707,11 +727,26 @@ public class Sidebar extends PluginPanel
 			resultsPanel.add(left(warnings));
 			resultsPanel.add(spacer(4));
 		}
+		// A phase of the shown fight keeps its card and kit; other results drop them.
+		shownTarget = found.getMonster() == null ? null : found.getMonster().getName();
+		String fight = FightPlan.fight(shownTarget);
+		if (fight == null || !fight.equals(shownFight))
+		{
+			plugin.showFightKit(null, null, null);
+			shownFight = fight;
+			shownInputs = null;
+			shownPlan = null;
+			fightCard = new JPanel();
+			fightCard.setLayout(new BoxLayout(fightCard, BoxLayout.Y_AXIS));
+			fightCard.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		}
+		resultsPanel.add(left(fightCard));
 		resultView = null;
 		if (!found.isEmpty())
 		{
-			resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount(), pickedStyle,
-				style -> pickedStyle = style);
+			int row = fightRowOf(shownTarget);
+			resultView = new ResultView(found, plugin, itemManager, sprites, skillIcons, config.ammoCount(),
+				pickedStyle == null && row >= 0 ? tabStyles[row] : pickedStyle, this::pick);
 			resultsPanel.add(left(resultView));
 		}
 		List<String> detailLines = new ArrayList<>();
@@ -746,6 +781,201 @@ public class Sidebar extends PluginPanel
 		}
 		resultsPanel.revalidate();
 		resultsPanel.repaint();
+	}
+
+	/** A style tab clicked: kept for the target and, on a phase of the shown fight, that row's pick. */
+	private void pick(Style.Type style)
+	{
+		pickedStyle = style;
+		int row = fightRowOf(shownTarget);
+		if (row >= 0)
+		{
+			plugin.pickFightStyle(shownFight, row, style);
+		}
+	}
+
+	/** The shown plan's row of this target: the selected one, else its first; -1 outside the shown plan. */
+	private int fightRowOf(String target)
+	{
+		List<FightPlan.Phase> phases = FightPlan.phases(shownFight);
+		if (shownPlan != null && fightRow >= 0 && phases.get(fightRow).getTarget().equalsIgnoreCase(target))
+		{
+			return fightRow;
+		}
+		for (int i = 0; shownPlan != null && i < phases.size(); i++)
+		{
+			if (phases.get(i).getTarget().equalsIgnoreCase(target))
+			{
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/** Search a row's target as usual (its tabs are cached); the card and the kit stay, its row selected. */
+	private void step(int row)
+	{
+		String target = FightPlan.phases(shownFight).get(row).getTarget();
+		Summary summary = data.getMonsters().stream().filter(m -> m.getName().equals(target)).findFirst().orElse(null);
+		if (summary != null)
+		{
+			fightRow = row;
+			plugin.stepFight(row);
+			showRow.accept(row);
+			pickedStyle = null;
+			selectMonster(summary, true);
+		}
+	}
+
+	/** A plan of the card's fight is on its way: the card stays while its inputs are the same (a step or a pick). */
+	public void planningFight(Object inputs)
+	{
+		if (!inputs.equals(shownInputs))
+		{
+			// The kit stays in the bank until the new plan, or its failure, replaces it.
+			shownInputs = null;
+			fightNote("Planning the full fight...");
+		}
+	}
+
+	/**
+	 * The whole fight's plan for the shown results: the worn setup, the items carried and each phase's setup and style
+	 * (picked ones marked, with why a pick isn't used), the selected row in bold. The bank shows the fight's kit.
+	 */
+	public void showFightPlan(String fight, FightPlan.Plan plan, Setup worn, int slots, int selected,
+		Map<Integer, Style.Type> picks, Map<Integer, String> notes, boolean differs, Object inputs)
+	{
+		// A step keeps the kit; a new plan or new inputs replace it.
+		boolean newKit = !plan.equals(shownPlan) || !inputs.equals(shownInputs);
+		shownFight = fight;
+		shownInputs = inputs;
+		fightRow = selected;
+		tabStyles = new Style.Type[plan.getUsed().size()];
+		Arrays.setAll(tabStyles, i -> picks.getOrDefault(i, Weapons.tabType(plan.getUsed().get(i))));
+		showRow = row -> drawFightCard(fight, plan, worn, slots, row, picks, notes, differs && row == selected);
+		showRow.accept(selected);
+		if (newKit)
+		{
+			shownPlan = plan;
+			shownWorn = worn;
+			kitResults = resultView == null ? null : resultView.results;
+			showKit();
+		}
+	}
+
+	private void drawFightCard(String fight, FightPlan.Plan plan, Setup worn, int slots, int selected,
+		Map<Integer, Style.Type> picks, Map<Integer, String> notes, boolean differs)
+	{
+		fightCard.removeAll();
+		List<FightPlan.Phase> phases = FightPlan.phases(fight);
+		StringBuilder carry = new StringBuilder("Carry: " + (plan.getCarried().isEmpty() ? "nothing" : names(plan.getCarried())));
+		for (FightPlan.Spec spec : plan.getSpecs())
+		{
+			FightPlan.Phase on = phases.get(spec.getPhase());
+			carry.append("<br>Spec: ").append(names(Collections.singletonList(spec.getHeld().getWeapon()))).append(" \u00d7")
+				.append(spec.getUses()).append(" on ").append(escape(on.getLabel()))
+				.append(spec.isDrain() && on.isShared() ? "; the drain lasts its health bar" : "");
+		}
+		fightCard.add(left(new JLabel(html("<b>Full fight: " + escape(GameData.titleCase(fight)) + "</b><br>"
+			+ seconds(plan.getTotal()) + " in total, " + plan.getSlots() + " of " + slots
+			+ " switch slots. " + (plan.getSpecs().isEmpty() ? "No specials planned" : "Specs counted") + (plan.getEnergy() >= 100 ? "."
+			: String.format(" from %.0f%% energy (Spec energy: %s).", plan.getEnergy(), SpecEnergy.REGENERATION))
+			+ "<br>Wear:"))));
+		fightCard.add(ResultView.centred(new EquipmentGrid(worn, Collections.emptyMap(), plugin, itemManager, sprites,
+			config.ammoCount())));
+		fightCard.add(left(new JLabel(html(carry.toString()))));
+		JPanel stepper = new JPanel(new BorderLayout());
+		stepper.setOpaque(false);
+		JLabel at = new JLabel("Phase " + (selected + 1) + " of " + phases.size(), SwingConstants.CENTER);
+		setSmall(at, ColorScheme.LIGHT_GRAY_COLOR);
+		stepper.add(at);
+		for (int direction : new int[]{-1, 1})
+		{
+			JButton button = new JButton(new Controls.Chevron(direction < 0 ? Controls.Chevron.LEFT : Controls.Chevron.RIGHT, null));
+			Controls.ghost(button);
+			button.setToolTipText(direction < 0 ? "Previous phase" : "Next phase");
+			button.addActionListener(e -> step(Math.floorMod(fightRow + direction, phases.size())));
+			stepper.add(button, direction < 0 ? BorderLayout.WEST : BorderLayout.EAST);
+		}
+		fightCard.add(left(stepper));
+		for (int i = 0; i < plan.getUsed().size(); i++)
+		{
+			int row = i;
+			Outfit used = plan.getUsed().get(i);
+			String style = ResultView.typeName(Weapons.tabType(used));
+			String text = escape(phases.get(i).getLabel()) + " (" + style
+				+ (picks.containsKey(i) && !notes.containsKey(i) ? ", picked" : "") + "): " + seconds(plan.getSeconds()[i]) + ", "
+				+ (used.equals(plan.getWorn()) ? "worn" : !plan.switches(i).isEmpty() ? "switch to " + names(plan.switches(i))
+				: used.getSpell() != null && !used.getSpell().equals(plan.getWorn().getSpell())
+				? "cast " + escape(used.getSpell().getName()) : "change style") + (i == selected ? " (selected)" : "")
+				+ (notes.containsKey(i) ? "<br>" + ResultView.typeName(picks.get(i)) + " picked; " + escape(notes.get(i))
+				+ ", so " + style + " is planned." : "")
+				+ (i == selected && differs ? "<br>The plan's setup differs from this tab (fight conditions)." : "");
+			JButton button = new JButton(html(i == selected ? "<b>" + text + "</b>" : text));
+			Controls.ghost(button);
+			button.setToolTipText("Show this phase's style tabs");
+			button.addActionListener(e -> step(row));
+			fightCard.add(left(button));
+		}
+		fightCard.add(spacer(8));
+		resultsPanel.revalidate();
+	}
+
+	/** The bank's fight kit: the plan's gear, the boosts of every style it uses and the trip against the shown target. */
+	private void showKit()
+	{
+		TripSupplies.Kit kit = TripSupplies.Kit.of(shownPlan, shownWorn);
+		List<Potion> potions = new ArrayList<>();
+		List<TripSupplies.Supply> supplies = Collections.emptyList();
+		if (kitResults != null)
+		{
+			for (Outfit outfit : shownPlan.outfits())
+			{
+				for (Potion potion : ResultView.potionsFor(kitResults, Weapons.tabType(outfit), Weapons.classOf(outfit.getStyle())))
+				{
+					if (potions.stream().noneMatch(p -> p.getId() == potion.getId()))
+					{
+						potions.add(potion);
+					}
+				}
+			}
+			supplies = plugin.tripSupplies(kit, kitResults, potions);
+			potions.removeIf(p -> !TripSupplies.takes(p, kitResults.getMonster()));
+		}
+		plugin.showFightKit(kit, potions, supplies);
+	}
+
+	/** A one-line note in the full-fight card while it is planned, or in place of a plan; the result view takes the bank back. */
+	public void showFightStatus(String text)
+	{
+		shownInputs = null;
+		if (shownPlan != null)
+		{
+			shownPlan = null;
+			plugin.showFightKit(null, null, null);
+			refreshSupplies();
+		}
+		fightNote(text);
+	}
+
+	private void fightNote(String text)
+	{
+		fightCard.removeAll();
+		JLabel note = new JLabel(html(escape(text)));
+		setSmall(note, ColorScheme.LIGHT_GRAY_COLOR);
+		fightCard.add(left(note));
+		fightCard.add(spacer(8));
+		resultsPanel.revalidate();
+	}
+
+	private static String names(List<Gear> items)
+	{
+		return escape(items.stream().map(item -> GameData.titleCase(item.getName())).collect(Collectors.joining(", ")));
+	}
+
+	private static String seconds(double seconds)
+	{
+		return Double.isInfinite(seconds) ? "no damage" : String.format("%.0f s", seconds);
 	}
 
 	/** Raid party scaling, when the target has any, and the Defence the setups were ranked against. */

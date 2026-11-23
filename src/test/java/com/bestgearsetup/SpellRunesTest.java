@@ -326,6 +326,24 @@ public class SpellRunesTest
 			ItemID.COSMICRUNE, ItemID.BOOK_OF_THE_DEAD)));
 	}
 
+	/** A fight kit keeps to the plan's one spellbook: a melee worn setup's thrall is left out beside a standard spell. */
+	@Test
+	public void fightKitRunesKeepToThePlansSpellbook()
+	{
+		Outfit melee = loadout(null, "abyssal whip", null);
+		Outfit fire = loadout("fire surge", "magic staff", null);
+		fire.getSpell().setSpellbook("standard");
+		Setup worn = new Setup(Combat.MELEE, melee, null, 0, 0, java.util.Collections.emptySet(), EnumSet.of(SupportSpell.THRALL),
+			null, Thrall.GREATER);
+		FightPlan.Plan plan = new FightPlan.Plan(melee, java.util.Collections.emptyList(), 0, Arrays.asList(melee, fire),
+			new double[]{10, 10}, java.util.Collections.emptyList(), 100);
+		List<Integer> runes = TripSupplies.Kit.of(plan, worn).getSpellItems();
+		assertTrue(runes.toString(), runes.contains(ItemID.FIRERUNE) && !runes.contains(ItemID.BOOK_OF_THE_DEAD));
+		FightPlan.Plan meleeOnly = new FightPlan.Plan(melee, java.util.Collections.emptyList(), 0, Arrays.asList(melee, melee),
+			new double[]{10, 10}, java.util.Collections.emptyList(), 100);
+		assertTrue(TripSupplies.Kit.of(meleeOnly, worn).getSpellItems().contains(ItemID.BOOK_OF_THE_DEAD));
+	}
+
 	private static List<Integer> required(Outfit loadout)
 	{
 		return required(loadout, EnumSet.noneOf(SupportSpell.class));

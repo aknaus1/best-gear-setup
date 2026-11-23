@@ -33,6 +33,7 @@ public final class ConfigSettings
 		add("membersItems", Options::membersItems);
 		add("ammoCount", Options::ammoCount);
 		add("killsPerTrip", Options::killsPerTrip);
+		add("fightSwitchSlots", Options::fightSwitchSlots);
 		add("currentHitpoints", Options::currentHitpoints);
 		add("wilderness", Options::wilderness);
 		add("limitWildernessRisk", Options::limitWildernessRisk);

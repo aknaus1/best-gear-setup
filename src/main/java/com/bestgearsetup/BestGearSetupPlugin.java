@@ -120,6 +120,12 @@ public class BestGearSetupPlugin extends Plugin
 	/** Immutable selection snapshot shared between the sidebar and the bank and inventory renderers. */
 	@Getter
 	private volatile Set<Integer> bankHighlightIds = Collections.emptySet();
+	/** Swing thread: the fight whose style picks (by row) are kept, and the row the player last stepped to. */
+	private String pickedFight;
+	final Map<Integer, Style.Type> fightPicks = new HashMap<>();
+	private int steppedRow = -1;
+	/** The bank shows a full fight's kit, which the result view's setups don't replace. */
+	private volatile boolean fightKit;
 
 	@Getter
 	@Inject
@@ -142,10 +148,10 @@ public class BestGearSetupPlugin extends Plugin
 	 * Each style tab's setups by {@link SearchInputs}: repeating a search, toggling a style or rerunning after a
 	 * presentation change reuses the tabs whose inputs are unchanged. An entry is its key's small parts and at most
 	 * a few setups of catalogue items, a few KB; the large parts (prices, owned gear) are one copy per content (see
-	 * {@link SearchInputs#SHARED}). 64 tabs is about ten searches of every style: normally under a megabyte, and
-	 * only if every entry were searched under different Grand Exchange prices would each pin its own price map.
+	 * {@link SearchInputs#SHARED}). 192 tabs is about thirty searches of every style, or a few full fights: a
+	 * few megabytes, and only if every entry were searched under different Grand Exchange prices would each pin its own price map.
 	 */
-	final SearchCache<SearchInputs, List<Setup>> tabCache = new SearchCache<>(64);
+	final SearchCache<SearchInputs, List<Setup>> tabCache = new SearchCache<>(192);
 	/** Last levels written to the profile; client thread only. */
 	private String lastRememberedLevels;
 	/** Ownership the latest search was computed with; null when no results depend on it. */
@@ -254,6 +260,7 @@ public class BestGearSetupPlugin extends Plugin
 		// Release the setups (and through them the catalogue) and stop running searches from storing more.
 		tabCache.clear();
 		SearchInputs.SHARED.clear();
+		forgetPicks();
 		overlayManager.remove(bankOverlay);
 		overlayManager.remove(inventoryOverlay);
 		eventBus.unregister(bankView);
@@ -678,6 +685,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		onPanel(p ->
 		{
+			forgetPicks();
 			if (generation == searchGeneration.get())
 			{
 				p.clearResults("Account changed. Find best setup again to use this account's levels and items.");
@@ -813,6 +821,15 @@ public class BestGearSetupPlugin extends Plugin
 			search.cancel(false);
 		}
 		panel.showSearching(summary);
+		// Style picks belong to one fight: another fight's search, or Clear, forgets them.
+		String fight = FightPlan.fight(summary.getName());
+		if (!Objects.equals(fight, pickedFight))
+		{
+			forgetPicks();
+			pickedFight = fight;
+		}
+		Map<Integer, Style.Type> picks = new HashMap<>(fightPicks);
+		int stepped = steppedRow;
 
 		clientThread.invokeLater(() ->
 		{
@@ -864,6 +881,8 @@ public class BestGearSetupPlugin extends Plugin
 				npc == null ? null : npc.getWorldLocation(), taskLocation);
 			boolean onTask = config.taskMode().resolve(matched, false);
 			detected.put("onSlayerTask", onTask);
+			Map<String, Boolean> phaseTasks = phaseTasks(summary.getName(), config.taskMode(), name -> npc != null
+				? AccountFacts.matches(assignment, name, taskLocation) : AccountFacts.matchesAssignment(assignment, name));
 			// The task summary's hover text: one short line.
 			String taskNote = config.taskMode() != AutoState.AUTO ? "Slayer task " + config.taskMode() + " (Fight override)."
 				: matched == null ? "Slayer task unknown; task bonus not assumed."
@@ -910,7 +929,8 @@ public class BestGearSetupPlugin extends Plugin
 			Boolean eliteDiary = kourendElite == null && ownedItems.snapshot().contains(ItemID.ZEAH_BLESSING_ELITE)
 				? Boolean.TRUE : kourendElite;
 			search = executor.submit(() -> runSearch(data, summary, levels, rememberedLevels, prayerUnlocks,
-				eliteDiary, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes, epoch));
+				eliteDiary, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes, epoch,
+				phaseTasks, picks, stepped));
 		});
 	}
 
@@ -1032,58 +1052,57 @@ public class BestGearSetupPlugin extends Plugin
 			PrayerUnlocks.CONFIG_KEY));
 	}
 
+	/** Whether each phase target of the target's fight is on task, matched as the target is; empty outside a fight. */
+	static Map<String, Boolean> phaseTasks(String target, AutoState mode, Function<String, Boolean> matched)
+	{
+		Map<String, Boolean> tasks = new HashMap<>();
+		try
+		{
+			for (FightPlan.Phase phase : FightPlan.phases(FightPlan.fight(target)))
+			{
+				tasks.put(phase.getTarget(), mode.resolve(matched.apply(phase.getTarget()), false));
+			}
+		}
+		catch (RuntimeException | Error e)
+		{
+			// Called on the client thread: a broken catalog only means no fight is planned.
+			log.warn("Full fight catalog failed", e);
+		}
+		return tasks;
+	}
+
+	/** One target of a search: its monster at each preparation step, settings, combat context and style tabs' key. */
+	private static final class Target
+	{
+		Monster base;
+		Monster scaled;
+		Monster monster;
+		SpecialAttacks specials;
+		RaidScaling.Settings raid;
+		OptimizerSettings settings;
+		Predicate<Potion> boosts;
+		CombatContext ctx;
+		SearchInputs inputs;
+		Function<OptimizerSettings, Optimizer> optimizer;
+		/** An optimiser of the target's full settings, for the rules and prices outside its tabs. */
+		Optimizer checker;
+	}
+
 	void runSearch(GameData data, Summary summary, PlayerLevels knownLevels, boolean rememberedLevels,
 		Set<String> prayerUnlocks, Boolean kourendElite, boolean karuulmDungeon, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
-		Map<Integer, Long> quantities, int generation, Options config, LiveRaid liveRaid, List<String> detectedNotes, long epoch)
+		Map<Integer, Long> quantities, int generation, Options config, LiveRaid liveRaid, List<String> detectedNotes, long epoch,
+		Map<String, Boolean> phaseTasks, Map<Integer, Style.Type> picks, int stepped)
 	{
 		try
 		{
 			boolean assumedLevels = knownLevels == null;
 			PlayerLevels levels = assumedLevels ? PlayerLevels.maxed() : knownLevels;
-			Monster baseMonster = api.getMonster(summary);
-			SpecialAttacks specials = specials(config);
-			// Wiki order: raid scaling, health-dependent stats, then pre-fight defence reductions.
-			RaidScaling.Settings raid = raidSettings(levels, mining, config);
-			if (liveRaid.maxCombat > 0 && liveRaid.maxCombat <= 126) { raid = raid.toBuilder().partyMaxCombat(liveRaid.maxCombat).build(); }
-			Monster scaled = RaidScaling.apply(baseMonster, raid);
-			scaled.setPhase(config.encounterPhase());
-			EncounterPhases.applyStats(scaled);
-			Monster monster = specials.apply(MonsterStates.atHealth(scaled, 0));
-
 			boolean eliteDiary = Boolean.TRUE.equals(kourendElite);
-			OptimizerSettings settings = buildSettings(config).toBuilder().kourendEliteDiary(eliteDiary)
-				.karuulmDungeon(karuulmDungeon).build();
-			Map<Combat, OffensivePrayer> prayers = new EnumMap<>(Combat.class);
-			if (config.usePrayers())
-			{
-				Predicate<String> available = PrayerUnlocks.available(prayerUnlocks, config.excludedPrayers());
-				for (Combat cls : Combat.values())
-				{
-					OffensivePrayer p = PrayerUnlocks.best(data.getPrayers(cls), levels, available);
-					if (p != null)
-					{
-						prayers.put(cls, p);
-					}
-				}
-			}
-			Predicate<Potion> boosts = BoostAccess.allowed(settings.getMode(), owned, config.raidPotions());
-			int[] boosted = boostBases(levels);
-			for (int i = 0; i < boosted.length; i++)
-			{
-				boosted[i] = PotionChoice.boostedLevel(data, BOOST_SKILLS[i], boosted[i], potionChoice(config, BOOST_CLASSES[i]), boosts, monster);
-			}
-			CombatContext ctx = new CombatContext(monster, levels, config.onSlayerTask(),
-				boosted[0], boosted[1], boosted[2], boosted[3], prayers, config.thrall()).withFightOptions(config.aoe() ? config.aoeTargets() : 1, 0)
-				.withModifiers(CombatModifiers.builder().currentHitpoints(config.currentHitpoints())
-					.wilderness(config.wilderness())
-					.forinthrySurge(config.forinthrySurge())
-					.weaponPoison(config.weaponPoison()).charge(config.charge())
-					.markOfDarkness(config.markOfDarkness()).sunfireRunes(config.sunfireRunes())
-					.unlocks(prayerUnlocks == null ? PrayerUnlocks.GATED : prayerUnlocks)
-					.kandarinDiary(config.kandarinDiary()).soulreaperStacks(config.soulreaperStacks())
-					.miningLevel(config.miningLevel() == 0 ? mining : config.miningLevel()).build())
-				// HP-dependent target stats are re-derived in the same order for whole-fight averages.
-				.withHealthStates(hp -> specials.apply(MonsterStates.atHealth(scaled, hp)));
+			Target t = prepare(data, summary, levels, prayerUnlocks, eliteDiary, karuulmDungeon, mining, quotes, owned,
+				quantities, config, liveRaid);
+			Monster monster = t.monster;
+			OptimizerSettings settings = t.settings;
+			CombatContext ctx = t.ctx;
 			// One tab per attack type: melee is optimised separately for stab, slash and crush.
 			// An EnumSet, so already in declaration order.
 			List<Style.Type> types = new ArrayList<>(settings.getStyles());
@@ -1091,38 +1110,13 @@ public class BestGearSetupPlugin extends Plugin
 			BooleanSupplier cancelled = () -> generation != searchGeneration.get();
 			SearchProgress progress = new SearchProgress(types.size(),
 				percent -> onPanel(generation, p -> p.showProgress(percent)));
-			// Built here, off the client thread; everything after the tabs (notes, locks, warnings) runs every time.
-			SearchInputs inputs = SearchInputs.of(data, summary.getName(), levels, boosted, prayerUnlocks, eliteDiary,
-				karuulmDungeon, mining, liveRaid.maxCombat, quotes, owned, quantities, config);
-			List<List<Setup>> tabs = new ArrayList<>();
-			for (int i = 0; i < types.size() && !cancelled.getAsBoolean(); i++)
-			{
-				int tab = i;
-				Style.Type type = types.get(i);
-				OptimizerSettings typeSettings = settings.toBuilder().styles(EnumSet.of(type)).build();
-				DoubleConsumer done = fraction -> progress.update(tab, fraction);
-				tabs.add(searchTab(inputs.tab(type), epoch, cancelled, done, () -> new Optimizer(data, ctx, typeSettings,
-					owned::contains, id -> quantities.getOrDefault(id, 0L), item -> price(quotes, item))
-					.optimize(classOf(type), cancelled, done)));
-			}
-			if (cancelled.getAsBoolean())
+			Map<Style.Type, List<Setup>> byType = searchTabs(t, types, epoch, cancelled, progress);
+			if (byType == null)
 			{
 				return;
 			}
 			progress.complete();
-			Map<Style.Type, List<Setup>> byType = new LinkedHashMap<>();
-			for (int i = 0; i < types.size(); i++)
-			{
-				if (!tabs.get(i).isEmpty())
-				{
-					byType.put(types.get(i), tabs.get(i));
-				}
-			}
-			if (generation != searchGeneration.get())
-			{
-				return;
-			}
-			List<String> notes = describeSearch(baseMonster, scaled, monster, specials, ctx, settings, raid, config);
+			List<String> notes = describeSearch(t.base, t.scaled, monster, t.specials, ctx, settings, t.raid, config);
 			notes.addAll(detectedNotes);
 			if (config.usePrayers() && prayerUnlocks == null)
 			{
@@ -1131,7 +1125,7 @@ public class BestGearSetupPlugin extends Plugin
 			for (String name : PrayerUnlocks.unknown(config.excludedPrayers(), Arrays.stream(Combat.values())
 				.flatMap(cls -> data.getPrayers(cls).stream()).collect(Collectors.toList())))
 				notes.add("Excluded prayers: \"" + name + "\" isn't an offensive prayer, so it is ignored.");
-			if (kourendElite == null && !eliteDiary && SlayerEquipment.inKaruulm(baseMonster, settings))
+			if (kourendElite == null && !eliteDiary && SlayerEquipment.inKaruulm(t.base, settings))
 			{
 				notes.add("Elite Kourend & Kebos Diary status is unknown until you log in, so Karuulm boots are required.");
 			}
@@ -1140,10 +1134,8 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				notes.add(0, unpricedNote);
 			}
-			List<LockStatus> locks = LockStatus.check(data,
-				new Optimizer(data, ctx, settings, owned::contains, id -> quantities.getOrDefault(id, 0L),
-					item -> price(quotes, item)), settings.getLocks());
-			List<String> warnings = assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config);
+			List<LockStatus> locks = LockStatus.check(data, t.checker, settings.getLocks());
+			List<String> warnings = assumptionWarnings(data, levels, monster, settings.getMode(), t.boosts, config);
 			if (settings.getStyles().contains(Style.Type.MAGIC))
 			{
 				List<Spell> castable = Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings);
@@ -1152,13 +1144,218 @@ public class BestGearSetupPlugin extends Plugin
 					byType.getOrDefault(Style.Type.MAGIC, Collections.emptyList())));
 			}
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
-				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
+				potionsUsed(data, levels, monster, t.boosts, config), assumedLevels, locks, config.markOfDarkness(),
 				rememberedLevels, warnings,
-				Thrall.eligibleType(monster) == null ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
-				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels);
+				Thrall.eligibleType(monster) == null ? null : ctx.getThrall(), raidScaling(t.base, t.raid, liveRaid.raidDetected),
+				t.scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels);
 			// Loads the overhead notes here rather than on the Swing thread when the first result is shown.
 			Overheads.recommend(monster, Combat.MELEE);
 			onPanel(generation, p -> p.showResults(found));
+			// The whole fight, after the results: each phase target's tabs go through the tab cache, searched once.
+			try
+			{
+				String fight = FightPlan.fight(summary.getName());
+				if (fight == null)
+				{
+					return;
+				}
+				List<FightPlan.Phase> phases = FightPlan.phases(fight);
+				// Every row is prepared from the catalog and the saved settings, the searched target's too, so any phase
+				// target searched plans the same fight; its tabs then come from the cache. Phases whose targets have the
+				// same stats share one search for candidates.
+				Map<String, Target> targets = new HashMap<>();
+				int searchedRow = -1;
+				Map<Outfit, Setup> candidates = new LinkedHashMap<>();
+				Target[] rows = new Target[phases.size()];
+				double[] work = new double[phases.size()];
+				String[] bar = new String[work.length];
+				double[] cap = new double[work.length];
+				// At the searched distance, as the optimiser scores its setups; [1] with a special attack thrown.
+				CombatContext[][] fights = new CombatContext[work.length][2];
+				UnaryOperator<CombatContext> thrown = c -> c.withModifiers(c.getModifiers().toBuilder().specialAttack(true).build());
+				for (int i = 0; i < phases.size(); i++)
+				{
+					FightPlan.Phase phase = phases.get(i);
+					String key = phase.getTarget() + phase.getPhase() + phase.isShared();
+					Target target = targets.get(key);
+					if (phase.getTarget().equalsIgnoreCase(summary.getName())
+						&& (searchedRow < 0 || phase.getPhase() == t.scaled.getPhase()))
+					{
+						searchedRow = i;
+					}
+					if (target == null)
+					{
+						Map<String, Object> overrides = new HashMap<>();
+						overrides.put(Options.PHASE_KEY, phase.getPhase());
+						overrides.put(Options.ON_TASK_KEY, phaseTasks.getOrDefault(phase.getTarget(), config.onSlayerTask()));
+						// The saved pre-fight drains, never the specs landed live, and only over a shared health bar: a
+						// separate or reborn target starts fresh.
+						Options drains = phase.isShared() ? this.config : new Options() { };
+						for (String drain : Options.PREPARATION)
+						{
+							overrides.put(drain, ConfigSettings.getter(drain).apply(drains));
+						}
+						Summary named = new Summary();
+						named.setName(phase.getTarget());
+						target = prepare(data, named, levels, prayerUnlocks, eliteDiary, karuulmDungeon, mining, quotes, owned,
+							quantities, Assumptions.capture(config, overrides), liveRaid);
+						targets.put(key, target);
+					}
+					rows[i] = target;
+					work[i] = phase.work(config.raidPartySize(), target.ctx.getTargetHitpoints());
+					bar[i] = phase.getBar();
+					cap[i] = work[i] / phase.getCount();
+					fights[i][0] = target.ctx.withFightOptions(target.ctx.getAoeTargets(), settings.getTargetDistance());
+					fights[i][1] = thrown.apply(fights[i][0]);
+				}
+				// A step or a pick plans from the same inputs, so the card and the bank stay while it is planned.
+				Object inputs = Arrays.asList(fight, Arrays.stream(rows).map(row -> row.inputs).collect(Collectors.toList()), types,
+					config.fightSwitchSlots(), config.raidPartySize());
+				onPanel(generation, p -> p.planningFight(inputs));
+				Map<List<Object>, Map<Style.Type, List<Setup>>> searched = new HashMap<>();
+				List<Map<Style.Type, List<Setup>>> rowTabs = new ArrayList<>();
+				for (int i = 0; i < phases.size(); i++)
+				{
+					FightPlan.Phase phase = phases.get(i);
+					List<Style.Type> allowed = types.stream().filter(type -> phase.allows(classOf(type)))
+						.collect(Collectors.toList());
+					List<Object> stats = statsOf(rows[i].monster, allowed);
+					Map<Style.Type, List<Setup>> tabs = searched.get(stats);
+					if (tabs == null)
+					{
+						tabs = searchTabs(rows[i], allowed, epoch, cancelled, new SearchProgress(allowed.size(), percent -> { }));
+						if (tabs == null)
+						{
+							return;
+						}
+						searched.put(stats, tabs);
+						tabs.values().forEach(tab -> candidates.putIfAbsent(tab.get(0).getLoadout(), tab.get(0)));
+					}
+					rowTabs.add(tabs);
+				}
+				int selected = stepped >= 0 && stepped < phases.size() && phases.get(stepped).getTarget().equalsIgnoreCase(summary.getName()) ? stepped
+					: searchedRow;
+				// Each pick allows only its style on its row; one outside the row's styles is ignored.
+				Map<Integer, Style.Type> honoured = new HashMap<>();
+				Map<Integer, String> unused = new HashMap<>();
+				picks.forEach((row, type) ->
+				{
+					if (row >= phases.size())
+						return;
+					if (phases.get(row).allows(classOf(type)) && types.contains(type))
+						honoured.put(row, type);
+					else
+						unused.put(row, "not allowed on this phase");
+				});
+				// A spec weapon's special, from the first phase it can be used in.
+				Function<Outfit, SpecialAttack> special = held -> Arrays.stream(fights).map(fought -> SpecialAttack.of(held, fought[1]))
+					.filter(Objects::nonNull).findFirst().get();
+				// Each phase's own protection rules; worn, carried and loaded items keep to the budget and risk limit.
+				FightPlan.Fight model = new FightPlan.Fight()
+					{
+						private boolean allowed(Outfit outfit, int i)
+						{
+							return outfit.getStyle() != null && phases.get(i).allows(Weapons.classOf(outfit.getStyle()));
+						}
+
+						@Override
+						public double dps(Outfit outfit, int i, SpecialAttacks drains)
+						{
+							// A picked row allows only setups of its style; specials stay free.
+							return allowed(outfit, i) && honoured.getOrDefault(i, Weapons.tabType(outfit)) == Weapons.tabType(outfit)
+								&& rows[i].checker.protectedSetup(outfit)
+								? DpsCalculator.calculate(outfit, fights[i][0].withDrains(drains)).getPrimaryDps() : 0;
+						}
+
+						@Override
+						public double[] spec(Outfit held, int i, SpecialAttacks drains)
+						{
+							if (!allowed(held, i) || SpecialAttack.of(held, fights[i][1]) == null
+								|| !rows[i].checker.protectedEquipment(held))
+							{
+								return new double[3];
+							}
+							Dps spec = DpsCalculator.calculate(held, fights[i][1].withDrains(drains));
+							double seconds = spec.getExpectedSpeedTicks() * 0.6;
+							return new double[]{seconds, spec.getPrimaryDps() * seconds, spec.getAccuracy()};
+						}
+
+						@Override
+						public List<Outfit> specs(Outfit worn)
+						{
+							// The worst case has every draining special miss, so none is planned.
+							return !settings.isKillSpecials() ? Collections.emptyList() : Arrays.stream(rows).distinct()
+								.flatMap(row -> types.stream().map(BestGearSetupPlugin::classOf).distinct()
+									.flatMap(cls -> row.checker.specOutfits(worn, cls).stream()))
+								.filter(held -> settings.getDrainSpecs() != DrainSpecs.ALL_MISS
+									|| special.apply(held).getDrain() == SpecialAttack.Drain.NONE).collect(Collectors.toList());
+						}
+
+						@Override
+						public int energy(Outfit held)
+						{
+							return special.apply(held).getEnergy();
+						}
+
+						@Override
+						public SpecialAttacks landed(Outfit held, SpecialAttacks drains, double damage)
+						{
+							return settings.getDrainSpecs() == DrainSpecs.DAMAGE_ONLY ? drains
+								: drains.landed(special.apply(held).getDrain(), (int) Math.round(damage));
+						}
+
+						@Override
+						public double regen(Outfit outfit)
+						{
+							return SpecialRotation.REGEN_PER_SECOND * (Optimizer.lightbearer(outfit) ? 2 : 1);
+						}
+					};
+				// A pick whose row then deals no damage needs more switches than fit: planned again without it.
+				FightPlan.Plan[] plan = new FightPlan.Plan[1];
+				List<Integer> unfit = Collections.emptyList();
+				do
+				{
+					unfit.forEach(i -> unused.put(i, rowTabs.get(i).containsKey(honoured.get(i))
+						? "doesn't fit " + config.fightSwitchSlots() + " Fight switches" : "no setup of that style for this phase"));
+					honoured.keySet().removeAll(unfit);
+					plan[0] = FightPlan.plan(new ArrayList<>(candidates.keySet()), work, bar, cap, model,
+						settings.getSpecEnergy() == SpecEnergy.FULL_BAR, config.fightSwitchSlots(), settings.getLocks().keySet(),
+						items -> (settings.getMode() != SearchMode.BUDGET
+							|| items.stream().mapToLong(t.checker::itemCost).sum() <= settings.getBudget())
+							&& (!settings.isWildernessRiskLimited() || items.stream().filter(t.checker::expensive)
+							.map(Gear::getId).distinct().count() <= Math.max(0, settings.getMaxExpensiveItems())), cancelled);
+					unfit = honoured.keySet().stream().filter(i -> plan[0] == null || Double.isInfinite(plan[0].getSeconds()[i]))
+						.collect(Collectors.toList());
+				}
+				while (!unfit.isEmpty() && !cancelled.getAsBoolean());
+				unused.replaceAll((i, why) -> plan[0] == null || Double.isFinite(plan[0].getSeconds()[i]) ? why
+					: "nothing damages this phase");
+				// The plan row's setup is authoritative; say so when the tab shown has another top setup (catalog phase,
+				// drains only on a shared bar).
+				Style.Type tab = plan[0] == null ? null : honoured.getOrDefault(selected, Weapons.tabType(plan[0].getUsed().get(selected)));
+				boolean differs = byType.containsKey(tab) && rowTabs.get(selected).containsKey(tab)
+					&& !byType.get(tab).get(0).getLoadout().equals(rowTabs.get(selected).get(tab).get(0).getLoadout());
+				// The searched target's tabs are used last, so a large fight doesn't push them out of the cache.
+				types.forEach(type -> tabCache.get(t.inputs.tab(type), epoch));
+				onPanel(generation, p ->
+				{
+					if (plan[0] == null)
+					{
+						p.showFightStatus("Full fight plan unavailable: no allowed setup damages the fight.");
+					}
+					else
+					{
+						p.showFightPlan(fight, plan[0], candidates.get(plan[0].getWorn()), config.fightSwitchSlots(), selected, picks,
+							unused, differs, inputs);
+					}
+				});
+			}
+			catch (IOException | RuntimeException | Error e)
+			{
+				// The results are already shown; the plan is only left out.
+				log.warn("Full fight plan failed", e);
+				onPanel(generation, p -> p.showFightStatus("Full fight plan unavailable: " + e.getMessage()));
+			}
 		}
 		catch (IOException | RuntimeException | Error e)
 		{
@@ -1171,6 +1368,127 @@ public class BestGearSetupPlugin extends Plugin
 				p.showError("Search failed: " + e.getMessage());
 			});
 		}
+	}
+
+	/** Prepare one target in the Wiki's order: raid scaling, health-dependent stats, then pre-fight defence reductions. */
+	private Target prepare(GameData data, Summary summary, PlayerLevels levels, Set<String> prayerUnlocks,
+		boolean eliteDiary, boolean karuulmDungeon, int mining, Map<Integer, Long> quotes, Set<Integer> owned,
+		Map<Integer, Long> quantities, Options config, LiveRaid liveRaid) throws IOException
+	{
+		Target t = new Target();
+		t.base = api.getMonster(summary);
+		// Settings that can't change this target are left at their defaults, also in its tabs' key: a saved phase of
+		// another boss, and the party size outside raids (a full fight's work reads the search's own).
+		Map<String, Object> unused = new HashMap<>();
+		if (config.encounterPhase() != EncounterPhase.STANDARD && !EncounterPhases.applies(t.base, config.encounterPhase()))
+		{
+			unused.put(Options.PHASE_KEY, EncounterPhase.STANDARD);
+		}
+		if (RaidScaling.raid(t.base) == RaidScaling.Raid.NONE)
+		{
+			unused.put("raidPartySize", 1);
+		}
+		config = Assumptions.capture(config, unused);
+		SpecialAttacks specials = specials(config);
+		t.specials = specials;
+		t.raid = raidSettings(levels, mining, config);
+		if (liveRaid.maxCombat > 0 && liveRaid.maxCombat <= 126) { t.raid = t.raid.toBuilder().partyMaxCombat(liveRaid.maxCombat).build(); }
+		Monster scaled = RaidScaling.apply(t.base, t.raid);
+		t.scaled = scaled;
+		scaled.setPhase(config.encounterPhase());
+		EncounterPhases.applyStats(scaled);
+		Monster monster = specials.apply(MonsterStates.atHealth(scaled, 0));
+		t.monster = monster;
+
+		t.settings = buildSettings(config).toBuilder().kourendEliteDiary(eliteDiary)
+			.karuulmDungeon(karuulmDungeon).build();
+		Map<Combat, OffensivePrayer> prayers = new EnumMap<>(Combat.class);
+		if (config.usePrayers())
+		{
+			Predicate<String> available = PrayerUnlocks.available(prayerUnlocks, config.excludedPrayers());
+			for (Combat cls : Combat.values())
+			{
+				OffensivePrayer p = PrayerUnlocks.best(data.getPrayers(cls), levels, available);
+				if (p != null)
+				{
+					prayers.put(cls, p);
+				}
+			}
+		}
+		t.boosts = BoostAccess.allowed(t.settings.getMode(), owned, config.raidPotions());
+		int[] boosted = boostBases(levels);
+		for (int i = 0; i < boosted.length; i++)
+		{
+			boosted[i] = PotionChoice.boostedLevel(data, BOOST_SKILLS[i], boosted[i], potionChoice(config, BOOST_CLASSES[i]), t.boosts, monster);
+		}
+		t.ctx = new CombatContext(monster, levels, config.onSlayerTask(),
+			boosted[0], boosted[1], boosted[2], boosted[3], prayers, config.thrall()).withFightOptions(config.aoe() ? config.aoeTargets() : 1, 0)
+			.withModifiers(CombatModifiers.builder().currentHitpoints(config.currentHitpoints())
+				.wilderness(config.wilderness())
+				.forinthrySurge(config.forinthrySurge())
+				.weaponPoison(config.weaponPoison()).charge(config.charge())
+				.markOfDarkness(config.markOfDarkness()).sunfireRunes(config.sunfireRunes())
+				.unlocks(prayerUnlocks == null ? PrayerUnlocks.GATED : prayerUnlocks)
+				.kandarinDiary(config.kandarinDiary()).soulreaperStacks(config.soulreaperStacks())
+				.miningLevel(config.miningLevel() == 0 ? mining : config.miningLevel()).build())
+			// HP-dependent target stats are re-derived in the same order for whole-fight averages.
+			.withHealthStates(hp -> specials.apply(MonsterStates.atHealth(scaled, hp)));
+		t.optimizer = settings -> new Optimizer(data, t.ctx, settings, owned::contains,
+			id -> quantities.getOrDefault(id, 0L), item -> price(quotes, item));
+		t.checker = t.optimizer.apply(t.settings);
+		// Built here, off the client thread; everything after the tabs (notes, locks, warnings) runs every time.
+		t.inputs = SearchInputs.of(data, summary.getName(), levels, boosted, prayerUnlocks, eliteDiary,
+			karuulmDungeon, mining, liveRaid.maxCombat, quotes, owned, quantities, config);
+		return t;
+	}
+
+	/**
+	 * What a style tab's search reads of the monster, with the tabs searched: its stats and phase, without its name,
+	 * ids or max hits (only attack weightings choose defensive gear).
+	 */
+	private static List<Object> statsOf(Monster monster, List<Style.Type> types)
+	{
+		Monster stats = monster.copy();
+		stats.setId(0);
+		stats.setName(null);
+		stats.setCombatLevel(0);
+		Map<String, Monster.MonsterAttack> attacks = new HashMap<>();
+		if (monster.getAttackStyles() != null)
+		{
+			monster.getAttackStyles().forEach((style, attack) ->
+			{
+				Monster.MonsterAttack weight = new Monster.MonsterAttack();
+				weight.setWeighting(attack == null ? 0 : attack.getWeighting());
+				weight.setTypeless(attack != null && attack.isTypeless());
+				attacks.put(style, weight);
+			});
+		}
+		stats.setAttackStyles(attacks);
+		return Arrays.asList(stats, monster.getPhase(), types);
+	}
+
+	/** The target's style tabs that found a setup, in the order of {@code types}; null once cancelled. */
+	private Map<Style.Type, List<Setup>> searchTabs(Target t, List<Style.Type> types, long epoch, BooleanSupplier cancelled,
+		SearchProgress progress)
+	{
+		Map<Style.Type, List<Setup>> byType = new LinkedHashMap<>();
+		for (int i = 0; i < types.size(); i++)
+		{
+			int tab = i;
+			Style.Type type = types.get(i);
+			DoubleConsumer done = fraction -> progress.update(tab, fraction);
+			List<Setup> found = searchTab(t.inputs.tab(type), epoch, cancelled, done, () -> t.optimizer
+				.apply(t.settings.toBuilder().styles(EnumSet.of(type)).build()).optimize(classOf(type), cancelled, done));
+			if (cancelled.getAsBoolean())
+			{
+				return null;
+			}
+			if (!found.isEmpty())
+			{
+				byType.put(type, found);
+			}
+		}
+		return byType;
 	}
 
 	/**
@@ -1202,48 +1520,32 @@ public class BestGearSetupPlugin extends Plugin
 		setBankHighlightedSetup(setup, Collections.emptyList(), Collections.emptyList());
 	}
 
-	/** Publish the displayed setup's equipment, loaded ammunition, spell runes, boosts and trip supplies to the bank. */
+	/** Publish the displayed setup's equipment, spec switch, spell runes, boosts and trip supplies; a fight kit holds the bank. */
 	public void setBankHighlightedSetup(Setup setup, List<Potion> potions, List<TripSupplies.Supply> supplies)
 	{
-		Set<Integer> ids = new HashSet<>();
-		if (setup != null)
+		if (setup == null || !fightKit)
 		{
-			for (Slot slot : Slot.values())
-			{
-				addBankHighlightItem(ids, setup.getLoadout().get(slot));
-			}
-			addBankHighlightItem(ids, setup.getLoadout().getLoadedAmmo());
-			if (setup.getSpecial() != null)
-			{
-				addBankHighlightItem(ids, setup.getSpecial().getWeapon());
-				addBankHighlightItem(ids, setup.getSpecial().getOffhand());
-				addBankHighlightItem(ids, setup.getSpecial().getAmmo());
-				addBankHighlightItem(ids, setup.getSpecial().getLoadedAmmo());
-			}
-			List<Integer> runes = SpellRunes.required(setup);
-			if (!runes.isEmpty())
-			{
-				ids.addAll(SpellRunes.POUCHES);
-			}
-			for (int rune : runes)
-			{
-				ids.add(rune);
-				ids.addAll(SpellRunes.substitutes(rune));
-			}
-			for (Potion potion : potions)
-			{
-				// Raid supplies are handed out inside the raid, never withdrawn.
-				if (!potion.isRaidSupply())
-				{
-					ids.addAll(BoostAccess.itemIds(potion));
-				}
-			}
-			supplies.forEach(supply -> ids.addAll(supply.getIds()));
+			showInBank(setup == null ? null : TripSupplies.Kit.of(setup), potions, supplies, false);
 		}
-		bankHighlightIds = Collections.unmodifiableSet(ids);
+	}
+
+	/** Swing thread: the whole fight's kit owns the bank, ahead of the result view's setups, until null releases it. */
+	public void showFightKit(TripSupplies.Kit kit, List<Potion> potions, List<TripSupplies.Supply> supplies)
+	{
+		if (kit != null || fightKit)
+		{
+			showInBank(kit, potions, supplies, kit != null);
+		}
+	}
+
+	private void showInBank(TripSupplies.Kit kit, List<Potion> potions, List<TripSupplies.Supply> supplies, boolean fight)
+	{
+		fightKit = fight;
+		BestGearSetupBankView.Layout layout = BestGearSetupBankView.layoutFor(kit, potions, this::bankItemIds, supplies);
+		bankHighlightIds = layout.ids();
 		if (bankView != null)
 		{
-			bankView.setSelection(setup, setup == null ? Collections.emptyList() : potions, this::bankItemIds, supplies);
+			bankView.publish(layout);
 			int life = lifecycle.get();
 			clientThread.invokeLater(() ->
 			{
@@ -1253,6 +1555,33 @@ public class BestGearSetupPlugin extends Plugin
 				}
 			});
 		}
+	}
+
+	/**
+	 * Swing thread: plan the shown fight again with this row's attack style; its tabs come from the cache. Ignored unless
+	 * the fight is the one searched last (a shown card can belong to the fight before).
+	 */
+	public void pickFightStyle(String fight, int row, Style.Type style)
+	{
+		if (fight.equals(pickedFight))
+		{
+			fightPicks.put(row, style);
+			rerun();
+		}
+	}
+
+	/** Swing thread: forget the style picks and the stepped row. */
+	private void forgetPicks()
+	{
+		pickedFight = null;
+		fightPicks.clear();
+		steppedRow = -1;
+	}
+
+	/** Swing thread: the next search of this row's target selects this row of the shown fight. */
+	public void stepFight(int row)
+	{
+		steppedRow = row;
 	}
 
 	/** Swing thread: cancel current and queued work and release the selected setup and target. */
@@ -1270,6 +1599,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		lastSearched = null;
 		lookupTarget = null;
+		forgetPicks();
 		searchOwned = null;
 		searchQuantities = null;
 		observedQuantities = null;
@@ -1277,14 +1607,6 @@ public class BestGearSetupPlugin extends Plugin
 		if (panel != null)
 		{
 			panel.clearSearch();
-		}
-	}
-
-	private void addBankHighlightItem(Set<Integer> ids, Gear item)
-	{
-		if (item != null)
-		{
-			ids.addAll(bankItemIds(item));
 		}
 	}
 
@@ -1565,7 +1887,10 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		addNote(notes, statusNote(base));
 		addNote(notes, RaidScaling.describe(unscaled, base, raid));
-		addNote(notes, EncounterPhases.describe(base));
+		// A saved phase that doesn't apply is left out of the search, but still said.
+		Monster phased = base.copy();
+		phased.setPhase(config.encounterPhase());
+		addNote(notes, EncounterPhases.describe(phased));
 		if (base.getName().toLowerCase(Locale.ROOT).startsWith("vardorvis"))
 		{
 			notes.add("Vardorvis: Defence and Strength follow his HP; DPS is averaged over the fight.");
@@ -1644,10 +1969,10 @@ public class BestGearSetupPlugin extends Plugin
 		return config.killsPerTrip();
 	}
 
-	/** A setup's trip supplies for the Kills per trip setting, from the items owned now. */
-	public List<TripSupplies.Supply> tripSupplies(Setup setup, SearchResults results, List<Potion> potions)
+	/** A kit's trip supplies for the Kills per trip setting, from the items owned now. */
+	public List<TripSupplies.Supply> tripSupplies(TripSupplies.Kit kit, SearchResults results, List<Potion> potions)
 	{
-		return TripSupplies.plan(setup, results, potions, config.killsPerTrip(), config.fillFood(), ownedItems::owns,
+		return TripSupplies.plan(kit, results, potions, config.killsPerTrip(), config.fillFood(), ownedItems::owns,
 			config.requireFireProtection() ? config.antifire() : Antifire.NONE);
 	}
 
