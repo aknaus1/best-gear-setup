@@ -5,93 +5,45 @@ is what the Plugin Hub shows.
 
 ## 1.1.4 (2026-11-23)
 
-- **Kills per trip** no longer applies to the Fight Caves, Inferno, Fortis Colosseum, TzHaar-Ket-Rak's challenges
-  or the Gauntlet, where one run is the trip: their trip lines and supplies count one kill, and the setting is
-  hidden for them (and for raid targets, whose supplies come from the raid).
-- The Fractured Archive's bosses and Moia's undead binders now scale with **Raid party size**: a solo counts as
-  a duo and a duo has 10% more than the listed hitpoints, as in the update posts, and three or more players
-  have the listed hitpoints x (1.45 + 0.42 per player after the third), as on the Wiki's team-size tables. Set
-  the party size in Fight.
-- Defence drains can only take the Archive Guardian, Bork, Ezekiel, Moia, Xarth and Ocellus to 60% of their
-  Defence, following the raid's 21 October hotfix. Ocellus's second phase and the other NPCs can still be
-  drained to 0.
-- Refresh The Fractured Archive's NPCs from the Wiki after the 11 November update: the Archive Guardian has 55
-  light ranged defence and 130 magic defence when flying, 50 magic defence and an 80% fire weakness when grounded; Bork
-  has 1,650 Hitpoints and the Smorks 650; Xarth has 2,450 Hitpoints and 60 stab defence. The undead binders are
-  undead. Xarth, Ocellus, the Dagon'hai and the undead binders gain the Wiki's poison, venom, freeze and burn
-  data, and the Dagon'hai, Xarth, Ocellus and the undead binders their max hits. Ezekiel's animated swords and the
-  inert guardians are added as raid NPCs.
-- Refresh the other Wiki monster data, which adds the Leech and Snelmlover500.
-- Treat Karil's crossbow as heavy ranged like every other crossbow, as the Wiki DPS calculator does: it rolls
-  against heavy ranged defence and gets the unshielded Tormented Demon bonus.
-- Only magic and standard ranged hits (bows and salamanders) on Yama's void flares are guaranteed maximum, per
-  the Wiki. Crossbows, chinchompas, thrown weapons and melee roll normally.
-- Count a special attack weapon, and an off-hand or ammunition held only for its spec, in the Wilderness
-  expensive-item limit alongside the worn gear.
-- Show the thrall that can damage the target: ghostly unless the target is immune to magic, then skeletal, then
-  zombified, with no thrall where no style can hurt it or thralls can't be resurrected (Galvek, Robert the Strong,
-  Vanstrom Klause, Fragment of Seren, Lowerniel Drakan, Nightmare Zone).
-- Leave a slot empty when its item makes no difference to the setup's rates or its special attack (a strength
-  bonus short of the next max hit, a seeded set's leftover, a piece with only defence), instead of wearing or
-  buying it. Fill empty slots still fills such slots with prayer or defence pieces.
-- Zeal is assumed once your account has unlocked it (+25% Attack and +28% Strength over Piety), and each broken
-  Fractured Archive elemental fragment adds 2 to its element's spells.
-- Hover text and setting descriptions are cut to under 10 words: item tooltips keep the name, where it's stored
-  and what matters most, and drop the rest when it doesn't fit. A few lock reasons and long names can run longer.
-- Add **Kills per trip** (default 1) under Fight assumptions. Each setup now shows its prayer points per kill
-  (its offensive prayer and the target's overhead), the trip's combat time from its TTK, and the boost and
-  prayer restore bottles the trip needs: super restores when you own them or Sanfew serums, otherwise prayer
-  potions. Nightmare Zone potions are only packed for Nightmare Zone targets, and a wild pie or butterfly jar
-  counts its own bites or sips.
-- Fill the trip's free inventory slots with the best food you own (sharks if none), with owned Saradomin brews
-  (beside super restores) mixed in from four free slots, and owned cooked karambwans against targets hitting 20 or
-  more (dragonfire aside). No food against a target that can't hurt you (one that doesn't attack, or whose every
-  attack hits 0), and just three emergency food against a non-boss whose every attack is fully blocked, by the
-  overhead its advice keeps up (magical and ranged melee count as melee), by fire protection that takes dragonfire
-  to 0 (a super antifire, or an antifire with a fire shield or, but for metal dragons, Protect from Magic), or, for
-  a metal dragon fought from range, by distance.
-  The bank layout places the restores and food after the boosts and outlines them; up to three other owned foods
-  are offered in the food's place. A two-handed spec weapon leaves a slot for the shield it takes off. Turn it off
-  with **Fill inventory with food**.
-- The bank layout shows the inventory as you'd pack it, in a 4×7 grid beside the equipment: the spec switch, rune
-  pouch, each boost and restore bottle, then food in every slot left. Repeated items fill the bank's unused slots,
-  fainter, and withdraw from the real stack when clicked; a full bank shows each item once. The pouch's runes sit
-  under the inventory.
-- Against a monster whose attacks poison or envenom you (125 poison, 40 envenom, from the Wiki's monster data),
-  the trip brings a superantipoison or an anti-venom+, unless a serpentine helm makes you immune.
-- Against a dragon, the trip brings the **Antifire potion** its fire protection relies on, a bottle per four
-  doses (an antifire lasts 6 minutes, a super antifire 3), and the bank layout packs it with the boosts; the
-  extended potion is offered in its place. Wyverns' icy breath ignores antifire, so none is packed for them.
-- **Antifire potion** now defaults to Antifire instead of Super antifire.
-- Each setup shows the target's overhead protection prayer: one prayer, a switch between several, or none needed,
-  from the Wiki's strategy pages and the monster's attack styles, with a melee setup's own advice where it stands
-  in melee range. It is static advice per target. Prayer per kill counts that overhead, and none when the target needs none or
-  has no advice. Bronze, iron and steel dragons need none for ranged and magic setups: they stay out of melee
-  range and breathe from a distance, which Protect from Magic doesn't block.
-- Gear searches are exact: each weapon's setup is now the best combination of your allowed gear for its
-  ordinary attacks, where the old search could stop a few pieces short. Across 1,872 test searches (every boss,
-  each class, a 10m budget and best in slot) 280 found a better setup and none a worse one, in under half
-  the time. The **Search depth** setting is gone.
-- A setup killing faster with poison, venom or burns is never credited a slightly slower kill than a weaker one
-  (up to 0.07% DPS).
-- Tidy the result panel: the attack style sits under the gear in a plain box, trip lines and then the overhead
-  advice are set apart from the stats, the list of setups is headed "<Style> setups" and marks the shown one,
-  the cost line names what you own, DPS shows two decimals everywhere, TTK shows whole seconds from 10 seconds,
-  and names keep short words such as "of", "the", "to" and "a" in lower case.
-- The overhead advice no longer repeats its summary on a second line ("None needed" at range, Pestilent Bloat).
-- The *Open in RuneLite settings* link is underlined and shows a hand cursor.
-- Add Excluded prayers under Boosts: offensive prayers listed there are never assumed, and the next best one is
-  used instead. A name that isn't an offensive prayer is named in the search notes.
-- The picked attack style tab stays selected when a Fight, Gear or Settings change recalculates the results; a new
-  target or Find best setup opens on the best style again.
-- Every card in Fight and Gear now opens and collapses on its own, and they start collapsed with their counts
-  in the header, apart from Fight conditions, which starts open. **Expand all** and **Collapse all** sit at the
-  top of both views. Locking an item from a result opens Locked items.
-- The atlatl's boosts and trip supplies no longer include an Attack potion: it aims with Ranged and only its
-  damage uses Strength, so only the Strength boost (or the combat potion or overload giving it) is shown.
-- The bank layout puts the other owned foods on one row under the boosts, instead of a row each.
-- Searching a target again with unchanged gear and settings now returns at once, and turning attack styles on or
-  off reuses the styles already searched.
+- Add **Kills per trip** (Fight assumptions, default 1). Each setup shows its prayer points per kill, the trip's
+  combat time and the boost and restore bottles it needs (super restores when owned, or Sanfew serums, otherwise
+  prayer potions). Wave and challenge fights (Fight Caves, Inferno, Fortis Colosseum, TzHaar-Ket-Rak, the
+  Gauntlet) count one kill per trip.
+- Fill the trip's free slots with your best owned food (sharks if none), with owned Saradomin brews and, against
+  hard hitters, karambwans. No food against a target that can't hurt you, and three emergency food when your
+  overhead, fire protection or distance blocks its every attack. Turn it off with **Fill inventory with food**.
+- Trips bring a superantipoison or anti-venom+ against monsters that poison or envenom you (not with a serpentine
+  helm), and the antifire a dragon's fire protection relies on (not for wyverns). **Antifire potion** now
+  defaults to Antifire.
+- The bank layout shows the inventory as you'd pack it, in a 4x7 grid beside the equipment: spec switch, rune
+  pouch, boosts, restores, then food, with other owned foods on a row below. Repeated items use the bank's
+  spare slots and withdraw from the real stack.
+- Each setup shows the target's overhead protection prayer (one prayer, a switch, or none needed), as static
+  advice from the Wiki's strategy pages and the monster's attack styles.
+- Gear searches are exact: each weapon gets the best combination of your allowed gear. Across 1,872 test
+  searches 280 found a better setup and none a worse one, in under half the time. **Search depth** is gone.
+- Searching again with unchanged gear and settings returns at once, and turning styles on or off reuses the
+  styles already searched.
+- Setups tied on score wear the cheapest gear, and a slot whose item changes nothing is left empty instead of
+  worn or bought (**Fill empty slots** still fills it).
+- Add **Excluded prayers** (Boosts): offensive prayers listed there are never assumed.
+- Zeal is assumed once unlocked, and each broken Fractured Archive elemental fragment adds 2 to its element's
+  spells.
+- Show the thrall that can damage the target (ghostly, then skeletal, then zombified), or none.
+- A special attack weapon, and an off-hand or ammunition held only for it, counts in the Wilderness
+  expensive-item limit.
+- The atlatl only gets the Strength boost, and damage over time never credits a faster setup with a slower kill.
+- The Fractured Archive: bosses and Moia's undead binders scale with **Raid party size** (solos and duos have the
+  listed hitpoints, as since the 18 November update), defence drains stop at 60% on the Archive Guardian, Bork,
+  Ezekiel, Moia, Xarth and Ocellus (21 October hotfix), and the NPCs are refreshed after the 11 November update,
+  adding Ezekiel's animated swords and the inert guardians.
+- Refresh the other Wiki monster data with poison and venom, adding the Leech and Snelmlover500.
+- Karil's crossbow is heavy ranged like every other crossbow, and only magic and standard ranged hits on Yama's
+  void flares are guaranteed maximum.
+- Every Fight and Gear card opens and collapses on its own, with **Expand all** and **Collapse all**; Fight
+  conditions starts open. The picked style tab stays selected when results recalculate.
+- Tidy the result panel (style box under the gear, a "<Style> setups" list, two-decimal DPS, whole-second TTK
+  from 10 seconds), keep hover text under 10 words, and make the *Open in RuneLite settings* link look like one.
 
 ## 1.1.3 (2026-11-10)
 

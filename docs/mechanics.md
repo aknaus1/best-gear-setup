@@ -494,9 +494,9 @@ pages and update posts. Raid monsters are listed with solo, unscaled stats, so t
 - **ToA** scales boss and path HP, and multiplies the boss's defence roll by (250 + raid level) / 250.
   Kephri's overlords keep an unscaled defence roll and puzzle-room NPCs keep their listed stats, as in the
   reference.
-- **The Fractured Archive** scales boss HP for two to eight players (a solo counts as two): a duo has 10% more
-  than the listed HP, and three or more players have the listed HP x (1.45 + 0.42 per player after the third),
-  rounded to 10. Moia's undead binders scale too (rounded to 1); Ocellus's second phase and the other adds don't.
+- **The Fractured Archive** scales boss HP for two to eight players (a solo counts as two): a duo has the listed
+  HP (the 11 November +10% was reverted on 18 November), and three or more players have the listed HP x (1.45 +
+  0.42 per player after the third), rounded to 10. Moia's undead binders scale too (rounded to 1); Ocellus's second phase and the other adds don't.
   The party size isn't read from the game, so set it in Fight. Defence drains can only take the Archive
   Guardian, Bork, Ezekiel, Moia, Xarth and Ocellus (phases 1 and 3) to 60% of their Defence.
 
