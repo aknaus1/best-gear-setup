@@ -3,7 +3,7 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
-## 1.1.4
+## 1.1.4 (2026-11-23)
 
 - Bosses with several phases or targets (Zulrah, Alchemical Hydra, Vorkath and ten more) also show a **Full
   fight** plan above the style tabs: one worn setup, up to **Fight switches** inventory items (default 8; 0 plans
