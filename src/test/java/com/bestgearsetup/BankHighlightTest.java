@@ -2,6 +2,8 @@ package com.bestgearsetup;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import com.bestgearsetup.calc.Outfit;
 import com.bestgearsetup.calc.Setup;
 import com.bestgearsetup.data.Combat;
@@ -64,7 +66,7 @@ public class BankHighlightTest
 		loadout.set(Slot.WEAPON, item(4151));
 		plugin.setBankHighlightedSetup(new Setup(Combat.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
 		// No ItemManager is installed: these paths must stop before any cache or sprite lookup.
-		BestGearSetupBankOverlay overlay = new BestGearSetupBankOverlay(plugin, new Options() {}, null);
+		BestGearSetupBankOverlay overlay = new BestGearSetupBankOverlay(plugin, new Options() {}, null, view(false));
 		Graphics2D graphics = new BufferedImage(40, 40, BufferedImage.TYPE_INT_ARGB).createGraphics();
 		try
 		{
@@ -77,7 +79,7 @@ public class BankHighlightTest
 					return false;
 				}
 			};
-			new BestGearSetupBankOverlay(plugin, disabled, null).renderItemOverlay(graphics, 4151,
+			new BestGearSetupBankOverlay(plugin, disabled, null, view(false)).renderItemOverlay(graphics, 4151,
 				new WidgetItem(4151, 1, new Rectangle(0, 0, 36, 32), null, null));
 			plugin.setBankHighlightedSetup(null);
 			overlay.renderItemOverlay(graphics, 4151, new WidgetItem(4151, 1, new Rectangle(0, 0, 36, 32), null, null));
@@ -86,6 +88,33 @@ public class BankHighlightTest
 		{
 			graphics.dispose();
 		}
+	}
+
+	@Test
+	public void theEquipmentLayoutShowsItsItemsWithoutOutlines()
+	{
+		BestGearSetupPlugin plugin = new BestGearSetupPlugin();
+		Outfit loadout = new Outfit();
+		loadout.set(Slot.WEAPON, item(4151));
+		plugin.setBankHighlightedSetup(new Setup(Combat.MELEE, loadout, null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null));
+		// Every item the layout shows is the setup's, so outlining them would mark them all; no sprite is read.
+		Graphics2D graphics = new BufferedImage(40, 40, BufferedImage.TYPE_INT_ARGB).createGraphics();
+		try
+		{
+			new BestGearSetupBankOverlay(plugin, new Options() {}, null, view(true)).renderItemOverlay(graphics, 4151,
+				new WidgetItem(4151, 1, new Rectangle(0, 0, 36, 32), null, null));
+		}
+		finally
+		{
+			graphics.dispose();
+		}
+	}
+
+	private static BestGearSetupBankView view(boolean active)
+	{
+		BestGearSetupBankView view = mock(BestGearSetupBankView.class);
+		when(view.isActive()).thenReturn(active);
+		return view;
 	}
 
 	private static Gear item(int id, Integer... variants)

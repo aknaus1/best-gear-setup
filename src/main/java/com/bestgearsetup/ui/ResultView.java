@@ -637,6 +637,14 @@ class ResultView extends JPanel
 			icon.setComponentPopupMenu(ItemMenus.of("Exclude " + antifire, () -> plugin.setExcluded(antifire.getItemId(), true)));
 			boosts.add(icon);
 		}
+		TripSupplies.Supply cure = TripSupplies.cure(selected, results.getMonster());
+		if (cure != null)
+		{
+			JLabel icon = itemIcon(cure.getIds().get(0), 34, cure.getName() + " (the target "
+				+ ("venom".equals(results.getMonster().getPoisons()) ? "envenoms" : "poisons") + " you)");
+			icon.setName("cureIcon");
+			boosts.add(icon);
+		}
 		row.add(boosts, BorderLayout.CENTER);
 		return row;
 	}

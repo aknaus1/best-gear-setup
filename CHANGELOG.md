@@ -18,6 +18,13 @@ is what the Plugin Hub shows.
   pouch, boosts, restores, then food, with other owned foods on a row below. Repeated items use the bank's
   spare slots and withdraw from the real stack.
 - The bank layout opens again with the bank when it was showing as the bank closed.
+- Bank highlights stay off over the bank layout, which only shows the setup's items. A two-handed spec weapon no
+  longer keeps an inventory slot free for the worn shield, so food fills it and the layout has no gap.
+- The trip's superantipoison or anti-venom+ is no longer dropped for targets with a boss phase, raid scaling or a
+  special attack's drain, such as Yama and Vorkath. The cure also shows beside the boosts and antifire,
+  and extended anti-venom+ counts as either cure.
+- A (super) combat potion is preferred to the (super) attack and strength potions it matches when allowed: one
+  bottle and one inventory slot instead of two.
 - Each setup shows the target's overhead protection prayer (one prayer, a switch, or none needed) as an icon
   beside its boosts and in its statistics, with static advice from the Wiki's strategy pages and the monster's
   attack styles.

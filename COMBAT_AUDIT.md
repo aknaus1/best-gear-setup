@@ -354,7 +354,7 @@ changes a search's ranking.
 - Drain effects follow the Wiki's Prayer table: Piety, Rigour, Augury and Zeal 24 (40 points a minute without
   bonus); Chivalry (since 12 August 2026), Deadeye, Mystic Vigour and the protection prayers 12.
 - Food fills the 28 slots less every bottle, a rune pouch (plus spell items beyond its three runes) and a spec
-  switch's weapon, off-hand and ammunition, plus the worn shield a two-handed spec weapon takes off. The food list and its order (best heal at 99 Hitpoints) are in
+  switch's weapon, off-hand and ammunition. The food list and its order (best heal at 99 Hitpoints) are in
   `name-lists.json` ("trip foods").
 - A monster whose Wiki infobox says it is poisonous (`poisonous` field; "venom" when it envenoms) adds one bottle
   of superantipoison or anti-venom+, none while a charged serpentine helm (or recolour) is worn. Immunity length and doses per trip are not modelled.

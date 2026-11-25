@@ -94,6 +94,16 @@ final class BoostAccess
 		return ids;
 	}
 
+	/** The potion giving both boosts, e.g. super combat for super attack and super strength; null when none does. */
+	static Integer combined(int potion, int other)
+	{
+		List<Integer> covers = SAME_BOOST.getOrDefault(other, Collections.emptyList());
+		for (int same : SAME_BOOST.getOrDefault(potion, Collections.emptyList()))
+			if (covers.contains(same))
+				return same;
+		return null;
+	}
+
 	private static void addDoses(Set<Integer> ids, int potion)
 	{
 		addFamily(ids, potion);

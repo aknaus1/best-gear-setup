@@ -56,6 +56,23 @@ public class BoostAccessTest
 	}
 
 	@Test
+	public void aSuperCombatIsPreferredToSuperAttackAndStrength()
+	{
+		PlayerLevels levels = PlayerLevels.builder().attack(99).strength(99).build();
+		// Every boost is allowed: the super combat gives both from one bottle, so it replaces the pair.
+		List<Potion> any = BestGearSetupPlugin.potionsUsed(data, levels, null, BoostAccess.allowed(SearchMode.UNLIMITED,
+			Collections.emptySet())).get(Combat.MELEE);
+		assertEquals(1, any.size());
+		assertEquals(ItemID._4DOSE2COMBAT, any.get(0).getId());
+		// Excluded, the pair is kept.
+		List<Potion> excluded = BestGearSetupPlugin.potionsUsed(data, levels, null,
+			BoostAccess.allowed(SearchMode.UNLIMITED, Collections.emptySet()).and(p -> p.getId() != ItemID._4DOSE2COMBAT))
+			.get(Combat.MELEE);
+		assertEquals(Arrays.asList(ItemID._4DOSE2ATTACK, ItemID._4DOSE2STRENGTH),
+			Arrays.asList(excluded.get(0).getId(), excluded.get(1).getId()));
+	}
+
+	@Test
 	public void ownedOnlyUsesTheStrongestOwnedBoost()
 	{
 		assertNull(best("ranged", SearchMode.OWNED_ONLY));
