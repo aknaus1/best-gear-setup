@@ -19,7 +19,7 @@ final class ItemMenus
 
 	/**
 	 * @param item the item shown (null for an empty slot)
-	 * @param slot the equipment slot, or null for blowpipe darts
+	 * @param slot the equipment slot, or null for blowpipe darts and special attack items
 	 */
 	static JPopupMenu create(Gear item, Slot slot, boolean locked, BestGearSetupPlugin plugin)
 	{

@@ -64,6 +64,7 @@ is what the Plugin Hub shows.
   from 10 seconds, the statistics collapsed to their DPS line until clicked, the spec weapon shown even when it is
   the one worn, and a colour edge per box), keep hover text under 10 words (but the overhead's advice), and make
   the *Open in RuneLite settings* link look like one.
+- Right-click the special attack weapon, off-hand or ammo in a result to exclude it or mark it owned.
 
 ## 1.1.3 (2026-11-10)
 
