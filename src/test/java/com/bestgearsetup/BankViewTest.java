@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.BooleanSupplier;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.ItemContainer;
@@ -41,6 +42,7 @@ import net.runelite.api.events.ScriptCallbackEvent;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.WidgetClosed;
+import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
@@ -437,6 +439,29 @@ public class BankViewTest
 	}
 
 	@Test
+	public void layoutShowingAsTheBankClosesOpensAgainWithIt() throws Exception
+	{
+		Fixture bank = new Fixture();
+		bank.view.setSelection(setup(Slot.WEAPON, item(12926)));
+		bank.view.show();
+		bank.view.onWidgetClosed(new WidgetClosed(InterfaceID.BANKMAIN, 0, true));
+		assertFalse(bank.view.isActive());
+		bank.view.onWidgetLoaded(loaded());
+		assertTrue(bank.view.isActive());
+		bank.view.clear();
+		bank.view.onWidgetClosed(new WidgetClosed(InterfaceID.BANKMAIN, 0, true));
+		bank.view.onWidgetLoaded(loaded());
+		assertFalse(bank.view.isActive());
+	}
+
+	private static WidgetLoaded loaded()
+	{
+		WidgetLoaded event = new WidgetLoaded();
+		event.setGroupId(InterfaceID.BANKMAIN);
+		return event;
+	}
+
+	@Test
 	public void closedBankOrEmptySelectionDoesNotStartASearch() throws Exception
 	{
 		Fixture bank = new Fixture();
@@ -558,9 +583,10 @@ public class BankViewTest
 	/** The bank view with the selection shortcuts these tests use: no trip, each item with its own ids. */
 	private static class SelectionView extends BestGearSetupBankView
 	{
-		SelectionView(Client client, ItemManager itemManager, BankSearch bankSearch, EventBus eventBus)
+		SelectionView(Client client, ItemManager itemManager, BankSearch bankSearch, EventBus eventBus,
+			ClientThread thread)
 		{
-			super(client, itemManager, bankSearch, eventBus);
+			super(client, itemManager, bankSearch, eventBus, thread);
 		}
 
 		void setSelection(Setup setup)
@@ -675,6 +701,8 @@ public class BankViewTest
 				public void invoke(Runnable action) { action.run(); }
 				@Override
 				public void invokeLater(Runnable action) { action.run(); }
+				@Override
+				public void invokeLater(BooleanSupplier action) { assertTrue(action.getAsBoolean()); }
 			};
 			// The real BankSearch and ItemManager, built through their injected constructors.
 			BankSearch bankSearch = mock(BankSearch.class, withSettings().useConstructor(client, thread)
@@ -688,7 +716,7 @@ public class BankViewTest
 				@Override
 				public void post(Object event) { posted.add(event); }
 			};
-			view = new SelectionView(client, manager, bankSearch, eventBus);
+			view = new SelectionView(client, manager, bankSearch, eventBus, thread);
 		}
 
 		private ItemComposition composition(int id)

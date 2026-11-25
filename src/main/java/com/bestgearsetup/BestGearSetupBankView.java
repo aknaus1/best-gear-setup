@@ -12,6 +12,7 @@ import net.runelite.api.gameval.*;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.vars.InputType;
 import net.runelite.api.widgets.Widget;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
@@ -43,15 +44,20 @@ class BestGearSetupBankView
 	private final ItemManager itemManager;
 	private final BankSearch bankSearch;
 	private final EventBus eventBus;
+	private final ClientThread clientThread;
 	private volatile Layout selection = Layout.EMPTY;
 	private final Map<Widget, int[]> dragSettings = new IdentityHashMap<>();
 	/** Spare bank slots showing a repeated entry, with the real stack each repeats. */
 	private final Map<Widget, Widget> copies = new IdentityHashMap<>();
 	private boolean active;
+	/** The layout was showing when the bank last closed, so it opens again with the bank. */
+	private boolean reopen;
 
 	@Inject
-	BestGearSetupBankView(Client client, ItemManager itemManager, BankSearch bankSearch, EventBus eventBus)
+	BestGearSetupBankView(Client client, ItemManager itemManager, BankSearch bankSearch, EventBus eventBus,
+		ClientThread clientThread)
 	{
+		this.clientThread = clientThread;
 		this.client = client;
 		this.itemManager = itemManager;
 		this.bankSearch = bankSearch;
@@ -558,10 +564,34 @@ class BestGearSetupBankView
 	}
 
 	@Subscribe
+	public void onWidgetLoaded(WidgetLoaded event)
+	{
+		if (event.getGroupId() != InterfaceID.BANKMAIN || !reopen)
+		{
+			return;
+		}
+		// After bankmain_init, where Bank Tags opens its remembered tab; retried until the bank can take a layout.
+		clientThread.invokeLater(() ->
+		{
+			Widget bank = client.getWidget(InterfaceID.Bankmain.ITEMS);
+			if (bank != null && (bank.isHidden() || bank.getOnInvTransmitListener() == null))
+			{
+				return false;
+			}
+			if (bank != null && reopen)
+			{
+				show();
+			}
+			return true;
+		});
+	}
+
+	@Subscribe
 	public void onWidgetClosed(WidgetClosed event)
 	{
 		if (event.getGroupId() == InterfaceID.BANKMAIN && event.isUnload())
 		{
+			reopen = active;
 			active = false;
 			restoreDragging();
 		}
