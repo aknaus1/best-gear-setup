@@ -4,8 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import com.bestgearsetup.calc.Antifire;
 import com.bestgearsetup.calc.PlayerLevels;
 import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.calc.SearchMode;
@@ -39,20 +38,18 @@ public class BoostAccessTest
 	private static String best(String skill, SearchMode mode, Integer... owned)
 	{
 		Set<Integer> expanded = OwnedItems.expand(new HashSet<>(Arrays.asList(owned)));
-		Predicate<Potion> boosts = BoostAccess.allowed(mode, expanded, true);
-		Potion p = PotionChoice.resolve(data, skill, 99, PotionChoice.BEST, boosts, null);
+		Predicate<Potion> boosts = BoostAccess.allowed(mode, expanded);
+		Potion p = PotionChoice.resolve(data, skill, 99, boosts, null);
 		return p == null ? null : p.getName();
 	}
 
 	@Test
 	public void aCombatPotionIsKeptAsItsStrengthBoost()
 	{
-		Options config = mock(Options.class);
-		when(config.potionMelee()).thenReturn(PotionChoice.BEST);
 		Predicate<Potion> boosts = BoostAccess.allowed(SearchMode.OWNED_ONLY,
-			OwnedItems.expand(new HashSet<>(Collections.singletonList(ItemID._4DOSECOMBAT))), true);
+			OwnedItems.expand(new HashSet<>(Collections.singletonList(ItemID._4DOSECOMBAT))));
 		List<Potion> melee = BestGearSetupPlugin.potionsUsed(data, PlayerLevels.builder().attack(99).strength(99).build(),
-			null, boosts, config).get(Combat.MELEE);
+			null, boosts).get(Combat.MELEE);
 		// One bottle boosts both, listed as the Strength boost the atlatl takes.
 		assertEquals(1, melee.size());
 		assertEquals("strength", melee.get(0).getSkill());
@@ -148,42 +145,44 @@ public class BoostAccessTest
 	@Test
 	public void raidSuppliesNeedNotBeOwned()
 	{
-		Predicate<Potion> none = BoostAccess.allowed(SearchMode.OWNED_ONLY, Collections.emptySet(), true);
+		Predicate<Potion> none = BoostAccess.allowed(SearchMode.OWNED_ONLY, Collections.emptySet());
 		Monster olm = raidMonster(7554, "xerician");
 		Monster zebak = raidMonster(11730, "tombs of amascut");
-		assertEquals("overload (+)", PotionChoice.resolve(data, "ranged", 99, PotionChoice.BEST, none, olm).getName());
-		assertEquals("overload (+)", PotionChoice.resolve(data, "strength", 99, PotionChoice.BEST, none, olm).getName());
-		assertEquals("smelling salts", PotionChoice.resolve(data, "magic", 99, PotionChoice.BEST, none, zebak).getName());
-		assertEquals("smelling salts", PotionChoice.resolve(data, "attack", 99, PotionChoice.BEST, none, zebak).getName());
-		assertNull(PotionChoice.resolve(data, "ranged", 99, PotionChoice.BEST, none, raidMonster(8061, "dragon")));
+		assertEquals("overload (+)", PotionChoice.resolve(data, "ranged", 99, none, olm).getName());
+		assertEquals("overload (+)", PotionChoice.resolve(data, "strength", 99, none, olm).getName());
+		assertEquals("smelling salts", PotionChoice.resolve(data, "magic", 99, none, zebak).getName());
+		assertEquals("smelling salts", PotionChoice.resolve(data, "attack", 99, none, zebak).getName());
+		assertNull(PotionChoice.resolve(data, "ranged", 99, none, raidMonster(8061, "dragon")));
 	}
 
 	@Test
-	public void raidSuppliesCanBeLeftOut()
+	public void excludedRaidSuppliesAreLeftOut()
 	{
 		Monster olm = raidMonster(7554, "xerician");
-		Monster zebak = raidMonster(11730, "tombs of amascut");
 		for (SearchMode mode : SearchMode.values())
 		{
-			Predicate<Potion> noRaid = BoostAccess.allowed(mode, Collections.emptySet(), false);
-			Potion ranged = PotionChoice.resolve(data, "ranged", 99, PotionChoice.BEST, noRaid, olm);
-			Potion magic = PotionChoice.resolve(data, "magic", 99, PotionChoice.BEST, noRaid, zebak);
+			Predicate<Potion> noOverload = BoostAccess.allowed(mode, Collections.emptySet()).and(p -> !p.isRaidSupply());
+			Potion ranged = PotionChoice.resolve(data, "ranged", 99, noOverload, olm);
 			assertTrue(mode + " must not assume an overload", ranged == null || !ranged.isRaidSupply());
-			assertTrue(mode + " must not assume smelling salts", magic == null || !magic.isRaidSupply());
 		}
-		// Ordinary potions are still picked when raid supplies are off.
-		assertEquals("ranging potion", PotionChoice.resolve(data, "ranged", 99, PotionChoice.BEST,
-			BoostAccess.allowed(SearchMode.BUDGET, Collections.emptySet(), false), olm).getName());
-		// A raid potion chosen by name is still used.
-		assertEquals("overload (+)", PotionChoice.resolve(data, "ranged", 99, "overload (+)",
-			BoostAccess.allowed(SearchMode.OWNED_ONLY, Collections.emptySet(), false), olm).getName());
+		assertEquals("ranging potion", PotionChoice.resolve(data, "ranged", 99,
+			BoostAccess.allowed(SearchMode.BUDGET, Collections.emptySet()).and(p -> !p.isRaidSupply()), olm).getName());
 	}
 
 	@Test
-	public void aPotionChosenByNameIsAlwaysUsed()
+	public void theStrongestAntifireIsAssumedUnlessExcludedOrUnowned()
 	{
-		Predicate<Potion> none = BoostAccess.allowed(SearchMode.OWNED_ONLY, Collections.emptySet(), true);
-		assertEquals("super combat potion",
-			PotionChoice.resolve(data, "attack", 99, "super combat potion", none, null).getName());
+		Set<Integer> none = Collections.emptySet();
+		assertEquals(Antifire.SUPER, BoostAccess.antifire(SearchMode.UNLIMITED, none, none));
+		assertEquals(Antifire.SUPER, BoostAccess.antifire(SearchMode.BUDGET, none, none));
+		Set<Integer> superExcluded = Collections.singleton(Antifire.SUPER.getItemId());
+		assertEquals(Antifire.REGULAR, BoostAccess.antifire(SearchMode.UNLIMITED, none, superExcluded));
+		Set<Integer> both = new HashSet<>(Arrays.asList(Antifire.SUPER.getItemId(), Antifire.REGULAR.getItemId()));
+		assertEquals(Antifire.NONE, BoostAccess.antifire(SearchMode.UNLIMITED, none, both));
+		// Owned only: an extended super antifire counts; owning neither still assumes the ordinary potion.
+		Set<Integer> extendedSuper = OwnedItems.expand(new HashSet<>(Collections.singletonList(ItemID._2DOSE4ANTIDRAGON)));
+		assertEquals(Antifire.SUPER, BoostAccess.antifire(SearchMode.OWNED_ONLY, extendedSuper, none));
+		assertEquals(Antifire.REGULAR, BoostAccess.antifire(SearchMode.OWNED_ONLY, none, none));
+		assertEquals(Antifire.NONE, BoostAccess.antifire(SearchMode.OWNED_ONLY, none, both));
 	}
 }

@@ -1,5 +1,6 @@
 package com.bestgearsetup;
 
+import com.bestgearsetup.calc.Antifire;
 import com.bestgearsetup.calc.Style;
 import com.bestgearsetup.calc.LockStatus;
 import com.bestgearsetup.calc.Setup;
@@ -32,6 +33,6 @@ public final class TestResults
 	{
 		return new SearchResults(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks,
 			markOfDarkness, rememberedLevels, warnings, null, null, monster == null ? 0 : monster.getDefenceLevel(), 99, 99,
-			null, Collections.emptySet());
+			null, Collections.emptySet(), Antifire.NONE);
 	}
 }

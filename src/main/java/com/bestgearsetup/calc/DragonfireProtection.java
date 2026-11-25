@@ -81,7 +81,7 @@ public final class DragonfireProtection
 	}
 
 	/** Whether this lookup makes the setup carry dragonfire protection at all; fixed for one search. */
-	static boolean required(Monster monster, OptimizerSettings settings)
+	public static boolean required(Monster monster, OptimizerSettings settings)
 	{
 		return settings.isRequireFireProtection() && applies(monster);
 	}
@@ -121,7 +121,8 @@ public final class DragonfireProtection
 		{
 			return "Dragonfire / icy breath protection is not required by this lookup.";
 		}
-		String base = "Fire protection required: " + settings.getAntifire()
+		String base = "Fire protection required: " + (settings.getAntifire() == Antifire.NONE
+			? "no antifire (excluded in Rules)" : settings.getAntifire().toString())
 			+ (settings.isProtectMagic() ? " + Protect from Magic (requires 37 Prayer). " : ". ");
 		if (wyvern(monster))
 		{

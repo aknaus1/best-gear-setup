@@ -1,10 +1,7 @@
 package com.bestgearsetup.calc;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Gear;
 import com.bestgearsetup.data.Monster;
@@ -47,8 +44,8 @@ public class PotionChoiceTest
 	public void bestSkipsRaidOnlyPotions()
 	{
 		// 99 + 4 + 9 = 112 (overloads and smelling salts are raid-only)
-		assertEquals(112, PotionChoice.boostedLevel(data(), "ranged", 99, PotionChoice.BEST, p -> true, null));
-		assertEquals("Ranging Potion", GameData.titleCase(PotionChoice.resolve(data(), "ranged", 99, PotionChoice.BEST, p -> true, null).getName()));
+		assertEquals(112, PotionChoice.boostedLevel(data(), "ranged", 99, p -> true, null));
+		assertEquals("Ranging Potion", GameData.titleCase(PotionChoice.resolve(data(), "ranged", 99, p -> true, null).getName()));
 	}
 
 	@Test
@@ -60,26 +57,11 @@ public class PotionChoiceTest
 		// Owning nothing: raid supplies are handed out in the raid, so ownership doesn't apply to them.
 		java.util.function.Predicate<Potion> none = p -> p.isRaidSupply();
 		// 99 + 11 + 15 = 125
-		assertEquals(125, PotionChoice.boostedLevel(data(), "ranged", 99, PotionChoice.BEST, none, zebak));
+		assertEquals(125, PotionChoice.boostedLevel(data(), "ranged", 99, none, zebak));
 		// 99 + 6 + 15 = 120; smelling salts don't work in the Chambers of Xeric
-		assertEquals(120, PotionChoice.boostedLevel(data(), "ranged", 99, PotionChoice.BEST, none, olm));
-		assertEquals(112, PotionChoice.boostedLevel(data(), "ranged", 99, PotionChoice.BEST, p -> true, vorkath));
-		assertNull(PotionChoice.resolve(data(), "ranged", 99, PotionChoice.BEST, none, vorkath));
-	}
-
-	@Test
-	public void namedAndNoneChoices()
-	{
-		// 99 + 11 + 15 = 125
-		assertEquals(125, PotionChoice.boostedLevel(data(), "ranged", 99, "smelling salts", p -> true, null));
-		assertEquals(99, PotionChoice.boostedLevel(data(), "ranged", 99, PotionChoice.NONE, p -> true, null));
-		assertTrue(PotionNames.namesFor(data(), Combat.RANGED).contains("overload (+)"));
-	}
-
-	@Test
-	public void dragonBattleaxeIsNotOffered()
-	{
-		assertTrue(PotionNames.namesFor(data(), Combat.MELEE).isEmpty());
+		assertEquals(120, PotionChoice.boostedLevel(data(), "ranged", 99, none, olm));
+		assertEquals(112, PotionChoice.boostedLevel(data(), "ranged", 99, p -> true, vorkath));
+		assertNull(PotionChoice.resolve(data(), "ranged", 99, none, vorkath));
 	}
 
 	@Test
@@ -109,9 +91,5 @@ public class PotionChoiceTest
 		assertNull(PotionChoice.restriction(overload, olm));
 		assertNull(PotionChoice.restriction(potion("ranging potion", 4, 10), vorkath));
 		assertEquals("only usable in Nightmare Zone", PotionChoice.restriction(potion("super ranging", 5, 15, "nmz"), olm));
-		assertTrue(PotionChoice.isExplicit("smelling salts"));
-		assertFalse(PotionChoice.isExplicit(PotionChoice.BEST));
-		assertFalse(PotionChoice.isExplicit(PotionChoice.NONE));
-		assertFalse(PotionChoice.isExplicit(null));
 	}
 }

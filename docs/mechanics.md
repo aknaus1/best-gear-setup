@@ -76,12 +76,12 @@ This page covers what the plugin assumes and what it enforces. For installation 
   potions (they don't count against the budget) but still needs you to own an imbued or saturated heart.
   *Best in slot* assumes everything. Against Chambers of Xeric and Tombs of Amascut targets, *Best* also
   considers that raid's own supplies (overloads, smelling salts) without needing you to own them, and
-  leaves them out of the bank layout. Turn off **Include raid potions** under **Combat boosts** to plan for
-  the start of a raid, before you have them. A potion you pick by name is always used.
+  leaves them out of the bank layout. Exclude a raid potion to plan for the start of a raid, before you
+  have it.
 - **Thralls** are on by default. Each setup adds the strongest thrall your base Magic level can cast:
   lesser (38, +0.208 DPS), superior (57, +0.417) or greater (76, +0.625). Thralls always hit, rolling 0 to
-  their max hit of 1, 2 or 3 every 2.4 seconds. They need the Arceuus spellbook allowed under
-  **Spellbooks** and A Kingdom Divided, which is read from your account while you're logged in and assumed
+  their max hit of 1, 2 or 3 every 2.4 seconds. They need A Kingdom Divided, which is read from your
+  account while you're logged in and assumed
   complete before the first login. They aren't added to setups autocasting a non-Arceuus spell or against
   thrall-immune targets. A setup that includes one shows the thrall's icon next to its prayer and potions
   and an **Incl. thrall** line under its DPS.
@@ -99,14 +99,11 @@ This page covers what the plugin assumes and what it enforces. For installation 
   brings each boost's bottles (Nightmare Zone potions only there), a cure against a target that poisons or
   envenoms unless a serpentine helm makes you immune, and with **Fill inventory
   with food** food in the free slots. Raid targets have no trip lines: the raid hands out its supplies.
-- Demonbane spells assume Mark of Darkness is active (in the Combat boosts settings), and its icon appears
-  next to the prayer and potions when a setup uses it. With it turned off, elemental weaknesses such as
+- Demonbane spells assume Mark of Darkness is active, and its icon appears next to the prayer and potions
+  when a setup uses it. Exclude it as a spell (right-click its icon) and elemental weaknesses such as
   Yama's weakness to water can outrank demonbane spells.
-- **Potions** are set per combat style with the dropdowns under **Combat boosts**: *Best available* (the
-  strongest potion you can use anywhere, leaving out raid, NMZ and Deadman potions and brews), *None*, or
-  any potion from the potion table (overloads, smelling salts, ...). A potion picked by name is always used.
-  It's named above the results, with a warning if the target is outside its raid or minigame or (in owned
-  and budget modes) you don't own it.
+- **Potions**: each style uses the strongest potion you can use anywhere (leaving out NMZ and Deadman
+  potions and brews) that isn't an excluded item. Exclude a potion to plan without it.
 - Monster variants match all of their NPC IDs, and the search notes give the snapshot dates.
 - Wear requirements combine the game cache's requirement parameters, levels stated in each item's Wiki
   text, and a reviewed rules table for older item families. The live client cache can only raise them.
@@ -194,8 +191,8 @@ excluded; an excluded offensive prayer is never assumed (the next best one is) a
 prayer leaves the overhead advice. The others don't change a setup. RuneLite's Best Gear Setup configuration
 groups the remaining preferences into
 **Search options**, **Attack styles**, **Equipment**, **Spellbooks**, **Combat boosts**, **Dragonfire**,
-**Experience filters**, **Fill empty slots** and **Display & interaction**. Combat boosts includes the
-potion dropdowns for each style, thralls, poison and rune assumptions. Each highlight toggle sits next to
+**Experience filters**, **Fill empty slots** and **Display & interaction**. Combat boosts includes
+thralls, poison and rune assumptions. Each highlight toggle sits next to
 its colour.
 
 **Assumptions** also has a collapsed **Pre-fight preparation** section for Vulnerability (with the tome of water
@@ -223,9 +220,9 @@ follows the raid you're in.
   **Exclude only** that one, and a variant of an excluded item says so in its tooltip. Locks and exclusions
   are listed with a remove button, and the search reruns automatically.
 - **Right-click a boost icon** in a result to exclude it: the offensive prayer or the overhead (excluded in
-  the **Rules** prayer book, where the overhead's menu can also allow it again), a potion (listed with the
-  excluded items; a potion picked by name goes back to *Best available*) or the spell (an excluded spell).
-  The thrall and Mark of Darkness icons turn those settings off.
+  the **Rules** prayer book, where the overhead's menu can also allow it again), a potion or the antifire
+  (listed with the excluded items), or the spell or Mark of Darkness (excluded spells). The thrall icon
+  turns thralls off.
 - **Lock any item**: right-click any slot in a result and pick **Lock (slot) to another item...**, or use
   **Lock any item** in the Gear view. Search for the item (for example a lightbearer for the ring slot) and
   click it. The slot filter limits the search to one slot. Locking an excluded item restores it. In *Owned
@@ -246,8 +243,8 @@ These preferences are in RuneLite's configuration for the plugin (**Settings** i
   searching again.
 - **Attack styles**: toggles for stab, slash, crush, ranged, magic and atlatl (the eclipse atlatl gets its
   own tab: ranged accuracy, Strength-based damage and Eclipse Moon burns).
-- **Equipment** and **Spellbooks**: Members, DMM, Beta and BH equipment, the spellbooks allowed for
-  casting, **Prevent manual casting** (off by default; on, spells are only autocast, never cast by hand),
+- **Equipment** and **Spellbooks**: Members, DMM, Beta and BH equipment, **Prevent manual casting** (off
+  by default; on, spells are only autocast, never cast by hand),
   and **Require Ava's / quiver** (on by default): every ranged attack whose ammunition an Ava's
   device recovers must wear an Ava's device, an assembler cape, Dizana's quiver or Dizana's max cape. That
   covers arrows, bolts, javelins and atlatl darts from the ammo slot, blowpipe darts, and thrown darts, knives,
@@ -257,10 +254,9 @@ These preferences are in RuneLite's configuration for the plugin (**Settings** i
   recovery cape is available to the search (owned, carried or bought, by the search mode), not excluded and
   wearable and allowed by the cape lock; without one, ranged setups are searched as if it were off. A cape
   locked to another cape, or left empty, keeps ranged setups with that cape.
-- **Combat boosts**: potions (including whether raid potions count), prayers, thralls and other reusable
-  combat assumptions.
-- **Dragonfire**: whether fire protection is required, and the antifire potion and Protect from Magic
-  assumed.
+- **Combat boosts**: thralls, weapon poison, Charge, sunfire runes and other reusable combat assumptions.
+  Potions, prayers and spells are all assumed unless excluded in **Rules**.
+- **Dragonfire**: whether fire protection is required.
 - **Experience filters**: rule out styles that give Attack, Strength or Defence XP (for pures). Turn off the
   other two to train one melee skill only; controlled gives all three, so it needs all three on.
 - **Fill empty slots**: fill slots that don't add damage with prayer or defence items (by defence type, or
@@ -387,8 +383,10 @@ the group size.
 
 ### Dragonfire protection
 
-Fire protection is required by default, assuming super antifire and Protect from Magic are active. All
-three are set in the **Dragonfire** settings.
+Fire protection is required by default (the **Dragonfire** setting). The strongest antifire not excluded is
+assumed: super antifire, then antifire. *Owned items only* and *Inventory + equipped only* need you to own it
+(either the potion or its extended version) and fall back to antifire when you own neither. It shows with
+the boosts, where right-clicking excludes it. Protect from Magic is assumed unless it's an excluded prayer.
 
 - Regular chromatic and brutal dragons: super antifire on its own, or regular antifire plus a fire shield
   or Protect from Magic. Metal dragons and drakes ignore the prayer.
@@ -487,7 +485,7 @@ and searches it with every other choice. Rewards from past Leagues are left out 
 ### Fight inputs and raid scaling
 
 **Assumptions** includes your HP, Wilderness, Forinthry Surge, Soulreaper stacks, Mining and pre-fight
-preparation. Charge, Mark of Darkness and sunfire runes are in the Combat boosts settings. An HP of zero
+preparation. Charge and sunfire runes are in the Combat boosts settings. An HP of zero
 means the full maximum, and a Mining level of zero uses your own level (99 when logged out). Your HP is a
 snapshot (for Dharok's and ruby bolts). Attacks that change with the target's remaining HP (ruby bolts, the
 Sun keris inside ToA, and Vardorvis's Defence and Strength) are integrated over a full kill, and the

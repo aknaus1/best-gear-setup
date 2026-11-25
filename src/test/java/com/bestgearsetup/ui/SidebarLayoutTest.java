@@ -6,9 +6,7 @@ import static org.junit.Assert.assertFalse;
 import com.bestgearsetup.Options;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.OwnedItems;
-import com.bestgearsetup.SearchResults;
 import com.bestgearsetup.calc.Outfit;
-import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.calc.Setup;
 import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.data.Combat;
@@ -26,8 +24,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
-import net.runelite.client.config.ConfigManager;
-import net.runelite.client.game.ItemManager;
 import org.junit.Test;
 
 public class SidebarLayoutTest
@@ -78,11 +74,6 @@ public class SidebarLayoutTest
 						return Collections.emptySet();
 					}
 
-					@Override
-					public String getPotionChoice(Combat cls)
-					{
-						return PotionChoice.BEST;
-					}
 				};
 				Sidebar panel = new Sidebar(plugin, new Options() {}, null, null, null);
 				panel.modeBox.setSelectedItem(com.bestgearsetup.calc.SearchMode.OWNED_ONLY);

@@ -241,6 +241,18 @@ public class GearRulesTest
 	}
 
 	@Test
+	public void anExcludedAntifireIsListedByName() throws Exception
+	{
+		excluded.add(com.bestgearsetup.calc.Antifire.SUPER.getItemId());
+		SwingUtilities.invokeAndWait(() ->
+		{
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
+			panel.refresh();
+			assertNotNull(label((Container) named(panel, "exclusionsContent"), "Super antifire"));
+		});
+	}
+
+	@Test
 	public void anyItemCanBeExcludedFromTheGearView() throws Exception
 	{
 		Gear lightbearer = DATA.searchItems("lightbearer", 1, Slot.RING).get(0);

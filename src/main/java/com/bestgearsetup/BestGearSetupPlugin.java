@@ -839,12 +839,8 @@ public class BestGearSetupPlugin extends Plugin
 			if (config.thrall())
 			{
 				Boolean kingdomDivided = readKingdomDivided();
-				detected.put("thrall", config.arceuusSpellbook() && !Boolean.FALSE.equals(kingdomDivided));
-				if (!config.arceuusSpellbook())
-				{
-					detectedNotes.add("Thralls: not added, because the Arceuus spellbook isn't allowed under Spellbooks.");
-				}
-				else if (kingdomDivided == null)
+				detected.put("thrall", !Boolean.FALSE.equals(kingdomDivided));
+				if (kingdomDivided == null)
 				{
 					detectedNotes.add("Thralls: A Kingdom Divided is unknown until you log in; thralls are assumed available.");
 				}
@@ -884,9 +880,6 @@ public class BestGearSetupPlugin extends Plugin
 			detected.putAll(landed);
 			if (!landed.isEmpty())
 			{ detectedNotes.add("Pre-fight preparation: specs landed on this target so far, in place of the Fight settings."); }
-			detected.put(Options.POTION_KEY_PREFIX + "MELEE", getPotionChoice(Combat.MELEE));
-			detected.put(Options.POTION_KEY_PREFIX + "RANGED", getPotionChoice(Combat.RANGED));
-			detected.put(Options.POTION_KEY_PREFIX + "MAGIC", getPotionChoice(Combat.MAGIC));
 			Options assumptions = Assumptions.capture(config, detected);
 			String assumptionDetail = taskNote;
 			onPanel(generation, p -> p.showAssumptions("Task: "
@@ -909,8 +902,14 @@ public class BestGearSetupPlugin extends Plugin
 			// is seen, even when the search only uses carried items.
 			Boolean eliteDiary = kourendElite == null && ownedItems.snapshot().contains(ItemID.ZEAH_BLESSING_ELITE)
 				? Boolean.TRUE : kourendElite;
+			// The antifire follows ownership, so it is settled with it, for the search and its tab cache key.
+			Antifire antifire = BoostAccess.antifire(mode, owned, excluded(assumptions));
+			if (antifire == Antifire.REGULAR && !owned.contains(antifire.getItemId()) && !owned.contains(antifire.getExtendedId())
+				&& (mode == SearchMode.OWNED_ONLY || mode == SearchMode.INVENTORY_ONLY))
+			{ detectedNotes.add("Antifire: none owned, so an antifire potion is assumed against dragonfire."); }
+			Options settled = Assumptions.capture(assumptions, Collections.singletonMap("antifire", antifire));
 			search = executor.submit(() -> runSearch(data, summary, levels, rememberedLevels, prayerUnlocks,
-				eliteDiary, karuulmDungeon, mining, quotes, owned, quantities, generation, assumptions, liveRaid, detectedNotes, epoch));
+				eliteDiary, karuulmDungeon, mining, quotes, owned, quantities, generation, settled, liveRaid, detectedNotes, epoch));
 		});
 	}
 
@@ -1054,24 +1053,21 @@ public class BestGearSetupPlugin extends Plugin
 			OptimizerSettings settings = buildSettings(config).toBuilder().kourendEliteDiary(eliteDiary)
 				.karuulmDungeon(karuulmDungeon).build();
 			Map<Combat, OffensivePrayer> prayers = new EnumMap<>(Combat.class);
-			if (config.usePrayers())
+			Predicate<String> available = PrayerUnlocks.available(prayerUnlocks, config.excludedPrayers());
+			for (Combat cls : Combat.values())
 			{
-				Predicate<String> available = PrayerUnlocks.available(prayerUnlocks, config.excludedPrayers());
-				for (Combat cls : Combat.values())
+				OffensivePrayer p = PrayerUnlocks.best(data.getPrayers(cls), levels, available);
+				if (p != null)
 				{
-					OffensivePrayer p = PrayerUnlocks.best(data.getPrayers(cls), levels, available);
-					if (p != null)
-					{
-						prayers.put(cls, p);
-					}
+					prayers.put(cls, p);
 				}
 			}
-			Predicate<Potion> boosts = BoostAccess.allowed(settings.getMode(), owned, config.raidPotions())
+			Predicate<Potion> boosts = BoostAccess.allowed(settings.getMode(), owned)
 				.and(p -> !settings.getExcluded().contains(p.getId()));
 			int[] boosted = boostBases(levels);
 			for (int i = 0; i < boosted.length; i++)
 			{
-				boosted[i] = PotionChoice.boostedLevel(data, BOOST_SKILLS[i], boosted[i], potionChoice(config, BOOST_CLASSES[i]), boosts, monster);
+				boosted[i] = PotionChoice.boostedLevel(data, BOOST_SKILLS[i], boosted[i], boosts, monster);
 			}
 			CombatContext ctx = new CombatContext(monster, levels, config.onSlayerTask(),
 				boosted[0], boosted[1], boosted[2], boosted[3], prayers, config.thrall()).withFightOptions(config.aoe() ? config.aoeTargets() : 1, 0)
@@ -1079,7 +1075,7 @@ public class BestGearSetupPlugin extends Plugin
 					.wilderness(config.wilderness())
 					.forinthrySurge(config.forinthrySurge())
 					.weaponPoison(config.weaponPoison()).charge(config.charge())
-					.markOfDarkness(config.markOfDarkness()).sunfireRunes(config.sunfireRunes())
+					.markOfDarkness(markOfDarkness(settings)).sunfireRunes(config.sunfireRunes())
 					.unlocks(prayerUnlocks == null ? PrayerUnlocks.GATED : prayerUnlocks)
 					.kandarinDiary(config.kandarinDiary()).soulreaperStacks(config.soulreaperStacks())
 					.miningLevel(config.miningLevel() == 0 ? mining : config.miningLevel()).build())
@@ -1125,7 +1121,7 @@ public class BestGearSetupPlugin extends Plugin
 			}
 			List<String> notes = describeSearch(baseMonster, scaled, monster, specials, ctx, settings, raid, config);
 			notes.addAll(detectedNotes);
-			if (config.usePrayers() && prayerUnlocks == null)
+			if (prayerUnlocks == null)
 			{
 				notes.add("Prayer unlocks are unknown until you log in; Piety, Rigour, Augury and similar are assumed unlocked.");
 			}
@@ -1141,7 +1137,7 @@ public class BestGearSetupPlugin extends Plugin
 			List<LockStatus> locks = LockStatus.check(data,
 				new Optimizer(data, ctx, settings, owned::contains, id -> quantities.getOrDefault(id, 0L),
 					item -> price(quotes, item)), settings.getLocks());
-			List<String> warnings = assumptionWarnings(data, levels, monster, settings.getMode(), boosts, config);
+			List<String> warnings = new ArrayList<>();
 			if (settings.getStyles().contains(Style.Type.MAGIC))
 			{
 				List<Spell> castable = Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings);
@@ -1150,10 +1146,11 @@ public class BestGearSetupPlugin extends Plugin
 					byType.getOrDefault(Style.Type.MAGIC, Collections.emptyList())));
 			}
 			SearchResults found = new SearchResults(monster, ctx.getTargetHitpoints(), byType, notes, ctx.getPrayers(),
-				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
+				potionsUsed(data, levels, monster, boosts), assumedLevels, locks, markOfDarkness(settings),
 				rememberedLevels, warnings,
 				Thrall.eligibleType(monster) == null ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
-				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels, PrayerUnlocks.excluded(config.excludedPrayers()));
+				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels, PrayerUnlocks.excluded(config.excludedPrayers()),
+				DragonfireProtection.required(monster, settings) && DragonfireProtection.takesPotion(monster) ? settings.getAntifire() : Antifire.NONE);
 			// Loads the overhead notes here rather than on the Swing thread when the first result is shown.
 			Overheads.recommend(monster, Combat.MELEE);
 			onPanel(generation, p -> p.showResults(found));
@@ -1314,47 +1311,13 @@ public class BestGearSetupPlugin extends Plugin
 		}
 	}
 
-	/**
-	 * Assumptions shown beside the results rather than in the collapsed details: potions picked by name (used
-	 * even where they can't be, or aren't owned) and the special-attack-only mode.
-	 */
-	private List<String> assumptionWarnings(GameData data, PlayerLevels levels, Monster target, SearchMode mode,
-		Predicate<Potion> boosts, Options config)
-	{
-		List<String> warnings = new ArrayList<>();
-		Combat[] classes = BOOST_CLASSES;
-		int[] base = boostBases(levels);
-		Set<String> seen = new HashSet<>();
-		for (int i = 0; i < base.length; i++)
-		{
-			String choice = potionChoice(config, classes[i]);
-			Potion p = PotionChoice.isExplicit(choice) ? PotionChoice.resolve(data, BOOST_SKILLS[i], base[i], choice, potion -> true, null) : null;
-			if (p == null || !seen.add(classes[i] + "/" + p.getName()))
-			{
-				continue;
-			}
-			List<String> problems = new ArrayList<>();
-			addNote(problems, PotionChoice.restriction(p, target));
-			if (mode != SearchMode.UNLIMITED && !boosts.test(p))
-			{
-				problems.add(mode == SearchMode.INVENTORY_ONLY ? "not in your inventory" : mode == SearchMode.OWNED_ONLY ? "not owned"
-					: "not owned and can't be bought");
-			}
-			warnings.add(GameData.titleCase(classes[i].name().toLowerCase(Locale.ROOT)) + " potion picked by name: "
-				+ GameData.titleCase(p.getName()) + (problems.isEmpty() ? "."
-				: " - " + String.join(", ", problems) + ". The estimates assume it anyway; choose Best available for a practical setup."));
-		}
-		return warnings;
-	}
-
-	static Map<Combat, List<Potion>> potionsUsed(GameData data, PlayerLevels levels, Monster target, Predicate<Potion> boosts,
-		Options config)
+	static Map<Combat, List<Potion>> potionsUsed(GameData data, PlayerLevels levels, Monster target, Predicate<Potion> boosts)
 	{
 		Map<Combat, List<Potion>> out = new EnumMap<>(Combat.class);
 		int[] base = boostBases(levels);
 		for (int i = 0; i < base.length; i++)
 		{
-			Potion p = PotionChoice.resolve(data, BOOST_SKILLS[i], base[i], potionChoice(config, BOOST_CLASSES[i]), boosts, target);
+			Potion p = PotionChoice.resolve(data, BOOST_SKILLS[i], base[i], boosts, target);
 			if (p == null)
 			{
 				continue;
@@ -1382,16 +1345,6 @@ public class BestGearSetupPlugin extends Plugin
 
 	OptimizerSettings buildSettings(Options config)
 	{
-		Set<String> spellbooks = new HashSet<>();
-		spellbooks.add("standard");
-		if (config.ancientMagicks())
-		{
-			spellbooks.add("ancient");
-		}
-		if (config.arceuusSpellbook())
-		{
-			spellbooks.add("arceuus");
-		}
 		Set<Style.Type> styles = EnumSet.noneOf(Style.Type.class);
 		if (config.styleStab())
 		{
@@ -1423,7 +1376,7 @@ public class BestGearSetupPlugin extends Plugin
 			.wildernessRiskLimited(config.wilderness() && config.limitWildernessRisk())
 			.maxExpensiveItems(Math.max(0, Math.min(11, config.maxExpensiveItems())))
 			.expensiveItemThreshold(Math.max(0, Budget.parse(config.expensiveItemThreshold())))
-			.spellbooks(spellbooks)
+			.spellbooks(new HashSet<>(Arrays.asList("standard", "ancient", "arceuus")))
 			.spellFilter(SpellFilter.parse(config.blockedSpells(), config.forcedSpells()))
 			.styles(styles)
 			.weaponHands(config.weaponHands())
@@ -1445,7 +1398,7 @@ public class BestGearSetupPlugin extends Plugin
 			.drainSpecs(config.drainSpecs())
 			.requireFireProtection(config.requireFireProtection())
 			.antifire(config.antifire())
-			.protectMagic(config.protectMagic())
+			.protectMagic(!PrayerUnlocks.excluded(config.excludedPrayers()).contains("protect from magic"))
 			// The search's own snapshot, not the live settings, which can change while it waits to run.
 			.locks(SlotLock.parse(config.locks()))
 			.excluded(excluded(config))
@@ -1572,10 +1525,10 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			notes.add("Elemental weakness: " + base.getWeaknessType() + " +" + base.getWeakness() + "% base accuracy and damage.");
 		}
-		if (base.hasAttribute("demon") && config.arceuusSpellbook())
+		if (base.hasAttribute("demon"))
 		{
-			notes.add(config.markOfDarkness() ? "Demonbane spells assume Mark of Darkness is active."
-				: "Mark of Darkness is off, so demonbane spells get only their base demon accuracy bonus.");
+			notes.add(markOfDarkness(settings) ? "Demonbane spells assume Mark of Darkness is active."
+				: "Mark of Darkness is excluded, so demonbane spells get only their base demon accuracy bonus.");
 		}
 		if (ctx.getAoeTargets() > 1)
 		{
@@ -1646,7 +1599,7 @@ public class BestGearSetupPlugin extends Plugin
 	public List<TripSupplies.Supply> tripSupplies(Setup setup, SearchResults results, List<Potion> potions)
 	{
 		return TripSupplies.plan(setup, results, potions, config.killsPerTrip(), config.fillFood(), ownedItems::owns,
-			config.requireFireProtection() ? config.antifire() : Antifire.NONE);
+			results.getAntifire());
 	}
 
 	/** Updates one spell rule, moving it between the blocked and forced lists. */
@@ -1719,6 +1672,12 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	/** Explains when spell rules leave no spell to cast; most allowed spells can at least be cast by hand. */
+	/** Mark of Darkness is assumed before demonbane spells unless it is an excluded spell. */
+	private static boolean markOfDarkness(OptimizerSettings settings)
+	{
+		return !settings.getSpellFilter().getBlocked().contains("mark of darkness");
+	}
+
 	static String spellFilterNote(SpellFilter filter, List<Spell> castable)
 	{
 		if (filter.isEmpty() || !castable.isEmpty())
@@ -1729,7 +1688,7 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			return "Spells: none of the allowed spells ("
 				+ filter.getForced().stream().map(GameData::titleCase).collect(Collectors.joining(", "))
-				+ ") can be cast here; check your Magic level, spellbooks and the target.";
+				+ ") can be cast here; check your Magic level and the target.";
 		}
 		return "Spells: every spell you could cast here is excluded.";
 	}
@@ -1834,15 +1793,6 @@ public class BestGearSetupPlugin extends Plugin
 			setConfig(Options.EXCLUDED_PRAYERS_KEY, String.join(",", names));
 	}
 
-	/** Never assume this boost again: excluded like an item, and a potion choice naming it goes back to Best available. */
-	public void excludeBoost(Potion potion)
-	{
-		for (Combat cls : Combat.values())
-			if (getPotionChoice(cls).equalsIgnoreCase(potion.getName()))
-				setConfig(cls.name().toLowerCase(Locale.ROOT) + "PotionChoice", "BEST");
-		setExcluded(potion.getId(), true);
-	}
-
 	public void clearLocks()
 	{
 		setConfig(Options.LOCKS_KEY, "");
@@ -1863,12 +1813,6 @@ public class BestGearSetupPlugin extends Plugin
 			onPanel(Sidebar::onManualOwnedChanged);
 			rerun();
 		});
-	}
-
-	public String getPotionChoice(Combat cls)
-	{
-		// The plugin settings are canonical; legacy free-text choices were migrated at startup.
-		return PotionOptions.value(cls == Combat.MELEE ? config.meleePotion() : cls == Combat.RANGED ? config.rangedPotion() : config.magicPotion());
 	}
 
 	/**
@@ -1979,23 +1923,10 @@ public class BestGearSetupPlugin extends Plugin
 			+ " budget search only uses them if owned. Prices load after login; search again if this is unexpected.";
 	}
 
-	private static String potionChoice(Options config, Combat cls)
-	{
-		return cls == Combat.MELEE ? config.potionMelee() : cls == Combat.RANGED ? config.potionRanged() : config.potionMagic();
-	}
-
-	static Object potionOption(Combat cls, String name)
-	{
-		Object[] choices = cls == Combat.MELEE ? PotionOptions.Melee.values() : cls == Combat.RANGED ? PotionOptions.Ranged.values() : PotionOptions.Magic.values();
-		for (Object choice : choices) { if (PotionOptions.value((Enum<?>) choice).equalsIgnoreCase(name)) { return choice; } }
-		return null;
-	}
-
 	private void migratePreferences()
 	{
 		Map<String, String> stored = new HashMap<>();
-		for (String key : new String[]{PreferenceMigration.MARKER, "potionMELEE", "potionRANGED", "potionMAGIC",
-			"meleePotionChoice", "rangedPotionChoice", "magicPotionChoice", Options.ON_TASK_KEY, "taskMode",
+		for (String key : new String[]{PreferenceMigration.MARKER, Options.ON_TASK_KEY, "taskMode",
 			"raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode"})
 		{ stored.put(key, configManager.getConfiguration(Options.GROUP, key)); }
 		PreferenceMigration.plan(stored).forEach((key, value) -> configManager.setConfiguration(Options.GROUP, key, value));

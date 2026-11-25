@@ -30,7 +30,7 @@ public class SearchResults
 	boolean markOfDarkness;
 	/** Logged out, using the levels last seen on this account. */
 	boolean rememberedLevels;
-	/** Assumptions that change the headline estimates and must stay visible beside them (potion overrides...). */
+	/** Assumptions that change the headline estimates and must stay visible beside them (spell filter problems). */
 	List<String> warnings;
 	/** The thrall added to setups that can cast one, or null when none is. */
 	Thrall thrall;
@@ -46,6 +46,8 @@ public class SearchResults
 	PlayerLevels levels;
 	/** Lower-case names of the prayers excluded in Rules. */
 	Set<String> excludedPrayers;
+	/** The antifire assumed against this target's breath; NONE when it needs none or all are excluded. */
+	Antifire antifire;
 
 	/** The target's overhead advice for a setup of this class without excluded prayers, or null when it has none. */
 	public Overheads.Advice overhead(Combat cls)

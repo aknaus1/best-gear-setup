@@ -8,11 +8,8 @@ import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.Options;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.OwnedItems;
-import com.bestgearsetup.SearchResults;
 import com.bestgearsetup.calc.LockStatus;
-import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.calc.SlotLock;
-import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Monster;
 import com.bestgearsetup.data.Slot;
@@ -26,8 +23,6 @@ import java.util.Set;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
-import net.runelite.client.config.ConfigManager;
-import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.components.IconTextField;
 import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
@@ -64,12 +59,6 @@ public class PanelFeedbackTest
 			public Set<Integer> getExcluded()
 			{
 				return Collections.emptySet();
-			}
-
-			@Override
-			public String getPotionChoice(Combat cls)
-			{
-				return PotionChoice.BEST;
 			}
 
 			@Override
@@ -170,7 +159,6 @@ public class PanelFeedbackTest
 		});
 	}
 
-
 	@Test
 	public void startingASearchKeepsThePreviousResultsAndBankLayout() throws Exception
 	{
@@ -199,12 +187,6 @@ public class PanelFeedbackTest
 			public Set<Integer> getExcluded()
 			{
 				return Collections.emptySet();
-			}
-
-			@Override
-			public String getPotionChoice(Combat cls)
-			{
-				return PotionChoice.BEST;
 			}
 
 			@Override
@@ -242,7 +224,6 @@ public class PanelFeedbackTest
 			assertTrue(panel.resultView == null && highlights.isEmpty());
 		});
 	}
-
 
 	@Test
 	public void anotherTargetOrFindBestSetupForgetsThePickedStyle() throws Exception

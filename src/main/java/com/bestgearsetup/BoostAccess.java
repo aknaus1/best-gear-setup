@@ -1,5 +1,6 @@
 package com.bestgearsetup;
 
+import com.bestgearsetup.calc.Antifire;
 import com.bestgearsetup.calc.SearchMode;
 import com.bestgearsetup.data.Potion;
 import java.util.*;
@@ -12,7 +13,7 @@ import net.runelite.client.game.ItemVariationMapping;
  * Owned items only uses boosts the player owns (Inventory + equipped only, those carried); Owned + budget adds anything tradeable (boosts are
  * not counted against the budget); Best in slot assumes every boost. Any dose counts as owning a
  * potion, and a divine potion counts as its ordinary version. Raid supplies (overloads, smelling salts) are handed
- * out inside the raid, so they need no ownership; they can be left out for the start of a raid, before you have them.
+ * out inside the raid, so they need no ownership. Excluded items leave any of them out.
  */
 final class BoostAccess
 {
@@ -48,22 +49,34 @@ final class BoostAccess
 	{
 	}
 
-	/**
-	 * @param owned owned item ids, expanded so that any dose of a potion includes its 4-dose id
-	 * @param raidPotions whether raid supplies may be assumed
-	 */
-	static Predicate<Potion> allowed(SearchMode mode, Set<Integer> owned, boolean raidPotions)
+	/** @param owned owned item ids, expanded so that any dose of a potion includes its 4-dose id */
+	static Predicate<Potion> allowed(SearchMode mode, Set<Integer> owned)
 	{
 		switch (mode)
 		{
 			case OWNED_ONLY:
 			case INVENTORY_ONLY:
-				return p -> p.isRaidSupply() ? raidPotions : owns(p, owned);
+				return p -> p.isRaidSupply() || owns(p, owned);
 			case BUDGET:
-				return p -> p.isRaidSupply() ? raidPotions : !UNTRADEABLE.contains(p.getId()) || owns(p, owned);
+				return p -> p.isRaidSupply() || !UNTRADEABLE.contains(p.getId()) || owns(p, owned);
 			default:
-				return p -> raidPotions || !p.isRaidSupply();
+				return p -> true;
 		}
+	}
+
+	/**
+	 * The strongest antifire not in {@code excluded}: owned (either version, extended or not) when the search only
+	 * uses owned items, otherwise bought. With none owned an owned-items search still assumes the ordinary potion,
+	 * as a dragon fight without one has no setup at all.
+	 */
+	static Antifire antifire(SearchMode mode, Set<Integer> owned, Set<Integer> excluded)
+	{
+		boolean buys = mode == SearchMode.BUDGET || mode == SearchMode.UNLIMITED;
+		for (Antifire potion : new Antifire[]{Antifire.SUPER, Antifire.REGULAR})
+			if (!excluded.contains(potion.getItemId()) && (buys || owned.contains(potion.getItemId())
+				|| owned.contains(potion.getExtendedId())))
+				return potion;
+		return excluded.contains(Antifire.REGULAR.getItemId()) ? Antifire.NONE : Antifire.REGULAR;
 	}
 
 	/**
