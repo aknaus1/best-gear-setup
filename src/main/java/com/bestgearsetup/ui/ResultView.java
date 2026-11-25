@@ -30,10 +30,10 @@ import net.runelite.client.util.AsyncBufferedImage;
 class ResultView extends JPanel
 {
 	private static final Color TAB_SELECTED = new Color(0xF7, 0x8B, 0x00);
-	/** Each result box has its own edge: green statistics, orange special attack, blue cost. */
-	private static final Color STATS_BORDER = new Color(0x2E, 0x8B, 0x2E);
+	/** Each result box has its own edge: blue statistics, orange special attack, green cost. */
+	private static final Color STATS_BORDER = new Color(0x3A, 0x6E, 0xB5);
 	private static final Color SPEC_BORDER = new Color(0xD0, 0x7A, 0x1E);
-	private static final Color COST_BORDER = new Color(0x3A, 0x6E, 0xB5);
+	private static final Color COST_BORDER = new Color(0x2E, 0x8B, 0x2E);
 	/** Whether the statistics box shows more than its DPS line; closed until opened, then kept for the session. */
 	static boolean statsOpen;
 	private static final Color BOX_BG = new Color(0x1E, 0x1E, 0x1E);
