@@ -3,7 +3,7 @@
 Find the best gear for any monster or boss without leaving RuneLite. Stick to what you own, shop within a
 budget, or go straight to best in slot.
 
-![Best setups for Vorkath (best in slot), Yama (owned + budget) and Verzik Vitur (owned items only)](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/results.png)
+![Melee, ranged and magic setups: Verzik Vitur (owned items only), Vorkath (best in slot) and K'ril Tsutsaroth (owned + budget, Dark Demonbane with Mark of Darkness and a thrall)](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/results.png)
 
 ## Getting started
 
@@ -12,8 +12,9 @@ budget, or go straight to best in slot.
 3. Open the **Best Gear Setup** sidebar panel, or right-click an NPC and choose **Best setup**.
 4. Search for a monster, pick a mode and click **Find best setup**.
 
-Right-click an item in a result to lock it, exclude it or mark it as owned, or a prayer, spell or potion to
-exclude it, or add these rules from the **Rules** panel.
+Right-click an item in a result to lock it, exclude it or mark it as owned (the special attack weapon can be
+excluded or marked as owned too), or a prayer, spell or potion to exclude it, or add these rules from the
+**Rules** panel.
 
 ## Features
 
@@ -30,20 +31,22 @@ exclude it, or add these rules from the **Rules** panel.
 - **Knows your account:** owned items, levels, prayers, Slayer task and diaries, remembered per profile. With
   [Dude, Where's My Stuff?](https://runelite.net/plugin-hub/show/dude-wheres-my-stuff) enabled, gear in your STASH
   units, POH, deathbanks and other storage it tracks counts too.
-- **Potions, prayers, thralls and special attacks** are all counted, with the best spec weapon suggested.
+- **Potions, prayers, thralls and special attacks** are all counted, with the best spec weapon suggested and
+  the overhead protection prayer to use, with advice from the Wiki's strategy pages.
 - **Trip supplies** for your Kills per trip: combat time, prayer use, boost and prayer restore bottles, an
   antipoison or antivenom when the target poisons, and food for the free inventory slots.
-- **Bank gear layout and highlights** lay out the setup's gear, runes, potions and trip supplies in your bank,
-  ready to withdraw.
+- **Bank gear layout and highlights** lay out the setup's gear beside its inventory, packed as you'd carry it,
+  ready to withdraw. The layout stays open the next time you open the bank.
 - **Encounter rules are enforced:** damage caps, immunities, dragonfire protection, raid scaling and
   required Slayer gear.
 
-![The RuneLite client with the bank gear layout, highlighted inventory and Yama result in the side panel](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/bank-layout.png)
+![The RuneLite client with the bank gear layout and the Yama result in the side panel](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/bank-layout.png)
 
-Everything else is in the sidebar too. **Assumptions** sets your HP, Slayer task, raid party size, Wilderness,
-pre-fight defence reductions and the trip (kills, spec energy and food). **Rules** lists your locks,
-excluded items, spell rules and extra owned items, with a search to add more. **Settings** covers search
-options, attack styles, equipment, boosts, experience filters, fill items and highlights.
+Everything else is in the sidebar too. **Assumptions** sets your HP, Slayer task, AoE, Wilderness, the trip
+(kills, spec energy and food), raid scaling and pre-fight defence reductions. **Rules** lists your locks,
+excluded items and prayers, spell rules and extra owned items, with a search to add more. **Settings** covers
+search options, attack styles, equipment, experience filters, fill empty slots, combat boosts and display
+(the NPC right-click option and highlights).
 
 ![The Assumptions, Rules and Settings panels in the sidebar](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
 

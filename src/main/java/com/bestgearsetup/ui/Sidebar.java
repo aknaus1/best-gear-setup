@@ -543,7 +543,7 @@ public class Sidebar extends PluginPanel
 		monsterLabel.setText("<html><div style='width:120px'><b>" + escape(monster.getDisplayName())
 			+ "</b> (lvl " + monster.getCombatLevel() + ")</div></html>");
 		monsterLabel.setToolTipText(String.join(", ", monster.getAttributes()));
-		showAssumptions("Task: " + config.taskMode(), "Slayer task is matched automatically; override in Fight.");
+		showAssumptions("Task: " + config.taskMode(), "Slayer task is matched automatically; override in Assumptions.");
 		findButton.setEnabled(true);
 		if (run)
 		{

@@ -56,7 +56,7 @@ is what the Plugin Hub shows.
 - Karil's crossbow is heavy ranged like every other crossbow, and only magic and standard ranged hits on Yama's
   void flares are guaranteed maximum.
 - The sidebar's **Fight** and **Gear** buttons are now **Assumptions** and **Rules**. Every card in them opens
-  and collapses on its own, with **Expand all** and **Collapse all**; Fight conditions starts open. The picked
+  and collapses on its own, with **Expand all** and **Collapse all**. The picked
   style tab stays selected when results recalculate.
 - A new **Trip** card in Assumptions holds **Kills per trip**, **Spec energy** (moved from Search options) and
   **Fill inventory with food** (moved from Display & interaction); neither is on RuneLite's settings page

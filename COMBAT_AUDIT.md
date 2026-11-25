@@ -7,7 +7,7 @@ rotation is implemented**. The gaps, and what it would take to close them, are l
 ## Evidence
 
 Monsters, equipment, spells, prayers and potions come from bundled Wiki snapshots
-(`wiki-monsters.json.gz`, 3,130 variants; `wiki-gamedata.json.gz`, 638 weapons and 1,308 other slot
+(`wiki-monsters.json.gz`, 3,167 variants; `wiki-gamedata.json.gz`, 641 weapons and 1,314 other slot
 entries, 48 spells). The plugin makes no network requests. Wear requirements combine cache parameters,
 Wiki item text and the reviewed rules, and the live client cache can only raise them; see
 [the bundled data notes](docs/equipment-requirements.md). Sources and licences are listed in
@@ -138,11 +138,11 @@ a 10m budget and best in slot, with the kill's specials) it found a better setup
 in 280 and none worse, in 354 s instead of 845 s. The exact search needs the score never to fall as a bonus
 rises, so the kill time with damage over time halves the same intervals for every setup (see below).
 
-## Special attacks ("Only special attacks")
+## Special attacks
 
 | Case | How it's calculated |
 | --- | --- |
-| Mode | Every result scores its weapon's special attack, repeated at the weapon's speed; weapons without a damaging special are excluded from the candidate pool. Whole-fight HP integration is off because a spec is one hit at the selected HP. |
+| Scoring | A kill's spec plan scores each candidate weapon's special attack with the special-attack modifiers; weapons without a damaging special are not candidates. Whole-fight HP integration is off for a spec, which is one hit at the selected HP. |
 | Accuracy and max hit | Reference spec multipliers are applied at the reference positions: melee after inquisitor (godswords ×2 accuracy and ×1.1 damage before the per-sword multiplier, each truncated), ranged before the Royal Titans ×6, Magic before the elemental weakness bonus (Eye of Ayak's ×1.3 at base damage). |
 | Defence style | Specs roll against their fixed style regardless of stance (dragon dagger/claws/halberds/godswords slash, arclight/emberlight/dragon sword stab, dragon mace/kisten crush, Voidwaker/Saradomin's blessed sword Magic with the Magic level). |
 | Hit structures | Dragon claws (4-roll cascade, 1+1 on total failure) and burning claws (3-roll cascade with the reference burn table), dragon dagger/knife/rosewood ×2, abyssal dagger (second hit lands with the first), Crimson kisten (4 accuracy rolls widening one hit), halberds (second hit at ¾ attack roll on size > 1), Saradomin sword (+1–16 magic hit), granite hammer (+5 even on misses), Sunspear (70% hit), dark bow (two arrows, min 5/8 even on misses, cap 48), magic shortbow (two arrows), Webweaver (four hits at 40%), Tonalztics (second throw after the first throw's Defence reduction), Blood Moon dual macuahuitl (raised minimum, conditional second hit, attack-speed proc). Each hitsplat is mitigated separately; inaccurate damage splats skip flat armour. |
@@ -165,7 +165,7 @@ that the direct-damage formulas follow doesn't model poison or venom.
 | Venom | 6, 8, ... 20 per 30 ticks, never wearing off; venom replaces poison on the shared timer (any earlier poison is ignored). Toxic blowpipe, trident of the swamp, toxic staff of the dead 25% (100% with serpentine helm against NPCs); noxious halberd 33%/50%; serpentine helm alone 1/6 with unpoisoned melee, 1/2 with poisoned weapons, nothing with unpoisoned ranged/magic per the Wiki; emerald bolts do not count as poisoned. Venom-immune but poison-susceptible targets take severity-26 poison instead. |
 | Burns | 1 damage per stack every 4 ticks for 10 hits (scorching bow special: 5), at most 5 stacks with extras discarded (expected via a Poisson cap on active stacks). Burns are ranged damage: ranged-immune targets take none and ranged reductions apply. Severity immunity: weak, normal (Cerberus, red Hydra) and strong (Zuk, Moons, Mad Angel, Gemstone Crab...) from the Wiki data plus the reference's Tekton/Dusk/crystal/cyclops list. Eclipse set burns are strong (20% of successful atlatl hits); burning claws and scorching bow special burns are normal, Arkan blade strong. The scorching bow special fails against non-demons, so it is not scored there. |
 | Kill integration | Attacks at 0, speed, 2 × speed...; first application per source is geometric; poison/venom hits follow the target's own 30-tick timer with a uniformly random phase, burns a 4-tick timer. Kill time T solves direct damage per tick × T + expected damage over time by T = target HP (bisection to 1e-3 ticks from a power of two, so every setup halves the same intervals and more damage never gives a longer kill); the reported DPS is HP / T. Targets with unknown or infinite HP use the steady-state rate. Only the primary target is poisoned; AoE secondaries are not credited. |
-| Immunities | Monster `immune_poison`/`immune_venom` flags are unreliable (Akkha, Alchemical Hydra and the Dagannoth Kings would read as susceptible), so a bundled Wiki snapshot (3,255 variants, 4,137 NPC ids) is consulted by NPC id, then base name, combined with the monster's own flags. |
+| Immunities | Monster `immune_poison`/`immune_venom` flags are unreliable (Akkha, Alchemical Hydra and the Dagannoth Kings would read as susceptible), so a bundled Wiki snapshot (4,220 NPC ids, 1,631 names) is consulted by NPC id, then base name, combined with the monster's own flags. |
 | Ice ancient sceptre | +10% attack roll for ice spells against freezable, unfrozen targets. A landed cast freezes for 8/17/26/35 ticks (with the sceptre's +10%), reduced by partial freeze resistance, then 5 immune ticks; the casts in that window get no bonus, and later casts get it until one lands. Mean accuracy = share × bonus + (1 - share) × normal, share = (1/bonus) / (1/bonus + casts in window). Freezability: Wiki freeze resistance below 100%; without data, non-bosses only. |
 
 ## Magic
@@ -304,14 +304,14 @@ none of the bundled combat spells use.
 | Case | How it's calculated |
 | --- | --- |
 | Ordinary monster variants | Use the selected record's supplied stats, attributes, ranged defence split, size and elemental weakness. Copying/draining preserves those fields; replacing attributes invalidates the derived cache. |
-| Flat armour | Read the `flat` key, with `flat_armour` as an alternate. Apply it to each non-Magic splat, including negative armour on Amoxliatl/Dusk/Moons and positive armour on zombies/drakes. |
+| Flat armour | Read `flatArmour` (the Wiki's `flat`). Apply it to each non-Magic splat, including negative armour on Amoxliatl/Dusk/Moons and positive armour on zombies/drakes. |
 | Warden P2/core/P3 | Named variants take priority over IDs. P2 has guaranteed accuracy and attack-roll-dependent damage bounds. Core's supported melee maximum is separate. Phase IDs are not reused across core/P2/P3. |
 | Perilous Moons | Blue/Blood/Eclipse armour is applied per splat. The Eclipse clone, matched by name, has melee-only, guaranteed-accuracy, armour-4 behaviour. |
 | Vardorvis | Quest, post-quest and Awakened defence/strength interpolate from health before drains; defence cannot be drained further. The search supplies the state at every HP and integrates the whole fight. Unknown/Echo modes keep supplied stats. |
 | Chambers of Xeric scaling | Every `xerician` target: offensive and defensive levels by the highest party HP level and party size, HP by highest combat level and party size, with the reference clamps. Magic is defensive for Tekton, Olm hands, Vespula, the portal, vespine soldiers and deathly rangers. Challenge Mode adds 50% (Tekton defence +20%/+35%, crystal unscaled). Scavengers and vespine soldiers use solo scaling. Olm HP is 800/600 + 400/300 per effective extra player, mage-hand Magic halved; guardians use 151 + average Mining. Levels of 1 stay 1. Solo at 126 combat/99 HP leaves the base stats unchanged. |
 | Theatre of Blood scaling | HP only. Normal/hard: × (party + 3)/8 with party clamped to 3–5. Entry/story: 10, 19, 27, 34, 40 /40 for 1–5 players. Variant names decide the mode because some IDs are shared between modes. |
 | Tombs of Amascut scaling | Boss and path HP: +0.4% per raid level (core-ejected 4,500 at +0.1%), path +8% then +5% per level, party +90%/+180% then +60% each, rounded to 5/10. Defence rolls are multiplied by (250 + raid level)/250 except Kephri's overlord scarabs. Puzzle-room NPCs (baboons, agile scarab) keep their base stats, as in the reference. Fang, Shadow and Keris ToA rules use the scaled roll. |
-| The Fractured Archive scaling | HP only, for every `boss`-tagged raid NPC and Moia's undead binders. The raid scales for 2–8 players and a solo uses duo scaling ("Everything You Need To Know", 2026-10-06). The listed HP is the solo/duo base, raised 10% for solos and duos only on 2026-11-11 ("Quest Month: Week Two & TFA Changes"), so a duo is base × 1.1. Three or more players: base × (1.45 + 0.42 × (players − 3)). No post states that multiplier; rounded half up to 10, it reproduces the 3–8 player rows of the Wiki team-size tables for the Archive Guardian, Ezekiel, Moia, Dreadnoth and Ocellus, Bork's and the Smorks' trio rows on their new bases (2,390 and 940), and their other rows and Xarth's on the old bases. The tables list a solo at the base HP; the code follows the posts' duo scaling instead. Adds round to 1 (binder 95 → 105 in a duo, the Wiki's "~105"). Ocellus phase 2 (the Blade) is not in his table and stays unscaled; the Dagon'hai are scaled because the raid page says all bosses scale. Party size is not read from the client. |
+| The Fractured Archive scaling | HP only, for every `boss`-tagged raid NPC and Moia's undead binders. The raid scales for 2–8 players and a solo uses duo scaling ("Everything You Need To Know", 2026-10-06). The listed HP is the solo/duo base: the 10% solo and duo increase of 2026-11-11 ("Quest Month: Week Two & TFA Changes") was reverted on 2026-11-18 ("Quest Month Week 3 & TFA Practice Mode"), so a duo has the listed HP. Three or more players: base × (1.45 + 0.42 × (players − 3)). No post states that multiplier; rounded half up to 10, it reproduces the 3–8 player rows of the Wiki team-size tables for the Archive Guardian, Ezekiel, Moia, Dreadnoth and Ocellus, Bork's and the Smorks' trio rows on their new bases (2,390 and 940), and their other rows and Xarth's on the old bases. The tables list a solo at the base HP; the code follows the posts' duo scaling instead. Adds round to 1 (a binder stays 95 in a duo). Ocellus phase 2 (the Blade) is not in his table and stays unscaled; the Dagon'hai are scaled because the raid page says all bosses scale. Party size is not read from the client. |
 | Boss phase input | Hueycoatl head/tail with pillar: each outcome × 13/10 after the tail's cap and minimum (body excluded). Royal Titans out of melee: ranged attack roll × 6. Abyssal Sire transition: per-hit ÷ 2. Mokhaiotl shielded: only demonbane deals damage and always hits; burrowing always hits. A phase never alters other targets and is reported as ignored. |
 | Named phase variants | Names containing "(100% accuracy)" always hit. Enraged/mage-tank/range variants already carry their stat changes, so the reference phase stat changes are not applied again. |
 | Royal Titans elementals | Magic accuracy is min(1, magic attack bonus/100 + 0.3), × 1.45 with void mage (capped), and successful hits are maximum. |
@@ -349,13 +349,23 @@ changes a search's ranking.
   bottles: super restores when owned, else Sanfew serums when owned, otherwise prayer potions.
 - Boost items: a dose is drunk again once half its boost has drained, at one level a minute, the first after half
   a minute on average; a divine dose is counted as an ordinary one. An item holds its dose family's doses (four a
-  potion, two a wild pie, one a butterfly jar or beer). A heart is carried once. Nightmare Zone potions are only
-  packed against Nightmare Zone targets.
+  potion, two a wild pie, one a butterfly jar or beer). A heart is carried once. Nightmare Zone potions are never
+  assumed (`PotionChoice`), so never packed.
 - Drain effects follow the Wiki's Prayer table: Piety, Rigour, Augury and Zeal 24 (40 points a minute without
   bonus); Chivalry (since 12 August 2026), Deadeye, Mystic Vigour and the protection prayers 12.
 - Food fills the 28 slots less every bottle, a rune pouch (plus spell items beyond its three runes) and a spec
   switch's weapon, off-hand and ammunition. The food list and its order (best heal at 99 Hitpoints) are in
   `name-lists.json` ("trip foods").
+- Against dragons whose fire protection relies on an antifire (`DragonfireProtection.takesPotion`, never wyverns), the
+  trip brings a dose for every 6 minutes of combat, 3 for super antifire (Wiki), in four-dose bottles with the
+  extended potion as an alternative.
+- Free slots hold the best owned one-bite food (sharks if none). With 4 or more free, up to a quarter each can be
+  owned karambwans (against targets hitting 20 or more) and Saradomin brews (no more brews than super restores or
+  Sanfew serums). No food against a target that can't hurt you, and 3 emergency food when the overhead, full fire
+  protection or distance blocks every attack of a target that isn't a boss.
+- Wave and challenge fights (`name-lists.json` "one-run fights": Fight Caves, Inferno, Fortis Colosseum,
+  TzHaar-Ket-Rak, the Gauntlet) count one kill per trip, and **Kills per trip** is hidden for them. A trip that
+  needs more than 28 slots is flagged *Doesn't fit one inventory*.
 - A monster whose Wiki infobox says it is poisonous (`poisonous` field; "venom" when it envenoms) adds one bottle
   of superantipoison or anti-venom+, none while a charged serpentine helm (or recolour) is worn. Immunity length and doses per trip are not modelled.
 

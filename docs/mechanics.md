@@ -37,7 +37,7 @@ This page covers what the plugin assumes and what it enforces. For installation 
   - *Owned + budget*: your gear plus anything you can buy within the budget (e.g. `50m`).
     Untradeable items are only used if you own them, unless they can be bought as tradeable components.
   - *Best in slot*: no limits, including untradeables you don't own and every diary tier.
-- The **Equipment & access** settings switch Members, DMM, Beta and BH equipment on or off independently.
+- The **Equipment** settings switch Members, DMM, Beta and BH equipment on or off independently.
   Members is on by default; DMM, Beta and BH are off. These filters also apply to owned items and slot
   locks, and changing one reruns the search.
 - Untradeable equipment built from tradeable parts counts toward the budget: crystal armour seeds, the
@@ -64,22 +64,24 @@ This page covers what the plugin assumes and what it enforces. For installation 
 
 - The plugin uses your real combat levels and item requirements. Levels are remembered per account, so a
   logged-out search uses the levels it last saw in game (it only assumes 99s before the account's first
-  login). By default it assumes the best prayer your levels and unlocks allow, plus potion boosts (you can
-  change this). Piety/Chivalry (Knight Waves), Rigour, Augury, Deadeye, Mystic Vigour and Zeal (the Horn of
+  login). By default it assumes the best prayer your levels and unlocks allow, plus potion boosts (exclude a
+  prayer or potion in **Rules** to plan without it). Piety/Chivalry (Knight Waves), Rigour, Augury, Deadeye, Mystic Vigour and Zeal (the Horn of
   Bran; it replaces Piety with +25% Attack and +28% Strength) are read from your account while you're logged in
   and remembered the same way, as are the Fractured Archive's elemental fragments you've broken (+2 base max hit
   to that element's spells). Before the first login they're all assumed unlocked, like the 99s. Zeal's 75 Attack
   and Strength requirement isn't checked.
-- When the potion choice is *Best*, potion boosts follow the search mode. *Owned items only* uses only
+- Potion boosts follow the search mode. *Owned items only* uses only
   potions and hearts you own (any dose; a divine potion counts as the regular one), and *Inventory +
   equipped only* only those you're carrying. *Owned + budget* can buy
   potions (they don't count against the budget) but still needs you to own an imbued or saturated heart.
-  *Best in slot* assumes everything. Against Chambers of Xeric and Tombs of Amascut targets, *Best* also
-  considers that raid's own supplies (overloads, smelling salts) without needing you to own them, and
+  *Best in slot* assumes everything. Against Chambers of Xeric and Tombs of Amascut targets, every mode
+  also considers that raid's own supplies (overloads, smelling salts) without needing you to own them, and
   leaves them out of the bank layout. Exclude a raid potion to plan for the start of a raid, before you
   have it.
 - **Thralls** are on by default. Each setup adds the strongest thrall your base Magic level can cast:
-  lesser (38, +0.208 DPS), superior (57, +0.417) or greater (76, +0.625). Thralls always hit, rolling 0 to
+  lesser (38, +0.208 DPS), superior (57, +0.417) or greater (76, +0.625). Its type is the first of ghostly
+  (magic), skeletal (ranged) and zombified (melee) that can damage the target; all three share a tier's max hit.
+  None is added where thralls can't be raised for the fight. Thralls always hit, rolling 0 to
   their max hit of 1, 2 or 3 every 2.4 seconds. They need A Kingdom Divided, which is read from your
   account while you're logged in and assumed
   complete before the first login. They aren't added to setups autocasting a non-Arceuus spell or against
@@ -96,14 +98,26 @@ This page covers what the plugin assumes and what it enforces. For installation 
 - **Trips**: with **Kills per trip** above 1 a setup shows the trip's combat time (kills x TTK, no banking).
   Prayer per kill counts the setup's offensive prayer and the recommended overhead, at the Wiki's drain
   rates and your worn prayer bonus; restores cover what the trip drains beyond your full Prayer. The trip
-  brings each boost's bottles (Nightmare Zone potions only there), a cure against a target that poisons or
+  brings each boost's bottles, a cure against a target that poisons or
   envenoms unless a serpentine helm makes you immune, and with **Fill inventory
   with food** food in the free slots. Raid targets have no trip lines: the raid hands out its supplies.
+  - Against dragons the trip brings the antifire its fire protection relies on: a dose for every 6 minutes of
+    combat (3 for super antifire), never for wyverns. The cure is a superantipoison, or anti-venom+ against
+    venom.
+  - Food fills the free slots with your best owned one-bite food (sharks if none). With 4 or more free, up to a
+    quarter each can be owned karambwans (against targets hitting 20 or more) and Saradomin brews (no more
+    brews than super restores or Sanfew serums). There's no food against a target that can't hurt you, and 3
+    emergency food when your overhead, full fire protection or distance blocks every attack of a target
+    that isn't a boss.
+  - Wave and challenge fights (Fight Caves, Inferno, Fortis Colosseum, TzHaar-Ket-Rak, the Gauntlet) count one
+    kill per trip, and **Kills per trip** is hidden for them. A trip that needs more than 28 slots is flagged
+    *Doesn't fit one inventory*.
 - Demonbane spells assume Mark of Darkness is active, and its icon appears next to the prayer and potions
   when a setup uses it. Exclude it as a spell (right-click its icon) and elemental weaknesses such as
   Yama's weakness to water can outrank demonbane spells.
 - **Potions**: each style uses the strongest potion you can use anywhere (leaving out NMZ and Deadman
-  potions and brews) that isn't an excluded item. Exclude a potion to plan without it.
+  potions and brews) that isn't an excluded item, and a (super) combat potion rather than the matching
+  attack and strength potions, since one bottle gives both. Exclude a potion to plan without it.
 - Monster variants match all of their NPC IDs, and the search notes give the snapshot dates.
 - Wear requirements combine the game cache's requirement parameters, levels stated in each item's Wiki
   text, and a reviewed rules table for older item families. The live client cache can only raise them.
@@ -116,28 +130,33 @@ This page covers what the plugin assumes and what it enforces. For installation 
   variants and darts loaded in a blowpipe. Switching result tabs or picking another setup updates them.
   Empty bank placeholders are skipped. You can change **Highlight bank gear** and **Bank color** under
   **Display & interaction** in the plugin settings.
-- The **bank gear layout** shows just the selected setup's equipment and ammunition from your bank,
-  arranged like the equipment slots in the sidebar. Any extra variants appear underneath.
-  - If the setup casts a spell, its runes appear to the right of the head slot, along with runes for any
-    Mark of Darkness, Charge or thrall the DPS assumes (plus the Book of the dead for a thrall).
-    Elemental runes that the equipped staff or tome provides are left out, and combination, sunfire and
-    aether runes count as substitutes.
-  - The setup's potions and hearts sit below the runes. Any dose and the divine version count, and a
-    (super) combat potion stands in for the matching attack and strength potions, and the other way round.
-  - A special attack weapon switch (with its off-hand and ammunition) goes below the potions.
+- The **bank gear layout** shows the selected setup's equipment and ammunition from your bank, arranged like
+  the equipment slots in the sidebar, and beside it the inventory as you'd pack it, in a 4x7 grid: the special
+  attack switch (weapon, off-hand and ammunition), the rune pouch and any spell items beyond its three, each
+  boost bottle the trip needs, antifire, restores and cure, then food. Loaded blowpipe darts take the ammunition cell when no ammunition is worn, or
+  the cell under the silhouette otherwise.
+  - If the setup casts a spell, the pouch's three runes sit under the grid, including runes for any Mark of
+    Darkness, Charge or thrall the DPS assumes (plus the Book of the dead for a thrall). Elemental runes
+    that the equipped staff or tome provides are left out, and combination, sunfire and aether runes count
+    as substitutes.
+  - For potions and hearts any dose and the divine version count, and a (super) combat potion stands in for
+    the matching attack and strength potions, and the other way round.
+  - An item carried more than once (a trip's second bottle, the rest of its food) is repeated in the bank's
+    spare slots, fainter, and withdrawing it takes from the real stack. A full bank has no spare slots.
   - Each cell shows its own item if you have it (the basic rune, the 4-dose potion, the exact gear piece).
     Combination runes, other doses and other variants then go in the extra rows underneath: gear first,
-    then runes, then potions, with each group starting a new row. Extra potions are grouped by type, one
-    row per potion, highest dose first. These alternatives only fill the main cell when its own item is
+    then spell items, then potions, then food, with each group starting a new row. Extra potions are grouped
+    by type, one row per potion, highest dose first, and other owned foods share one row. These alternatives only fill the main cell when its own item is
     missing.
   - When a cell has nothing left to withdraw, its item's placeholder stays in the cell, so withdrawing
     gear doesn't empty the layout. A real item (such as another variant or dose) still takes the cell
     ahead of a placeholder, and spare placeholders aren't shown in the extra rows.
-  - Bank and inventory highlights cover all of these too. Empty placeholders are skipped there, and
-    picking another setup updates the layout.
+  - Bank and inventory highlights cover all of these too, though bank highlights are hidden over the layout,
+    where every item shown is the setup's. Empty placeholders are skipped there, and picking another setup
+    updates the layout.
   - Withdraw items as usual; dragging is turned off in this temporary view. Clicking the title-bar button
-    again, opening another bank search or tab, or closing the bank takes you back to normal browsing
-    without touching your saved bank order. The layout uses a temporary bank tab, so the chatbox stays
+    again or opening another bank search or tab takes you back to normal browsing without touching your
+    saved bank order. If the layout is showing when you close the bank, it opens again with the bank. The layout uses a temporary bank tab, so the chatbox stays
     free and no search box opens.
 - The **gear button in the bank title bar** only appears while a setup is selected. Click it to switch
   between the gear layout and normal browsing. It closes any open Bank Tags tab, Quest Helper tab or potion
@@ -170,7 +189,8 @@ shows checked and can't be cleared. PvM Arena versions of the bosses aren't incl
 
 Under **Assumptions → In Wilderness**, turn on **Limit expensive items** to set **Expensive items allowed**
 (0–11) and **Expensive at (GP)** (e.g. `500k` or `1m`; the defaults are 3 items and `1m`). The limit counts
-every equipped item at or above the threshold, including items you own, using the same full prices
+every equipped item at or above the threshold, including items you own, and a special attack weapon (with an
+off-hand or ammunition carried only for it), using the same full prices
 (including components) as the equipment budget. Untradeables that break on an unprotected PvP death also
 add the fee Perdu charges to repair them, from the OSRS Wiki's (broken) list: for example a fire cape counts
 as 150,000, a dragon defender 240,000 (plus its kit when trimmed), an infernal cape 225,000 and an elite void
@@ -215,7 +235,8 @@ follows the raid you're in.
 
 **Locks and owned items**:
 
-- **Right-click any item in a result** to lock its slot to that item, keep the slot empty, always fill it
+- **Right-click any item in a result** (or the special attack weapon, off-hand or ammunition, which only
+  offer exclude and mark as owned) to lock its slot to that item, keep the slot empty, always fill it
   for defence or prayer, exclude the item, or mark it as owned. When an item has variants listed
   separately (e.g. *Dragon hunter crossbow (b)*), the menu offers both **Exclude all ... variants** and
   **Exclude only** that one, and a variant of an excluded item says so in its tooltip. Locks and exclusions
@@ -225,14 +246,14 @@ follows the raid you're in.
   (listed with the excluded items), or the spell or Mark of Darkness (excluded spells). The thrall icon
   turns thralls off.
 - **Lock any item**: right-click any slot in a result and pick **Lock (slot) to another item...**, or use
-  **Lock any item** in the Gear view. Search for the item (for example a lightbearer for the ring slot) and
+  **Locked items** in **Rules**. Search for the item (for example a lightbearer for the ring slot) and
   click it. The slot filter limits the search to one slot. Locking an excluded item restores it. In *Owned
   items only* and *Inventory + equipped only* a locked item is worn even if you don't own it (the rest of the
   setup still uses only what you own); it keeps its price, so the result shows what buying it costs. In
   *Owned + budget* a lock you don't own must still be buyable within the budget. If the locked item can't be
   used (over the budget, levels too low, members items off...), the slot is left empty, its padlock turns red
   and the reason is shown above the results.
-- **Marked as owned**: search for any item and mark it as owned. This is for things the bank scan can't
+- **Extra owned items** in **Rules**: search for any item and mark it as owned. This is for things the bank scan can't
   see (the POH costume room, items on another account...).
 
 ## Plugin settings
@@ -402,8 +423,8 @@ unless it's an excluded prayer.
 
 Protective shields stay in the running even when another shield has better offensive stats, and locks,
 ownership and slot filling can't get around the requirement. This is a gear requirement, not a simulation
-of incoming damage, food or downtime. Turn it off to model safespots or other strategies that avoid those
-attacks.
+of incoming damage, food or downtime. To model safespots or other strategies that avoid the breath, exclude
+every protective shield, antifire and Protect from Magic.
 
 ### Slayer protection
 
@@ -439,15 +460,14 @@ The AoE and dragonfire rules follow [Scythe of vitur](https://oldschool.runescap
 [black chinchompas](https://oldschool.runescape.wiki/w/Black_chinchompa),
 [Ancient Magicks](https://oldschool.runescape.wiki/w/Ancient_Magicks) and
 [dragonfire protection](https://oldschool.runescape.wiki/w/Dragonfire).
-Offensive prayers are checked against RuneLite's actual prayer list, leaving out the Zeal entry that only
-exists in the source. Piety keeps its real 20% accuracy and 23% strength boosts.
+Offensive prayers are checked against RuneLite's actual prayer list. Piety keeps its real 20% accuracy and 23% strength boosts.
 
 ## Calculation
 
 ### Bundled data
 
 The plugin has its own DPS calculator (using OSRS Wiki formulas) and optimiser. By default it reads two
-bundled snapshots: 3,130 monster variants (`tools/wiki_monsters.py`) and about 1,900 pieces of equipment
+bundled snapshots: 3,167 monster variants (`tools/wiki_monsters.py`) and about 1,900 pieces of equipment
 along with the spell, prayer and potion tables (`tools/wiki_equipment.py`). Copies with identical stats
 (charges, ornament kits, locked, poisoned, degraded and NMZ versions, recolours) are merged into one entry,
 and owning any of them counts. Separate items that are still equal in everything the search scores (the
@@ -472,6 +492,12 @@ they cast it by hand. Weapons
 without Magic styles (a twisted bow, say) cast by hand only when no Magic weapon is left: none is held, or
 the weapon slot is locked to another kind. **Prevent manual casting** turns this off. Special-attack
 searches never cast by hand.
+
+The search is exact: each weapon gets the best combination of your allowed gear, so there's no search depth
+to set. Setups tied on score wear the cheapest gear, and a slot whose item changes nothing is left empty
+unless **Fill empty slots** fills it. Searching again with unchanged gear and settings returns at once, and
+turning styles on or off reuses the styles already searched. [COMBAT_AUDIT.md](../COMBAT_AUDIT.md) explains
+how the search prunes and how it was checked.
 
 Modelled effects: void (including elite), slayer helmet and black mask (including imbued), salve amulet
 variants, obsidian armour and the berserker necklace, inquisitor's, crystal armour with the bow of
@@ -510,7 +536,7 @@ pages and update posts. Raid monsters are listed with solo, unscaled stats, so t
 - **The Fractured Archive** scales boss HP for two to eight players (a solo counts as two): a duo has the listed
   HP (the 11 November +10% was reverted on 18 November), and three or more players have the listed HP x (1.45 +
   0.42 per player after the third), rounded to 10. Moia's undead binders scale too (rounded to 1); Ocellus's second phase and the other adds don't.
-  The party size isn't read from the game, so set it in Fight. Defence drains can only take the Archive
+  The party size isn't read from the game, so set it in **Assumptions → Raid scaling**. Defence drains can only take the Archive
   Guardian, Bork, Ezekiel, Moia, Xarth and Ocellus (phases 1 and 3) to 60% of their Defence.
 
 ### Special attacks
@@ -566,10 +592,7 @@ abyssal tentacle (a normal hit), the ursine chainmace (double accuracy), rune cl
 slower), Dinh's bulwark (+20% accuracy), and the damage ranges of the Bounty Hunter weapons. The Eclipse
 atlatl's special isn't scored.
 
-DPS treats the spec as repeated at the weapon's speed; choose **Average hit** or **Max hit** to rank by
-damage per special instead. The energy cost is shown on each result. Energy regeneration, the Lightbearer
-and switching between a spec weapon and a main weapon aren't simulated in this mode. The abyssal bludgeon
-assumes full Prayer, and the Ancient godsword's delayed blood sacrifice isn't included.
+A spec is scored as one hit at the target's current HP. The abyssal bludgeon assumes full Prayer, and the Ancient godsword's delayed blood sacrifice isn't included.
 
 ### Boss phases
 
