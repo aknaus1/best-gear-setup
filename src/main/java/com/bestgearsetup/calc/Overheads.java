@@ -38,7 +38,10 @@ public final class Overheads
 		}
 	}
 
-	/** One recommendation: the prayer to start on (null for none), every prayer the fight switches between, and why. */
+	/**
+	 * One recommendation: the prayer to start on (null for none), every prayer the fight switches between, why, and
+	 * the advised overheads left out because they are excluded.
+	 */
 	@Value
 	public static class Advice
 	{
@@ -46,6 +49,7 @@ public final class Overheads
 		/** Every overhead used in the fight in priority order, including {@link #prayer}; empty when none is. */
 		List<Overhead> switches;
 		String note;
+		List<Overhead> excluded;
 
 		public boolean isSwitching()
 		{
@@ -57,7 +61,18 @@ public final class Overheads
 		{
 			if (isSwitching())
 				return "Switch: " + switches.stream().map(Overhead::getShortName).collect(Collectors.joining(" / "));
-			return prayer != null ? prayer.toString() : "None needed";
+			return prayer != null ? prayer.toString() : excluded.isEmpty() ? "None needed" : "No overhead";
+		}
+
+		/** This advice without the overheads named in {@code names} (lower-case prayer names). */
+		public Advice without(Set<String> names)
+		{
+			List<Overhead> kept = new ArrayList<>();
+			List<Overhead> dropped = new ArrayList<>(excluded);
+			for (Overhead o : switches)
+				(names.contains(o.toString().toLowerCase(Locale.ROOT)) ? dropped : kept).add(o);
+			return dropped.size() == excluded.size() ? this
+				: new Advice(kept.isEmpty() ? null : kept.get(0), Collections.unmodifiableList(kept), note, dropped);
 		}
 	}
 
@@ -78,7 +93,7 @@ public final class Overheads
 			if (chosen.has("prayers"))
 				chosen.getAsJsonArray("prayers").forEach(p -> prayers.add(Overhead.valueOf(p.getAsString())));
 			return new Advice(prayers.isEmpty() ? null : prayers.get(0), Collections.unmodifiableList(prayers),
-				chosen.get("note").getAsString());
+				chosen.get("note").getAsString(), Collections.emptyList());
 		}
 		return null;
 	}

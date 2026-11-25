@@ -12,8 +12,8 @@ budget, or go straight to best in slot.
 3. Open the **Best Gear Setup** sidebar panel, or right-click an NPC and choose **Best setup**.
 4. Search for a monster, pick a mode and click **Find best setup**.
 
-Right-click an item in a result to lock it, exclude it or mark it as owned, or add these rules from the
-**Rules** panel.
+Right-click an item in a result to lock it, exclude it or mark it as owned, or a prayer, spell or potion to
+exclude it, or add these rules from the **Rules** panel.
 
 ## Features
 

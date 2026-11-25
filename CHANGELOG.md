@@ -18,15 +18,19 @@ is what the Plugin Hub shows.
 - The bank layout shows the inventory as you'd pack it, in a 4x7 grid beside the equipment: spec switch, rune
   pouch, boosts, restores, then food, with other owned foods on a row below. Repeated items use the bank's
   spare slots and withdraw from the real stack.
-- Each setup shows the target's overhead protection prayer (one prayer, a switch, or none needed), as static
-  advice from the Wiki's strategy pages and the monster's attack styles.
+- Each setup shows the target's overhead protection prayer (one prayer, a switch, or none needed) as an icon
+  beside its boosts and in its statistics, with static advice from the Wiki's strategy pages and the monster's
+  attack styles.
 - Gear searches are exact: each weapon gets the best combination of your allowed gear. Across 1,872 test
   searches 280 found a better setup and none a worse one, in under half the time. **Search depth** is gone.
 - Searching again with unchanged gear and settings returns at once, and turning styles on or off reuses the
   styles already searched.
 - Setups tied on score wear the cheapest gear, and a slot whose item changes nothing is left empty instead of
   worn or bought (**Fill empty slots** still fills it).
-- Add **Excluded prayers** (Boosts): offensive prayers listed there are never assumed.
+- Add **Excluded prayers** to Rules: click any prayer in the prayer book to exclude it. An excluded offensive
+  prayer is never assumed, and an excluded protection prayer leaves the overhead advice and its prayer drain.
+- Right-click a result's prayer, spell or potion icon to exclude it (excluded potions are listed with the
+  excluded items), or its thrall or Mark of Darkness icon to turn that off.
 - Zeal is assumed once unlocked, and each broken Fractured Archive elemental fragment adds 2 to its element's
   spells.
 - Show the thrall that can damage the target (ghostly, then skeletal, then zombified), or none.
@@ -43,7 +47,9 @@ is what the Plugin Hub shows.
 - The sidebar's **Fight** and **Gear** buttons are now **Assumptions** and **Rules**. Every card in them opens
   and collapses on its own, with **Expand all** and **Collapse all**; Fight conditions starts open. The picked style tab stays selected when results recalculate.
 - Tidy the result panel (style box under the gear, a "<Style> setups" list, two-decimal DPS, whole-second TTK
-  from 10 seconds), keep hover text under 10 words, and make the *Open in RuneLite settings* link look like one.
+  from 10 seconds, the statistics collapsed to their DPS line until clicked, the spec weapon shown even when it is
+  the one worn, and a colour edge per box), keep hover text under 10 words (but the overhead's advice), and make
+  the *Open in RuneLite settings* link look like one.
 
 ## 1.1.3 (2026-11-10)
 

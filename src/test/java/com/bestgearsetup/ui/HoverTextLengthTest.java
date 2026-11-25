@@ -43,7 +43,8 @@ import org.junit.Test;
 /**
  * Hover text stays under 10 words in total, line breaks included: every tooltip a component shows, every setting
  * and section description (shown as hover text in the panels and RuneLite's config), and every alternative of a
- * tooltip call's fixed text. Item names and numbers count as words.
+ * tooltip call's fixed text. Item names and numbers count as words. The one exception is the result view's overhead
+ * icon, whose hover text is the Wiki's advice note.
  */
 public class HoverTextLengthTest
 {
@@ -176,7 +177,8 @@ public class HoverTextLengthTest
 		if (component instanceof JComponent)
 		{
 			String tip = ((JComponent) component).getToolTipText();
-			if (tip != null && words(tip) > MAX_WORDS) { tooLong.add(component.getClass().getSimpleName() + ": " + tip); }
+			// The overhead icon's hover text is the Wiki's advice note, which the result view has no other place for.
+			if (tip != null && words(tip) > MAX_WORDS && !"overheadIcon".equals(component.getName())) { tooLong.add(component.getClass().getSimpleName() + ": " + tip); }
 		}
 		if (component instanceof Container)
 		{

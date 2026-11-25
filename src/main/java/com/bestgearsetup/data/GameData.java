@@ -300,6 +300,12 @@ public class GameData
 	}
 
 	/** Finds an item in any slot by id. */
+	/** The boost with this id from the potion table, or null. */
+	public Potion findPotion(int id)
+	{
+		return potions.values().stream().flatMap(List::stream).filter(p -> p.getId() == id).findFirst().orElse(null);
+	}
+
 	public Gear findItem(int id)
 	{
 		for (Slot slot : Slot.values())

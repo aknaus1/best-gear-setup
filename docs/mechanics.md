@@ -89,7 +89,10 @@ This page covers what the plugin assumes and what it enforces. For installation 
   versions (Deadman, PvM Arena, Echo) by their own Wiki attack styles, then checked Wiki strategy pages, then
   the monster's Wiki attack styles, with a melee setup's own advice where it stands
   in melee range. It's static per target (one prayer, the prayers a fight switches between, or none needed),
-  never a live cue.
+  never a live cue. It shows as an icon before the offensive prayer and potions (the Prayer icon when none is
+  needed), with the Wiki's note as its hover text, and as the last line of the statistics box. That box shows
+  only its DPS line until you click it. A protection prayer excluded in **Rules** leaves the advice,
+  so it isn't prayed, drains no prayer and blocks no hits for the food count.
 - **Trips**: with **Kills per trip** above 1 a setup shows the trip's combat time (kills x TTK, no banking).
   Prayer per kill counts the setup's offensive prayer and the recommended overhead, at the Wiki's drain
   rates and your worn prayer bonus; restores cover what the trip drains beyond your full Prayer. The trip
@@ -184,7 +187,11 @@ runs the same search; the live NPC is only used to confirm your Slayer task loca
 raid**, to read raid scaling.
 
 **Rules** lists your locks, exclusions and the items you've marked as owned, with the same right-click menus
-as in the results and buttons to remove or reset each one. RuneLite's Best Gear Setup configuration
+as in the results and buttons to remove or reset each one. Its **Excluded prayers** card is the whole prayer
+book: click a prayer to exclude it (it dims and is outlined red) or to allow it again, or use **Exclude all**
+and **Allow all**. Any prayer can be
+excluded; an excluded offensive prayer is never assumed (the next best one is) and an excluded protection
+prayer leaves the overhead advice. The others don't change a setup. RuneLite's Best Gear Setup configuration
 groups the remaining preferences into
 **Search options**, **Attack styles**, **Equipment**, **Spellbooks**, **Combat boosts**, **Dragonfire**,
 **Experience filters**, **Fill empty slots** and **Display & interaction**. Combat boosts includes the
@@ -215,6 +222,10 @@ follows the raid you're in.
   separately (e.g. *Dragon hunter crossbow (b)*), the menu offers both **Exclude all ... variants** and
   **Exclude only** that one, and a variant of an excluded item says so in its tooltip. Locks and exclusions
   are listed with a remove button, and the search reruns automatically.
+- **Right-click a boost icon** in a result to exclude it: the offensive prayer or the overhead (excluded in
+  the **Rules** prayer book, where the overhead's menu can also allow it again), a potion (listed with the
+  excluded items; a potion picked by name goes back to *Best available*) or the spell (an excluded spell).
+  The thrall and Mark of Darkness icons turn those settings off.
 - **Lock any item**: right-click any slot in a result and pick **Lock (slot) to another item...**, or use
   **Lock any item** in the Gear view. Search for the item (for example a lightbearer for the ring slot) and
   click it. The slot filter limits the search to one slot. Locking an excluded item restores it. In *Owned

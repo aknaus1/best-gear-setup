@@ -3,6 +3,7 @@ package com.bestgearsetup.calc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.calc.Overheads.Advice;
 import com.bestgearsetup.calc.Overheads.Overhead;
@@ -63,6 +64,21 @@ public class OverheadsTest
 		assertEquals(Arrays.asList(Overhead.MISSILES, Overhead.MAGIC), zebak.getSwitches());
 		assertTrue(zebak.isSwitching());
 		assertEquals("Switch: Missiles / Magic", zebak.summary());
+	}
+
+	@Test
+	public void excludedOverheadsLeaveTheAdvice()
+	{
+		Advice zebak = Overheads.recommend(named("zebak"), Combat.RANGED);
+		assertSame(zebak, zebak.without(java.util.Collections.singleton("protect from melee")));
+		Advice magicOnly = zebak.without(java.util.Collections.singleton("protect from missiles"));
+		assertEquals(Overhead.MAGIC, magicOnly.getPrayer());
+		assertFalse(magicOnly.isSwitching());
+		assertEquals(Arrays.asList(Overhead.MISSILES), magicOnly.getExcluded());
+		Advice vorkath = Overheads.recommend(named("vorkath (post-quest)"), Combat.RANGED)
+			.without(java.util.Collections.singleton("protect from magic"));
+		assertNull(vorkath.getPrayer());
+		assertEquals("No overhead", vorkath.summary());
 	}
 
 	@Test

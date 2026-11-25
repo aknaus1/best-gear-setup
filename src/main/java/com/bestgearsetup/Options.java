@@ -17,6 +17,7 @@ public interface Options extends Config
 	String POTION_KEY_PREFIX = "potion";
 	String LOCKS_KEY = "locks";
 	String EXCLUDED_KEY = "excluded";
+	String EXCLUDED_PRAYERS_KEY = "excludedPrayers";
 	String BLOCKED_SPELLS_KEY = "blockedSpells";
 	String FORCED_SPELLS_KEY = "forcedSpells";
 	String HIGHLIGHT_BANK_GEAR_KEY = "highlightBankGear";
@@ -697,11 +698,11 @@ public interface Options extends Config
 		return value("usePrayers", true);
 	}
 
-	@ConfigItem(keyName = "excludedPrayers", name = "Excluded prayers",
-		description = "Offensive prayers never assumed, comma-separated (e.g. Piety, Rigour)", section = boostSection, position = 1)
+	@ConfigItem(keyName = EXCLUDED_PRAYERS_KEY, name = "Excluded prayers", hidden = true,
+		description = "Prayers never assumed, edited in Gear rules")
 	default String excludedPrayers()
 	{
-		return value("excludedPrayers", "");
+		return value(EXCLUDED_PRAYERS_KEY, "");
 	}
 
 	@ConfigItem(

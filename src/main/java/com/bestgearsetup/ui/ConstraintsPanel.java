@@ -1,11 +1,11 @@
 package com.bestgearsetup.ui;
 
 import com.bestgearsetup.BestGearSetupPlugin;
+import com.bestgearsetup.Options;
 import com.bestgearsetup.calc.*;
 import com.bestgearsetup.data.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
@@ -18,10 +18,11 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.components.IconTextField;
+import net.runelite.client.util.ImageUtil;
 
 /**
- * Editor for gear rules: locks, excluded items, and items marked as owned by hand. Each is a card
- * listing the current rules above a search for adding another.
+ * Editor for gear rules: locks, excluded items, excluded prayers and spells, and items marked as owned by hand. Each
+ * is a card listing the current rules above a search for adding another; prayers are a grid of the prayer book.
  */
 class ConstraintsPanel extends JPanel
 {
@@ -43,6 +44,10 @@ class ConstraintsPanel extends JPanel
 	private final RuleCard forcedSpells;
 	private final RuleCard blockedSpells;
 	private final RuleCard owned;
+	private final SidebarSection prayers;
+	private final JPanel prayerGrid = new JPanel(new GridLayout(0, 5, 2, 2));
+	/** Excluded names that aren't in the prayer book, such as one typed in an earlier version. */
+	private final JPanel otherPrayers = new JPanel();
 
 	ConstraintsPanel(BestGearSetupPlugin plugin, ItemManager itemManager, SpriteCache sprites)
 	{
@@ -71,9 +76,24 @@ class ConstraintsPanel extends JPanel
 		locks.addSearch("lock", "Search items to lock...", "Find an item to lock its slot to", this::suggestLocks);
 
 		exclusions = new RuleCard(accordion, "exclusions", "Excluded items",
-			"Never used in a setup. Right-click an item in a result to exclude it or all its variants.", "Exclude an item");
+			"Never used in a setup or as a boost. Right-click an item or potion in a result to exclude it.", "Exclude an item");
 		exclusions.addSearch("exclude", "Search items to exclude...", "Find an item the search should never use",
 			this::suggestExclusions);
+
+		prayers = accordion.create("excludedPrayers", "Excluded prayers");
+		add(Sidebar.left(prayers));
+		prayers.getContent().add(hint("Click a prayer to exclude or allow it."));
+		prayerGrid.setOpaque(false);
+		prayers.getContent().add(transparent(prayerGrid));
+		JPanel all = new JPanel(new GridLayout(1, 2, 4, 0));
+		all.setOpaque(false);
+		all.setBorder(new EmptyBorder(4, 0, 4, 0));
+		all.add(allButton("excludeAllPrayers", "Exclude all", String.join(",", PrayerBook.SPRITES.keySet())));
+		all.add(allButton("allowAllPrayers", "Allow all", ""));
+		prayers.getContent().add(transparent(all));
+		otherPrayers.setLayout(new BoxLayout(otherPrayers, BoxLayout.Y_AXIS));
+		otherPrayers.setOpaque(false);
+		prayers.getContent().add(transparent(otherPrayers));
 
 		forcedSpells = new RuleCard(accordion, "forcedSpells", "Allowed spells",
 			"Only these spells are cast. Powered staves and salamanders are still used.", "Allow a spell");
@@ -119,6 +139,7 @@ class ConstraintsPanel extends JPanel
 		rebuildLocks(data);
 		rebuildExcluded(data);
 		rebuildSpells(plugin.getSpellFilter());
+		rebuildPrayers();
 		rebuildOwned(data);
 		locks.suggest();
 		exclusions.suggest();
@@ -168,11 +189,93 @@ class ConstraintsPanel extends JPanel
 		for (int id : excluded)
 		{
 			Gear item = data == null ? null : data.findItem(id);
-			String name = item == null ? "Item " + id : GameData.titleCase(item.getName());
-			exclusions.list.add(ruleRow(itemIcon(id), name, item == null ? null : item.getSlot().getDisplayName(),
+			Potion boost = item != null || data == null ? null : data.findPotion(id);
+			String name = item != null ? GameData.titleCase(item.getName()) : boost != null ? GameData.titleCase(boost.getName())
+				: "Item " + id;
+			exclusions.list.add(ruleRow(itemIcon(id), name, item != null ? item.getSlot().getDisplayName() : boost != null ? "Boost" : null,
 				"Use " + name + " again", () -> plugin.setExcluded(id, false)));
 		}
 		exclusions.finish(excluded.size(), "No excluded items.", "Clear exclusions", plugin::clearExclusions);
+	}
+
+	/** The prayer book with excluded prayers dimmed and outlined, then any other excluded names. */
+	private void rebuildPrayers()
+	{
+		Set<String> excluded = plugin.getExcludedPrayers();
+		prayerGrid.removeAll();
+		PrayerBook.SPRITES.forEach((name, sprite) -> prayerGrid.add(prayerToggle(name, sprite, excluded.contains(name))));
+		otherPrayers.removeAll();
+		for (String name : excluded)
+		{
+			if (!PrayerBook.SPRITES.containsKey(name))
+				otherPrayers.add(ruleRow(iconLabel(), GameData.titleCase(name), "not a prayer", "Remove " + GameData.titleCase(name),
+					() -> plugin.setPrayerExcluded(name, false)));
+		}
+		prayers.setSummary(excluded.size());
+		prayers.revalidate();
+		prayers.repaint();
+	}
+
+	private JButton allButton(String name, String text, String value)
+	{
+		JButton button = new JButton(text);
+		button.setName(name);
+		Controls.ghost(button);
+		button.addActionListener(e -> plugin.setConfig(Options.EXCLUDED_PRAYERS_KEY, value));
+		return button;
+	}
+
+	/**
+	 * One prayer's square: dimmed and outlined red while excluded. It changes on the press, before the setting is
+	 * saved and the search reruns, and lights up under the cursor so the click area is clear.
+	 */
+	private JLabel prayerToggle(String name, int sprite, boolean excludedNow)
+	{
+		String title = GameData.titleCase(name);
+		JLabel toggle = new JLabel();
+		toggle.setName("prayer:" + name);
+		toggle.setHorizontalAlignment(SwingConstants.CENTER);
+		toggle.setPreferredSize(new Dimension(34, 34));
+		toggle.setOpaque(true);
+		toggle.setBackground(Controls.WELL);
+		toggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		boolean[] excluded = {excludedNow};
+		Runnable show = () ->
+		{
+			toggle.setBorder(excluded[0] ? BorderFactory.createLineBorder(REMOVE_COLOR, 2) : new EmptyBorder(2, 2, 2, 2));
+			toggle.setToolTipText(excluded[0] ? title + " excluded: click to allow"
+				: title + " (level " + PrayerBook.LEVELS.get(name) + "): click to exclude");
+			toggle.getAccessibleContext().setAccessibleName((excluded[0] ? "Allow " : "Exclude ") + title);
+			if (sprites != null)
+				showSprite(icon -> toggle.setIcon(excluded[0]
+					? new ImageIcon(ImageUtil.alphaOffset(((ImageIcon) icon).getImage(), 0.3f)) : icon), sprite);
+		};
+		show.run();
+		toggle.addMouseListener(new MouseAdapter()
+		{
+			@Override
+			public void mousePressed(MouseEvent e)
+			{
+				if (!SwingUtilities.isLeftMouseButton(e))
+					return;
+				excluded[0] = !excluded[0];
+				show.run();
+				plugin.setPrayerExcluded(name, excluded[0]);
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e)
+			{
+				toggle.setBackground(Controls.ROW_HOVER);
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e)
+			{
+				toggle.setBackground(Controls.WELL);
+			}
+		});
+		return toggle;
 	}
 
 	private void rebuildOwned(GameData data)

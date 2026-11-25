@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import net.runelite.api.Skill;
@@ -29,12 +30,16 @@ import net.runelite.client.util.AsyncBufferedImage;
 class ResultView extends JPanel
 {
 	private static final Color TAB_SELECTED = new Color(0xF7, 0x8B, 0x00);
-	private static final Color BOX_BORDER = new Color(0x2E, 0x8B, 0x2E);
+	/** Each result box has its own edge: green statistics, orange special attack, blue cost. */
+	private static final Color STATS_BORDER = new Color(0x2E, 0x8B, 0x2E);
+	private static final Color SPEC_BORDER = new Color(0xD0, 0x7A, 0x1E);
+	private static final Color COST_BORDER = new Color(0x3A, 0x6E, 0xB5);
+	/** Whether the statistics box shows more than its DPS line; closed until opened, then kept for the session. */
+	static boolean statsOpen;
 	private static final Color BOX_BG = new Color(0x1E, 0x1E, 0x1E);
 	private static final Color STYLE_BORDER = new Color(0xC0, 0x39, 0x2B);
 	private static final Color YELLOW = new Color(0xFF, 0xD2, 0x4D);
 
-	private static final Map<String, Integer> PRAYER_SPRITES = new HashMap<>();
 	/** One named spell sprite per thrall type; the tooltip names the tier. */
 	private static final Map<Thrall.Type, Integer> THRALL_SPRITES = new EnumMap<>(Thrall.Type.class);
 
@@ -43,24 +48,6 @@ class ResultView extends JPanel
 		THRALL_SPRITES.put(Thrall.Type.GHOSTLY, SpriteID.MagicNecroOn.RESURRECT_LESSER_GHOST);
 		THRALL_SPRITES.put(Thrall.Type.SKELETAL, SpriteID.MagicNecroOn.RESURRECT_SUPERIOR_SKELETON);
 		THRALL_SPRITES.put(Thrall.Type.ZOMBIFIED, SpriteID.MagicNecroOn.RESURRECT_GREATER_ZOMBIE);
-		PRAYER_SPRITES.put("piety", SpriteID.Prayeron.PIETY);
-		PRAYER_SPRITES.put("chivalry", SpriteID.Prayeron.CHIVALRY);
-		PRAYER_SPRITES.put("ultimate strength", SpriteID.Prayeron.ULTIMATE_STRENGTH);
-		PRAYER_SPRITES.put("incredible reflexes", SpriteID.Prayeron.INCREDIBLE_REFLEXES);
-		PRAYER_SPRITES.put("superhuman strength", SpriteID.Prayeron.SUPERHUMAN_STRENGTH);
-		PRAYER_SPRITES.put("improved reflexes", SpriteID.Prayeron.IMPROVED_REFLEXES);
-		PRAYER_SPRITES.put("burst of strength", SpriteID.Prayeron.BURST_OF_STRENGTH);
-		PRAYER_SPRITES.put("clarity of thought", SpriteID.Prayeron.CLARITY_OF_THOUGHT);
-		PRAYER_SPRITES.put("rigour", SpriteID.Prayeron.RIGOUR);
-		PRAYER_SPRITES.put("deadeye", SpriteID.Prayeron.DEADEYE);
-		PRAYER_SPRITES.put("eagle eye", SpriteID.Prayeron.EAGLE_EYE);
-		PRAYER_SPRITES.put("hawk eye", SpriteID.Prayeron.HAWK_EYE);
-		PRAYER_SPRITES.put("sharp eye", SpriteID.Prayeron.SHARP_EYE);
-		PRAYER_SPRITES.put("augury", SpriteID.Prayeron.AUGURY);
-		PRAYER_SPRITES.put("mystic vigour", SpriteID.Prayeron.MYSTIC_VIGOUR);
-		PRAYER_SPRITES.put("mystic might", SpriteID.Prayeron.MYSTIC_MIGHT);
-		PRAYER_SPRITES.put("mystic lore", SpriteID.Prayeron.MYSTIC_LORE);
-		PRAYER_SPRITES.put("mystic will", SpriteID.Prayeron.MYSTIC_WILL);
 	}
 
 	/** Item icons for the melee styles and the atlatl (white weapons, eclipse atlatl). */
@@ -77,6 +64,8 @@ class ResultView extends JPanel
 	private static final int TAB_SIZE = 32;
 	/** CSS width of the wrapped max-hit line; Swing scales CSS px by 1.3, so this fills the stats box. */
 	private static final int STAT_WRAP_WIDTH = 155;
+	/** The overhead icon's hover text floats over the game, so it can be wider than the panel. */
+	private static final int TIP_WRAP_WIDTH = 220;
 
 	private final BestGearSetupPlugin plugin;
 	private final ItemManager itemManager;
@@ -246,6 +235,7 @@ class ResultView extends JPanel
 		JPanel stats = statsBox(d, thrallFor(selected), runes, plugin != null && plugin.isSunfireRunes(), poweredStaff);
 		if (plugin != null)
 			addTripLines(stats, selected, TripSupplies.kills(results.getMonster(), plugin.getKillsPerTrip()), supplies);
+		collapsible(stats);
 		body.add(Sidebar.left(stats));
 		if (selected.getSpecial() != null)
 		{
@@ -286,7 +276,7 @@ class ResultView extends JPanel
 	JPanel statsBox(Dps d, Thrall thrall, RuneUse runes, boolean sunfire, boolean poweredStaff)
 	{
 		// One column, each row only as tall as its own text, so a wrapped max-hit note doesn't stretch every row
-		JPanel box = box(new GridBagLayout(), 2, 4);
+		JPanel box = box(new GridBagLayout(), 2, 4, STATS_BORDER);
 		String max = d.getMaxHit() + (d.getMaxHitDetail() == null ? "" : " (" + d.getMaxHitDetail() + ")");
 		double ttk = d.getPrimaryDps() > 0 ? results.getStartingHitpoints() / d.getPrimaryDps() : 0;
 		boolean area = d.getTargetsHit() > 1;
@@ -360,23 +350,57 @@ class ResultView extends JPanel
 			}
 		}
 		divide(box, first);
-		Overheads.Advice advice = results.getMonster() == null ? null
-			: Overheads.recommend(results.getMonster(), setup.getCombatClass());
+		Overheads.Advice advice = results.overhead(setup.getCombatClass());
 		if (advice != null)
 		{
-			// Hover text stays under 10 words, so a longer note, or one a switch or no prayer needs, shows inline.
-			boolean shortNote = advice.getNote().trim().split("\\s+").length < 10;
-			boolean inline = advice.isSwitching() || advice.getPrayer() == null || !shortNote;
-			// A note that opens with the summary ("None needed at range: ...") continues it instead of repeating it.
-			String note = advice.getNote().startsWith(advice.summary())
-				? Sidebar.escape(advice.getNote().substring(advice.summary().length()))
-				: "<br>" + Sidebar.escape(advice.getNote());
 			int at = box.getComponentCount();
-			line(box, "", "protectionPrayer", Sidebar.tip(shortNote ? advice.getNote() : "Static advice from the Wiki"))
-				.setText(Sidebar.html("Overhead: " + Sidebar.escape(advice.summary())
-					+ (inline ? note : ""), STAT_WRAP_WIDTH));
+			line(box, "", "protectionPrayer", Sidebar.tip("Static advice from the Wiki")).setText(Sidebar.html(
+				overheadText(advice), STAT_WRAP_WIDTH));
 			divide(box, at);
 		}
+	}
+
+	/**
+	 * The overhead advice and the Wiki's note: "Overhead: Protect from Magic: ..." (a note that opens with the summary,
+	 * "None needed at range: ...", continues it), then any advised overhead excluded in Gear rules.
+	 */
+	private static String overheadText(Overheads.Advice advice)
+	{
+		String note = advice.getNote().startsWith(advice.summary()) ? advice.getNote().substring(advice.summary().length())
+			: ": " + advice.getNote();
+		String excluded = advice.getExcluded().stream().map(Overheads.Overhead::toString).collect(Collectors.joining(" and "));
+		return "<b>Overhead: " + Sidebar.escape(advice.summary()) + "</b>" + Sidebar.escape(note)
+			+ (excluded.isEmpty() ? "" : "<br>" + Sidebar.escape(excluded) + " excluded in Gear rules.");
+	}
+
+	/** Shows only the box's first (DPS) line until it is clicked; another click hides the rest again. */
+	static void collapsible(JPanel box)
+	{
+		JLabel head = (JLabel) box.getComponent(0);
+		head.setName("statsToggle");
+		head.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		head.setToolTipText("Show or hide details and overhead advice");
+		head.setHorizontalTextPosition(SwingConstants.LEFT);
+		head.setIconTextGap(6);
+		Runnable show = () ->
+		{
+			head.setIcon(new Controls.Chevron(statsOpen ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, null));
+			for (int i = 1; i < box.getComponentCount(); i++)
+				box.getComponent(i).setVisible(statsOpen);
+			box.revalidate();
+			box.repaint();
+		};
+		show.run();
+		MouseAdapter toggle = new MouseAdapter()
+		{
+			@Override
+			public void mousePressed(MouseEvent e)
+			{
+				statsOpen = !statsOpen;
+				show.run();
+			}
+		};
+		head.addMouseListener(toggle);
 	}
 
 	/** A thin rule above the component at {@code index}, starting a new group of lines; nothing when none was added. */
@@ -412,11 +436,11 @@ class ResultView extends JPanel
 	/** The special attack mixed into the kill: its weapon, energy, uses per kill and one spec's stats. */
 	private JPanel specBox(SpecialPlan plan, Outfit worn)
 	{
-		JPanel box = box(new BorderLayout(6, 0), 3, 3);
+		JPanel box = box(new BorderLayout(6, 0), 3, 3, SPEC_BORDER);
 		boolean newWeapon = plan.getWeapon() != worn.getWeapon();
 		JPanel icons = new JPanel(new GridLayout(1, 0, 2, 0));
 		icons.setOpaque(false);
-		for (Gear item : new Gear[]{newWeapon ? plan.getWeapon() : null, plan.getOffhand(), plan.getAmmo()})
+		for (Gear item : new Gear[]{plan.getWeapon(), plan.getOffhand(), plan.getAmmo()})
 		{
 			if (item != null)
 			{
@@ -433,7 +457,7 @@ class ResultView extends JPanel
 			GameData.titleCase(plan.getSpecial().getName())) + "</font> spec (" + plan.getSpecial().getEnergy() + "%)"
 			+ "<br>~" + fmt(plan.getSpecsPerKill(), 1) + " per kill, " + uses
 			+ "<br>Max " + spec.getMaxHit() + ", " + fmt(spec.getAccuracy() * 100, 1) + "% acc");
-		// The label already shows energy, specs per kill, max hit and accuracy; the icons show the switch.
+		// The label already shows energy, specs per kill, max hit and accuracy; the icons show the spec weapon.
 		box.setToolTipText("Without specs: " + fmt(plan.getOrdinary().getDps(), 2) + " DPS"
 			+ (newWeapon ? "; switch weapons for it" : ""));
 		box.add(label, BorderLayout.CENTER);
@@ -475,7 +499,7 @@ class ResultView extends JPanel
 		long buy = total - ownedValue;
 		String unknown = unpriced == 0 ? "" : " + <font color='#FF6B6B'>" + unpriced + " unpriced</font>";
 
-		JPanel box = box(new BorderLayout(), 3, 3);
+		JPanel box = box(new BorderLayout(), 3, 3, COST_BORDER);
 		JLabel label = stat("Cost: <font color='#6BD56B'>" + Budget.format(total) + "</font>" + unknown
 			+ " (own <font color='#6BD56B'>" + Budget.format(ownedValue) + "</font>)<br>To buy: <font color='"
 			+ (buy == 0 && unpriced == 0 ? "#FFFFFF" : "#FFD24D") + "'>" + Budget.format(buy) + "</font>" + unknown);
@@ -540,11 +564,20 @@ class ResultView extends JPanel
 			styleLabel.setToolTipText(range == 0 ? "Attack range unknown" : "Attack range: " + range + " tiles");
 		}
 		styleBox.add(styleLabel, BorderLayout.CENTER);
+		if (l.getSpell() != null)
+		{
+			String spell = GameData.titleCase(l.getSpell().getName());
+			JPopupMenu menu = ItemMenus.of("Exclude " + spell, () -> plugin.setSpellRule(l.getSpell().getLowerName(), SpellRule.BLOCK));
+			styleBox.setComponentPopupMenu(menu);
+			styleLabel.setComponentPopupMenu(menu);
+		}
 		int spellSprite = l.getSpell() == null ? -1 : BestGearSetupPlugin.spellSprite(l.getSpell().getName());
 		if (sprites != null && spellSprite >= 0)
 		{
 			// The spell's spellbook icon on the left, balanced by an empty slot so the text stays centred
-			styleBox.add(new SpriteIcon(spellSprite, null), BorderLayout.WEST);
+			SpriteIcon spellIcon = new SpriteIcon(spellSprite, null);
+			spellIcon.setComponentPopupMenu(styleBox.getComponentPopupMenu());
+			styleBox.add(spellIcon, BorderLayout.WEST);
 			JPanel balance = new JPanel();
 			balance.setOpaque(false);
 			balance.setPreferredSize(new Dimension(30, 32));
@@ -555,18 +588,26 @@ class ResultView extends JPanel
 		JPanel boosts = new JPanel(new GridLayout(0, 5, 2, 0));
 		boosts.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		Combat cls = selected.getCombatClass();
+		Overheads.Advice advice = results.overhead(cls);
+		if (advice != null)
+		{
+			boosts.add(overheadIcon(advice));
+		}
 		OffensivePrayer prayer = results.getPrayers().get(cls);
 		if (prayer != null)
 		{
-			Integer spriteId = PRAYER_SPRITES.get(prayer.getName().toLowerCase(Locale.ROOT));
-			boosts.add(spriteId == null
-				? textChip(GameData.titleCase(prayer.getName()))
-				: new SpriteIcon(spriteId, GameData.titleCase(prayer.getName())));
+			String prayerName = GameData.titleCase(prayer.getName());
+			Integer spriteId = PrayerBook.SPRITES.get(prayer.getName().toLowerCase(Locale.ROOT));
+			JComponent icon = spriteId == null ? textChip(prayerName) : new SpriteIcon(spriteId, prayerName);
+			icon.setComponentPopupMenu(ItemMenus.of("Exclude " + prayerName, () -> plugin.setPrayerExcluded(prayer.getName(), true)));
+			boosts.add(icon);
 		}
 		if (usesMarkOfDarkness(l))
 		{
-			boosts.add(new SpriteIcon(SpriteID.MagicNecroOn.MARK_OF_DARKNESS,
-				"Mark of Darkness (boosts demonbane spells against demons)"));
+			SpriteIcon mark = new SpriteIcon(SpriteID.MagicNecroOn.MARK_OF_DARKNESS,
+				"Mark of Darkness (boosts demonbane spells against demons)");
+			mark.setComponentPopupMenu(ItemMenus.of("Turn off Mark of Darkness", () -> plugin.setConfig("markOfDarkness", false)));
+			boosts.add(mark);
 		}
 		Thrall thrall = thrallFor(selected);
 		if (thrall != null)
@@ -575,14 +616,36 @@ class ResultView extends JPanel
 			SpriteIcon thrallIcon = new SpriteIcon(THRALL_SPRITES.get(type),
 				thrall.displayName(type) + " (+" + fmt(thrall.getDps(), 2) + " DPS included)");
 			thrallIcon.setName("thrallIcon");
+			thrallIcon.setComponentPopupMenu(ItemMenus.of("Turn off thralls", () -> plugin.setConfig("thrall", false)));
 			boosts.add(thrallIcon);
 		}
 		for (Potion p : potionsFor(selected))
 		{
-			boosts.add(itemIcon(p.getId(), 34, GameData.titleCase(p.getName())));
+			JLabel icon = itemIcon(p.getId(), 34, GameData.titleCase(p.getName()));
+			icon.setComponentPopupMenu(ItemMenus.of("Exclude " + GameData.titleCase(p.getName()), () -> plugin.excludeBoost(p)));
+			boosts.add(icon);
 		}
 		row.add(boosts, BorderLayout.CENTER);
 		return row;
+	}
+
+	/**
+	 * The overhead to pray against the target, or the Prayer icon when none is needed or every advised one is
+	 * excluded. Its hover text is the Wiki advice; right-click excludes an advised overhead or allows an excluded one.
+	 */
+	JComponent overheadIcon(Overheads.Advice advice)
+	{
+		Integer sprite = advice.getPrayer() == null ? null : PrayerBook.SPRITES.get(advice.getPrayer().toString().toLowerCase(Locale.ROOT));
+		SpriteIcon icon = new SpriteIcon(sprite == null ? SpriteID.Staticons.PRAYER : sprite, null);
+		icon.setName("overheadIcon");
+		icon.setToolTipText(Sidebar.html(overheadText(advice), TIP_WRAP_WIDTH));
+		JPopupMenu menu = new JPopupMenu();
+		for (Overheads.Overhead o : advice.getSwitches())
+			ItemMenus.add(menu, "Exclude " + o, () -> plugin.setPrayerExcluded(o.toString(), true));
+		for (Overheads.Overhead o : advice.getExcluded())
+			ItemMenus.add(menu, "Allow " + o, () -> plugin.setPrayerExcluded(o.toString(), false));
+		icon.setComponentPopupMenu(menu.getComponentCount() == 0 ? null : menu);
+		return icon;
 	}
 
 	/** Potions and hearts a setup in the selected tab assumes; the atlatl also uses the Strength boost. */
@@ -709,12 +772,12 @@ class ResultView extends JPanel
 		}
 	}
 
-	/** A dark box with the green edge, padded 6px at the sides. */
-	private static JPanel box(LayoutManager layout, int top, int bottom)
+	/** A dark box with a coloured edge, padded 6px at the sides. */
+	private static JPanel box(LayoutManager layout, int top, int bottom, Color edge)
 	{
 		JPanel box = new JPanel(layout);
 		box.setBackground(BOX_BG);
-		box.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BOX_BORDER),
+		box.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(edge),
 			new EmptyBorder(top, 6, bottom, 6)));
 		return box;
 	}

@@ -32,6 +32,6 @@ public final class TestResults
 	{
 		return new SearchResults(monster, startingHitpoints, byType, notes, prayers, potions, assumedLevels, locks,
 			markOfDarkness, rememberedLevels, warnings, null, null, monster == null ? 0 : monster.getDefenceLevel(), 99, 99,
-			null);
+			null, Collections.emptySet());
 	}
 }

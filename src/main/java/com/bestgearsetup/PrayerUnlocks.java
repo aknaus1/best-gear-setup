@@ -86,16 +86,24 @@ final class PrayerUnlocks
 		return unlocked;
 	}
 
+	/** The Excluded prayers setting's lower-case prayer names (comma-separated, any case). */
+	static Set<String> excluded(String value)
+	{
+		Set<String> names = new TreeSet<>();
+		for (String name : value.split(","))
+			if (!name.isBlank())
+				names.add(name.trim().toLowerCase(Locale.ROOT));
+		return names;
+	}
+
 	/**
 	 * @param unlocked the account's gated unlocks, or null when unknown (before the account's first login,
 	 *                 when levels are assumed 99 too), in which case every prayer is assumed unlocked
-	 * @param excluded the Excluded prayers setting: comma-separated names, any case
+	 * @param excluded the Excluded prayers setting
 	 */
 	static Predicate<String> available(Set<String> unlocked, String excluded)
 	{
-		Set<String> skipped = new TreeSet<>();
-		for (String name : excluded.split(","))
-			skipped.add(name.trim().toLowerCase(Locale.ROOT));
+		Set<String> skipped = excluded(excluded);
 		return name ->
 		{
 			String lower = name.toLowerCase(Locale.ROOT);
@@ -103,16 +111,6 @@ final class PrayerUnlocks
 				return false;
 			return !GATED.contains(lower) || unlocked == null || unlocked.contains(lower);
 		};
-	}
-
-	/** Names in the Excluded prayers setting that match none of these prayers, as typed. */
-	static List<String> unknown(String excluded, List<OffensivePrayer> prayers)
-	{
-		List<String> unknown = new ArrayList<>();
-		for (String name : excluded.split(","))
-			if (!name.isBlank() && prayers.stream().noneMatch(p -> p.getName().equalsIgnoreCase(name.trim())))
-				unknown.add(name.trim());
-		return unknown;
 	}
 
 	/** The strongest prayer the levels and unlocks allow, or null if none applies. */

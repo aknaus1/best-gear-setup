@@ -4,6 +4,7 @@ import com.bestgearsetup.calc.*;
 import com.bestgearsetup.data.*;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.Value;
 
 /**
@@ -43,6 +44,15 @@ public class SearchResults
 	int boostedMagic;
 	/** Base levels searched with, which time a trip's boost and prayer restore doses; null when not known. */
 	PlayerLevels levels;
+	/** Lower-case names of the prayers excluded in Gear rules. */
+	Set<String> excludedPrayers;
+
+	/** The target's overhead advice for a setup of this class without excluded prayers, or null when it has none. */
+	public Overheads.Advice overhead(Combat cls)
+	{
+		Overheads.Advice advice = monster == null ? null : Overheads.recommend(monster, cls);
+		return advice == null ? null : advice.without(excludedPrayers);
+	}
 
 	/** Whether a lock could not be honoured. */
 	public boolean hasBlockingLock()
