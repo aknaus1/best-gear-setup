@@ -17,6 +17,7 @@ is what the Plugin Hub shows.
 - The bank layout shows the inventory as you'd pack it, in a 4x7 grid beside the equipment: spec switch, rune
   pouch, boosts, restores, then food, with other owned foods on a row below. Repeated items use the bank's
   spare slots and withdraw from the real stack.
+- The bank layout opens again with the bank when it was showing as the bank closed.
 - Each setup shows the target's overhead protection prayer (one prayer, a switch, or none needed) as an icon
   beside its boosts and in its statistics, with static advice from the Wiki's strategy pages and the monster's
   attack styles.
