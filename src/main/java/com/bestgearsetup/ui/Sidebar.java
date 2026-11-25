@@ -50,7 +50,7 @@ public class Sidebar extends PluginPanel
 	final JTextField budgetField = new JTextField();
 	final JPanel budgetRow = new JPanel(new BorderLayout(4, 0));
 	private final CardLayout views = new CardLayout();
-	private final JButton gearButton = new JButton("Gear rules");
+	private final JButton gearButton = new JButton("Rules");
 	private final JLabel assumptionsLabel = new JLabel();
 	private final JButton filterBadge = new JButton("Bosses");
 	private JButton editorOrigin;
@@ -299,9 +299,13 @@ public class Sidebar extends PluginPanel
 		searchActions.add(clearSearchButton, BorderLayout.EAST);
 		content.add(left(searchActions));
 		content.add(spacer(4));
-		JPanel actions = new JPanel(new GridLayout(1, 3, 4, 0));
+		// Spare width is shared equally on top of each label's own width, so Assumptions fits at 225px.
+		JPanel actions = new JPanel(new GridBagLayout());
+		GridBagConstraints cell = new GridBagConstraints();
+		cell.weightx = 1;
+		cell.fill = GridBagConstraints.HORIZONTAL;
 		actions.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		JButton fightButton = new JButton("Fight");
+		JButton fightButton = new JButton("Assumptions");
 		fightButton.setName("fightEditorButton");
 		fightButton.addActionListener(e -> { editorOrigin = fightButton; openEditor("fight"); });
 		gearButton.setName("gearEditorButton");
@@ -314,7 +318,8 @@ public class Sidebar extends PluginPanel
 		{
 			Controls.secondary(action);
 			action.setMargin(new java.awt.Insets(3, 0, 3, 0));
-			actions.add(action);
+			actions.add(action, cell);
+			cell.insets = new java.awt.Insets(0, 4, 0, 0);
 		}
 		content.add(left(actions));
 		content.add(spacer(4));
@@ -801,7 +806,7 @@ public class Sidebar extends PluginPanel
 			updateBudgetEnabled();
 			constraints.refresh();
 			int rules = plugin.getLocks().size() + plugin.getExcluded().size();
-			gearButton.setText("Gear" + (rules == 0 ? "" : " (" + rules + ")"));
+			gearButton.setText("Rules" + (rules == 0 ? "" : " (" + rules + ")"));
 			gearButton.setToolTipText(rules + " locks or exclusions; spells and owned items");
 			searchField.setToolTipText(config.bossesOnly() ? "Searching bosses only" : "Search all monsters");
 		}

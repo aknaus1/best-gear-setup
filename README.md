@@ -13,7 +13,7 @@ budget, or go straight to best in slot.
 4. Search for a monster, pick a mode and click **Find best setup**.
 
 Right-click an item in a result to lock it, exclude it or mark it as owned, or add these rules from the
-**Gear** panel.
+**Rules** panel.
 
 ## Features
 
@@ -22,7 +22,7 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
   *Best in slot*.
 - **A result per attack style** with DPS, max hit, accuracy, time to kill, kills per hour and the cost of
   anything you'd need to buy, plus the next-best alternatives.
-- **Allowed and Excluded spells** in Gear let you limit searches to the spells you choose or exclude spells.
+- **Allowed and Excluded spells** in Rules let you limit searches to the spells you choose or exclude spells.
   Spells can be autocast or cast by hand with any weapon (spells that need their own staff, such as Iban Blast,
   only with it), and powered staves and salamanders can still compete.
 - **Runes per kill** estimate attack and support rune use, including runes supplied by your staff or tome,
@@ -40,12 +40,12 @@ Right-click an item in a result to lock it, exclude it or mark it as owned, or a
 
 ![The RuneLite client with the bank gear layout, highlighted inventory and Yama result in the side panel](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/bank-layout.png)
 
-Everything else is in the sidebar too. **Fight** sets your HP, Slayer task, raid party size, Wilderness
-and pre-fight defence reductions. **Gear** lists your locks, excluded items, spell rules and extra owned items, with a
+Everything else is in the sidebar too. **Assumptions** sets your HP, Slayer task, raid party size, Wilderness
+and pre-fight defence reductions. **Rules** lists your locks, excluded items, spell rules and extra owned items, with a
 search to add more. **Settings** covers search options, attack styles, equipment, spellbooks, boosts and
 highlights.
 
-![The Fight, Gear and Settings panels in the sidebar](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
+![The Assumptions, Rules and Settings panels in the sidebar](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
 
 ## Good to know
 

@@ -89,7 +89,7 @@ public class SidebarLayoutTest
 				assertFalse(panel.budgetRow.isVisible());
 				panel.modeBox.setSelectedItem(com.bestgearsetup.calc.SearchMode.BUDGET);
 				assertTrue(panel.budgetRow.isVisible());
-				JButton options = button(panel, "Fight");
+				JButton options = button(panel, "Assumptions");
 				options.doClick();
 				assertTrue(named(panel, "fightEditor").isVisible());
 				assertFalse(((JScrollPane) panel.getComponent(0)).isVisible());
@@ -102,7 +102,7 @@ public class SidebarLayoutTest
 				button(panel, "Open in RuneLite settings").doClick();
 				assertEquals("RuneLite's configuration page stays one click away", 1, configurationOpened[0]);
 				button(panel, "Back to results").doClick();
-				for (String[] editor : new String[][]{{"Fight", "fight"}, {"Gear", "gear"}, {"Settings", "settings"}})
+				for (String[] editor : new String[][]{{"Assumptions", "fight"}, {"Rules", "gear"}, {"Settings", "settings"}})
 				{
 					button(panel, editor[0]).doClick();
 					for (int pass = 0; pass < 3; pass++) { layout(panel); }
@@ -146,6 +146,15 @@ public class SidebarLayoutTest
 				assertTrue(notes.getText().contains("provenance explanation"));
 				panel.clearResults("Account changed");
 				assertTrue(named(panel, "searchDetails") == null);
+				((JButton) named(panel, "gearEditorButton")).setText("Rules (99)");
+				layout(panel);
+				layout(panel);
+				for (String label : new String[]{"Assumptions", "Rules (99)", "Settings"})
+				{
+					JButton action = button(panel, label);
+					assertTrue(label + " must fit its button at " + width + "px",
+						action.getWidth() >= action.getPreferredSize().width);
+				}
 			}
 		});
 	}

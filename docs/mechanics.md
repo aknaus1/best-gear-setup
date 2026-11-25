@@ -154,11 +154,11 @@ This page covers what the plugin assumes and what it enforces. For installation 
 
 The main sidebar keeps the monster search, the relevant variant or phase, the ownership mode and
 **Find best setup** above the results. The budget row only appears in budget mode, and the Wiki link sits
-next to the target. **Fight** and **Gear (count)** open separate views with a **Back to results** button,
+next to the target. **Assumptions** and **Rules (count)** open separate views with a **Back to results** button,
 and your results and scroll position are still there when you come back. **Settings** opens the plugin's
 page in RuneLite's configuration panel.
 
-**Fight** has your HP, the Slayer task override, AoE, Wilderness, Forinthry Surge and Soulreaper
+**Assumptions** has your HP, the Slayer task override, AoE, Wilderness, Forinthry Surge and Soulreaper
 stacks. Raid settings only appear for raid targets. **Use active raid** reads the party, mode, invocation
 and path values when the selected NPC belongs to the raid you're in; otherwise your saved planning values
 apply. CoX still uses your account's HP and the Mining level you've chosen.
@@ -167,7 +167,7 @@ apply. CoX still uses your account's HP and the Mining level you've chosen.
 lava dragons, elder chaos druids and the Wilderness bosses with their minions. For those targets the box
 shows checked and can't be cleared. PvM Arena versions of the bosses aren't included.
 
-Under **Fight → In Wilderness**, turn on **Limit expensive items** to set **Expensive items allowed**
+Under **Assumptions → In Wilderness**, turn on **Limit expensive items** to set **Expensive items allowed**
 (0–11) and **Expensive at (GP)** (e.g. `500k` or `1m`; the defaults are 3 items and `1m`). The limit counts
 every equipped item at or above the threshold, including items you own, using the same full prices
 (including components) as the equipment budget. Untradeables that break on an unprotected PvP death also
@@ -183,7 +183,7 @@ Results are always for a full kill from your saved assumptions. Right-clicking a
 runs the same search; the live NPC is only used to confirm your Slayer task location and, with **Use active
 raid**, to read raid scaling.
 
-**Gear** lists your locks, exclusions and the items you've marked as owned, with the same right-click menus
+**Rules** lists your locks, exclusions and the items you've marked as owned, with the same right-click menus
 as in the results and buttons to remove or reset each one. RuneLite's Best Gear Setup configuration
 groups the remaining preferences into
 **Search options**, **Attack styles**, **Equipment**, **Spellbooks**, **Combat boosts**, **Dragonfire**,
@@ -191,7 +191,7 @@ groups the remaining preferences into
 potion dropdowns for each style, thralls, poison and rune assumptions. Each highlight toggle sits next to
 its colour.
 
-**Fight** also has a collapsed **Pre-fight preparation** section for Vulnerability (with the tome of water
+**Assumptions** also has a collapsed **Pre-fight preparation** section for Vulnerability (with the tome of water
 option once it's on), landed special attacks and damage from defence-draining attacks. Its heading counts
 how many are set.
 
@@ -475,7 +475,7 @@ and searches it with every other choice. Rewards from past Leagues are left out 
 
 ### Fight inputs and raid scaling
 
-**Fight** includes your HP, Wilderness, Forinthry Surge, Soulreaper stacks, Mining and pre-fight
+**Assumptions** includes your HP, Wilderness, Forinthry Surge, Soulreaper stacks, Mining and pre-fight
 preparation. Charge, Mark of Darkness and sunfire runes are in the Combat boosts settings. An HP of zero
 means the full maximum, and a Mining level of zero uses your own level (99 when logged out). Your HP is a
 snapshot (for Dharok's and ruby bolts). Attacks that change with the target's remaining HP (ruby bolts, the

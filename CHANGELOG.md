@@ -40,8 +40,8 @@ is what the Plugin Hub shows.
 - Refresh the other Wiki monster data with poison and venom, adding the Leech and Snelmlover500.
 - Karil's crossbow is heavy ranged like every other crossbow, and only magic and standard ranged hits on Yama's
   void flares are guaranteed maximum.
-- Every Fight and Gear card opens and collapses on its own, with **Expand all** and **Collapse all**; Fight
-  conditions starts open. The picked style tab stays selected when results recalculate.
+- The sidebar's **Fight** and **Gear** buttons are now **Assumptions** and **Rules**. Every card in them opens
+  and collapses on its own, with **Expand all** and **Collapse all**; Fight conditions starts open. The picked style tab stays selected when results recalculate.
 - Tidy the result panel (style box under the gear, a "<Style> setups" list, two-decimal DPS, whole-second TTK
   from 10 seconds), keep hover text under 10 words, and make the *Open in RuneLite settings* link look like one.
 
