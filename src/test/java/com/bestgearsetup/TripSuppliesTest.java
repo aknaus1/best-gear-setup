@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.IntPredicate;
 import net.runelite.api.gameval.ItemID;
 import org.junit.Test;
@@ -271,7 +272,7 @@ public class TripSuppliesTest
 		SearchResults low = target("chicken (normal)", false, "crush", 19);
 		SearchResults lowPrayer = new SearchResults(low.getMonster(), 100, Collections.emptyMap(), Collections.emptyList(),
 			PIETY, Collections.emptyMap(), false, Collections.emptyList(), false, false, Collections.emptyList(), null, null,
-			0, 99, 99, PlayerLevels.builder().prayer(42).build());
+			0, 99, 99, PlayerLevels.builder().prayer(42).build(), Collections.emptySet());
 		assertTrue(TripSupplies.summary(TripSupplies.plan(setup(5, 0), lowPrayer, Collections.emptyList(), 1, true, owns,
 			Antifire.NONE)).contains("28 Shark"));
 	}
@@ -390,7 +391,30 @@ public class TripSuppliesTest
 		return results(hp, prayers, PlayerLevels.maxed());
 	}
 
+	@Test
+	public void anExcludedOverheadNeitherDrainsNorBlocks()
+	{
+		Setup setup = setup(5, 0);
+		assertTrue(TripSupplies.needsOverhead(setup, results(100, PIETY)));
+		SearchResults excluded = results(100, PIETY, PlayerLevels.maxed(), Collections.singleton("protect from magic"));
+		assertFalse(TripSupplies.needsOverhead(setup, excluded));
+		// A melee-only chicken needs only emergency food behind Protect from Melee, and all of it without.
+		IntPredicate owns = id -> id == ItemID.SHARK;
+		SearchResults chicken = target("chicken (normal)", false, "crush", 19);
+		SearchResults unprotected = new SearchResults(chicken.getMonster(), 100, Collections.emptyMap(),
+			Collections.emptyList(), PIETY, Collections.emptyMap(), false, Collections.emptyList(), false, false,
+			Collections.emptyList(), null, null, 0, 99, 99, PlayerLevels.maxed(), Collections.singleton("protect from melee"));
+		assertTrue(TripSupplies.summary(TripSupplies.plan(setup, unprotected, Collections.emptyList(), 1, true, owns,
+			Antifire.NONE)).contains("28 Shark"));
+	}
+
 	private static SearchResults results(int hp, Map<Combat, OffensivePrayer> prayers, PlayerLevels levels)
+	{
+		return results(hp, prayers, levels, Collections.emptySet());
+	}
+
+	private static SearchResults results(int hp, Map<Combat, OffensivePrayer> prayers, PlayerLevels levels,
+		Set<String> excludedPrayers)
 	{
 		Monster monster = new Monster();
 		// Vorkath's advice is Protect from Magic for every setup.
@@ -398,6 +422,6 @@ public class TripSuppliesTest
 		monster.setHitpoints(hp);
 		return new SearchResults(monster, hp, Collections.<Style.Type, List<Setup>>emptyMap(),
 			Collections.emptyList(), prayers, Collections.emptyMap(), false, Collections.emptyList(), false, false,
-			Collections.emptyList(), null, null, 0, 99, 99, levels);
+			Collections.emptyList(), null, null, 0, 99, 99, levels, excludedPrayers);
 	}
 }

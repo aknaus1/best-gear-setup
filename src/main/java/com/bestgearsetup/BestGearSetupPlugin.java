@@ -1066,7 +1066,8 @@ public class BestGearSetupPlugin extends Plugin
 					}
 				}
 			}
-			Predicate<Potion> boosts = BoostAccess.allowed(settings.getMode(), owned, config.raidPotions());
+			Predicate<Potion> boosts = BoostAccess.allowed(settings.getMode(), owned, config.raidPotions())
+				.and(p -> !settings.getExcluded().contains(p.getId()));
 			int[] boosted = boostBases(levels);
 			for (int i = 0; i < boosted.length; i++)
 			{
@@ -1128,9 +1129,6 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				notes.add("Prayer unlocks are unknown until you log in; Piety, Rigour, Augury and similar are assumed unlocked.");
 			}
-			for (String name : PrayerUnlocks.unknown(config.excludedPrayers(), Arrays.stream(Combat.values())
-				.flatMap(cls -> data.getPrayers(cls).stream()).collect(Collectors.toList())))
-				notes.add("Excluded prayers: \"" + name + "\" isn't an offensive prayer, so it is ignored.");
 			if (kourendElite == null && !eliteDiary && SlayerEquipment.inKaruulm(baseMonster, settings))
 			{
 				notes.add("Elite Kourend & Kebos Diary status is unknown until you log in, so Karuulm boots are required.");
@@ -1155,7 +1153,7 @@ public class BestGearSetupPlugin extends Plugin
 				potionsUsed(data, levels, monster, boosts, config), assumedLevels, locks, config.markOfDarkness(),
 				rememberedLevels, warnings,
 				Thrall.eligibleType(monster) == null ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
-				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels);
+				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels, PrayerUnlocks.excluded(config.excludedPrayers()));
 			// Loads the overhead notes here rather than on the Swing thread when the first result is shown.
 			Overheads.recommend(monster, Combat.MELEE);
 			onPanel(generation, p -> p.showResults(found));
@@ -1821,6 +1819,28 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			setConfig(Options.EXCLUDED_KEY, ids.stream().map(String::valueOf).collect(Collectors.joining(",")));
 		}
+	}
+
+	/** Lower-case names of the prayers excluded in Gear rules. */
+	public Set<String> getExcludedPrayers()
+	{
+		return PrayerUnlocks.excluded(config == null ? "" : config.excludedPrayers());
+	}
+
+	public void setPrayerExcluded(String name, boolean excluded)
+	{
+		Set<String> names = getExcludedPrayers();
+		if (excluded ? names.add(name.toLowerCase(Locale.ROOT)) : names.remove(name.toLowerCase(Locale.ROOT)))
+			setConfig(Options.EXCLUDED_PRAYERS_KEY, String.join(",", names));
+	}
+
+	/** Never assume this boost again: excluded like an item, and a potion choice naming it goes back to Best available. */
+	public void excludeBoost(Potion potion)
+	{
+		for (Combat cls : Combat.values())
+			if (getPotionChoice(cls).equalsIgnoreCase(potion.getName()))
+				setConfig(cls.name().toLowerCase(Locale.ROOT) + "PotionChoice", "BEST");
+		setExcluded(potion.getId(), true);
 	}
 
 	public void clearLocks()

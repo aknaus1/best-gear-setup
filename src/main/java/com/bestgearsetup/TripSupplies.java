@@ -104,7 +104,7 @@ public final class TripSupplies
 	 */
 	static boolean needsOverhead(Setup setup, SearchResults results)
 	{
-		Overheads.Advice advice = Overheads.recommend(results.getMonster(), setup.getCombatClass());
+		Overheads.Advice advice = results.overhead(setup.getCombatClass());
 		if (advice == null)
 			return false;
 		PlayerLevels levels = results.getLevels() == null ? PlayerLevels.maxed() : results.getLevels();
@@ -154,8 +154,8 @@ public final class TripSupplies
 		else if ("poison".equals(poisons))
 			out.add(new Supply("Superantipoison", doses(ItemID._4DOSE2ANTIPOISON, ItemID.ANTIDOTE__4, ItemID.ANTIVENOM_4), 1));
 		if (food)
-			addFood(out, foodSlots(results.getMonster(), setup, antifire, levels, INVENTORY_SLOTS - usedSlots(setup, out)),
-				owns, maxHit(results.getMonster()) >= COMBO_MAX_HIT);
+			addFood(out, foodSlots(results.getMonster(), results.overhead(setup.getCombatClass()), setup, antifire, levels,
+				INVENTORY_SLOTS - usedSlots(setup, out)), owns, maxHit(results.getMonster()) >= COMBO_MAX_HIT);
 		return out;
 	}
 
@@ -176,9 +176,9 @@ public final class TripSupplies
 	 * full fire protection ({@link DragonfireProtection#blocksBreath}), and a metal dragon's melee by standing at range.
 	 * A boss, a typeless or unknown attack, a switching fight or missing data fills them all.
 	 */
-	static int foodSlots(Monster monster, Setup setup, Antifire antifire, PlayerLevels levels, int free)
+	static int foodSlots(Monster monster, Overheads.Advice advice, Setup setup, Antifire antifire, PlayerLevels levels,
+		int free)
 	{
-		Overheads.Advice advice = Overheads.recommend(monster, setup.getCombatClass());
 		if (advice != null && advice.getNote().startsWith("It doesn't attack"))
 			return 0;
 		Map<String, Monster.MonsterAttack> attacks = monster.getAttackStyles();

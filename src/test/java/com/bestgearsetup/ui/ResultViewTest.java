@@ -13,6 +13,7 @@ import com.bestgearsetup.calc.CombatContext;
 import com.bestgearsetup.calc.CombatModifiers;
 import com.bestgearsetup.calc.Dps;
 import com.bestgearsetup.calc.Outfit;
+import com.bestgearsetup.calc.Overheads;
 import com.bestgearsetup.calc.Setup;
 import com.bestgearsetup.calc.SupportSpell;
 import com.bestgearsetup.calc.Thrall;
@@ -134,25 +135,11 @@ public class ResultViewTest
 			assertNull(named(box, "prayerPerKill").getBorder());
 			assertNull(named(box, "tripSupplies").getBorder());
 			assertNotNull(named(box, "protectionPrayer").getBorder());
+			assertTrue(named(box, "protectionPrayer").getText().contains("Overhead: Protect from Magic</b>: "));
 			JPanel single = view(100).statsBox(dps(5), null, null, false, false);
 			view(100).addTripLines(single, setup, 1, Collections.emptyList());
 			assertNull(named(single, "tripCombatTime"));
 			assertNull(named(single, "tripSupplies"));
-			ResultView vorkath = view(100, "vorkath (post-quest)");
-			JPanel advised = vorkath.statsBox(dps(5), null, null, false, false);
-			vorkath.addTripLines(advised, setup, 1, Collections.emptyList());
-			assertTrue(named(advised, "protectionPrayer").getText().contains("Overhead: Protect from Magic"));
-			// A note opening with the summary continues it rather than repeating "None needed" on a second line.
-			ResultView dragon = view(100, "steel dragon (level 246 (task only))");
-			JPanel magic = dragon.statsBox(dps(5), null, null, false, false);
-			dragon.addTripLines(magic, new Setup(Combat.MAGIC, loadout, dps(5), 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null), 1, Collections.emptyList());
-			assertTrue(named(magic, "protectionPrayer").getText(),
-				named(magic, "protectionPrayer").getText().contains("Overhead: None needed at range: "));
-			ResultView bloat = view(100, "pestilent bloat (normal)");
-			JPanel bloatBox = bloat.statsBox(dps(5), null, null, false, false);
-			bloat.addTripLines(bloatBox, setup, 1, Collections.emptyList());
-			String bloatText = named(bloatBox, "protectionPrayer").getText();
-			assertTrue(bloatText, bloatText.contains("Overhead: None needed: step out"));
 			// Raid targets show their overhead but no trip lines.
 			Monster tekton = new Monster();
 			tekton.setName("tekton (normal)");
@@ -172,6 +159,67 @@ public class ResultViewTest
 			assertNotNull(named(full, "tripOverflow"));
 		});
 		assertEquals("1h 05m", ResultView.duration(3900));
+	}
+
+	@Test
+	public void theStatsBoxOpensOnItsDpsLineAndTogglesOnAClick() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			ResultView.statsOpen = false;
+			ResultView view = view(100, "vorkath (post-quest)");
+			JPanel box = view.statsBox(dps(5), null, null, false, false);
+			view.addTripLines(box, new Setup(Combat.MELEE, new Outfit(), dps(5), 0, 0, Collections.emptySet(),
+				Collections.emptySet(), null, null), 1, Collections.emptyList());
+			ResultView.collapsible(box);
+			JLabel head = named(box, "statsToggle");
+			assertTrue(head.isVisible());
+			assertTrue(!named(box, "protectionPrayer").isVisible());
+			press(head);
+			assertTrue(named(box, "protectionPrayer").isVisible());
+			press(head);
+			assertTrue(!named(box, "protectionPrayer").isVisible());
+		});
+	}
+
+	private static void press(Component c)
+	{
+		for (java.awt.event.MouseListener l : c.getMouseListeners())
+			l.mousePressed(new java.awt.event.MouseEvent(c, java.awt.event.MouseEvent.MOUSE_PRESSED, 0, 0, 1, 1, 1, false));
+	}
+
+	@Test
+	public void theOverheadIconCarriesTheWikiAdviceAndItsExclusions() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			ResultView view = view(100);
+			Overheads.Advice vorkath = Overheads.recommend(monster("vorkath (post-quest)"), Combat.MELEE);
+			javax.swing.JComponent icon = view.overheadIcon(vorkath);
+			assertEquals("overheadIcon", icon.getName());
+			assertTrue(icon.getToolTipText().contains("Overhead: Protect from Magic</b>: "));
+			assertEquals(1, icon.getComponentPopupMenu().getComponentCount());
+			// A note opening with the summary continues it rather than repeating "None needed".
+			String dragon = view.overheadIcon(Overheads.recommend(monster("steel dragon (level 246 (task only))"), Combat.MAGIC))
+				.getToolTipText();
+			assertTrue(dragon, dragon.contains("Overhead: None needed</b> at range: "));
+			javax.swing.JComponent bloat = view.overheadIcon(Overheads.recommend(monster("pestilent bloat (normal)"), Combat.MELEE));
+			assertTrue(bloat.getToolTipText(), bloat.getToolTipText().contains("Overhead: None needed</b>: step out"));
+			assertNull(bloat.getComponentPopupMenu());
+			// Excluding the advised overhead says so and offers it back.
+			javax.swing.JComponent excluded = view.overheadIcon(vorkath.without(Collections.singleton("protect from magic")));
+			assertTrue(excluded.getToolTipText().contains("Overhead: No overhead</b>"));
+			assertTrue(excluded.getToolTipText().contains("Protect from Magic excluded in Gear rules."));
+			assertEquals("Allow Protect from Magic",
+				((javax.swing.JMenuItem) excluded.getComponentPopupMenu().getComponent(0)).getText());
+		});
+	}
+
+	private static Monster monster(String name)
+	{
+		Monster monster = new Monster();
+		monster.setName(name);
+		return monster;
 	}
 
 	private static ResultView view(int hp)

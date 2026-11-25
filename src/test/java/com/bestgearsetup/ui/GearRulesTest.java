@@ -40,6 +40,8 @@ public class GearRulesTest
 	private final Map<Slot, SlotLock> locks = new EnumMap<>(Slot.class);
 	private final Set<Integer> excluded = new LinkedHashSet<>();
 	private final List<String> cleared = new ArrayList<>();
+	private final Set<String> excludedPrayers = new java.util.TreeSet<>();
+	private final Map<String, Object> saved = new java.util.HashMap<>();
 	private final BestGearSetupPlugin plugin = new BestGearSetupPlugin()
 	{
 		@Override
@@ -80,6 +82,27 @@ public class GearRulesTest
 		}
 
 		@Override
+		public void setConfig(String key, Object value)
+		{
+			saved.put(key, value);
+		}
+
+		@Override
+		public Set<String> getExcludedPrayers()
+		{
+			return new java.util.TreeSet<>(excludedPrayers);
+		}
+
+		@Override
+		public void setPrayerExcluded(String name, boolean exclude)
+		{
+			if (exclude)
+				excludedPrayers.add(name);
+			else
+				excludedPrayers.remove(name);
+		}
+
+		@Override
 		public void clearExclusions()
 		{
 			cleared.add("exclusions");
@@ -111,12 +134,61 @@ public class GearRulesTest
 	}
 
 	@Test
+	public void everyPrayerInTheBookTogglesItsExclusion() throws Exception
+	{
+		excludedPrayers.add("old typo");
+		SwingUtilities.invokeAndWait(() ->
+		{
+			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
+			panel.refresh();
+			for (String prayer : new String[]{"thick skin", "protect item", "protect from melee", "smite", "piety", "zeal"})
+				assertNotNull(prayer, named(panel, "prayer:" + prayer));
+			JLabel piety = (JLabel) named(panel, "prayer:piety");
+			assertTrue(piety.getToolTipText(), piety.getToolTipText().contains("click to exclude"));
+			click(piety);
+			assertTrue(excludedPrayers.contains("piety"));
+			// The square changes on the press, before the panel is rebuilt from the saved setting.
+			assertTrue(piety.getToolTipText().contains("excluded: click to allow"));
+			panel.refresh();
+			JLabel excluded = (JLabel) named(panel, "prayer:piety");
+			assertTrue(excluded.getToolTipText().contains("excluded: click to allow"));
+			click(excluded);
+			assertFalse(excludedPrayers.contains("piety"));
+			((JButton) named(panel, "excludeAllPrayers")).doClick();
+			assertTrue(((String) saved.get("excludedPrayers")).startsWith("thick skin,burst of strength,"));
+			assertTrue(((String) saved.get("excludedPrayers")).endsWith(",augury,zeal"));
+			((JButton) named(panel, "allowAllPrayers")).doClick();
+			assertEquals("", saved.get("excludedPrayers"));
+			// A name the prayer book lacks is still listed, with a way to remove it.
+			assertTrue(hasAccessibleName(panel, "Remove Old Typo"));
+		});
+	}
+
+	private static boolean hasAccessibleName(Container root, String name)
+	{
+		for (Component c : root.getComponents())
+		{
+			if (c instanceof javax.swing.JComponent && name.equals(((javax.swing.JComponent) c).getAccessibleContext().getAccessibleName())
+				|| c instanceof Container && hasAccessibleName((Container) c, name))
+				return true;
+		}
+		return false;
+	}
+
+	private static void click(Component c)
+	{
+		for (java.awt.event.MouseListener l : c.getMouseListeners())
+			l.mousePressed(new java.awt.event.MouseEvent(c, java.awt.event.MouseEvent.MOUSE_PRESSED, 0,
+				java.awt.event.InputEvent.BUTTON1_DOWN_MASK, 1, 1, 1, false, java.awt.event.MouseEvent.BUTTON1));
+	}
+
+	@Test
 	public void gearCardsStartCollapsedAndOpenOnTheirOwnOrAllAtOnce() throws Exception
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
 			ConstraintsPanel panel = new ConstraintsPanel(plugin, null, null);
-			String[] cards = {"locks", "exclusions", "forcedSpells", "blockedSpells", "extraOwnedItems"};
+			String[] cards = {"locks", "exclusions", "excludedPrayers", "forcedSpells", "blockedSpells", "extraOwnedItems"};
 			for (String card : cards)
 			{
 				assertFalse(card + " starts collapsed", named(panel, card + "Content").isVisible());

@@ -9,7 +9,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 
 /**
- * Right-click menu for an item or slot in a result.
+ * Right-click menus for an item, slot or boost in a result.
  */
 final class ItemMenus
 {
@@ -72,7 +72,15 @@ final class ItemMenus
 		return menu;
 	}
 
-	private static void add(JPopupMenu menu, String text, Runnable action)
+	/** A menu of one entry, such as "Exclude Piety" on a boost icon. */
+	static JPopupMenu of(String text, Runnable action)
+	{
+		JPopupMenu menu = new JPopupMenu();
+		add(menu, text, action);
+		return menu;
+	}
+
+	static void add(JPopupMenu menu, String text, Runnable action)
 	{
 		JMenuItem mi = new JMenuItem(text);
 		mi.addActionListener(e -> action.run());

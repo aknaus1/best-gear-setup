@@ -45,14 +45,12 @@ public class PrayerUnlocksTest
 	}
 
 	@Test
-	public void unrecognisedExcludedPrayersAreListedAsTyped()
+	public void excludedPrayersParseToLowerCaseNames()
 	{
-		assertEquals(Arrays.asList("Rigor", "Smite"), PrayerUnlocks.unknown(" Rigor, PIETY,,Smite ", MELEE_AND_RANGED));
-		assertEquals(Collections.emptyList(), PrayerUnlocks.unknown("", MELEE_AND_RANGED));
+		assertEquals(new java.util.TreeSet<>(Arrays.asList("piety", "protect from melee", "rigor")),
+			PrayerUnlocks.excluded(" Rigor, PIETY,,Protect from Melee "));
+		assertEquals(Collections.emptySet(), PrayerUnlocks.excluded(""));
 	}
-
-	private static final List<OffensivePrayer> MELEE_AND_RANGED = new java.util.ArrayList<>(RANGED);
-	static { MELEE_AND_RANGED.addAll(MELEE); }
 
 	@Test
 	public void lockedPrayersFallBackToTheBestUnlockedOne()
