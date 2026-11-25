@@ -14,11 +14,11 @@ assignees: ''
 
 **How to reproduce**
 - Monster, **Version** and **Boss phase** (if shown):
-- Mode (*Owned items only* / *Owned + budget* / *Best in slot*) and budget:
+- Mode (*Owned items only* / *Inventory + equipped only* / *Owned + budget* / *Best in slot*) and budget:
 - On slayer task?
-- Fight options you changed (distance, AoE, HP, raid settings, specials...):
-- Locks, exclusions or items marked as owned:
-- Plugin settings you changed (styles, weapons, optimise for, search depth, XP, fill slots):
+- Assumptions you changed (HP, AoE, Wilderness, trip, raid scaling, pre-fight specs...):
+- Rules: locks, excluded items, prayers or spells, items marked as owned:
+- Settings you changed (optimise for, styles, equipment, boosts, XP, fill slots):
 
 **Search details**
 <!-- Expand "Search details" below the results and paste the text here. It lists the snapshot dates and the assumptions behind the search. -->

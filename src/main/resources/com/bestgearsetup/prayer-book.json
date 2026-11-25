@@ -1,5 +1,5 @@
 {
-  "_comment": "Every standard prayer in prayer book order: [icon sprite (gameval SpriteID.Prayeron), Prayer level]. Gear rules lists them to exclude; the result view shows their icons.",
+  "_comment": "Every standard prayer in prayer book order: [icon sprite (gameval SpriteID.Prayeron), Prayer level]. Rules lists them to exclude; the result view shows their icons.",
   "prayers": {
     "thick skin": [115, 1],
     "burst of strength": [116, 4],
