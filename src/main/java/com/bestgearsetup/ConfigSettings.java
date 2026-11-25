@@ -27,8 +27,6 @@ public final class ConfigSettings
 		add("budget", Options::budget);
 		add("bossesOnly", Options::bossesOnly);
 		add("onSlayerTask", Options::onSlayerTask);
-		add("ancientMagicks", Options::ancientMagicks);
-		add("arceuusSpellbook", Options::arceuusSpellbook);
 		add("preventManualCast", Options::preventManualCast);
 		add("membersItems", Options::membersItems);
 		add("ammoCount", Options::ammoCount);
@@ -39,7 +37,6 @@ public final class ConfigSettings
 		add("maxExpensiveItems", Options::maxExpensiveItems);
 		add("expensiveItemThreshold", Options::expensiveItemThreshold);
 		add("charge", Options::charge);
-		add("markOfDarkness", Options::markOfDarkness);
 		add("sunfireRunes", Options::sunfireRunes);
 		add("kandarinDiary", Options::kandarinDiary);
 		add("killSpecials", Options::killSpecials);
@@ -58,7 +55,6 @@ public final class ConfigSettings
 		add("aoeTargets", Options::aoeTargets);
 		add("requireFireProtection", Options::requireFireProtection);
 		add("antifire", Options::antifire);
-		add("protectMagic", Options::protectMagic);
 		add("dmmItems", Options::dmmItems);
 		add("betaItems", Options::betaItems);
 		add("bountyHunterItems", Options::bountyHunterItems);
@@ -87,18 +83,10 @@ public final class ConfigSettings
 		add("specBgsDamage", Options::specBgsDamage);
 		add("specSeercullDamage", Options::specSeercullDamage);
 		add("specAyakDamage", Options::specAyakDamage);
-		add("usePrayers", Options::usePrayers);
 		add("thrall", Options::thrall);
-		add("raidPotions", Options::raidPotions);
 		add("taskMode", Options::taskMode);
 		add("autoRaid", Options::autoRaid);
 		add("autoSpecs", Options::autoSpecs);
-		add("meleePotionChoice", Options::meleePotion);
-		add("rangedPotionChoice", Options::rangedPotion);
-		add("magicPotionChoice", Options::magicPotion);
-		add(Options.POTION_KEY_PREFIX + "MELEE", Options::potionMelee);
-		add(Options.POTION_KEY_PREFIX + "RANGED", Options::potionRanged);
-		add(Options.POTION_KEY_PREFIX + "MAGIC", Options::potionMagic);
 		add("locks", Options::locks);
 		add("excluded", Options::excluded);
 		add("blockedSpells", Options::blockedSpells);

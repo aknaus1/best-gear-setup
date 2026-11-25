@@ -190,9 +190,11 @@ class ConstraintsPanel extends JPanel
 		{
 			Gear item = data == null ? null : data.findItem(id);
 			Potion boost = item != null || data == null ? null : data.findPotion(id);
+			Antifire antifire = Antifire.of(id);
 			String name = item != null ? GameData.titleCase(item.getName()) : boost != null ? GameData.titleCase(boost.getName())
-				: "Item " + id;
-			exclusions.list.add(ruleRow(itemIcon(id), name, item != null ? item.getSlot().getDisplayName() : boost != null ? "Boost" : null,
+				: antifire != null ? antifire.toString() : "Item " + id;
+			exclusions.list.add(ruleRow(itemIcon(id), name, item != null ? item.getSlot().getDisplayName()
+				: boost != null || antifire != null ? "Boost" : null,
 				"Use " + name + " again", () -> plugin.setExcluded(id, false)));
 		}
 		exclusions.finish(excluded.size(), "No excluded items.", "Clear exclusions", plugin::clearExclusions);
@@ -329,7 +331,8 @@ class ConstraintsPanel extends JPanel
 	private JPanel spellRow(String name, Spell spell)
 	{
 		String title = GameData.titleCase(name);
-		String detail = spell == null ? "not in game data" : spellDetail(spell);
+		String detail = spell != null ? spellDetail(spell) : name.equals("mark of darkness") ? "Arceuus support spell"
+			: "not in game data";
 		JLabel icon = iconLabel();
 		showSpellIcon(icon::setIcon, name);
 		return ruleRow(icon, title, detail, "Remove " + title, () -> plugin.setSpellRule(name, SpellRule.ALLOW));

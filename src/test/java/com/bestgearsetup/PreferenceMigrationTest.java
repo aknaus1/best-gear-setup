@@ -9,14 +9,12 @@ import org.junit.Test;
 
 public class PreferenceMigrationTest
 {
-	@Test public void preservesLegacyNamedChoicesDespiteNativeDefaultInitialization()
+	@Test public void migratesLegacyTaskAndRaidValues()
 	{
 		Map<String,String> stored = new HashMap<>();
-		stored.put("potionMELEE","super combat potion"); stored.put("meleePotionChoice","BEST");
 		stored.put("onSlayerTask","true"); stored.put("taskMode","AUTO");
 		stored.put("toaRaidLevel","350"); stored.put("autoRaid","true");
 		Map<String,Object> changes = PreferenceMigration.plan(stored);
-		assertEquals(PotionOptions.Melee.SUPER_COMBAT_POTION,changes.get("meleePotionChoice"));
 		assertEquals(AutoState.ON,changes.get("taskMode"));
 		assertEquals(false,changes.get("autoRaid"));
 		assertEquals(true,changes.get(PreferenceMigration.MARKER));
@@ -33,11 +31,9 @@ public class PreferenceMigrationTest
 		assertFalse(changes.containsKey("autoRaid"));
 	}
 
-	@Test public void alreadyMigratedAndExplicitNewSelectionsAreNeverOverwritten()
+	@Test public void alreadyMigratedSettingsAreNeverOverwritten()
 	{
-		Map<String,String> stored = new HashMap<>(); stored.put("potionMELEE","attack potion");
-		stored.put("meleePotionChoice","NONE");
-		assertFalse(PreferenceMigration.plan(stored).containsKey("meleePotionChoice"));
+		Map<String,String> stored = new HashMap<>(); stored.put("onSlayerTask","true");
 		stored.put(PreferenceMigration.MARKER,"true");
 		assertTrue(PreferenceMigration.plan(stored).isEmpty());
 	}

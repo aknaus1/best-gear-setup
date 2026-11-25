@@ -28,7 +28,7 @@ public class SpellFilterNoteTest
 	{
 		SpellFilter forced = SpellFilter.of(Collections.emptySet(), Arrays.asList("ice barrage", "fire bolt"));
 		assertEquals("Spells: none of the allowed spells (Ice Barrage, Fire Bolt) can be cast here; "
-			+ "check your Magic level, spellbooks and the target.",
+			+ "check your Magic level and the target.",
 			BestGearSetupPlugin.spellFilterNote(forced, Collections.emptyList()));
 	}
 

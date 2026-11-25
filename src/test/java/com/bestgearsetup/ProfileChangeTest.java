@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.calc.Outfit;
-import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.calc.Setup;
 import com.bestgearsetup.calc.SlotLock;
 import com.bestgearsetup.data.Combat;
@@ -41,7 +40,6 @@ public class ProfileChangeTest
 			{ return ConfigItemsForTests.descriptor(); }
 			@Override public Map<Slot, SlotLock> getLocks() { return Collections.emptyMap(); }
 			@Override public Set<Integer> getExcluded() { return Collections.emptySet(); }
-			@Override public String getPotionChoice(Combat cls) { return PotionChoice.BEST; }
 		};
 		GameData data = new GameData(Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
@@ -115,11 +113,6 @@ public class ProfileChangeTest
 				return Collections.emptySet();
 			}
 
-			@Override
-			public String getPotionChoice(Combat cls)
-			{
-				return PotionChoice.BEST;
-			}
 		};
 		AtomicInteger generation = plugin.searchGeneration;
 		AtomicInteger loads = new AtomicInteger();

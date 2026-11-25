@@ -100,20 +100,7 @@ public class AssumptionsTest
 		assertEquals(4, snapshot.soulreaperStacks()); assertEquals(21, snapshot.currentHitpoints());
 		assertEquals(0, planning.currentHitpoints()); assertEquals(2, planning.soulreaperStacks());
 		assertEquals(planning.fillMargin(), snapshot.fillMargin(), 0);
-		assertEquals(planning.meleePotion(), snapshot.meleePotion());
-	}
-
-	/** The search overrides the legacy potion names with the dropdown choice; overrides are keyed by config key. */
-	@Test public void legacyPotionNamesAreOverriddenByConfigKey()
-	{
-		Map<String, Object> overrides = new HashMap<>();
-		overrides.put(Options.POTION_KEY_PREFIX + "MELEE", "super combat potion");
-		overrides.put(Options.POTION_KEY_PREFIX + "RANGED", "ranging potion");
-		overrides.put(Options.POTION_KEY_PREFIX + "MAGIC", "magic potion");
-		Options snapshot = Assumptions.capture(new Options() { }, overrides);
-		assertEquals("super combat potion", snapshot.potionMelee());
-		assertEquals("ranging potion", snapshot.potionRanged());
-		assertEquals("magic potion", snapshot.potionMagic());
+		assertEquals(planning.antifire(), snapshot.antifire());
 	}
 
 	/** Every key the plugin puts in a search's detected overrides names a setting, so capturing never throws. */
@@ -122,16 +109,15 @@ public class AssumptionsTest
 		String source = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(
 			"src/main/java/com/bestgearsetup/BestGearSetupPlugin.java")), java.nio.charset.StandardCharsets.UTF_8);
 		java.util.regex.Matcher put = java.util.regex.Pattern.compile(
-			"detected\\.put\\((?:\"(\\w+)\"|Options\\.POTION_KEY_PREFIX \\+ \"(\\w+)\"|(\\S+?)),").matcher(source);
+			"detected\\.put\\((?:\"(\\w+)\"|(\\S+?)),").matcher(source);
 		int keys = 0;
 		while (put.find())
 		{
-			assertTrue("override key is not a literal or potion key: " + put.group(3), put.group(3) == null);
-			String key = put.group(1) != null ? put.group(1) : Options.POTION_KEY_PREFIX + put.group(2);
-			ConfigSettings.index(key);
+			assertTrue("override key is not a literal: " + put.group(2), put.group(2) == null);
+			ConfigSettings.index(put.group(1));
 			keys++;
 		}
-		assertTrue("found the plugin's detected overrides", keys >= 6);
+		assertTrue("found the plugin's detected overrides", keys >= 4);
 	}
 
 	/** Every config item's getter, by key; the first test below fails until a new item is added here. */
@@ -149,8 +135,6 @@ public class AssumptionsTest
 		GETTERS.put("budget", Options::budget);
 		GETTERS.put("bossesOnly", Options::bossesOnly);
 		GETTERS.put("onSlayerTask", Options::onSlayerTask);
-		GETTERS.put("ancientMagicks", Options::ancientMagicks);
-		GETTERS.put("arceuusSpellbook", Options::arceuusSpellbook);
 		GETTERS.put("membersItems", Options::membersItems);
 		GETTERS.put("ammoCount", Options::ammoCount);
 		GETTERS.put("killsPerTrip", Options::killsPerTrip);
@@ -160,7 +144,6 @@ public class AssumptionsTest
 		GETTERS.put("maxExpensiveItems", Options::maxExpensiveItems);
 		GETTERS.put("expensiveItemThreshold", Options::expensiveItemThreshold);
 		GETTERS.put("charge", Options::charge);
-		GETTERS.put("markOfDarkness", Options::markOfDarkness);
 		GETTERS.put("sunfireRunes", Options::sunfireRunes);
 		GETTERS.put("kandarinDiary", Options::kandarinDiary);
 		GETTERS.put("killSpecials", Options::killSpecials);
@@ -179,7 +162,6 @@ public class AssumptionsTest
 		GETTERS.put("aoeTargets", Options::aoeTargets);
 		GETTERS.put("requireFireProtection", Options::requireFireProtection);
 		GETTERS.put("antifire", Options::antifire);
-		GETTERS.put("protectMagic", Options::protectMagic);
 		GETTERS.put("dmmItems", Options::dmmItems);
 		GETTERS.put("betaItems", Options::betaItems);
 		GETTERS.put("bountyHunterItems", Options::bountyHunterItems);
@@ -209,19 +191,11 @@ public class AssumptionsTest
 		GETTERS.put("specBgsDamage", Options::specBgsDamage);
 		GETTERS.put("specSeercullDamage", Options::specSeercullDamage);
 		GETTERS.put("specAyakDamage", Options::specAyakDamage);
-		GETTERS.put("usePrayers", Options::usePrayers);
 		GETTERS.put("excludedPrayers", Options::excludedPrayers);
 		GETTERS.put("thrall", Options::thrall);
-		GETTERS.put("raidPotions", Options::raidPotions);
 		GETTERS.put("taskMode", Options::taskMode);
 		GETTERS.put("autoRaid", Options::autoRaid);
 		GETTERS.put("autoSpecs", Options::autoSpecs);
-		GETTERS.put("meleePotionChoice", Options::meleePotion);
-		GETTERS.put("rangedPotionChoice", Options::rangedPotion);
-		GETTERS.put("magicPotionChoice", Options::magicPotion);
-		GETTERS.put(Options.POTION_KEY_PREFIX + "MELEE", Options::potionMelee);
-		GETTERS.put(Options.POTION_KEY_PREFIX + "RANGED", Options::potionRanged);
-		GETTERS.put(Options.POTION_KEY_PREFIX + "MAGIC", Options::potionMagic);
 		GETTERS.put("locks", Options::locks);
 		GETTERS.put("excluded", Options::excluded);
 		GETTERS.put("blockedSpells", Options::blockedSpells);

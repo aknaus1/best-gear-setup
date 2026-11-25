@@ -272,7 +272,7 @@ public class TripSuppliesTest
 		SearchResults low = target("chicken (normal)", false, "crush", 19);
 		SearchResults lowPrayer = new SearchResults(low.getMonster(), 100, Collections.emptyMap(), Collections.emptyList(),
 			PIETY, Collections.emptyMap(), false, Collections.emptyList(), false, false, Collections.emptyList(), null, null,
-			0, 99, 99, PlayerLevels.builder().prayer(42).build(), Collections.emptySet());
+			0, 99, 99, PlayerLevels.builder().prayer(42).build(), Collections.emptySet(), Antifire.NONE);
 		assertTrue(TripSupplies.summary(TripSupplies.plan(setup(5, 0), lowPrayer, Collections.emptyList(), 1, true, owns,
 			Antifire.NONE)).contains("28 Shark"));
 	}
@@ -403,7 +403,7 @@ public class TripSuppliesTest
 		SearchResults chicken = target("chicken (normal)", false, "crush", 19);
 		SearchResults unprotected = new SearchResults(chicken.getMonster(), 100, Collections.emptyMap(),
 			Collections.emptyList(), PIETY, Collections.emptyMap(), false, Collections.emptyList(), false, false,
-			Collections.emptyList(), null, null, 0, 99, 99, PlayerLevels.maxed(), Collections.singleton("protect from melee"));
+			Collections.emptyList(), null, null, 0, 99, 99, PlayerLevels.maxed(), Collections.singleton("protect from melee"), Antifire.NONE);
 		assertTrue(TripSupplies.summary(TripSupplies.plan(setup, unprotected, Collections.emptyList(), 1, true, owns,
 			Antifire.NONE)).contains("28 Shark"));
 	}
@@ -422,6 +422,6 @@ public class TripSuppliesTest
 		monster.setHitpoints(hp);
 		return new SearchResults(monster, hp, Collections.<Style.Type, List<Setup>>emptyMap(),
 			Collections.emptyList(), prayers, Collections.emptyMap(), false, Collections.emptyList(), false, false,
-			Collections.emptyList(), null, null, 0, 99, 99, levels, excludedPrayers);
+			Collections.emptyList(), null, null, 0, 99, 99, levels, excludedPrayers, Antifire.NONE);
 	}
 }

@@ -14,7 +14,6 @@ public interface Options extends Config
 	String ON_TASK_KEY = "onSlayerTask";
 	String BOSSES_ONLY_KEY = "bossesOnly";
 	String PHASE_KEY = "encounterPhase";
-	String POTION_KEY_PREFIX = "potion";
 	String LOCKS_KEY = "locks";
 	String EXCLUDED_KEY = "excluded";
 	String EXCLUDED_PRAYERS_KEY = "excludedPrayers";
@@ -52,7 +51,7 @@ public interface Options extends Config
 		position = 2, closedByDefault = true)
 	String equipmentSection = "equipment";
 
-	@ConfigSection(name = "Spellbooks", description = "Spellbooks available for casting",
+	@ConfigSection(name = "Spellbooks", description = "How spells are cast",
 		position = 3, closedByDefault = true)
 	String spellbooksSection = "spellbooks";
 
@@ -72,13 +71,13 @@ public interface Options extends Config
 	)
 	String fillSection = "fill";
 
-	@ConfigSection(name = "Dragonfire", description = "Protection required and assumed against dragonfire and wyvern breath",
+	@ConfigSection(name = "Dragonfire", description = "Protection required against dragonfire and wyvern breath",
 		position = 5, closedByDefault = true)
 	String dragonfireSection = "dragonfire";
 
 	@ConfigSection(
 		name = "Combat boosts",
-		description = "Potions, prayers, thralls and other reusable combat assumptions",
+		description = "Thralls, poison, runes and other combat assumptions",
 		position = 4,
 		closedByDefault = true
 	)
@@ -175,35 +174,11 @@ public interface Options extends Config
 	}
 
 	@ConfigItem(
-		keyName = "ancientMagicks",
-		name = "Ancient Magicks",
-		description = "Allow casting Ancient spells",
-		section = spellbooksSection,
-		position = 0
-	)
-	default boolean ancientMagicks()
-	{
-		return value("ancientMagicks", true);
-	}
-
-	@ConfigItem(
-		keyName = "arceuusSpellbook",
-		name = "Arceuus spellbook",
-		description = "Allow casting Arceuus spells",
-		section = spellbooksSection,
-		position = 1
-	)
-	default boolean arceuusSpellbook()
-	{
-		return value("arceuusSpellbook", true);
-	}
-
-	@ConfigItem(
 		keyName = "preventManualCast",
 		name = "Prevent manual casting",
 		description = "Only autocast spells; off also allows casting by hand",
 		section = spellbooksSection,
-		position = 2
+		position = 0
 	)
 	default boolean preventManualCast()
 	{
@@ -282,22 +257,14 @@ public interface Options extends Config
 	}
 
 	@ConfigItem(keyName = "charge", name = "Assume Charge",
-		description = "Boost god spells when wearing the matching god cape.", section = boostSection, position = 8)
+		description = "Boost god spells when wearing the matching god cape.", section = boostSection, position = 2)
 	default boolean charge()
 	{
 		return value("charge", false);
 	}
 
-	@ConfigItem(keyName = "markOfDarkness", name = "Mark of Darkness",
-		description = "Assume Mark of Darkness before demonbane spells",
-		section = boostSection, position = 9)
-	default boolean markOfDarkness()
-	{
-		return value("markOfDarkness", true);
-	}
-
 	@ConfigItem(keyName = "sunfireRunes", name = "Use sunfire runes",
-		description = "Raise fire spell minimum hits to 10% of max", section = boostSection, position = 10)
+		description = "Raise fire spell minimum hits to 10% of max", section = boostSection, position = 3)
 	default boolean sunfireRunes()
 	{
 		return value("sunfireRunes", false);
@@ -333,7 +300,7 @@ public interface Options extends Config
 	}
 
 	@ConfigItem(keyName = "weaponPoison", name = "Weapon poison",
-		description = "Poison assumed on poisonable weapons and ammo", section = boostSection, position = 7)
+		description = "Poison assumed on poisonable weapons and ammo", section = boostSection, position = 1)
 	default WeaponPoison weaponPoison()
 	{
 		return value("weaponPoison", WeaponPoison.NONE);
@@ -423,19 +390,12 @@ public interface Options extends Config
 		return value("requireFireProtection", true);
 	}
 
-	@ConfigItem(keyName = "antifire", name = "Antifire potion",
-		description = "Active antifire potion (extended versions give the same protection)", section = dragonfireSection, position = 1)
+	/** Chosen per search from the mode, owned potions and Excluded items; see BoostAccess#antifire. */
+	@ConfigItem(keyName = "antifire", name = "Antifire potion", hidden = true,
+		description = "Best antifire potion the search may assume")
 	default Antifire antifire()
 	{
 		return value("antifire", Antifire.REGULAR);
-	}
-
-	@ConfigItem(keyName = "protectMagic", name = "Protect from Magic",
-		description = "Assume this overhead prayer is active",
-		section = dragonfireSection, position = 2)
-	default boolean protectMagic()
-	{
-		return value("protectMagic", true);
 	}
 
 	@ConfigItem(keyName = "dmmItems", name = "DMM equipment", description = "Include Deadman-only equipment",
@@ -686,18 +646,6 @@ public interface Options extends Config
 
 	// ------------------------------------------------------------ boosts
 
-	@ConfigItem(
-		keyName = "usePrayers",
-		name = "Offensive prayers",
-		description = "Assume the best offensive prayer you can use",
-		section = boostSection,
-		position = 0
-	)
-	default boolean usePrayers()
-	{
-		return value("usePrayers", true);
-	}
-
 	@ConfigItem(keyName = EXCLUDED_PRAYERS_KEY, name = "Excluded prayers", hidden = true,
 		description = "Prayers never assumed, edited in Rules")
 	default String excludedPrayers()
@@ -710,25 +658,12 @@ public interface Options extends Config
 		name = "Thralls",
 		description = "Add your best thrall (Arceuus, A Kingdom Divided)",
 		section = boostSection,
-		position = 6
+		position = 0
 	)
 	default boolean thrall()
 	{
 		return value("thrall", true);
 	}
-
-	@ConfigItem(
-		keyName = "raidPotions",
-		name = "Include raid potions",
-		description = "Let Best available use overloads and smelling salts",
-		section = boostSection,
-		position = 2
-	)
-	default boolean raidPotions()
-	{
-		return value("raidPotions", true);
-	}
-
 
 	@ConfigItem(keyName = "taskMode", name = "Slayer task", description = "Auto matches your slayer task; On and Off override", hidden = true)
 	default AutoState taskMode() { return value("taskMode", AutoState.AUTO); }
@@ -736,34 +671,7 @@ public interface Options extends Config
 	@ConfigItem(keyName = "autoRaid", name = "Use active raid", description = "Read scaling from a matching live raid target", hidden = true)
 	default boolean autoRaid() { return value("autoRaid", true); }
 
-	@ConfigItem(keyName = "meleePotionChoice", name = "Melee potion", description = "Best available follows ownership; a named boost overrides it", section = boostSection, position = 3)
-	default PotionOptions.Melee meleePotion() { return value("meleePotionChoice", PotionOptions.Melee.BEST); }
-
-	@ConfigItem(keyName = "rangedPotionChoice", name = "Ranged potion", description = "Best available follows ownership; a named boost overrides it", section = boostSection, position = 4)
-	default PotionOptions.Ranged rangedPotion() { return value("rangedPotionChoice", PotionOptions.Ranged.BEST); }
-
-	@ConfigItem(keyName = "magicPotionChoice", name = "Magic potion", description = "Best available follows ownership; a named boost overrides it", section = boostSection, position = 5)
-	default PotionOptions.Magic magicPotion() { return value("magicPotionChoice", PotionOptions.Magic.BEST); }
-
 	// ------------------------------------------------------------ managed from the side panel
-
-	@ConfigItem(keyName = POTION_KEY_PREFIX + "MELEE", name = "", description = "", hidden = true)
-	default String potionMelee()
-	{
-		return value(POTION_KEY_PREFIX + "MELEE", "best");
-	}
-
-	@ConfigItem(keyName = POTION_KEY_PREFIX + "RANGED", name = "", description = "", hidden = true)
-	default String potionRanged()
-	{
-		return value(POTION_KEY_PREFIX + "RANGED", "best");
-	}
-
-	@ConfigItem(keyName = POTION_KEY_PREFIX + "MAGIC", name = "", description = "", hidden = true)
-	default String potionMagic()
-	{
-		return value(POTION_KEY_PREFIX + "MAGIC", "best");
-	}
 
 	@ConfigItem(keyName = LOCKS_KEY, name = "", description = "", hidden = true)
 	default String locks()

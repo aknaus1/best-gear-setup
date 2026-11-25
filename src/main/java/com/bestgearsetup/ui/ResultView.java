@@ -606,7 +606,8 @@ class ResultView extends JPanel
 		{
 			SpriteIcon mark = new SpriteIcon(SpriteID.MagicNecroOn.MARK_OF_DARKNESS,
 				"Mark of Darkness (boosts demonbane spells against demons)");
-			mark.setComponentPopupMenu(ItemMenus.of("Turn off Mark of Darkness", () -> plugin.setConfig("markOfDarkness", false)));
+			mark.setComponentPopupMenu(ItemMenus.of("Exclude Mark of Darkness",
+				() -> plugin.setSpellRule("mark of darkness", SpellRule.BLOCK)));
 			boosts.add(mark);
 		}
 		Thrall thrall = thrallFor(selected);
@@ -622,7 +623,15 @@ class ResultView extends JPanel
 		for (Potion p : potionsFor(selected))
 		{
 			JLabel icon = itemIcon(p.getId(), 34, GameData.titleCase(p.getName()));
-			icon.setComponentPopupMenu(ItemMenus.of("Exclude " + GameData.titleCase(p.getName()), () -> plugin.excludeBoost(p)));
+			icon.setComponentPopupMenu(ItemMenus.of("Exclude " + GameData.titleCase(p.getName()), () -> plugin.setExcluded(p.getId(), true)));
+			boosts.add(icon);
+		}
+		Antifire antifire = results.getAntifire();
+		if (antifire != null && antifire != Antifire.NONE)
+		{
+			JLabel icon = itemIcon(antifire.getItemId(), 34, antifire + " (assumed against dragonfire)");
+			icon.setName("antifireIcon");
+			icon.setComponentPopupMenu(ItemMenus.of("Exclude " + antifire, () -> plugin.setExcluded(antifire.getItemId(), true)));
 			boosts.add(icon);
 		}
 		row.add(boosts, BorderLayout.CENTER);

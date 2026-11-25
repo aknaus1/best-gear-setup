@@ -6,9 +6,7 @@ import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.Options;
 import com.bestgearsetup.BestGearSetupPlugin;
 import com.bestgearsetup.OwnedItems;
-import com.bestgearsetup.calc.PotionChoice;
 import com.bestgearsetup.calc.SlotLock;
-import com.bestgearsetup.data.Combat;
 import com.bestgearsetup.data.EncounterPhase;
 import com.bestgearsetup.data.GameData;
 import com.bestgearsetup.data.Summary;
@@ -25,8 +23,6 @@ import javax.swing.JComboBox;
 import javax.swing.JPanel;
 import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
-import net.runelite.client.config.ConfigManager;
-import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.components.IconTextField;
 import org.junit.Test;
 
@@ -65,12 +61,6 @@ public class MonsterSearchTest
 		}
 
 		@Override
-		public String getPotionChoice(Combat cls)
-		{
-			return PotionChoice.BEST;
-		}
-
-		@Override
 		public void findBestSetup(Summary summary)
 		{
 			searched.add(summary);
@@ -91,7 +81,6 @@ public class MonsterSearchTest
 		m.setBoss(boss);
 		return m;
 	}
-
 
 	private static void click(java.awt.Component row)
 	{

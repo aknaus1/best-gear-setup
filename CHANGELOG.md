@@ -13,8 +13,7 @@ is what the Plugin Hub shows.
   hard hitters, karambwans. No food against a target that can't hurt you, and three emergency food when your
   overhead, fire protection or distance blocks its every attack. Turn it off with **Fill inventory with food**.
 - Trips bring a superantipoison or anti-venom+ against monsters that poison or envenom you (not with a serpentine
-  helm), and the antifire a dragon's fire protection relies on (not for wyverns). **Antifire potion** now
-  defaults to Antifire.
+  helm), and the antifire a dragon's fire protection relies on (not for wyverns).
 - The bank layout shows the inventory as you'd pack it, in a 4x7 grid beside the equipment: spec switch, rune
   pouch, boosts, restores, then food, with other owned foods on a row below. Repeated items use the bank's
   spare slots and withdraw from the real stack.
@@ -29,8 +28,12 @@ is what the Plugin Hub shows.
   worn or bought (**Fill empty slots** still fills it).
 - Add **Excluded prayers** to Rules: click any prayer in the prayer book to exclude it. An excluded offensive
   prayer is never assumed, and an excluded protection prayer leaves the overhead advice and its prayer drain.
-- Right-click a result's prayer, spell or potion icon to exclude it (excluded potions are listed with the
-  excluded items), or its thrall or Mark of Darkness icon to turn that off.
+- Right-click a result's prayer, spell, potion, antifire or Mark of Darkness icon to exclude it (excluded
+  potions are listed with the excluded items), or its thrall icon to turn thralls off.
+- Remove the **Ancient Magicks**, **Arceuus spellbook**, **Offensive prayers**, **Include raid potions**, potion
+  per style, **Mark of Darkness**, **Antifire potion** and **Protect from Magic** settings: exclude the spell,
+  prayer or potion instead. The strongest antifire you own (or can buy) is assumed and shown with the boosts.
+  Anything these settings turned off is assumed again until excluded.
 - Zeal is assumed once unlocked, and each broken Fractured Archive elemental fragment adds 2 to its element's
   spells.
 - Show the thrall that can damage the target (ghostly, then skeletal, then zombified), or none.
