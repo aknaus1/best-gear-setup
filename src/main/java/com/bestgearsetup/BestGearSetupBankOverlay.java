@@ -8,19 +8,25 @@ import net.runelite.api.widgets.WidgetItem;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.WidgetItemOverlay;
 
-/** Outlines the selected setup's equipment and spell runes in the bank. */
+/**
+ * Outlines the selected setup's equipment and spell runes in the bank. Not over the equipment layout, which shows only
+ * those items.
+ */
 class BestGearSetupBankOverlay extends WidgetItemOverlay
 {
 	private final BestGearSetupPlugin plugin;
 	private final Options config;
 	private final ItemManager itemManager;
+	private final BestGearSetupBankView bankView;
 
 	@Inject
-	BestGearSetupBankOverlay(BestGearSetupPlugin plugin, Options config, ItemManager itemManager)
+	BestGearSetupBankOverlay(BestGearSetupPlugin plugin, Options config, ItemManager itemManager,
+		BestGearSetupBankView bankView)
 	{
 		this.plugin = plugin;
 		this.config = config;
 		this.itemManager = itemManager;
+		this.bankView = bankView;
 		showOnBank();
 	}
 
@@ -28,7 +34,7 @@ class BestGearSetupBankOverlay extends WidgetItemOverlay
 	public void renderItemOverlay(Graphics2D graphics, int itemId, WidgetItem widgetItem)
 	{
 		Set<Integer> ids = plugin.getBankHighlightIds();
-		if (!config.highlightBankGear() || itemId <= 0 || widgetItem.getQuantity() <= 0
+		if (!config.highlightBankGear() || bankView.isActive() || itemId <= 0 || widgetItem.getQuantity() <= 0
 			|| ids.isEmpty())
 		{
 			return;

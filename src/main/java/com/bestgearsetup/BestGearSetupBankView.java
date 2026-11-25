@@ -103,9 +103,6 @@ class BestGearSetupBankView
 				slot = carry(layout, itemIds, special.getOffhand(), slot);
 				slot = carry(layout, itemIds, special.getAmmo(), slot);
 				addItem(layout, itemIds, special.getLoadedAmmo(), LOADED_CELL + 1);
-				// The worn shield a two-handed spec weapon takes off needs a slot, left empty at the bank.
-				if (TripSupplies.takesShieldOff(setup))
-					slot++;
 			}
 			List<Integer> spellItems = SpellRunes.required(setup);
 			if (!spellItems.isEmpty())

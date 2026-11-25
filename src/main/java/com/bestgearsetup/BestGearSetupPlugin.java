@@ -1323,9 +1323,15 @@ public class BestGearSetupPlugin extends Plugin
 	{
 		Map<Combat, List<Potion>> out = new EnumMap<>(Combat.class);
 		int[] base = boostBases(levels);
+		Potion[] picks = new Potion[base.length];
 		for (int i = 0; i < base.length; i++)
 		{
-			Potion p = PotionChoice.resolve(data, BOOST_SKILLS[i], base[i], boosts, target);
+			picks[i] = PotionChoice.resolve(data, BOOST_SKILLS[i], base[i], boosts, target);
+		}
+		preferCombined(data, base, boosts, picks);
+		for (int i = 0; i < base.length; i++)
+		{
+			Potion p = picks[i];
 			if (p == null)
 			{
 				continue;
@@ -1343,6 +1349,32 @@ public class BestGearSetupPlugin extends Plugin
 			}
 		}
 		return out;
+	}
+
+	/**
+	 * A (super) combat potion in place of the attack and strength potions it matches, when allowed and as strong in
+	 * both: one bottle and one inventory slot instead of two.
+	 */
+	private static void preferCombined(GameData data, int[] base, Predicate<Potion> boosts, Potion[] picks)
+	{
+		if (picks[0] == null || picks[1] == null)
+			return;
+		Integer combo = BoostAccess.combined(picks[0].getId(), picks[1].getId());
+		if (combo == null)
+			return;
+		Potion attack = potion(data, BOOST_SKILLS[0], combo);
+		Potion strength = potion(data, BOOST_SKILLS[1], combo);
+		if (attack != null && strength != null && boosts.test(attack) && boosts.test(strength)
+			&& attack.boost(base[0]) >= picks[0].boost(base[0]) && strength.boost(base[1]) >= picks[1].boost(base[1]))
+		{
+			picks[0] = attack;
+			picks[1] = strength;
+		}
+	}
+
+	private static Potion potion(GameData data, String skill, int id)
+	{
+		return data.getPotions(skill).stream().filter(p -> p.getId() == id).findFirst().orElse(null);
 	}
 
 	/** Base levels of the boosted skills, in the order of {@link #BOOST_SKILLS}. */

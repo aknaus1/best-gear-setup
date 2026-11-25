@@ -91,6 +91,7 @@ public class Monster
 		m.immuneThrall = immuneThrall;
 		m.immunePoison = immunePoison;
 		m.immuneVenom = immuneVenom;
+		m.poisons = poisons;
 		m.magicLevel = magicLevel;
 		m.rangedLevel = rangedLevel;
 		m.magicAttackBonus = magicAttackBonus;

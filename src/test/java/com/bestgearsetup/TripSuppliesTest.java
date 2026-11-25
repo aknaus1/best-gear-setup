@@ -2,6 +2,7 @@ package com.bestgearsetup;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.bestgearsetup.calc.Antifire;
 import com.bestgearsetup.calc.Style;
@@ -97,15 +98,6 @@ public class TripSuppliesTest
 			Collections.emptySet(), Collections.emptySet(), same, null), Collections.emptyList()));
 		assertEquals(2, TripSupplies.usedSlots(new Setup(Combat.MELEE, worn, dps, 0, 0,
 			Collections.emptySet(), Collections.emptySet(), other, null), Collections.emptyList()));
-		// A two-handed spec weapon also takes the worn shield off into the inventory.
-		Gear claws = new Gear();
-		claws.setId(3);
-		claws.setSlot(Slot.WEAPON);
-		claws.setTwoHanded(true);
-		worn.set(Slot.SHIELD, shield);
-		SpecialPlan twoHanded = new SpecialPlan(claws, null, null, null, null, null, null, dps, dps, null, 2, 0, 0);
-		assertEquals(2, TripSupplies.usedSlots(new Setup(Combat.MELEE, worn, dps, 0, 0,
-			Collections.emptySet(), Collections.emptySet(), twoHanded, null), Collections.emptyList()));
 	}
 
 	@Test
@@ -180,6 +172,31 @@ public class TripSuppliesTest
 		List<TripSupplies.Supply> supplies = TripSupplies.plan(setup(5, 0), results(100, PIETY),
 			Collections.singletonList(superCombat), 10, false, id -> false, Antifire.NONE);
 		assertEquals("1 Super Combat Potion, 1 Prayer potion", TripSupplies.summary(supplies));
+	}
+
+	@Test
+	public void aTwoHandedSpecWeaponReservesNoSlotForTheWornShield()
+	{
+		Gear shield = new Gear();
+		shield.setId(11283);
+		shield.setSlot(Slot.SHIELD);
+		Gear claws = new Gear();
+		claws.setId(13652);
+		claws.setSlot(Slot.WEAPON);
+		claws.setTwoHanded(true);
+		Setup worn = setup(5, 0);
+		worn.getLoadout().set(Slot.WEAPON, new Gear());
+		worn.getLoadout().set(Slot.SHIELD, shield);
+		Dps dps = worn.getDps();
+		Setup setup = new Setup(Combat.MELEE, worn.getLoadout(), dps, 0, 0, Collections.emptySet(), Collections.emptySet(),
+			new SpecialPlan(claws, null, null, null, null, null, null, dps, dps, null, 2, 0, 0), null);
+		List<TripSupplies.Supply> supplies = Collections.singletonList(
+			new TripSupplies.Supply("Shark", Collections.singletonList(ItemID.SHARK), 27));
+		// Food fills every slot after the spec weapon, and the layout leaves no gap for the shield.
+		assertEquals(28, TripSupplies.usedSlots(setup, supplies));
+		Map<Integer, Integer> cells = BestGearSetupBankView.cellsFor(setup, Collections.emptyList(), supplies);
+		assertEquals(Integer.valueOf(4), cells.get(13652));
+		assertEquals(Integer.valueOf(5), cells.get(ItemID.SHARK));
 	}
 
 	@Test
@@ -374,6 +391,16 @@ public class TripSuppliesTest
 		helm.setSlot(Slot.HEAD);
 		helmed.getLoadout().set(Slot.HEAD, helm);
 		assertTrue(TripSupplies.plan(helmed, venom, Collections.emptyList(), 1, false, id -> false, Antifire.NONE).isEmpty());
+		// The side panel shows the same bottle beside the boosts.
+		assertEquals("Anti-venom+", TripSupplies.cure(setup(5, 0), venom.getMonster()).getName());
+		// Extended anti-venom+ counts against both, after the bottle each names.
+		List<Integer> venomIds = TripSupplies.cure(setup(5, 0), venom.getMonster()).getIds();
+		assertTrue(venomIds.indexOf(ItemID.EXTENDED_ANTIVENOM_1) > venomIds.indexOf(ItemID.ANTIVENOM_1));
+		assertTrue(venomIds.indexOf(ItemID.EXTENDED_ANTIVENOM_4) < venomIds.indexOf(ItemID.ANTIVENOM4));
+		assertTrue(TripSupplies.cure(setup(5, 0), poison.getMonster()).getIds().contains(ItemID.EXTENDED_ANTIVENOM_2));
+		assertEquals("Superantipoison", TripSupplies.cure(setup(5, 0), poison.getMonster()).getName());
+		assertNull(TripSupplies.cure(helmed, venom.getMonster()));
+		assertNull(TripSupplies.cure(setup(5, 0), results(100, PIETY).getMonster()));
 	}
 
 	private static Setup setup(double dps, int prayerBonus)

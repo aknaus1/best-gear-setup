@@ -146,17 +146,41 @@ public final class TripSupplies
 				: doses(ItemID._4DOSE1ANTIDRAGON, ItemID._4DOSE2ANTIDRAGON), (doses + 3) / 4));
 		}
 		addRestores(out, prayerPerKill(setup, results) * kills, levels.getPrayer(), owns);
-		// Anti-venom+ also cures poison; a superantipoison is the usual bottle against poison alone. A serpentine helm
-		// makes the wearer immune to both.
-		String poisons = StatusEffects.serpentineHelm(setup.getLoadout()) ? null : results.getMonster().getPoisons();
-		if ("venom".equals(poisons))
-			out.add(new Supply("Anti-venom+", doses(ItemID.ANTIVENOM_4, ItemID.ANTIVENOM4), 1));
-		else if ("poison".equals(poisons))
-			out.add(new Supply("Superantipoison", doses(ItemID._4DOSE2ANTIPOISON, ItemID.ANTIDOTE__4, ItemID.ANTIVENOM_4), 1));
+		Supply cure = cure(setup, results.getMonster());
+		if (cure != null)
+			out.add(cure);
 		if (food)
 			addFood(out, foodSlots(results.getMonster(), results.overhead(setup.getCombatClass()), setup, antifire, levels,
 				INVENTORY_SLOTS - usedSlots(setup, out)), owns, maxHit(results.getMonster()) >= COMBO_MAX_HIT);
 		return out;
+	}
+
+	/**
+	 * The bottle of cure a trip brings against a target that poisons or envenoms, or null: anti-venom+ also cures
+	 * poison, and a superantipoison is the usual bottle against poison alone. Raids hand out their own supplies, and a
+	 * serpentine helm makes the wearer immune to both.
+	 */
+	public static Supply cure(Setup setup, Monster monster)
+	{
+		if (setup == null || monster == null || RaidScaling.raid(monster) != RaidScaling.Raid.NONE
+			|| StatusEffects.serpentineHelm(setup.getLoadout()))
+			return null;
+		if ("venom".equals(monster.getPoisons()))
+			return new Supply("Anti-venom+", withExtended(doses(ItemID.ANTIVENOM_4), ItemID.ANTIVENOM4), 1);
+		if ("poison".equals(monster.getPoisons()))
+			return new Supply("Superantipoison", withExtended(doses(ItemID._4DOSE2ANTIPOISON, ItemID.ANTIDOTE__4,
+				ItemID.ANTIVENOM_4)), 1);
+		return null;
+	}
+
+	/** {@code ids}, then every dose of extended anti-venom+, then each of {@code after}'s doses. */
+	private static List<Integer> withExtended(List<Integer> ids, int... after)
+	{
+		Set<Integer> out = new LinkedHashSet<>(ids);
+		out.addAll(Arrays.asList(ItemID.EXTENDED_ANTIVENOM_4, ItemID.EXTENDED_ANTIVENOM_3, ItemID.EXTENDED_ANTIVENOM_2,
+			ItemID.EXTENDED_ANTIVENOM_1));
+		out.addAll(doses(after));
+		return new ArrayList<>(out);
 	}
 
 	/** The highest max hit of the target's attacks besides dragonfire, which fire protection blocks; -1 without data. */
@@ -268,7 +292,7 @@ public final class TripSupplies
 		return ids;
 	}
 
-	/** Slots taken before food: a spec switch's items and a shield a two-handed spec weapon takes off, a rune pouch and spell items beyond its three, and each bottle. */
+	/** Slots taken before food: a spec switch's items, a rune pouch and spell items beyond its three, and each bottle. */
 	public static int usedSlots(Setup setup, List<Supply> supplies)
 	{
 		int used = supplies.stream().mapToInt(Supply::getCount).sum();
@@ -278,19 +302,8 @@ public final class TripSupplies
 		SpecialPlan special = setup.getSpecial();
 		if (special == null || !special.isSwitch(setup.getLoadout()))
 			return used;
-		if (takesShieldOff(setup))
-			used++;
 		return used + (int) Stream.of(special.getWeapon() == setup.getLoadout().getWeapon() ? null : special.getWeapon(),
 				special.getOffhand(), special.getAmmo()).filter(Objects::nonNull).count();
-	}
-
-	/** Whether a two-handed spec weapon switch takes the worn shield off into the inventory. */
-	static boolean takesShieldOff(Setup setup)
-	{
-		SpecialPlan special = setup.getSpecial();
-		Gear weapon = special == null ? null : special.getWeapon();
-		return weapon != null && special.isSwitch(setup.getLoadout()) && weapon.isTwoHanded() && special.getOffhand() == null
-			&& setup.getLoadout().get(Slot.SHIELD) != null && weapon != setup.getLoadout().getWeapon();
 	}
 
 	/**
