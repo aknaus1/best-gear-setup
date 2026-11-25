@@ -3,7 +3,7 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
-## 1.1.4 (2026-11-23)
+## 1.1.4 (2026-11-25)
 
 - Add **Kills per trip** (Assumptions → Trip, default 1). Each setup shows its prayer points per kill, the trip's
   combat time and the boost and restore bottles it needs (super restores when owned, or Sanfew serums, otherwise
