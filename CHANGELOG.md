@@ -54,7 +54,8 @@ is what the Plugin Hub shows.
 - A new **Trip** card in Assumptions holds **Kills per trip**, **Spec energy** (moved from Search options) and
   **Fill inventory with food** (moved from Display & interaction); neither is on RuneLite's settings page
   any more. **Prevent manual casting** moves to Attack styles, replacing the Spellbooks section, and each
-  section's description matches its items.
+  section's description matches its items. Fight conditions and Trip open expanded, and *Back to results* is a
+  full-width button.
 - Remove **Require fire protection** and the Dragonfire section: protection is always required against dragons
   and wyverns when an allowed shield, antifire or Protect from Magic can give it. Without a usable antifire, a
   fire shield such as the anti-dragon shield is still required, since it cuts dragonfire to 5. Exclude them all

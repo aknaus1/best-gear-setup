@@ -42,6 +42,7 @@ class FightOptionsPanel extends JPanel
 		add(Sidebar.left(conditions));
 		SidebarSection trip = accordion.create("trip", "Trip");
 		addRows(trip, "killsPerTrip", "specEnergy", "fillFood");
+		trip.setExpanded(true);
 		add(Sidebar.left(trip));
 		raidSection = accordion.create("raidScaling", "Raid scaling");
 		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel");
