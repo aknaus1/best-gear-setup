@@ -382,8 +382,10 @@ the group size.
 ### Dragonfire protection
 
 Fire protection is always required against dragons and wyverns, as long as an allowed shield, antifire or
-Protect from Magic can give it. When excluded items, ownership or a shield or two-handed weapon lock rule
-all of them out, the requirement is lifted and a warning says the breath isn't blocked. The strongest
+Protect from Magic can give it. Without a usable antifire, full protection is impossible against dragons,
+so a fire shield is required instead: it cuts regular and metal dragonfire to 5 (more from bosses). When
+excluded items, ownership or a shield or two-handed weapon lock rule out every option, the requirement is
+lifted and a warning says the breath isn't blocked. The strongest
 antifire not excluded is assumed: super antifire, then antifire. *Owned items only* and *Inventory + equipped
 only* need you to own it (either the potion or its extended version) and fall back to antifire when you
 own neither. It shows with the boosts, where right-clicking excludes it. Protect from Magic is assumed

@@ -79,6 +79,20 @@ public final class DragonfireProtection
 			&& !item.getLowerCombatName().equals("mind shield");
 	}
 
+	/**
+	 * Whether a worn fire shield cuts the breath without an antifire (to 5 from chromatic and metal dragons, more from
+	 * bosses; Wiki: Dragonfire). Not against wyverns, whose shields {@link #protects} covers.
+	 */
+	static boolean cutsBreath(Monster monster, Outfit loadout)
+	{
+		return cutsBreath(monster, shield(loadout));
+	}
+
+	static boolean cutsBreath(Monster monster, Gear item)
+	{
+		return takesPotion(monster) && fireShield(item);
+	}
+
 	/** Meets normal protection requirements where {@link #applies} holds; boss chip damage and avoidable specials may remain. */
 	static boolean protects(Monster monster, Outfit loadout, OptimizerSettings settings, PlayerLevels levels)
 	{

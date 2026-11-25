@@ -55,8 +55,10 @@ is what the Plugin Hub shows.
   any more. **Prevent manual casting** moves to Attack styles, replacing the Spellbooks section, and each
   section's description matches its items.
 - Remove **Require fire protection** and the Dragonfire section: protection is always required against dragons
-  and wyverns when an allowed shield, antifire or Protect from Magic can give it. Exclude them to go without,
-  and a warning says the breath isn't blocked. Anyone who had the setting off gets protection required again.
+  and wyverns when an allowed shield, antifire or Protect from Magic can give it. Without a usable antifire, a
+  fire shield such as the anti-dragon shield is still required, since it cuts dragonfire to 5. Exclude them all
+  to go without, and a warning says the breath isn't blocked. Anyone who had the setting off gets protection
+  required again.
 - Tidy the result panel (style box under the gear, a "<Style> setups" list, two-decimal DPS, whole-second TTK
   from 10 seconds, the statistics collapsed to their DPS line until clicked, the spec weapon shown even when it is
   the one worn, and a colour edge per box), keep hover text under 10 words (but the overhead's advice), and make

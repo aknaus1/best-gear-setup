@@ -164,6 +164,34 @@ public class DragonfireProtectionTest
 		assertFalse("Nothing to block", required("goblin", base, whip, fire, maul));
 	}
 
+	@Test
+	public void withoutAntifireAFireShieldIsStillRequired()
+	{
+		Gear whip = gear(null).getWeapon();
+		whip.setMeleeStr(82);
+		Gear fire = item(1540, "anti-dragon shield", Slot.SHIELD);
+		Gear defender = item(12954, "dragon defender", Slot.SHIELD);
+		defender.setMeleeStr(6);
+		defender.setSlashBonus(25);
+		OptimizerSettings settings = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
+			.spellbooks(Collections.emptySet()).antifire(Antifire.NONE).protectMagic(true).build();
+		for (String name : new String[]{"green dragon", "iron dragon"})
+		{
+			CombatContext ctx = TestFactories.combatContext(target(name), PlayerLevels.maxed(), false, true, TestData.piety());
+			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(whip, fire, defender),
+				Collections.emptyList()), ctx, settings, id -> true, Gear::getPrice);
+			List<Setup> setups = optimizer.optimize(Combat.MELEE, () -> false, done -> { });
+			assertFalse(optimizer.isFireProtectionRequired());
+			assertTrue(name, optimizer.isFireShieldRequired());
+			assertEquals(name, fire, setups.get(0).getLoadout().get(Slot.SHIELD));
+		}
+		CombatContext wyvern = TestFactories.combatContext(target("skeletal wyvern"), PlayerLevels.maxed(), false, true,
+			TestData.piety());
+		assertFalse("An anti-dragon shield doesn't cut icy breath", com.bestgearsetup.calc.Optimizers.of(
+			TestData.gameData(Arrays.asList(whip, fire, defender), Collections.emptyList()), wyvern, settings, id -> true,
+			Gear::getPrice).isFireShieldRequired());
+	}
+
 	private static boolean required(String name, OptimizerSettings settings, Gear... items)
 	{
 		Monster monster = target(name);
