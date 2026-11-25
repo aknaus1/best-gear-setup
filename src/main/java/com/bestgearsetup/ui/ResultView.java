@@ -444,7 +444,10 @@ class ResultView extends JPanel
 		{
 			if (item != null)
 			{
-				icons.add(itemIcon(item.getId(), 36, GameData.titleCase(item.getName())));
+				JLabel icon = itemIcon(item.getId(), 36, GameData.titleCase(item.getName()));
+				// No slot: locks belong to the worn gear, so the spec items only offer Exclude and Mark as owned.
+				icon.setComponentPopupMenu(ItemMenus.create(item, null, false, plugin));
+				icons.add(icon);
 			}
 		}
 		if (icons.getComponentCount() > 0)
