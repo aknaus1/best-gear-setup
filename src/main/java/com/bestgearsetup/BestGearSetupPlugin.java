@@ -1119,7 +1119,12 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				return;
 			}
-			List<String> notes = describeSearch(baseMonster, scaled, monster, specials, ctx, settings, raid, config);
+			// Also asked whether fire protection could be met, so the note, warning and antifire agree with the search.
+			Optimizer checker = new Optimizer(data, ctx, settings, owned::contains, id -> quantities.getOrDefault(id, 0L),
+				item -> price(quotes, item));
+			boolean fireProtected = checker.isFireProtectionRequired();
+			List<String> notes = describeSearch(baseMonster, scaled, monster, specials, ctx, settings, raid, config,
+				fireProtected);
 			notes.addAll(detectedNotes);
 			if (prayerUnlocks == null)
 			{
@@ -1134,10 +1139,12 @@ public class BestGearSetupPlugin extends Plugin
 			{
 				notes.add(0, unpricedNote);
 			}
-			List<LockStatus> locks = LockStatus.check(data,
-				new Optimizer(data, ctx, settings, owned::contains, id -> quantities.getOrDefault(id, 0L),
-					item -> price(quotes, item)), settings.getLocks());
+			List<LockStatus> locks = LockStatus.check(data, checker, settings.getLocks());
 			List<String> warnings = new ArrayList<>();
+			if (!fireProtected && DragonfireProtection.applies(monster))
+			{
+				warnings.add("No usable fire protection (excluded or not owned), so its breath isn't blocked.");
+			}
 			if (settings.getStyles().contains(Style.Type.MAGIC))
 			{
 				List<Spell> castable = Optimizer.autocastSpells(data, ctx.getMagic(), monster, settings);
@@ -1150,7 +1157,7 @@ public class BestGearSetupPlugin extends Plugin
 				rememberedLevels, warnings,
 				Thrall.eligibleType(monster) == null ? null : ctx.getThrall(), raidScaling(baseMonster, raid, liveRaid.raidDetected),
 				scaled.getDefenceLevel(), levels.getMagic(), ctx.getMagic(), levels, PrayerUnlocks.excluded(config.excludedPrayers()),
-				DragonfireProtection.required(monster, settings) && DragonfireProtection.takesPotion(monster) ? settings.getAntifire() : Antifire.NONE);
+				fireProtected && DragonfireProtection.takesPotion(monster) ? settings.getAntifire() : Antifire.NONE);
 			// Loads the overhead notes here rather than on the Swing thread when the first result is shown.
 			Overheads.recommend(monster, Combat.MELEE);
 			onPanel(generation, p -> p.showResults(found));
@@ -1396,7 +1403,6 @@ public class BestGearSetupPlugin extends Plugin
 			.ammoCount(config.ammoCount())
 			.killSpecials(config.killSpecials()).specEnergy(config.specEnergy())
 			.drainSpecs(config.drainSpecs())
-			.requireFireProtection(config.requireFireProtection())
 			.antifire(config.antifire())
 			.protectMagic(!PrayerUnlocks.excluded(config.excludedPrayers()).contains("protect from magic"))
 			// The search's own snapshot, not the live settings, which can change while it waits to run.
@@ -1491,7 +1497,8 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	private List<String> describeSearch(Monster unscaled, Monster base, Monster drained,
-		SpecialAttacks specials, CombatContext ctx, OptimizerSettings settings, RaidScaling.Settings raid, Options config)
+		SpecialAttacks specials, CombatContext ctx, OptimizerSettings settings, RaidScaling.Settings raid, Options config,
+		boolean fireProtected)
 	{
 		// Only what changed this result or needs the player's attention; the header shows party scaling and Defence.
 		List<String> notes = new ArrayList<>();
@@ -1534,7 +1541,10 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			notes.add("AoE: " + ctx.getAoeTargets() + " grouped enemies; ranked by total DPS.");
 		}
-		addNote(notes, DragonfireProtection.note(base, settings));
+		if (fireProtected)
+		{
+			addNote(notes, DragonfireProtection.note(base, settings));
+		}
 		notes.addAll(SlayerEquipment.notes(base, settings));
 		int distance = AttackReach.distance(base, settings.getTargetDistance());
 		if (distance > 1)

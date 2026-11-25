@@ -244,9 +244,8 @@ These preferences are under **Settings** in the side panel and on the plugin's R
 - **Attack styles**: toggles for stab, slash, crush, ranged, magic and atlatl (the eclipse atlatl gets its
   own tab: ranged accuracy, Strength-based damage and Eclipse Moon burns), and **Prevent manual casting**
   (off by default; on, spells are only autocast, never cast by hand).
-- **Equipment**: Members, DMM, Beta and BH equipment, **Require fire protection** (on by default; see
-  Dragonfire protection) and **Require Ava's / quiver** (on by default): every ranged attack whose
-  ammunition an Ava's
+- **Equipment**: Members, DMM, Beta and BH equipment, and **Require Ava's / quiver** (on by default): every
+  ranged attack whose ammunition an Ava's
   device recovers must wear an Ava's device, an assembler cape, Dizana's quiver or Dizana's max cape. That
   covers arrows, bolts, javelins and atlatl darts from the ammo slot, blowpipe darts, and thrown darts, knives,
   thrownaxes, toktz-xil-ul and blisterwood stakes. Bolt racks (Karil's crossbow), chinchompas, holy water,
@@ -382,11 +381,13 @@ the group size.
 
 ### Dragonfire protection
 
-Fire protection is required by default (**Require fire protection** under Equipment). The strongest
-antifire not excluded is
-assumed: super antifire, then antifire. *Owned items only* and *Inventory + equipped only* need you to own it
-(either the potion or its extended version) and fall back to antifire when you own neither. It shows with
-the boosts, where right-clicking excludes it. Protect from Magic is assumed unless it's an excluded prayer.
+Fire protection is always required against dragons and wyverns, as long as an allowed shield, antifire or
+Protect from Magic can give it. When excluded items, ownership or a shield or two-handed weapon lock rule
+all of them out, the requirement is lifted and a warning says the breath isn't blocked. The strongest
+antifire not excluded is assumed: super antifire, then antifire. *Owned items only* and *Inventory + equipped
+only* need you to own it (either the potion or its extended version) and fall back to antifire when you
+own neither. It shows with the boosts, where right-clicking excludes it. Protect from Magic is assumed
+unless it's an excluded prayer.
 
 - Regular chromatic and brutal dragons: super antifire on its own, or regular antifire plus a fire shield
   or Protect from Magic. Metal dragons and drakes ignore the prayer.

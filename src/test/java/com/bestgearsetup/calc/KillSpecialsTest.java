@@ -240,7 +240,7 @@ public class KillSpecialsTest
 		assertEquals(shield, protectedSetup.getLoadout().get(Slot.SHIELD));
 		assertNull(protectedSetup.getSpecial());
 
-		Setup unprotected = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.requireFireProtection(false).build(),
+		Setup unprotected = withWeapon(com.bestgearsetup.calc.Optimizers.of(data, ctx, settings.excluded(Collections.singleton(shield.getId())).build(),
 			owned::contains, Gear::getPrice).optimize(Combat.MELEE, () -> false, done -> { }), sword);
 		assertEquals(godsword, unprotected.getSpecial().getWeapon());
 	}

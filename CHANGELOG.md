@@ -52,8 +52,11 @@ is what the Plugin Hub shows.
   style tab stays selected when results recalculate.
 - A new **Trip** card in Assumptions holds **Kills per trip**, **Spec energy** (moved from Search options) and
   **Fill inventory with food** (moved from Display & interaction); neither is on RuneLite's settings page
-  any more. **Require fire protection** moves to Equipment and **Prevent manual casting** to Attack styles,
-  replacing the one-item Dragonfire and Spellbooks sections, and each section's description matches its items.
+  any more. **Prevent manual casting** moves to Attack styles, replacing the Spellbooks section, and each
+  section's description matches its items.
+- Remove **Require fire protection** and the Dragonfire section: protection is always required against dragons
+  and wyverns when an allowed shield, antifire or Protect from Magic can give it. Exclude them to go without,
+  and a warning says the breath isn't blocked. Anyone who had the setting off gets protection required again.
 - Tidy the result panel (style box under the gear, a "<Style> setups" list, two-decimal DPS, whole-second TTK
   from 10 seconds, the statistics collapsed to their DPS line until clicked, the spec weapon shown even when it is
   the one worn, and a colour edge per box), keep hover text under 10 words (but the overhead's advice), and make

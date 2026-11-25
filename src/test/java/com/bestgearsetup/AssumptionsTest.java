@@ -160,7 +160,6 @@ public class AssumptionsTest
 		GETTERS.put("encounterPhase", Options::encounterPhase);
 		GETTERS.put("aoe", Options::aoe);
 		GETTERS.put("aoeTargets", Options::aoeTargets);
-		GETTERS.put("requireFireProtection", Options::requireFireProtection);
 		GETTERS.put("antifire", Options::antifire);
 		GETTERS.put("dmmItems", Options::dmmItems);
 		GETTERS.put("betaItems", Options::betaItems);

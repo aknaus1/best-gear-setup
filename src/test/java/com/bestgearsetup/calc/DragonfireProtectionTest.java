@@ -42,7 +42,7 @@ public class DragonfireProtectionTest
 	/** Meets normal protection requirements, as the search checks them. */
 	private static boolean allowed(Monster monster, Outfit loadout, OptimizerSettings settings, PlayerLevels levels)
 	{
-		return !DragonfireProtection.required(monster, settings)
+		return !DragonfireProtection.applies(monster)
 			|| DragonfireProtection.protects(monster, loadout, settings, levels);
 	}
 
@@ -100,8 +100,6 @@ public class DragonfireProtectionTest
 		Outfit twoHanded = gear("anti-dragon shield");
 		twoHanded.getWeapon().setTwoHanded(true);
 		assertFalse(allowed(target("iron dragon"), twoHanded, settings, PlayerLevels.maxed()));
-		assertTrue(allowed(target("iron dragon"), twoHanded,
-			settings.toBuilder().requireFireProtection(false).build(), PlayerLevels.maxed()));
 	}
 
 	@Test
@@ -128,9 +126,11 @@ public class DragonfireProtectionTest
 			Optimizer optimizer = com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(whip, fire, defender), Collections.emptyList()),
 				ctx, s, id -> true, Gear::getPrice);
 			List<Setup> setups = optimizer.optimize(Combat.MELEE, () -> false, done -> { });
+			// Locking another shield rules protection out, so it is lifted rather than emptying the search.
+			assertEquals(!locked, optimizer.isFireProtectionRequired());
 			if (locked)
 			{
-				assertTrue(setups.isEmpty());
+				assertEquals(defender, setups.get(0).getLoadout().get(Slot.SHIELD));
 			}
 			else
 			{
@@ -138,5 +138,37 @@ public class DragonfireProtectionTest
 				assertEquals(fire, setups.get(0).getLoadout().get(Slot.SHIELD));
 			}
 		}
+	}
+
+	@Test
+	public void protectionIsRequiredOnlyWhenSomethingUsableGivesIt()
+	{
+		Gear whip = gear(null).getWeapon();
+		Gear fire = item(1540, "anti-dragon shield", Slot.SHIELD);
+		Gear maul = weapon(13576, "dragon warhammer", "hammer", 6, "pound,crush,accurate");
+		maul.setTwoHanded(true);
+		OptimizerSettings base = OptimizerSettings.builder().mode(SearchMode.UNLIMITED)
+			.spellbooks(Collections.emptySet()).antifire(Antifire.REGULAR).protectMagic(true).build();
+		assertTrue("A usable shield is required", required("iron dragon", base, whip, fire, maul));
+		assertFalse("Excluding every protective shield lifts it",
+			required("iron dragon", base.toBuilder().excluded(Collections.singleton(fire.getId())).build(), whip, fire, maul));
+		assertFalse("A shield slot locked empty lifts it", required("iron dragon", base.toBuilder()
+			.locks(Collections.singletonMap(Slot.SHIELD, SlotLock.empty())).build(), whip, fire, maul));
+		assertFalse("A two-handed weapon lock lifts it", required("iron dragon", base.toBuilder()
+			.locks(Collections.singletonMap(Slot.WEAPON, SlotLock.item(maul.getId()))).build(), whip, fire, maul));
+		assertFalse("An anti-dragon shield doesn't stop icy breath", required("skeletal wyvern", base, whip, fire, maul));
+		assertTrue("Super antifire alone still protects", required("iron dragon", base.toBuilder()
+			.antifire(Antifire.SUPER).excluded(Collections.singleton(fire.getId())).build(), whip, fire, maul));
+		assertTrue("Antifire with Protect from Magic still protects from chromatics", required("black dragon",
+			base.toBuilder().excluded(Collections.singleton(fire.getId())).build(), whip, fire, maul));
+		assertFalse("Nothing to block", required("goblin", base, whip, fire, maul));
+	}
+
+	private static boolean required(String name, OptimizerSettings settings, Gear... items)
+	{
+		Monster monster = target(name);
+		CombatContext ctx = TestFactories.combatContext(monster, PlayerLevels.maxed(), false, true, TestData.piety());
+		return com.bestgearsetup.calc.Optimizers.of(TestData.gameData(Arrays.asList(items), Collections.emptyList()),
+			ctx, settings, id -> true, Gear::getPrice).isFireProtectionRequired();
 	}
 }

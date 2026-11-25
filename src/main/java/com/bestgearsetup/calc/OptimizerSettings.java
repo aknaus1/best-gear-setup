@@ -91,8 +91,6 @@ public class OptimizerSettings
 	int targetDistance = 0;
 
 	@Builder.Default
-	boolean requireFireProtection = true;
-	@Builder.Default
 	Antifire antifire = Antifire.REGULAR;
 	@Builder.Default
 	boolean protectMagic = true;

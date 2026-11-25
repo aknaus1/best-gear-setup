@@ -374,14 +374,6 @@ public interface Options extends Config
 		return value("aoeTargets", 9);
 	}
 
-	@ConfigItem(keyName = "requireFireProtection", name = "Require fire protection",
-		description = "Exclude gear without dragonfire or wyvern protection",
-		section = equipmentSection, position = 5)
-	default boolean requireFireProtection()
-	{
-		return value("requireFireProtection", true);
-	}
-
 	/** Chosen per search from the mode, owned potions and Excluded items; see BoostAccess#antifire. */
 	@ConfigItem(keyName = "antifire", name = "Antifire potion", hidden = true,
 		description = "Best antifire potion the search may assume")

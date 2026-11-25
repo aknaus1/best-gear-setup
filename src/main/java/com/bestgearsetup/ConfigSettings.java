@@ -53,7 +53,6 @@ public final class ConfigSettings
 		add("encounterPhase", Options::encounterPhase);
 		add("aoe", Options::aoe);
 		add("aoeTargets", Options::aoeTargets);
-		add("requireFireProtection", Options::requireFireProtection);
 		add("antifire", Options::antifire);
 		add("dmmItems", Options::dmmItems);
 		add("betaItems", Options::betaItems);

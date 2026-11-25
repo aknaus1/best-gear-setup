@@ -63,7 +63,7 @@ public final class DragonfireProtection
 	public static boolean blocksBreath(Monster monster, Outfit loadout, Antifire antifire, boolean protectMagic)
 	{
 		return takesPotion(monster) && (antifire == Antifire.SUPER
-			|| antifire == Antifire.REGULAR && (fireShield(loadout) || protectMagic && !metal(monster)));
+			|| antifire == Antifire.REGULAR && (fireShield(shield(loadout)) || protectMagic && !metal(monster)));
 	}
 
 	/** The shield a one-handed weapon leaves on, or null. */
@@ -72,29 +72,27 @@ public final class DragonfireProtection
 		return loadout.getWeapon() == null || loadout.getWeapon().isTwoHanded() ? null : loadout.get(Slot.SHIELD);
 	}
 
-	/** Whether the worn shield is a dragonfire shield (not elemental or mind). */
-	private static boolean fireShield(Outfit loadout)
+	/** Whether the shield is a dragonfire shield (not elemental or mind). */
+	private static boolean fireShield(Gear item)
 	{
-		Gear item = shield(loadout);
 		return isProtectiveShield(item) && !item.getLowerCombatName().equals("elemental shield")
 			&& !item.getLowerCombatName().equals("mind shield");
 	}
 
-	/** Whether this lookup makes the setup carry dragonfire protection at all; fixed for one search. */
-	public static boolean required(Monster monster, OptimizerSettings settings)
+	/** Meets normal protection requirements where {@link #applies} holds; boss chip damage and avoidable specials may remain. */
+	static boolean protects(Monster monster, Outfit loadout, OptimizerSettings settings, PlayerLevels levels)
 	{
-		return settings.isRequireFireProtection() && applies(monster);
+		return protects(monster, shield(loadout), settings, levels);
 	}
 
-	/** Meets normal protection requirements once {@link #required} holds; boss chip damage and avoidable specials may remain. */
-	static boolean protects(Monster monster, Outfit loadout, OptimizerSettings settings, PlayerLevels levels)
+	/** As above, wearing this shield (null for none, or behind a two-handed weapon). */
+	static boolean protects(Monster monster, Gear item, OptimizerSettings settings, PlayerLevels levels)
 	{
 		if (wyvern(monster))
 		{
-			Gear item = shield(loadout);
 			return isProtectiveShield(item) && !item.getLowerCombatName().startsWith("anti-dragon shield");
 		}
-		boolean shield = fireShield(loadout);
+		boolean shield = fireShield(item);
 		boolean magic = settings.isProtectMagic() && levels.getPrayer() >= 37;
 		boolean potion = settings.getAntifire() != Antifire.NONE;
 		boolean superPotion = settings.getAntifire() == Antifire.SUPER;
@@ -116,10 +114,6 @@ public final class DragonfireProtection
 		if (!applies(monster))
 		{
 			return null;
-		}
-		if (!settings.isRequireFireProtection())
-		{
-			return "Dragonfire / icy breath protection is not required by this lookup.";
 		}
 		String base = "Fire protection required: " + (settings.getAntifire() == Antifire.NONE
 			? "no antifire (excluded in Rules)" : settings.getAntifire().toString())

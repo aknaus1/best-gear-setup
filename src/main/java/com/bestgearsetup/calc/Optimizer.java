@@ -114,8 +114,9 @@ public class Optimizer
 	private final boolean araxyte;
 	private final boolean hueyTail;
 	// Whether the target demands protective equipment is fixed for the search; only the setup varies.
-	private final boolean fireProtectionRequired;
 	private final boolean slayerEquipmentRequired;
+	// Fire protection is required wherever it applies and something usable gives it; null until first asked.
+	private Boolean fireProtectionRequired;
 	// An ammunition recovery cape is required only when the setting is on and one could be worn here, cape lock included.
 	// Decided on first use, so a search that never asks doesn't scan the capes; null until then.
 	private Boolean recoveryRequired;
@@ -143,7 +144,6 @@ public class Optimizer
 		this.monster = ctx.getMonster();
 		this.autocastableSpells = settings.getSpellbooks() == null ? Collections.emptyList()
 			: autocastSpells(data, this.ctx.getMagic(), monster, settings);
-		this.fireProtectionRequired = DragonfireProtection.required(monster, settings);
 		this.slayerEquipmentRequired = SlayerEquipment.applies(monster, settings);
 		this.araxyte = Mitigation.named(monster, "acidic araxyte") || Mitigation.named(monster, "mirrorback araxyte");
 		this.hueyTail = hueyTail(monster);
@@ -1201,7 +1201,7 @@ public class Optimizer
 	/** Special switches must meet the equipment protection rules, but keep the worn cape: no recovery cape is required. */
 	private boolean protectedEquipment(Outfit l)
 	{
-		return (!fireProtectionRequired || DragonfireProtection.protects(monster, l, settings, levels))
+		return (!isFireProtectionRequired() || DragonfireProtection.protects(monster, l, settings, levels))
 			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l));
 	}
 
@@ -2159,6 +2159,31 @@ public class Optimizer
 		boolean snapshotA = a.getId() == a.getCombatId();
 		boolean snapshotB = b.getId() == b.getCombatId();
 		return snapshotA != snapshotB ? snapshotA : a.getId() < b.getId();
+	}
+
+	/**
+	 * Whether setups must block the target's dragonfire or icy breath. Protection that no usable shield, antifire or
+	 * prayer can give (all excluded, unowned, or ruled out by a lock) is lifted rather than emptying the search.
+	 */
+	public boolean isFireProtectionRequired()
+	{
+		if (fireProtectionRequired == null)
+		{
+			SlotLock lock = settings.getLocks().get(Slot.SHIELD);
+			SlotLock weaponLock = settings.getLocks().get(Slot.WEAPON);
+			Gear lockedWeapon = weaponLock == null || weaponLock.getKind() != SlotLock.Kind.ITEM ? null
+				: data.getItem(Slot.WEAPON, weaponLock.getItemId());
+			boolean shieldFree = lockedWeapon == null || !lockedWeapon.isTwoHanded();
+			boolean possible = DragonfireProtection.protects(monster, (Gear) null, settings, levels);
+			for (Gear shield : data.getItems(Slot.SHIELD))
+			{
+				possible |= shieldFree && usable(shield) && DragonfireProtection.protects(monster, shield, settings, levels)
+					&& (lock == null || lock.getKind() == SlotLock.Kind.FILL
+					|| lock.getKind() == SlotLock.Kind.ITEM && lock.getItemId() == shield.getId());
+			}
+			fireProtectionRequired = DragonfireProtection.applies(monster) && possible;
+		}
+		return fireProtectionRequired;
 	}
 
 	private boolean recoveryRequired()
