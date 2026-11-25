@@ -104,6 +104,16 @@ public class SidebarLayoutTest
 					JScrollPane editorScroll = (JScrollPane) card.getComponent(1);
 					assertTrue("Scrolling content must stay below Back", editorScroll.getY() >= backBounds.y + backBounds.height);
 					assertEquals(editorScroll.getViewport().getWidth(), editorScroll.getViewport().getView().getWidth());
+					if (editor[1].equals("fight"))
+					{
+						((JButton) named(panel, "fightExpandAll")).doClick();
+						for (int pass = 0; pass < 3; pass++) { layout(panel); }
+						for (String key : new String[]{"killsPerTrip", "specEnergy", "fillFood"})
+						{
+							assertFits(editorScroll, named(panel, key));
+						}
+						((JButton) named(panel, "fightCollapseAll")).doClick();
+					}
 					back.doClick();
 				}
 				EquipmentGrid grid = new EquipmentGrid(new Setup(Combat.MELEE, new Outfit(), null, 0, 0, java.util.Collections.emptySet(), java.util.Collections.emptySet(), null, null),

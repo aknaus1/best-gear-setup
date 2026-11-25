@@ -36,10 +36,13 @@ class FightOptionsPanel extends JPanel
 		settingRows = new SettingRows(plugin, config, items, SPINNER_COLUMNS, this::updateVisibility);
 		SidebarSection conditions = accordion.create("fightConditions", "Fight conditions");
 		addRows(conditions, "taskMode", "currentHitpoints", "aoe", "aoeTargets", "wilderness",
-			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks", "killsPerTrip");
+			"limitWildernessRisk", "maxExpensiveItems", "expensiveItemThreshold", "forinthrySurge", "soulreaperStacks");
 		wildernessTip = control("wilderness").getToolTipText();
 		conditions.setExpanded(true);
 		add(Sidebar.left(conditions));
+		SidebarSection trip = accordion.create("trip", "Trip");
+		addRows(trip, "killsPerTrip", "specEnergy", "fillFood");
+		add(Sidebar.left(trip));
 		raidSection = accordion.create("raidScaling", "Raid scaling");
 		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel");
 		add(Sidebar.left(raidSection));

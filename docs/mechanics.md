@@ -155,11 +155,12 @@ This page covers what the plugin assumes and what it enforces. For installation 
 The main sidebar keeps the monster search, the relevant variant or phase, the ownership mode and
 **Find best setup** above the results. The budget row only appears in budget mode, and the Wiki link sits
 next to the target. **Assumptions** and **Rules (count)** open separate views with a **Back to results** button,
-and your results and scroll position are still there when you come back. **Settings** opens the plugin's
-page in RuneLite's configuration panel.
+and your results and scroll position are still there when you come back. **Settings** shows the plugin's
+preferences in the sidebar, with a link to the same page in RuneLite's configuration panel.
 
 **Assumptions** has your HP, the Slayer task override, AoE, Wilderness, Forinthry Surge and Soulreaper
-stacks. Raid settings only appear for raid targets. **Use active raid** reads the party, mode, invocation
+stacks, and a **Trip** card with **Kills per trip**, **Spec energy** and **Fill inventory with food**. Raid
+settings only appear for raid targets. **Use active raid** reads the party, mode, invocation
 and path values when the selected NPC belongs to the raid you're in; otherwise your saved planning values
 apply. CoX still uses your account's HP and the Mining level you've chosen.
 
@@ -190,9 +191,9 @@ and **Allow all**. Any prayer can be
 excluded; an excluded offensive prayer is never assumed (the next best one is) and an excluded protection
 prayer leaves the overhead advice. The others don't change a setup. RuneLite's Best Gear Setup configuration
 groups the remaining preferences into
-**Search options**, **Attack styles**, **Equipment**, **Spellbooks**, **Combat boosts**, **Dragonfire**,
-**Experience filters**, **Fill empty slots** and **Display & interaction**. Combat boosts includes
-thralls, poison and rune assumptions. Each highlight toggle sits next to
+**Search options**, **Attack styles**, **Equipment**, **Combat boosts**, **Experience filters**, **Fill empty
+slots** and **Display & interaction**. Combat boosts has thralls, weapon poison, Charge and sunfire runes.
+Each highlight toggle sits next to
 its colour.
 
 **Assumptions** also has a collapsed **Pre-fight preparation** section for Vulnerability (with the tome of water
@@ -236,16 +237,16 @@ follows the raid you're in.
 
 ## Plugin settings
 
-These preferences are in RuneLite's configuration for the plugin (**Settings** in the side panel opens it):
+These preferences are under **Settings** in the side panel and on the plugin's RuneLite configuration page:
 
-- **Search options**: one-handed or two-handed weapons only; optimise for DPS, accuracy, max hit or average
-  hit; **Kills per trip**, which changes only the trip's supplies, so the shown setup updates without
-  searching again.
+- **Search options**: optimise for DPS, accuracy, max hit or average hit; one-handed or two-handed weapons
+  only; **Search bosses only**; **Ammo to price** in the budget; **Use special attacks** and **Drain specs**.
 - **Attack styles**: toggles for stab, slash, crush, ranged, magic and atlatl (the eclipse atlatl gets its
-  own tab: ranged accuracy, Strength-based damage and Eclipse Moon burns).
-- **Equipment** and **Spellbooks**: Members, DMM, Beta and BH equipment, **Prevent manual casting** (off
-  by default; on, spells are only autocast, never cast by hand),
-  and **Require Ava's / quiver** (on by default): every ranged attack whose ammunition an Ava's
+  own tab: ranged accuracy, Strength-based damage and Eclipse Moon burns), and **Prevent manual casting**
+  (off by default; on, spells are only autocast, never cast by hand).
+- **Equipment**: Members, DMM, Beta and BH equipment, **Require fire protection** (on by default; see
+  Dragonfire protection) and **Require Ava's / quiver** (on by default): every ranged attack whose
+  ammunition an Ava's
   device recovers must wear an Ava's device, an assembler cape, Dizana's quiver or Dizana's max cape. That
   covers arrows, bolts, javelins and atlatl darts from the ammo slot, blowpipe darts, and thrown darts, knives,
   thrownaxes, toktz-xil-ul and blisterwood stakes. Bolt racks (Karil's crossbow), chinchompas, holy water,
@@ -254,9 +255,8 @@ These preferences are in RuneLite's configuration for the plugin (**Settings** i
   recovery cape is available to the search (owned, carried or bought, by the search mode), not excluded and
   wearable and allowed by the cape lock; without one, ranged setups are searched as if it were off. A cape
   locked to another cape, or left empty, keeps ranged setups with that cape.
-- **Combat boosts**: thralls, weapon poison, Charge, sunfire runes and other reusable combat assumptions.
+- **Combat boosts**: thralls, weapon poison, Charge and sunfire runes.
   Potions, prayers and spells are all assumed unless excluded in **Rules**.
-- **Dragonfire**: whether fire protection is required.
 - **Experience filters**: rule out styles that give Attack, Strength or Defence XP (for pures). Turn off the
   other two to train one melee skill only; controlled gives all three, so it needs all three on.
 - **Fill empty slots**: fill slots that don't add damage with prayer or defence items (by defence type, or
@@ -264,8 +264,7 @@ These preferences are in RuneLite's configuration for the plugin (**Settings** i
   empty when its item changes neither the setup's rates nor its special attacks' hits (a strength bonus short of
   the next max hit, say); the weapon, its ammunition, locked slots and lightbearer behind a spec plan always stay.
 - **Display & interaction**: the **Right-click option** that adds **Best setup** to the menu of attackable
-  NPCs (on by default), the bank and inventory highlights with their colours, and **Fill inventory with food**,
-  which like Kills per trip updates the shown supplies without searching again.
+  NPCs (on by default), the bank and inventory highlights with their colours.
 
 ## Encounter rules
 
@@ -383,7 +382,8 @@ the group size.
 
 ### Dragonfire protection
 
-Fire protection is required by default (the **Dragonfire** setting). The strongest antifire not excluded is
+Fire protection is required by default (**Require fire protection** under Equipment). The strongest
+antifire not excluded is
 assumed: super antifire, then antifire. *Owned items only* and *Inventory + equipped only* need you to own it
 (either the potion or its extended version) and fall back to antifire when you own neither. It shows with
 the boosts, where right-clicking excludes it. Protect from Magic is assumed unless it's an excluded prayer.
@@ -484,8 +484,9 @@ and searches it with every other choice. Rewards from past Leagues are left out 
 
 ### Fight inputs and raid scaling
 
-**Assumptions** includes your HP, Wilderness, Forinthry Surge, Soulreaper stacks, Mining and pre-fight
-preparation. Charge and sunfire runes are in the Combat boosts settings. An HP of zero
+**Assumptions** includes your HP, Wilderness, Forinthry Surge, Soulreaper stacks, Mining, pre-fight
+preparation and the trip. Changing **Kills per trip** or **Fill inventory with food** updates the shown
+supplies without searching again. Charge and sunfire runes are in the Combat boosts settings. An HP of zero
 means the full maximum, and a Mining level of zero uses your own level (99 when logged out). Your HP is a
 snapshot (for Dharok's and ruby bolts). Attacks that change with the target's remaining HP (ruby bolts, the
 Sun keris inside ToA, and Vardorvis's Defence and Strength) are integrated over a full kill, and the
@@ -537,7 +538,7 @@ drain misses are slower, sometimes slower than not speccing at all.
   usually wins instead.
 
 DPS, time to kill and kills per hour include the specs, and setups are ranked with them, so a strong spec
-switch can overtake a slightly stronger main weapon. **Spec energy** can be **Regenerating**
+switch can overtake a slightly stronger main weapon. **Spec energy** (Assumptions → Trip) can be **Regenerating**
 (the default: the steady state over a trip, 10% every 30 seconds, with the energy regenerated during one
 kill opening the next) or **Full bar** (each kill opens with every whole spec in a full bar,
 which suits single boss kills). The Lightbearer replaces your ring when doubled regeneration is worth more

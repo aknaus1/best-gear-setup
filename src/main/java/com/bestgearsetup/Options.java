@@ -35,30 +35,26 @@ public interface Options extends Config
 
 	@ConfigSection(
 		name = "Search options",
-		description = "What to optimise for, search thoroughness and weapon restrictions",
+		description = "What to optimise for, weapon limits and special attacks",
 		position = 0
 	)
 	String searchSection = "search";
 
 	@ConfigSection(
 		name = "Attack styles",
-		description = "Attack types to include in setup results",
+		description = "Attack types to include, and how spells are cast",
 		position = 1
 	)
 	String optionsSection = "options";
 
-	@ConfigSection(name = "Equipment", description = "Equipment allowed by world type and game mode",
+	@ConfigSection(name = "Equipment", description = "Equipment the search may use or must wear",
 		position = 2, closedByDefault = true)
 	String equipmentSection = "equipment";
-
-	@ConfigSection(name = "Spellbooks", description = "How spells are cast",
-		position = 3, closedByDefault = true)
-	String spellbooksSection = "spellbooks";
 
 	@ConfigSection(
 		name = "Experience filters",
 		description = "Limit attack styles by the experience they give",
-		position = 6,
+		position = 4,
 		closedByDefault = true
 	)
 	String experienceSection = "experience";
@@ -66,26 +62,22 @@ public interface Options extends Config
 	@ConfigSection(
 		name = "Fill empty slots",
 		description = "What to wear in slots that add no damage",
-		position = 7,
+		position = 5,
 		closedByDefault = true
 	)
 	String fillSection = "fill";
 
-	@ConfigSection(name = "Dragonfire", description = "Protection required against dragonfire and wyvern breath",
-		position = 5, closedByDefault = true)
-	String dragonfireSection = "dragonfire";
-
 	@ConfigSection(
 		name = "Combat boosts",
-		description = "Thralls, poison, runes and other combat assumptions",
-		position = 4,
+		description = "Thralls, weapon poison, Charge and sunfire runes",
+		position = 3,
 		closedByDefault = true
 	)
 	String boostSection = "boosts";
 
 	@ConfigSection(name = "Display & interaction",
 		description = "NPC right-click lookup and highlights for the selected setup",
-		position = 8, closedByDefault = true)
+		position = 6, closedByDefault = true)
 	String displaySection = "display";
 
 	@ConfigItem(
@@ -131,7 +123,7 @@ public interface Options extends Config
 	}
 
 	@ConfigItem(keyName = "fillFood", name = "Fill inventory with food",
-		description = "Fill free inventory slots with your best food", section = displaySection, position = 5)
+		description = "Fill free inventory slots with your best food", hidden = true)
 	default boolean fillFood()
 	{
 		return value("fillFood", true);
@@ -177,8 +169,8 @@ public interface Options extends Config
 		keyName = "preventManualCast",
 		name = "Prevent manual casting",
 		description = "Only autocast spells; off also allows casting by hand",
-		section = spellbooksSection,
-		position = 0
+		section = optionsSection,
+		position = 6
 	)
 	default boolean preventManualCast()
 	{
@@ -285,7 +277,7 @@ public interface Options extends Config
 	}
 
 	@ConfigItem(keyName = "specEnergy", name = "Spec energy",
-		description = "Regenerating for repeated kills; Full bar for single kills", section = searchSection, position = 7)
+		description = "Regenerating for repeated kills; Full bar for single kills", hidden = true)
 	default SpecEnergy specEnergy()
 	{
 		return value("specEnergy", SpecEnergy.REGENERATION);
@@ -293,7 +285,7 @@ public interface Options extends Config
 
 	@ConfigItem(keyName = "drainSpecs", name = "Drain specs",
 		description = "How defence-draining specs are ranked against misses",
-		section = searchSection, position = 8)
+		section = searchSection, position = 7)
 	default DrainSpecs drainSpecs()
 	{
 		return value("drainSpecs", DrainSpecs.EXPECTED);
@@ -384,7 +376,7 @@ public interface Options extends Config
 
 	@ConfigItem(keyName = "requireFireProtection", name = "Require fire protection",
 		description = "Exclude gear without dragonfire or wyvern protection",
-		section = dragonfireSection, position = 0)
+		section = equipmentSection, position = 5)
 	default boolean requireFireProtection()
 	{
 		return value("requireFireProtection", true);

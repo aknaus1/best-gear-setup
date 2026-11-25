@@ -218,8 +218,12 @@ public class FightOptionsPanelTest
 			FightOptionsPanel panel = new FightOptionsPanel(plugin, config, com.bestgearsetup.ConfigItemsForTests.items());
 			assertEquals(3, ((JSpinner) control(panel, "soulreaperStacks")).getValue());
 			assertTrue(writes.isEmpty());
-			// Kills per trip is a fight assumption, with the fight's conditions.
+			// The trip's length, starting spec energy and food are assumptions, in their own card.
 			assertEquals(1, ((JSpinner) control(panel, "killsPerTrip")).getValue());
+			for (String key : Arrays.asList("killsPerTrip", "specEnergy", "fillFood"))
+			{
+				assertTrue(key, SwingUtilities.isDescendingFrom(control(panel, key), control(panel, "tripContent")));
+			}
 			assertTrue(control(panel, "ammoCount") == null);
 			assertTrue(control(panel, "antifire") == null);
 			assertTrue(control(panel, "targetDistance") == null);

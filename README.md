@@ -40,10 +40,10 @@ exclude it, or add these rules from the **Rules** panel.
 
 ![The RuneLite client with the bank gear layout, highlighted inventory and Yama result in the side panel](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/bank-layout.png)
 
-Everything else is in the sidebar too. **Assumptions** sets your HP, Slayer task, raid party size, Wilderness
-and pre-fight defence reductions. **Rules** lists your locks, excluded items, spell rules and extra owned items, with a
-search to add more. **Settings** covers search options, attack styles, equipment, spellbooks, boosts and
-highlights.
+Everything else is in the sidebar too. **Assumptions** sets your HP, Slayer task, raid party size, Wilderness,
+pre-fight defence reductions and the trip (kills, spec energy and food). **Rules** lists your locks,
+excluded items, spell rules and extra owned items, with a search to add more. **Settings** covers search
+options, attack styles, equipment, boosts, experience filters, fill items and highlights.
 
 ![The Assumptions, Rules and Settings panels in the sidebar](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
 

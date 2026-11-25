@@ -5,7 +5,7 @@ is what the Plugin Hub shows.
 
 ## 1.1.4 (2026-11-23)
 
-- Add **Kills per trip** (Fight assumptions, default 1). Each setup shows its prayer points per kill, the trip's
+- Add **Kills per trip** (Assumptions → Trip, default 1). Each setup shows its prayer points per kill, the trip's
   combat time and the boost and restore bottles it needs (super restores when owned, or Sanfew serums, otherwise
   prayer potions). Wave and challenge fights (Fight Caves, Inferno, Fortis Colosseum, TzHaar-Ket-Rak, the
   Gauntlet) count one kill per trip.
@@ -48,7 +48,12 @@ is what the Plugin Hub shows.
 - Karil's crossbow is heavy ranged like every other crossbow, and only magic and standard ranged hits on Yama's
   void flares are guaranteed maximum.
 - The sidebar's **Fight** and **Gear** buttons are now **Assumptions** and **Rules**. Every card in them opens
-  and collapses on its own, with **Expand all** and **Collapse all**; Fight conditions starts open. The picked style tab stays selected when results recalculate.
+  and collapses on its own, with **Expand all** and **Collapse all**; Fight conditions starts open. The picked
+  style tab stays selected when results recalculate.
+- A new **Trip** card in Assumptions holds **Kills per trip**, **Spec energy** (moved from Search options) and
+  **Fill inventory with food** (moved from Display & interaction); neither is on RuneLite's settings page
+  any more. **Require fire protection** moves to Equipment and **Prevent manual casting** to Attack styles,
+  replacing the one-item Dragonfire and Spellbooks sections, and each section's description matches its items.
 - Tidy the result panel (style box under the gear, a "<Style> setups" list, two-decimal DPS, whole-second TTK
   from 10 seconds, the statistics collapsed to their DPS line until clicked, the spec weapon shown even when it is
   the one worn, and a colour edge per box), keep hover text under 10 words (but the overhead's advice), and make
