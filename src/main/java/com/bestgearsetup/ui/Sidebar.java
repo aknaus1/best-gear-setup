@@ -380,8 +380,10 @@ public class Sidebar extends PluginPanel
 		editor.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		JButton back = new JButton("Back to results");
 		back.setName(key + "Back");
-		Controls.ghost(back);
-		back.setIcon(new Controls.Chevron(Controls.Chevron.LEFT, null));
+		Controls.secondary(back);
+		back.setFont(Controls.plain(FontManager.getRunescapeFont()));
+		back.setHorizontalAlignment(SwingConstants.LEFT);
+		back.setIcon(new Controls.Chevron(Controls.Chevron.LEFT, ColorScheme.BRAND_ORANGE));
 		back.setIconTextGap(6);
 		editorBackButtons.put(key, back);
 		back.addActionListener(e ->
