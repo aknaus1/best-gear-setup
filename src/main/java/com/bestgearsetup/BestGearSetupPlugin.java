@@ -1821,7 +1821,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 	}
 
-	/** Lower-case names of the prayers excluded in Gear rules. */
+	/** Lower-case names of the prayers excluded in Rules. */
 	public Set<String> getExcludedPrayers()
 	{
 		return PrayerUnlocks.excluded(config == null ? "" : config.excludedPrayers());

@@ -699,7 +699,7 @@ public interface Options extends Config
 	}
 
 	@ConfigItem(keyName = EXCLUDED_PRAYERS_KEY, name = "Excluded prayers", hidden = true,
-		description = "Prayers never assumed, edited in Gear rules")
+		description = "Prayers never assumed, edited in Rules")
 	default String excludedPrayers()
 	{
 		return value(EXCLUDED_PRAYERS_KEY, "");

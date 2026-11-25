@@ -44,7 +44,7 @@ public class SearchResults
 	int boostedMagic;
 	/** Base levels searched with, which time a trip's boost and prayer restore doses; null when not known. */
 	PlayerLevels levels;
-	/** Lower-case names of the prayers excluded in Gear rules. */
+	/** Lower-case names of the prayers excluded in Rules. */
 	Set<String> excludedPrayers;
 
 	/** The target's overhead advice for a setup of this class without excluded prayers, or null when it has none. */

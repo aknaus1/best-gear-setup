@@ -209,7 +209,7 @@ public class ResultViewTest
 			// Excluding the advised overhead says so and offers it back.
 			javax.swing.JComponent excluded = view.overheadIcon(vorkath.without(Collections.singleton("protect from magic")));
 			assertTrue(excluded.getToolTipText().contains("Overhead: No overhead</b>"));
-			assertTrue(excluded.getToolTipText().contains("Protect from Magic excluded in Gear rules."));
+			assertTrue(excluded.getToolTipText().contains("Protect from Magic excluded in Rules."));
 			assertEquals("Allow Protect from Magic",
 				((javax.swing.JMenuItem) excluded.getComponentPopupMenu().getComponent(0)).getText());
 		});

@@ -352,7 +352,7 @@ public class Sidebar extends PluginPanel
 
 		add(scroll(content), "results");
 		addEditor("Fight assumptions", fightOptions, "fight");
-		addEditor("Gear rules", constraints, "gear");
+		addEditor("Rules", constraints, "gear");
 		addEditor("Settings", settingsPanel, "settings");
 
 		syncFromConfig();

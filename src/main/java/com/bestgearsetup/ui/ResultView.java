@@ -362,7 +362,7 @@ class ResultView extends JPanel
 
 	/**
 	 * The overhead advice and the Wiki's note: "Overhead: Protect from Magic: ..." (a note that opens with the summary,
-	 * "None needed at range: ...", continues it), then any advised overhead excluded in Gear rules.
+	 * "None needed at range: ...", continues it), then any advised overhead excluded in Rules.
 	 */
 	private static String overheadText(Overheads.Advice advice)
 	{
@@ -370,7 +370,7 @@ class ResultView extends JPanel
 			: ": " + advice.getNote();
 		String excluded = advice.getExcluded().stream().map(Overheads.Overhead::toString).collect(Collectors.joining(" and "));
 		return "<b>Overhead: " + Sidebar.escape(advice.summary()) + "</b>" + Sidebar.escape(note)
-			+ (excluded.isEmpty() ? "" : "<br>" + Sidebar.escape(excluded) + " excluded in Gear rules.");
+			+ (excluded.isEmpty() ? "" : "<br>" + Sidebar.escape(excluded) + " excluded in Rules.");
 	}
 
 	/** Shows only the box's first (DPS) line until it is clicked; another click hides the rest again. */
