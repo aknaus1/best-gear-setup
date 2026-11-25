@@ -1122,7 +1122,8 @@ public class BestGearSetupPlugin extends Plugin
 			// Also asked whether fire protection could be met, so the note, warning and antifire agree with the search.
 			Optimizer checker = new Optimizer(data, ctx, settings, owned::contains, id -> quantities.getOrDefault(id, 0L),
 				item -> price(quotes, item));
-			boolean fireProtected = checker.isFireProtectionRequired();
+			// A fire shield without an antifire meets the requirement too, so it gets the note and no warning.
+			boolean fireProtected = checker.isFireProtectionRequired() || checker.isFireShieldRequired();
 			List<String> notes = describeSearch(baseMonster, scaled, monster, specials, ctx, settings, raid, config,
 				fireProtected);
 			notes.addAll(detectedNotes);

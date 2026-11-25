@@ -117,6 +117,8 @@ public class Optimizer
 	private final boolean slayerEquipmentRequired;
 	// Fire protection is required wherever it applies and something usable gives it; null until first asked.
 	private Boolean fireProtectionRequired;
+	// Without full protection (antifire excluded or unowned), a usable fire shield is still required to cut the breath.
+	private boolean fireShieldRequired;
 	// An ammunition recovery cape is required only when the setting is on and one could be worn here, cape lock included.
 	// Decided on first use, so a search that never asks doesn't scan the capes; null until then.
 	private Boolean recoveryRequired;
@@ -648,7 +650,7 @@ public class Optimizer
 		{
 			Outfit l = trial.copy();
 			l.set(Slot.SHIELD, item);
-			return "protects " + DragonfireProtection.protects(monster, l, settings, levels)
+			return "protects " + fireProtects(l)
 				+ (SlayerEquipment.isRequired(monster, settings, item) ? " " + name : "");
 		}
 		return VENOM_HELMS.matches(name) && !name.contains("uncharged") ? "venom helm"
@@ -1201,8 +1203,7 @@ public class Optimizer
 	/** Special switches must meet the equipment protection rules, but keep the worn cape: no recovery cape is required. */
 	private boolean protectedEquipment(Outfit l)
 	{
-		return (!isFireProtectionRequired() || DragonfireProtection.protects(monster, l, settings, levels))
-			&& (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l));
+		return fireProtects(l) && (!slayerEquipmentRequired || SlayerEquipment.allowed(monster, settings, l));
 	}
 
 	private double metric(Dps r)
@@ -2161,9 +2162,17 @@ public class Optimizer
 		return snapshotA != snapshotB ? snapshotA : a.getId() < b.getId();
 	}
 
+	/** Whether the setup meets this search's fire protection rule: full protection, a fire shield, or none. */
+	private boolean fireProtects(Outfit l)
+	{
+		return isFireProtectionRequired() ? DragonfireProtection.protects(monster, l, settings, levels)
+			: !fireShieldRequired || DragonfireProtection.cutsBreath(monster, l);
+	}
+
 	/**
 	 * Whether setups must block the target's dragonfire or icy breath. Protection that no usable shield, antifire or
-	 * prayer can give (all excluded, unowned, or ruled out by a lock) is lifted rather than emptying the search.
+	 * prayer can give (all excluded, unowned, or ruled out by a lock) is lifted rather than emptying the search; a
+	 * usable fire shield is then still required ({@link #isFireShieldRequired}).
 	 */
 	public boolean isFireProtectionRequired()
 	{
@@ -2175,15 +2184,26 @@ public class Optimizer
 				: data.getItem(Slot.WEAPON, weaponLock.getItemId());
 			boolean shieldFree = lockedWeapon == null || !lockedWeapon.isTwoHanded();
 			boolean possible = DragonfireProtection.protects(monster, (Gear) null, settings, levels);
+			boolean shieldPossible = false;
 			for (Gear shield : data.getItems(Slot.SHIELD))
 			{
-				possible |= shieldFree && usable(shield) && DragonfireProtection.protects(monster, shield, settings, levels)
-					&& (lock == null || lock.getKind() == SlotLock.Kind.FILL
+				boolean wearable = shieldFree && usable(shield) && (lock == null || lock.getKind() == SlotLock.Kind.FILL
 					|| lock.getKind() == SlotLock.Kind.ITEM && lock.getItemId() == shield.getId());
+				possible |= wearable && DragonfireProtection.protects(monster, shield, settings, levels);
+				shieldPossible |= wearable && DragonfireProtection.cutsBreath(monster, shield);
 			}
-			fireProtectionRequired = DragonfireProtection.applies(monster) && possible;
+			boolean applies = DragonfireProtection.applies(monster);
+			fireProtectionRequired = applies && possible;
+			fireShieldRequired = applies && !possible && shieldPossible;
 		}
 		return fireProtectionRequired;
+	}
+
+	/** Whether, without full protection, a fire shield is still required to cut the breath (Wiki: Dragonfire). */
+	public boolean isFireShieldRequired()
+	{
+		isFireProtectionRequired();
+		return fireShieldRequired;
 	}
 
 	private boolean recoveryRequired()
