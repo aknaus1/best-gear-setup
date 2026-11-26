@@ -1,9 +1,13 @@
 # Changelog
 
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
-is what the Plugin Hub shows.
+is what the Plugin Hub shows. A branch lists its changes under Unreleased until it merges into `main`, where
+they join the newest version: *in progress* while it collects changes, *released* from the day it is sent to
+the Plugin Hub.
 
-## 1.1.5
+## Unreleased
+
+## 1.1.5 (in progress)
 
 - Field Guide: right-click a result item to look it up in Field Guide (shown while that plugin is on); Field Guide
   can open the best setup for a monster.
@@ -12,8 +16,10 @@ is what the Plugin Hub shows.
   and Best in slot picks from shop items only. Owned gear works as before.
 - **Use my GP** beside the budget sets it to your coins and platinum tokens (bank, inventory and other tracked
   storage; bank coins count once you've opened the bank).
+- The changelog gets an Unreleased section for branches, and each version says whether it is in progress or
+  released. CONTRIBUTING.md explains where new lines go and how a release is marked.
 
-## 1.1.4 (2026-11-25)
+## 1.1.4 (released 2026-11-25)
 
 - Add **Kills per trip** (Assumptions → Trip, default 1). Each setup shows its prayer points per kill, the trip's
   combat time and the boost and restore bottles it needs (super restores when owned, or Sanfew serums, otherwise
@@ -84,7 +90,7 @@ is what the Plugin Hub shows.
   the *Open in RuneLite settings* link look like one.
 - Right-click the special attack weapon, off-hand or ammo in a result to exclude it or mark it owned.
 
-## 1.1.3 (2026-11-10)
+## 1.1.3 (released 2026-11-10)
 
 - A slot locked to an item you don't own is now worn in *Owned items only* and *Inventory + equipped only*
   searches instead of being left empty (or, for a weapon, finding no setup at all). The rest of the setup still
@@ -124,7 +130,7 @@ is what the Plugin Hub shows.
   bonuses alone earn it a place. Results are unchanged.
 - Owned items are only added up again on a game tick after something moved.
 
-## 1.1.2 (2026-11-07)
+## 1.1.2 (released 2026-11-07)
 
 - Keep Gear's searches open after adding a rule, so one search can add several items or spells. Suggestions drop
   what you just added, a lock suggestion says when it replaces the slot's current lock, and Escape clears a search.
@@ -145,7 +151,7 @@ is what the Plugin Hub shows.
   Wiki's new version tabs: Brutus is now *quest*, *charging* and *post-quest*, and the Slayer-only Nechryael and
   Waterfiend are *slayer tower basement* and *slayer task area*.
 
-## 1.1.1 (2026-10-30)
+## 1.1.1 (released 2026-10-30)
 
 - Add The Fractured Archive's NPCs from the Wiki: the Archive Guardian (flying and grounded), Ezekiel, Bork and
   the Smorks, Moia, Dreadnoth the Jellied and his jellies, Xarth and his corpses, the Dagon'hai Elder and Monks,
@@ -170,7 +176,7 @@ is what the Plugin Hub shows.
 - Searching a monster now picks its normal version instead of a Leagues (echo), Deadman, Nightmare Zone or PvP
   Arena one, so "black dragon" uses the level 227 dragon and its water weakness.
 
-## 1.1.0 (2026-10-10)
+## 1.1.0 (released 2026-10-10)
 
 - New *Inventory + equipped only* mode: searches use only what you carry and wear, ignoring the bank.
 - New **Gear** panel lists your locks, excluded items and extra owned items, with a search to add more and
@@ -187,7 +193,7 @@ is what the Plugin Hub shows.
 - Results header shows raid party scaling and the target's Defence before and after drains.
 - OSRS Wiki snapshots refreshed (retrieved 10 October 2026 UTC).
 
-## 1.0.0 (2026-10-09)
+## 1.0.0 (released 2026-10-09)
 
 First Plugin Hub submission.
 

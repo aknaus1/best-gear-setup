@@ -37,8 +37,9 @@ plugin whenever RuneLite updates.
   attribution alone does not authorize copying its implementation. The checker can merge unrelated
   short matches and cannot prove independence. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
   the [source-provenance review](docs/source-provenance.md).
-- Note calculation changes and their sources in [COMBAT_AUDIT.md](COMBAT_AUDIT.md), and add a line to
-  [CHANGELOG.md](CHANGELOG.md).
+- Note calculation changes and their sources in [COMBAT_AUDIT.md](COMBAT_AUDIT.md), and add a line for each
+  change under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md). They move into the next version when the
+  branch merges.
 - Please don't add dependencies. The plugin uses the Plugin Hub's `build=standard`, which replaces
   `build.gradle` and only provides the RuneLite client, Lombok and JetBrains annotations. Anything else
   needs a `build=gradle` submission with hash verification and a slower review.
@@ -77,10 +78,16 @@ matching `Legacy*` rule in the same commit.
 
 ## Releasing
 
-1. Set the same version in `runelite-plugin.properties` (`version=`, which the Plugin Hub shows) and in
-   `build.gradle` (the Build workflow fails if they differ), and add the release date to `CHANGELOG.md`.
-2. Push, then update `commit=` in this plugin's file in your fork of
-   [runelite/plugin-hub](https://github.com/runelite/plugin-hub#updating-a-plugin) and open a pull request.
+1. Merging a branch into `main` moves its `## Unreleased` lines into the newest version in `CHANGELOG.md`
+   if that version is `(in progress)`. If it is already `(released …)`, the merge starts the next version as
+   `(in progress)` and sets it in `runelite-plugin.properties` (`version=`, which the Plugin Hub shows) and
+   `build.gradle` (the Build workflow fails if they differ).
+2. To release, check for an open Plugin Hub pull request for this plugin first. If there is one, ask the
+   maintainer whether to add the release to it rather than open another. Change the version's heading to
+   `(released YYYY-MM-DD)` with that day's date and merge it into `main`.
+3. Update `commit=` in this plugin's file in your fork of
+   [runelite/plugin-hub](https://github.com/runelite/plugin-hub#updating-a-plugin) to that merge commit, and
+   open the pull request (or push one commit to the open one).
 
 ## Licence
 
