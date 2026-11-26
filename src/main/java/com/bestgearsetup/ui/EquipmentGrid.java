@@ -173,7 +173,7 @@ class EquipmentGrid extends JPanel
 				icon = itemManager.getImage(item.getId());
 				icon.onLoaded(this::repaint);
 				boolean owned = plugin.owns(item);
-				marker = owned ? OWNED : !item.isTradeable() ? UNTRADEABLE : BUY;
+				marker = owned ? OWNED : !item.isTradeable() && !plugin.shopPriced(item) ? UNTRADEABLE : BUY;
 				List<String> tip = new ArrayList<>();
 				tip.add("<b>" + Sidebar.escape(GameData.titleCase(item.getName())) + "</b>");
 				boolean countedAmmo = Weapons.consumedPerAttack(item) && ammoCount > 0;
@@ -187,6 +187,13 @@ class EquipmentGrid extends JPanel
 				else if (owned)
 				{
 					tip.add(countedAmmo && held != OwnedItems.UNLIMITED ? "Owned: " + held : "Owned");
+				}
+				else if (plugin.shopPriced(item))
+				{
+					// No GE: the cheapest shop that stocks it, in coins or its own currency.
+					String currency = plugin.shopCurrency(item);
+					tip.add("Shop: " + Sidebar.escape(currency != null ? currency : Budget.format(plugin.price(item)) + " gp"
+						+ (Weapons.consumedPerAttack(item) ? " each" : "")));
 				}
 				else if (!item.isTradeable())
 				{

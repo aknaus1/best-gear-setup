@@ -11,6 +11,7 @@ plugin, so it makes no network requests. Sources and licences are listed in
 | `wiki-monsters.json.gz` | `tools/wiki_monsters.py` | 3,167 monster variants from `infobox_monster` and `Category:Bosses`, with whether each poisons or envenoms |
 | `wiki-gamedata.json.gz` | `tools/wiki_equipment.py` | 641 weapons and 1,314 other slot entries (darts appear both as weapons and as blowpipe ammunition), 48 combat spells, offensive prayers and potions |
 | `status-immunities.json` | `tools/wiki_status_immunities.py` | Poison, venom, freeze and burn resistance by NPC id |
+| `shop-stock.json` | `tools/wiki_shops.py` | For No GE: 510 equipment ids with their cheapest coin shop price and 66 sold only for other currencies, from `storeline` (default stock at least 1 or infinite, no other-game-mode sellers) |
 | `equipment-requirements.json` | `tools/equipment_requirements.py` | 123 reviewed wear rules, each linked to its source |
 | `encounter-prayers.json` | none (reviewed by hand) | 2,917 overhead protection prayer rules: game-mode versions, checked Wiki strategy pages, then each monster's Wiki attack styles |
 | `prayer-book.json` | none (by hand) | The 32 standard prayers in prayer book order, with their icon and Prayer level |
@@ -83,6 +84,7 @@ From the plugin folder, with Python 3 and `BGS_WIKI_CONTACT` set (see `tools/wik
 python tools/wiki_monsters.py --refresh
 python tools/wiki_equipment.py --refresh
 python tools/wiki_status_immunities.py --refresh
+python tools/wiki_shops.py --refresh   # after wiki_equipment.py: it keeps only catalog ids
 python tools/equipment_requirements.py
 ./gradlew build
 ```

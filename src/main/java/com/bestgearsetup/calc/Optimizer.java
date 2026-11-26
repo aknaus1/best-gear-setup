@@ -2488,8 +2488,13 @@ public class Optimizer
 
 	boolean available(Gear item)
 	{
-		// Best in slot has no limit: untradeables and every diary tier are assumed obtainable.
-		if (settings.getMode() == SearchMode.UNLIMITED || isOwned(item) && ammoShortfall(item) == 0)
+		// Best in slot has no limit: untradeables and every diary tier are assumed obtainable. With No GE, it has
+		// whatever a shop stocks, in any currency.
+		if (settings.getMode() == SearchMode.UNLIMITED)
+		{
+			return settings.getShopStock() == null || settings.getShopStock().stocks(item);
+		}
+		if (isOwned(item) && ammoShortfall(item) == 0)
 		{
 			return true;
 		}
@@ -2515,12 +2520,14 @@ public class Optimizer
 
 	/**
 	 * Tradeable, or bought through tradable components (a charged staff, a demonic weapon's synapse, an
-	 * imbued ring). Other untradeables (fire capes, quest gear) count in owned modes only when owned.
+	 * imbued ring). Other untradeables (fire capes, quest gear) count in owned modes only when owned. With No GE,
+	 * only what a shop stocks, tradeable or not (Void Knight equipment for points); earned gear still needs owning.
 	 */
 	private boolean purchasable(Gear item)
 	{
-		return !OwnershipRules.requiresOwnership(item.getId())
-			&& (item.isTradeable() || ItemCosts.hasTradableComponents(item.getId()));
+		ShopStock shops = settings.getShopStock();
+		return !OwnershipRules.requiresOwnership(item.getId()) && (shops != null ? shops.stocks(item)
+			: item.isTradeable() || ItemCosts.hasTradableComponents(item.getId()));
 	}
 
 	private boolean meetsRequirements(Gear i)
@@ -2566,6 +2573,10 @@ public class Optimizer
 		{
 			return null;
 		}
+		if (settings.getShopStock() != null && !settings.getShopStock().stocks(item))
+		{
+			return "no shop stocks it (No GE)";
+		}
 		if (DiaryRewards.isReward(item.getId()))
 		{
 			return settings.getMode() == SearchMode.INVENTORY_ONLY ? "this diary tier isn't in your inventory or equipment"
@@ -2581,7 +2592,8 @@ public class Optimizer
 		}
 		if (!purchasable(item))
 		{
-			return "it's untradeable and you don't own it";
+			return settings.getShopStock() != null ? "it must be earned and you don't own it"
+				: "it's untradeable and you don't own it";
 		}
 		long price = price(item);
 		return !ItemCosts.isKnown(price) ? "it has no current Grand Exchange price"

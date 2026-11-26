@@ -1,5 +1,6 @@
 package com.bestgearsetup.calc;
 
+import com.bestgearsetup.data.ShopStock;
 import com.bestgearsetup.data.Slot;
 import java.util.*;
 import lombok.Builder;
@@ -12,6 +13,8 @@ public class OptimizerSettings
 	SearchMode mode;
 	/** Maximum GP to spend on items not already owned (BUDGET mode only). */
 	long budget;
+	/** No GE: when set, a budget or best-in-slot search buys only what a shop stocks. */
+	ShopStock shopStock;
 	/** Limit all equipped expensive items for a Wilderness search, including owned gear. */
 	@Builder.Default
 	boolean wildernessRiskLimited = false;

@@ -467,45 +467,66 @@ class ResultView extends JPanel
 		return box;
 	}
 
+	/** The setup's priced items: worn, loaded ammo, and the spec items carried for it (nulls for empty slots). */
+	private static List<Gear> pricedItems(Outfit l, SpecialPlan special)
+	{
+		List<Gear> items = new ArrayList<>();
+		for (Slot slot : Slot.values())
+		{
+			items.add(l.get(slot));
+		}
+		items.add(l.getLoadedAmmo());
+		if (special != null && special.getWeapon() != l.getWeapon())
+		{
+			// The spec weapon (and a spec blowpipe's darts) are carried in the inventory.
+			items.add(special.getWeapon());
+			items.add(special.getLoadedAmmo());
+		}
+		if (special != null)
+		{
+			items.add(special.getOffhand());
+			items.add(special.getAmmo());
+		}
+		return items;
+	}
+
+	/** No GE: what unowned items cost in shop currencies other than coins, e.g. "78,000 Tokkul". */
+	private List<String> otherCurrencyCosts(Outfit l, SpecialPlan special)
+	{
+		List<String> costs = new ArrayList<>();
+		for (Gear item : pricedItems(l, special))
+		{
+			String currency = item == null ? null : plugin.shopCurrency(item);
+			if (currency != null && !plugin.owns(item))
+			{
+				costs.add(currency);
+			}
+		}
+		return costs;
+	}
+
 	JPanel costBox(Outfit l, SpecialPlan special)
 	{
 		long total = 0;
 		long ownedValue = 0;
 		int unpriced = 0;
-		for (Slot slot : Slot.values())
+		for (Gear item : pricedItems(l, special))
 		{
-			long[] v = value(l.get(slot));
-			total += v[0];
-			ownedValue += v[1];
-			unpriced += (int) v[2];
-		}
-		List<Gear> extras = new ArrayList<>();
-		extras.add(l.getLoadedAmmo());
-		if (special != null && special.getWeapon() != l.getWeapon())
-		{
-			// The spec weapon (and a spec blowpipe's darts) are carried in the inventory.
-			extras.add(special.getWeapon());
-			extras.add(special.getLoadedAmmo());
-		}
-		if (special != null)
-		{
-			extras.add(special.getOffhand());
-			extras.add(special.getAmmo());
-		}
-		for (Gear extra : extras)
-		{
-			long[] v = value(extra);
+			long[] v = value(item);
 			total += v[0];
 			ownedValue += v[1];
 			unpriced += (int) v[2];
 		}
 		long buy = total - ownedValue;
 		String unknown = unpriced == 0 ? "" : " + <font color='#FF6B6B'>" + unpriced + " unpriced</font>";
+		List<String> other = otherCurrencyCosts(l, special);
+		String elsewhere = other.isEmpty() ? "" : " + " + Sidebar.escape(String.join(" + ", other));
 
 		JPanel box = box(new BorderLayout(), 3, 3, COST_BORDER);
 		JLabel label = stat("Cost: <font color='#6BD56B'>" + Budget.format(total) + "</font>" + unknown
 			+ " (own <font color='#6BD56B'>" + Budget.format(ownedValue) + "</font>)<br>To buy: <font color='"
-			+ (buy == 0 && unpriced == 0 ? "#FFFFFF" : "#FFD24D") + "'>" + Budget.format(buy) + "</font>" + unknown);
+			+ (buy == 0 && unpriced == 0 && other.isEmpty() ? "#FFFFFF" : "#FFD24D") + "'>" + Budget.format(buy)
+			+ elsewhere + "</font>" + unknown);
 		label.setHorizontalAlignment(JLabel.CENTER);
 		label.setToolTipText("Cost minus owned = to buy; " + (unpriced > 0 ? "unpriced left out"
 			: ammoCount > 0 ? "ammo x" + ammoCount + " included" : "ammo not counted"));
@@ -626,7 +647,8 @@ class ResultView extends JPanel
 		for (Potion p : potionsFor(selected))
 		{
 			JLabel icon = itemIcon(p.getId(), 34, GameData.titleCase(p.getName()));
-			icon.setComponentPopupMenu(ItemMenus.of("Exclude " + GameData.titleCase(p.getName()), () -> plugin.setExcluded(p.getId(), true)));
+			icon.setComponentPopupMenu(ItemMenus.withFieldGuide(ItemMenus.of("Exclude " + GameData.titleCase(p.getName()),
+				() -> plugin.setExcluded(p.getId(), true)), p.getId(), plugin));
 			boosts.add(icon);
 		}
 		Antifire antifire = results.getAntifire();
@@ -634,7 +656,8 @@ class ResultView extends JPanel
 		{
 			JLabel icon = itemIcon(antifire.getItemId(), 34, antifire + " (assumed against dragonfire)");
 			icon.setName("antifireIcon");
-			icon.setComponentPopupMenu(ItemMenus.of("Exclude " + antifire, () -> plugin.setExcluded(antifire.getItemId(), true)));
+			icon.setComponentPopupMenu(ItemMenus.withFieldGuide(ItemMenus.of("Exclude " + antifire,
+				() -> plugin.setExcluded(antifire.getItemId(), true)), antifire.getItemId(), plugin));
 			boosts.add(icon);
 		}
 		TripSupplies.Supply cure = TripSupplies.cure(selected, results.getMonster());
@@ -725,9 +748,12 @@ class ResultView extends JPanel
 		JLabel name = new JLabel(GameData.titleCase(weapon.getName()));
 		Sidebar.setSmall(name, Color.WHITE);
 		row.add(name, BorderLayout.CENTER);
+		// No GE: items bought with other currencies cost 0 coins, so the row isn't "owned" while it buys them.
+		boolean elsewhere = !otherCurrencyCosts(r.getLoadout(), r.getSpecial()).isEmpty();
 		JLabel right = new JLabel("<html><div style='text-align:right'>" + fmt(r.getDps().getDps(), 2) + " dps<br>"
-			+ (r.getBuyCost() == 0 && r.getUnpricedItems() == 0 ? "<font color='#6BD56B'>owned</font>"
-			: "<font color='#FFD24D'>" + Budget.format(r.getBuyCost()) + (r.getUnpricedItems() > 0 ? "+?" : "") + "</font>")
+			+ (r.getBuyCost() == 0 && r.getUnpricedItems() == 0 && !elsewhere ? "<font color='#6BD56B'>owned</font>"
+			: "<font color='#FFD24D'>" + Budget.format(r.getBuyCost()) + (r.getUnpricedItems() > 0 ? "+?" : "")
+			+ (elsewhere ? " + shop" : "") + "</font>")
 			+ "</div></html>");
 		Sidebar.setSmall(right, ColorScheme.LIGHT_GRAY_COLOR);
 		row.add(right, BorderLayout.EAST);

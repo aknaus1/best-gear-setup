@@ -48,6 +48,8 @@ public class Sidebar extends PluginPanel
 	final JButton wikiButton = new JButton("Wiki");
 	final JComboBox<SearchMode> modeBox = new JComboBox<>(SearchMode.values());
 	final JTextField budgetField = new JTextField();
+	final JCheckBox noGeBox = new JCheckBox("No GE (shop items only)");
+	final JButton useGpButton = new JButton("Use my GP");
 	final JPanel budgetRow = new JPanel(new BorderLayout(4, 0));
 	private final CardLayout views = new CardLayout();
 	private final JButton gearButton = new JButton("Rules");
@@ -248,6 +250,23 @@ public class Sidebar extends PluginPanel
 		});
 		settings.add(modeBox);
 
+		// No GE applies only where the search buys: budget and best in slot.
+		Controls.checkBox(noGeBox);
+		noGeBox.setOpaque(false);
+		noGeBox.setForeground(Color.WHITE);
+		noGeBox.setFont(FontManager.getRunescapeSmallFont());
+		noGeBox.setFocusable(false);
+		noGeBox.setAlignmentX(LEFT_ALIGNMENT);
+		noGeBox.setToolTipText("Buy only items that a shop stocks");
+		noGeBox.addActionListener(e ->
+		{
+			if (!syncing)
+			{
+				plugin.setConfig(Options.NO_GE_KEY, noGeBox.isSelected());
+			}
+		});
+		settings.add(noGeBox);
+
 		budgetRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		budgetRow.setBorder(new EmptyBorder(4, 0, 0, 0));
 		budgetRow.setAlignmentX(LEFT_ALIGNMENT);
@@ -267,6 +286,16 @@ public class Sidebar extends PluginPanel
 			}
 		});
 		budgetRow.add(budgetField, BorderLayout.CENTER);
+		Controls.secondary(useGpButton);
+		useGpButton.setMargin(new java.awt.Insets(1, 6, 1, 6));
+		useGpButton.setFocusable(false);
+		useGpButton.addActionListener(e ->
+		{
+			// As if the player typed their coins, rounded down to what the field shows so it never exceeds them.
+			budgetField.setText(String.valueOf(Budget.floorShown(plugin.getOwnedItems().coins())));
+			commitBudget();
+		});
+		budgetRow.add(useGpButton, BorderLayout.EAST);
 		settings.add(budgetRow);
 
 		content.add(left(settings));
@@ -789,6 +818,10 @@ public class Sidebar extends PluginPanel
 			? "Other storage connected. Open your bank once to include bank items."
 			: "Open your bank once to use your owned items."));
 		ownedLabel.setVisible(!known);
+		boolean any = plugin.getOwnedItems().anyKnown();
+		useGpButton.setEnabled(any);
+		useGpButton.setToolTipText(!any ? "No items seen yet; log in first"
+			: known ? "Set the budget to your coins and platinum tokens" : "Bank coins count once you open your bank");
 		// Equipped markers are read when painted, so equipping an item updates the shown setup.
 		resultsPanel.repaint();
 	}
@@ -803,6 +836,7 @@ public class Sidebar extends PluginPanel
 			filterBadge.setVisible(config.bossesOnly());
 			showPhases(selected);
 			budgetField.setText(config.budget());
+			noGeBox.setSelected(config.noGe());
 			fightOptions.refresh();
 			settingsPanel.refresh();
 			updateBudgetEnabled();
@@ -822,6 +856,7 @@ public class Sidebar extends PluginPanel
 	{
 		budgetField.setEnabled(modeBox.getSelectedItem() == SearchMode.BUDGET);
 		budgetRow.setVisible(modeBox.getSelectedItem() == SearchMode.BUDGET);
+		noGeBox.setVisible(!((SearchMode) modeBox.getSelectedItem()).isHeldOnly());
 	}
 
 	/** Apply a changed persistent search filter without rerunning the equipment calculation. */

@@ -7,12 +7,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 
 /**
  * Right-click menus for an item, slot or boost in a result.
  */
 final class ItemMenus
 {
+	static final String FIELD_GUIDE_OPTION = "Look up in Field Guide";
+
 	private ItemMenus()
 	{
 	}
@@ -68,7 +72,36 @@ final class ItemMenus
 			{
 				add(menu, "Mark as owned", () -> plugin.setManualOwned(item.getId(), true));
 			}
+			withFieldGuide(menu, item.getId(), plugin);
 		}
+		return menu;
+	}
+
+	/** Adds "Look up in Field Guide" for the item, shown only while that plugin is on as the menu opens. */
+	static JPopupMenu withFieldGuide(JPopupMenu menu, int itemId, BestGearSetupPlugin plugin)
+	{
+		JMenuItem lookUp = new JMenuItem(FIELD_GUIDE_OPTION);
+		lookUp.addActionListener(e -> plugin.lookUpInFieldGuide(itemId));
+		lookUp.setVisible(false);
+		menu.add(lookUp);
+		menu.addPopupMenuListener(new PopupMenuListener()
+		{
+			@Override
+			public void popupMenuWillBecomeVisible(PopupMenuEvent e)
+			{
+				lookUp.setVisible(plugin.fieldGuideActive());
+			}
+
+			@Override
+			public void popupMenuWillBecomeInvisible(PopupMenuEvent e)
+			{
+			}
+
+			@Override
+			public void popupMenuCanceled(PopupMenuEvent e)
+			{
+			}
+		});
 		return menu;
 	}
 
