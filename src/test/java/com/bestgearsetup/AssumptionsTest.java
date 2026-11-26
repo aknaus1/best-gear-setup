@@ -133,6 +133,7 @@ public class AssumptionsTest
 		GETTERS.put("fillFood", Options::fillFood);
 		GETTERS.put("mode", Options::mode);
 		GETTERS.put("budget", Options::budget);
+		GETTERS.put("noGe", Options::noGe);
 		GETTERS.put("bossesOnly", Options::bossesOnly);
 		GETTERS.put("onSlayerTask", Options::onSlayerTask);
 		GETTERS.put("membersItems", Options::membersItems);

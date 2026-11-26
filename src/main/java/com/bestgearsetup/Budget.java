@@ -45,6 +45,13 @@ public final class Budget
 		}
 	}
 
+	/** The largest amount up to {@code gp} that {@link #format} shows without rounding up. */
+	public static long floorShown(long gp)
+	{
+		long step = gp >= 1_000_000_000L ? 10_000_000L : gp >= 1_000_000L ? 10_000L : gp >= 10_000L ? 10L : 1L;
+		return gp / step * step;
+	}
+
 	public static String format(long gp)
 	{
 		if (gp >= 1_000_000_000L)

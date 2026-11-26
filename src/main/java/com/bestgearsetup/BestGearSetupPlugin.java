@@ -34,6 +34,7 @@ import net.runelite.client.game.*;
 import net.runelite.client.party.PartyService;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.components.colorpicker.ColorPickerManager;
@@ -50,6 +51,8 @@ import net.runelite.client.util.Text;
 public class BestGearSetupPlugin extends Plugin
 {
 	private static final String MENU_OPTION = "Best setup";
+	/** The Field Guide plugin, which shares lookups with this one through {@link PluginMessage}s. */
+	private static final String FIELD_GUIDE = "Field Guide";
 	/** The skills a potion can boost, each with the combat class whose potion setting applies to it. */
 	private static final String[] BOOST_SKILLS = {"attack", "strength", "ranged", "magic"};
 	private static final Combat[] BOOST_CLASSES = {Combat.MELEE, Combat.MELEE, Combat.RANGED, Combat.MAGIC};
@@ -65,7 +68,7 @@ public class BestGearSetupPlugin extends Plugin
 	ClientThread clientThread;
 
 	@Inject
-	private ClientToolbar clientToolbar;
+	ClientToolbar clientToolbar;
 
 
 	@Inject
@@ -112,7 +115,10 @@ public class BestGearSetupPlugin extends Plugin
 	private Object partySpecs;
 
 	@Inject
-	private EventBus eventBus;
+	EventBus eventBus;
+
+	@Inject
+	PluginManager pluginManager;
 
 	@Inject
 	private ColorPickerManager colorPickerManager;
@@ -135,6 +141,8 @@ public class BestGearSetupPlugin extends Plugin
 	/** Bumped on startup and shutdown so loading work queued by an earlier run cannot publish into this one. */
 	final AtomicInteger lifecycle = new AtomicInteger();
 	private volatile Map<Integer, Long> prices = Collections.emptyMap();
+	/** The shop stock the latest search priced with (No GE), or null. */
+	private volatile ShopStock shopPrices;
 	volatile Summary lastSearched;
 	/** Equipment ids and their variants: the only ownership changes that can alter a result. */
 	volatile Set<Integer> gearIds = Collections.emptySet();
@@ -737,7 +745,37 @@ public class BestGearSetupPlugin extends Plugin
 			.setTarget(event.getTarget())
 			.setIdentifier(event.getIdentifier())
 			.setType(MenuAction.RUNELITE)
-			.onClick(e -> lookupNpc(npc));
+			.onClick(e -> lookupNpc(npc.getId(), npc.getName(), npc.getCombatLevel(), npc));
+	}
+
+	/**
+	 * Field Guide asks for a monster's best setup: {"npc": id, "name": optional, "level": optional, 0 unknown}.
+	 * Malformed requests are ignored.
+	 */
+	@Subscribe
+	public void onPluginMessage(PluginMessage message)
+	{
+		if (!"bestgearsetup".equals(message.getNamespace()) || !"lookup".equals(message.getName()))
+		{
+			return;
+		}
+		Map<String, Object> data = message.getData();
+		if (data == null)
+		{
+			return;
+		}
+		Object npc = data.get("npc");
+		Object name = data.get("name");
+		Object level = data.get("level");
+		if (!(npc instanceof Integer) || (name != null && !(name instanceof String))
+			|| (level != null && !(level instanceof Integer)))
+		{
+			return;
+		}
+		int id = (Integer) npc;
+		int combatLevel = level == null ? 0 : (Integer) level;
+		// No live NPC: the search plans the fight, as for a monster searched in the panel.
+		clientThread.invoke(() -> lookupNpc(id, (String) name, combatLevel, null));
 	}
 
 	private static boolean isAttackable(NPC npc)
@@ -751,13 +789,14 @@ public class BestGearSetupPlugin extends Plugin
 			.anyMatch(action -> action != null && "attack".equalsIgnoreCase(Text.removeTags(action)));
 	}
 
-	/** Client thread: resolve the clicked NPC and open the panel on it. */
-	private void lookupNpc(NPC npc)
+	/**
+	 * Client thread: open the panel on the monster matching an NPC id, name and combat level (0 if unknown). The
+	 * live NPC, when there is one (the right-click entry), also places the search, e.g. for the Slayer task's area;
+	 * a lookup without one (from Field Guide) drops the earlier one.
+	 */
+	private void lookupNpc(int id, String name, int level, NPC live)
 	{
-		lookupTarget = npc;
-		int id = npc.getId();
-		String name = npc.getName();
-		int level = npc.getCombatLevel();
+		lookupTarget = live;
 		onPanel(p ->
 		{
 			clientToolbar.openPanel(navButton);
@@ -771,7 +810,7 @@ public class BestGearSetupPlugin extends Plugin
 			if (match == null)
 			{
 				p.showSearch(name == null ? "" : Text.removeTags(name));
-				p.showError("No monster data for " + name + " (id " + id + ").");
+				p.showError("No monster data for " + (name == null ? "NPC" : Text.removeTags(name)) + " (id " + id + ").");
 				return;
 			}
 			p.selectMonster(match, true);
@@ -886,8 +925,10 @@ public class BestGearSetupPlugin extends Plugin
 				+ (matched == null && assumptions.taskMode() == AutoState.AUTO ? "unknown" : onTask ? "on" : "off")
 				+ (assumptions.taskMode() == AutoState.AUTO ? " (Auto)" : " (override)"), assumptionDetail));
 			// ItemManager prices must be read on the client thread; snapshot them for the search and UI.
-			Map<Integer, Long> quotes = snapshotPrices(data);
+			ShopStock shops = shopStock(assumptions);
+			Map<Integer, Long> quotes = snapshotPrices(data, shops);
 			prices = quotes;
+			shopPrices = shops;
 			// Ownership is fixed for the whole search; later gear changes invalidate the results instead.
 			SearchMode mode = assumptions.mode();
 			OwnedItems.Snapshot ownership = ownedItems.capture(mode);
@@ -1412,6 +1453,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		return OptimizerSettings.builder()
 			.mode(config.mode())
+			.shopStock(shopStock(config))
 			.budget(Math.max(0, Budget.parse(config.budget())))
 			.wildernessRiskLimited(config.wilderness() && config.limitWildernessRisk())
 			.maxExpensiveItems(Math.max(0, Math.min(11, config.maxExpensiveItems())))
@@ -1858,6 +1900,25 @@ public class BestGearSetupPlugin extends Plugin
 		});
 	}
 
+	/** Whether the Field Guide plugin is installed and on, checked each time a result item's menu opens. */
+	public boolean fieldGuideActive()
+	{
+		for (Plugin plugin : pluginManager.getPlugins())
+		{
+			if (FIELD_GUIDE.equals(plugin.getName()) && pluginManager.isPluginActive(plugin))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Open Field Guide on an item; it moves the request to the client thread itself. */
+	public void lookUpInFieldGuide(int itemId)
+	{
+		eventBus.post(new PluginMessage("fieldguide", "lookup", Collections.singletonMap("item", itemId)));
+	}
+
 	/**
 	 * Re-run the last search, e.g. after a setting changed. The queued rerun is dropped if, by the time it runs,
 	 * the plugin restarted, the account changed or any newer search started (which also coalesces repeated
@@ -1881,19 +1942,42 @@ public class BestGearSetupPlugin extends Plugin
 		});
 	}
 
-	/** Client thread only. */
-	private Map<Integer, Long> snapshotPrices(GameData data)
+	/** No GE's shop stock when the search may buy (budget or best in slot), else null. */
+	static ShopStock shopStock(Options config)
+	{
+		return config.noGe() && !config.mode().isHeldOnly() ? ShopStock.bundled() : null;
+	}
+
+	/**
+	 * Client thread only. With No GE, an item a shop stocks costs its shop price (0 if bought with another
+	 * currency); everything else keeps its Grand Exchange price, as owned gear and the expensive-item limit use it.
+	 */
+	private Map<Integer, Long> snapshotPrices(GameData data, ShopStock shops)
 	{
 		Map<Integer, Long> map = new HashMap<>();
 		for (Slot slot : Slot.values())
 		{
 			for (Gear item : data.getItems(slot))
 			{
-				map.computeIfAbsent(item.getId(), key -> ItemCosts.price(item, itemManager::getItemPrice,
-					id -> itemManager.getItemComposition(id).isTradeable()));
+				map.computeIfAbsent(item.getId(), key -> shops != null && shops.stocks(item) ? shops.price(item)
+					: ItemCosts.price(item, itemManager::getItemPrice, id -> itemManager.getItemComposition(id).isTradeable()));
 			}
 		}
 		return map;
+	}
+
+	/** What the latest No GE search prices this item in when no coin shop stocks it, e.g. "375 Tokkul"; else null. */
+	public String shopCurrency(Gear item)
+	{
+		ShopStock shops = shopPrices;
+		return shops == null ? null : shops.otherPrice(item);
+	}
+
+	/** Whether the latest search priced shop-stocked items at their shop price (No GE). */
+	public boolean shopPriced(Gear item)
+	{
+		ShopStock shops = shopPrices;
+		return shops != null && shops.stocks(item);
 	}
 
 	/** Owned directly or through a reviewed equivalent charge state. */
@@ -1947,7 +2031,8 @@ public class BestGearSetupPlugin extends Plugin
 	/** Budget searches cannot buy what has no price; say how much of the catalogue that removed. */
 	static String unpricedNote(GameData data, Map<Integer, Long> quotes, OptimizerSettings settings)
 	{
-		if (settings.getMode() != SearchMode.BUDGET)
+		// No GE buys only shop-stocked items, which always have a price.
+		if (settings.getMode() != SearchMode.BUDGET || settings.getShopStock() != null)
 		{
 			return null;
 		}

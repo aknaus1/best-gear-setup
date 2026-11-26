@@ -25,6 +25,7 @@ public final class ConfigSettings
 		add("fillFood", Options::fillFood);
 		add("mode", Options::mode);
 		add("budget", Options::budget);
+		add("noGe", Options::noGe);
 		add("bossesOnly", Options::bossesOnly);
 		add("onSlayerTask", Options::onSlayerTask);
 		add("preventManualCast", Options::preventManualCast);

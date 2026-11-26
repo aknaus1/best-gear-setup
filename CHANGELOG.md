@@ -3,6 +3,16 @@
 Notable changes to Best Gear Setup. Version numbers match `version=` in `runelite-plugin.properties`, which
 is what the Plugin Hub shows.
 
+## 1.1.5
+
+- Field Guide: right-click a result item to look it up in Field Guide (shown while that plugin is on); Field Guide
+  can open the best setup for a monster.
+- Add **No GE (shop items only)** under the gear source. Owned + budget then buys only items a shop stocks, at the
+  cheapest shop's coin price (items sold only for Tokkul, tickets or points cost no coins and say what they cost),
+  and Best in slot picks from shop items only. Owned gear works as before.
+- **Use my GP** beside the budget sets it to your coins and platinum tokens (bank, inventory and other tracked
+  storage; bank coins count once you've opened the bank).
+
 ## 1.1.4 (2026-11-25)
 
 - Add **Kills per trip** (Assumptions → Trip, default 1). Each setup shows its prayer points per kill, the trip's

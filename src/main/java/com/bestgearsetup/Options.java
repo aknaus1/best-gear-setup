@@ -11,6 +11,7 @@ public interface Options extends Config
 	String GROUP = "bestgearsetup";
 	String MODE_KEY = "mode";
 	String BUDGET_KEY = "budget";
+	String NO_GE_KEY = "noGe";
 	String ON_TASK_KEY = "onSlayerTask";
 	String BOSSES_ONLY_KEY = "bossesOnly";
 	String PHASE_KEY = "encounterPhase";
@@ -143,6 +144,14 @@ public interface Options extends Config
 	default String budget()
 	{
 		return value("budget", "10m");
+	}
+
+	/** No GE: buy only what a shop stocks. Edited by its own sidebar control under the mode. */
+	@ConfigItem(keyName = NO_GE_KEY, name = "No GE (shop items only)",
+		description = "Buy only items that a shop stocks", hidden = true)
+	default boolean noGe()
+	{
+		return value("noGe", false);
 	}
 
 	@ConfigItem(

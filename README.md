@@ -20,7 +20,8 @@ excluded or marked as owned too), or a prayer, spell or potion to exclude it, or
 
 - **Any monster or boss**, with versions and phases (Vorkath, Verzik, Yama and so on) in one search.
 - **Four modes:** *Owned items only*, *Inventory + equipped only*, *Owned + budget* (e.g. `50m`) and
-  *Best in slot*.
+  *Best in slot*. **No GE** limits budget and best-in-slot searches to items a shop stocks, at their shop price
+  (Tokkul, tickets and other shop currencies cost no coins).
 - **A result per attack style** with DPS, max hit, accuracy, time to kill, kills per hour and the cost of
   anything you'd need to buy, plus the next-best alternatives.
 - **Allowed and Excluded spells** in Rules let you limit searches to the spells you choose or exclude spells.

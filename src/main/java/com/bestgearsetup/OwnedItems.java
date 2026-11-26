@@ -10,6 +10,7 @@ import lombok.Value;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.gameval.InventoryID;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.ItemVariationMapping;
@@ -244,6 +245,33 @@ public class OwnedItems
 	public Snapshot capture(SearchMode mode)
 	{
 		return mode == SearchMode.INVENTORY_ONLY ? carried : owned;
+	}
+
+	/**
+	 * Coins plus platinum tokens at 1,000 gp each, in the published ownership searches use: bank, inventory, worn
+	 * equipment and recorded storage.
+	 */
+	public long coins()
+	{
+		return coins(owned.getQuantities());
+	}
+
+	/** A stack marked owned by hand has no count, so it adds nothing; the sum saturates instead of overflowing. */
+	static long coins(Map<Integer, Long> quantities)
+	{
+		long tokens = counted(quantities.get(ItemID.PLATINUM));
+		return saturatedAdd(counted(quantities.get(ItemID.COINS)), tokens > UNLIMITED / 1_000 ? UNLIMITED : tokens * 1_000);
+	}
+
+	private static long counted(Long quantity)
+	{
+		return quantity == null || quantity == UNLIMITED ? 0 : quantity;
+	}
+
+	/** Whether any of the account's items are known: a seen or saved bank, container or recorded storage. */
+	public boolean anyKnown()
+	{
+		return isBankKnown() || count() > 0;
 	}
 
 	/** Distinct items seen in the bank, inventory, worn equipment and recorded storage, excluding manual entries. */
