@@ -2,6 +2,7 @@ package com.bestgearsetup;
 
 import com.bestgearsetup.calc.*;
 import com.bestgearsetup.data.EncounterPhase;
+import com.bestgearsetup.ui.Theme;
 import java.awt.Color;
 import net.runelite.client.config.*;
 
@@ -24,6 +25,8 @@ public interface Options extends Config
 	String BANK_HIGHLIGHT_COLOR_KEY = "bankHighlightColor";
 	String HIGHLIGHT_INVENTORY_GEAR_KEY = "highlightInventoryGear";
 	String INVENTORY_HIGHLIGHT_COLOR_KEY = "inventoryHighlightColor";
+	String THEME_KEY = "theme";
+	String CUSTOM_THEME_KEY = "customTheme";
 
 	/**
 	 * A search snapshot returns its captured value; a plain config or RuneLite's own config proxy uses the declared
@@ -121,6 +124,20 @@ public interface Options extends Config
 	default Color inventoryHighlightColor()
 	{
 		return value("inventoryHighlightColor", new Color(0x00, 0xFF, 0x80));
+	}
+
+	@ConfigItem(keyName = THEME_KEY, name = "Theme",
+		description = "Look of the panel's buttons, cards and boxes", section = displaySection, position = 5)
+	default Theme theme()
+	{
+		return value(THEME_KEY, Theme.CLASSIC);
+	}
+
+	/** The Custom theme as JSON, edited in the sidebar's Settings. */
+	@ConfigItem(keyName = CUSTOM_THEME_KEY, name = "Custom theme", description = "Your own theme's colours", hidden = true)
+	default String customTheme()
+	{
+		return value(CUSTOM_THEME_KEY, "");
 	}
 
 	@ConfigItem(keyName = "fillFood", name = "Fill inventory with food",

@@ -130,6 +130,8 @@ public class AssumptionsTest
 		GETTERS.put("bankHighlightColor", Options::bankHighlightColor);
 		GETTERS.put("highlightInventoryGear", Options::highlightInventoryGear);
 		GETTERS.put("inventoryHighlightColor", Options::inventoryHighlightColor);
+		GETTERS.put("theme", Options::theme);
+		GETTERS.put("customTheme", Options::customTheme);
 		GETTERS.put("fillFood", Options::fillFood);
 		GETTERS.put("mode", Options::mode);
 		GETTERS.put("budget", Options::budget);

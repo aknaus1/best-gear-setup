@@ -3,6 +3,7 @@ package com.bestgearsetup;
 import com.bestgearsetup.calc.*;
 import com.bestgearsetup.data.*;
 import com.bestgearsetup.ui.Sidebar;
+import com.bestgearsetup.ui.Theme;
 import com.google.gson.Gson;
 import com.google.inject.Provides;
 import java.awt.*;
@@ -211,6 +212,8 @@ public class BestGearSetupPlugin extends Plugin
 			return t;
 		});
 		migratePreferences();
+		Theme.setCustom(config.customTheme());
+		Theme.use(config.theme());
 		panel = new Sidebar(this, config, itemManager, spriteManager, skillIconManager);
 		BufferedImage icon = Sidebar.createNavIcon();
 		navButton = NavigationButton.builder()
@@ -695,12 +698,35 @@ public class BestGearSetupPlugin extends Plugin
 		});
 	}
 
+	/** Switching RuneLite profile can change the theme without a config change event for it. */
+	@Subscribe
+	public void onProfileChanged(ProfileChanged event)
+	{
+		applyTheme();
+	}
+
+	private void applyTheme()
+	{
+		onPanel(p ->
+		{
+			Theme.setCustom(config.customTheme());
+			Theme.use(config.theme());
+			p.syncFromConfig();
+			p.applyTheme();
+		});
+	}
+
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
 		String key = event.getKey();
 		if (!Options.GROUP.equals(event.getGroup()) || panel == null)
 		{
+			return;
+		}
+		if (Options.THEME_KEY.equals(key) || Options.CUSTOM_THEME_KEY.equals(key))
+		{
+			applyTheme();
 			return;
 		}
 		// The boss filter only changes search suggestions.

@@ -30,7 +30,6 @@ public class Sidebar extends PluginPanel
 	private static final int HTML_WIDTH = 160;
 	private static final String WIKI_URL = "https://oldschool.runescape.wiki/";
 	private static final Color ERROR_COLOR = new Color(0xFF6B6B);
-	static final Color WARNING_COLOR = new Color(0xFFD24D);
 
 	private final BestGearSetupPlugin plugin;
 	private final Options config;
@@ -78,6 +77,8 @@ public class Sidebar extends PluginPanel
 	/** The searched group of {@link #selected}; its variants fill the version list. */
 	private MonsterGroup selectedGroup;
 	private boolean syncing;
+	/** Whether the status line shows an error, so a theme change keeps it red. */
+	private boolean statusError;
 
 	public Sidebar(BestGearSetupPlugin plugin, Options config, ItemManager itemManager,
 		SpriteManager spriteManager, SkillIconManager skillIconManager)
@@ -224,8 +225,7 @@ public class Sidebar extends PluginPanel
 					.build().toString());
 			}
 		});
-		Controls.secondary(wikiButton);
-		wikiButton.setMargin(new java.awt.Insets(1, 6, 1, 6));
+		Controls.wiki(wikiButton);
 		targetRow.add(wikiButton, BorderLayout.EAST);
 		content.add(left(targetRow));
 		content.add(spacer(6));
@@ -361,12 +361,13 @@ public class Sidebar extends PluginPanel
 		content.add(left(ownedLabel));
 
 		statusLabel.setFont(FontManager.getRunescapeSmallFont());
+		Controls.ownColours(statusLabel);
 		setStatus("Loading bundled Wiki data...");
 		content.add(left(statusLabel));
 		progressBar.setName("searchProgress");
 		progressBar.setStringPainted(true);
 		progressBar.setFont(FontManager.getRunescapeSmallFont());
-		progressBar.setForeground(ColorScheme.BRAND_ORANGE);
+		Controls.themed(progressBar, "progress");
 		progressBar.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		progressBar.setBorder(new EmptyBorder(0, 0, 0, 0));
 		progressBar.setPreferredSize(new Dimension(0, 14));
@@ -385,6 +386,7 @@ public class Sidebar extends PluginPanel
 		addEditor("Settings", settingsPanel, "settings");
 
 		syncFromConfig();
+		Controls.restyle(this);
 	}
 
 	/** A captioned drop-down, hidden until the target offers a choice. */
@@ -412,7 +414,7 @@ public class Sidebar extends PluginPanel
 		Controls.secondary(back);
 		back.setFont(Controls.plain(FontManager.getRunescapeFont()));
 		back.setHorizontalAlignment(SwingConstants.LEFT);
-		back.setIcon(new Controls.Chevron(Controls.Chevron.LEFT, ColorScheme.BRAND_ORANGE));
+		back.setIcon(new Controls.Chevron(Controls.Chevron.LEFT, "accent"));
 		back.setIconTextGap(6);
 		editorBackButtons.put(key, back);
 		back.addActionListener(e ->
@@ -440,6 +442,7 @@ public class Sidebar extends PluginPanel
 		view.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		view.add(body, BorderLayout.NORTH);
 		JScrollPane scroll = new JScrollPane(view);
+		Controls.themed(scroll, "scroll");
 		scroll.setBorder(null);
 		scroll.getVerticalScrollBar().setUnitIncrement(16);
 		scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -487,6 +490,7 @@ public class Sidebar extends PluginPanel
 	public void showError(String message)
 	{
 		progressRow.setVisible(false);
+		statusError = true;
 		statusLabel.setForeground(ERROR_COLOR);
 		statusLabel.setText(html(escape(message)));
 		findButton.setEnabled(selected != null && data != null);
@@ -500,7 +504,8 @@ public class Sidebar extends PluginPanel
 
 	private void setStatus(String body)
 	{
-		statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		statusError = false;
+		statusLabel.setForeground(Theme.color("muted"));
 		statusLabel.setText(html(body));
 	}
 
@@ -522,6 +527,7 @@ public class Sidebar extends PluginPanel
 			resultsPanel.removeAll();
 			resultView = null;
 			resultsPanel.add(left(retry));
+			Controls.restyle(resultsPanel);
 			resultsPanel.revalidate();
 		}
 	}
@@ -663,6 +669,7 @@ public class Sidebar extends PluginPanel
 		showStatus(message);
 		resultsPanel.removeAll();
 		resultView = null;
+		Controls.restyle(resultsPanel);
 		resultsPanel.revalidate();
 		resultsPanel.repaint();
 	}
@@ -739,7 +746,7 @@ public class Sidebar extends PluginPanel
 			JLabel warnings = new JLabel(html(found.getWarnings().stream().map(Sidebar::escape)
 				.collect(Collectors.joining("<br>"))));
 			warnings.setName("assumptionWarnings");
-			setSmall(warnings, WARNING_COLOR);
+			setSmall(warnings, Theme.color("warning"));
 			resultsPanel.add(left(warnings));
 			resultsPanel.add(spacer(4));
 		}
@@ -763,7 +770,7 @@ public class Sidebar extends PluginPanel
 			JButton toggle = new JButton("Search details");
 			toggle.setFocusable(false);
 			Controls.ghost(toggle);
-			toggle.setIcon(new Controls.Chevron(Controls.Chevron.RIGHT, null));
+			toggle.setIcon(new Controls.Chevron(Controls.Chevron.RIGHT, (Color) null));
 			toggle.setIconTextGap(6);
 			JLabel notes = new JLabel(html(detailLines.stream().map(Sidebar::escape)
 				.collect(Collectors.joining("<br>"))));
@@ -775,11 +782,12 @@ public class Sidebar extends PluginPanel
 			toggle.addActionListener(e ->
 			{
 				notes.setVisible(!notes.isVisible());
-				toggle.setIcon(new Controls.Chevron(notes.isVisible() ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, null));
+				toggle.setIcon(new Controls.Chevron(notes.isVisible() ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, (Color) null));
 				resultsPanel.revalidate();
 			});
 			resultsPanel.add(left(details));
 		}
+		Controls.restyle(resultsPanel);
 		resultsPanel.revalidate();
 		resultsPanel.repaint();
 	}
@@ -824,6 +832,16 @@ public class Sidebar extends PluginPanel
 			: known ? "Set the budget to your coins and platinum tokens" : "Bank coins count once you open your bank");
 		// Equipped markers are read when painted, so equipping an item updates the shown setup.
 		resultsPanel.repaint();
+	}
+
+	/** Shows the panel in the current {@link Theme}: buttons are re-styled and the result boxes rebuilt. */
+	public void applyTheme()
+	{
+		Controls.restyle(this);
+		statusLabel.setForeground(statusError ? ERROR_COLOR : Theme.color("muted"));
+		refreshSupplies();
+		revalidate();
+		repaint();
 	}
 
 	public void syncFromConfig()
@@ -914,6 +932,7 @@ public class Sidebar extends PluginPanel
 		}
 		noMatches.setVisible(none);
 		Controls.outlineList(suggestions);
+		Controls.restyle(suggestions);
 		suggestions.revalidate();
 		suggestions.repaint();
 		revalidate();
@@ -933,7 +952,7 @@ public class Sidebar extends PluginPanel
 		row.setBorder(new EmptyBorder(3, 6, 3, 6));
 		JLabel name = new JLabel(html(escape(group.getDisplayName())));
 		name.setFont(FontManager.getRunescapeSmallFont());
-		name.setForeground(group.isBoss() ? ColorScheme.BRAND_ORANGE : Color.WHITE);
+		name.setForeground(group.isBoss() ? Theme.color("boss") : Color.WHITE);
 		int min = group.getMinCombatLevel();
 		int max = group.getMaxCombatLevel();
 		JLabel level = new JLabel(min == max ? String.valueOf(min) : min + "-" + max);
@@ -952,13 +971,13 @@ public class Sidebar extends PluginPanel
 			@Override
 			public void mouseEntered(MouseEvent e)
 			{
-				row.setBackground(Controls.ROW_HOVER);
+				row.setBackground(Theme.color("rowHover"));
 			}
 
 			@Override
 			public void mouseExited(MouseEvent e)
 			{
-				row.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+				row.setBackground(Theme.color("well"));
 			}
 
 			@Override

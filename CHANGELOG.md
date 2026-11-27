@@ -7,6 +7,37 @@ the Plugin Hub.
 
 ## Unreleased
 
+- Add a **Theme** setting (Display & interaction), switched at once:
+  - **Classic**, the current look and the default.
+  - **Forged**: a gold *Find best setup* that light sweeps across, grained stone buttons and chamfered warm-stone
+    cards and boxes.
+  - **Edge**: flat buttons with an orange edge like the open cards.
+  - **Runite** (blue forged metal and slate), **Ancient** (Zarosian purple) and **Dragon** (dragon-red buttons with
+    red-edged cards).
+  - **Midnight**: high contrast, near-black buttons and cards with light outlines.
+  - **Crystal**: faceted cyan crystal buttons that a glint runs across on hover.
+  - **Woodcut**: oak plank buttons with grain and brass studs, and plank cards.
+  - **Inferno**: obsidian buttons with molten cracks that glow and shed embers on hover; the main button is lava
+    that flows while hovered.
+  - **Arcane**: starfield buttons whose outline pulses on hover while a spark orbits the rim.
+  - **Saradomin**, **Zamorak**, **Guthix**, **Armadyl** and **Bandos** in their gods' colours; **Barrows** (still
+    grey crypt stone); **Retro** (the 2004 interface: brown stone, yellow text, square and still); **Desert**
+    (sandstone); **Void** (Pest Control purple with a green spark); **Frost** (ice crystal); **Venom** (toxic green
+    lava); **Gilded** (gold on gold).
+  - **Custom**: your own. **Custom theme** in Settings starts it from any theme and sets its painters, card frame,
+    corner cut, animation and textures, and every colour: panel, text and inputs, cards, buttons and result
+    boxes, plus fonts and the smaller parts (text buttons, list rows, the Bosses badge, scrollbars, the progress
+    bar, boss names and warnings), previewed as you pick. **Surprise me** makes a random one from a recoloured
+    built-in theme. Export and Import share it as text through the clipboard. The editor previews the main
+    button, Wiki banner and result boxes that Settings hides, folds its colours into groups you open,
+    **Change every use of a colour** recolours every part that shares the one you pick, **Undo** steps back
+    through the session's changes, and text under 3:1 contrast with its fill is flagged. Until Custom is first
+    saved the editor shows the panel's theme, which the first change starts from. Imports need at least one
+    theme key.
+  - Themes colour the whole panel, its text and inputs, not just the buttons; Midnight has square corners and no
+    textures.
+- The **Wiki** button is a banner like the game's own Wiki button, in every theme.
+
 ## 1.1.5 (in progress)
 
 - Field Guide: right-click a result item to look it up in Field Guide (shown while that plugin is on); Field Guide

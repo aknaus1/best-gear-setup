@@ -1,0 +1,22 @@
+{
+  "_comment": "Forged metal and stone: a gold main button with a light sweep, grained stone buttons with an ember glow, and chamfered warm-stone cards and boxes.",
+  "primary": "forged",
+  "secondary": "forged",
+  "frame": "chamfer",
+  "card": "#302C27",
+  "cardRim": "#0D0C0B",
+  "headerText": "#EDE3CF",
+  "headerHover": "#3A352F",
+  "headerPressed": "#26231F",
+  "boxFill": "#23201C",
+  "rowFill": "#24211D",
+  "rowCurrent": "#38332D",
+  "panel": "#24211D",
+  "text": "#EDE3CF",
+  "muted": "#A89C8A",
+  "well": "#1D1B18",
+  "wellOutline": "#3D3832",
+  "scrollTrack": "#1D1B18",
+  "scrollThumb": "#3D3832",
+  "scrollHover": "#A89C8A"
+}

@@ -29,15 +29,9 @@ import net.runelite.client.util.AsyncBufferedImage;
  */
 class ResultView extends JPanel
 {
-	private static final Color TAB_SELECTED = new Color(0xF7, 0x8B, 0x00);
 	/** Each result box has its own edge: blue statistics, orange special attack, green cost. */
-	private static final Color STATS_BORDER = new Color(0x3A, 0x6E, 0xB5);
-	private static final Color SPEC_BORDER = new Color(0xD0, 0x7A, 0x1E);
-	private static final Color COST_BORDER = new Color(0x2E, 0x8B, 0x2E);
 	/** Whether the statistics box shows more than its DPS line; closed until opened, then kept for the session. */
 	static boolean statsOpen;
-	private static final Color BOX_BG = new Color(0x1E, 0x1E, 0x1E);
-	private static final Color STYLE_BORDER = new Color(0xC0, 0x39, 0x2B);
 	private static final Color YELLOW = new Color(0xFF, 0xD2, 0x4D);
 
 	/** One named spell sprite per thrall type; the tooltip names the tier. */
@@ -134,6 +128,7 @@ class ResultView extends JPanel
 		plugin.setBankHighlightedSetup(setup, potions, supplies);
 		rebuildTabs();
 		rebuildBody();
+		Controls.restyle(this);
 	}
 
 	// ------------------------------------------------------------ tabs
@@ -194,7 +189,7 @@ class ResultView extends JPanel
 		{
 			Graphics2D g2 = (Graphics2D) g.create();
 			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			g2.setColor(active ? TAB_SELECTED : ColorScheme.DARKER_GRAY_COLOR);
+			g2.setColor(active ? Theme.color("tabSelected") : ColorScheme.DARKER_GRAY_COLOR);
 			g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 6, 6);
 			if (icon != null && icon.getWidth() > 0)
 			{
@@ -250,7 +245,7 @@ class ResultView extends JPanel
 		{
 			JLabel header = new JLabel(typeName(selectedType) + " setups");
 			header.setFont(FontManager.getRunescapeBoldFont());
-			header.setForeground(ColorScheme.BRAND_ORANGE);
+			header.setForeground(Theme.color("accent"));
 			header.setBorder(new EmptyBorder(8, 0, 2, 0));
 			body.add(Sidebar.left(header));
 			for (Setup r : others)
@@ -276,7 +271,7 @@ class ResultView extends JPanel
 	JPanel statsBox(Dps d, Thrall thrall, RuneUse runes, boolean sunfire, boolean poweredStaff)
 	{
 		// One column, each row only as tall as its own text, so a wrapped max-hit note doesn't stretch every row
-		JPanel box = box(new GridBagLayout(), 2, 4, STATS_BORDER);
+		JPanel box = box(new GridBagLayout(), 2, 4, Theme.color("dpsEdge"));
 		String max = d.getMaxHit() + (d.getMaxHitDetail() == null ? "" : " (" + d.getMaxHitDetail() + ")");
 		double ttk = d.getPrimaryDps() > 0 ? results.getStartingHitpoints() / d.getPrimaryDps() : 0;
 		boolean area = d.getTargetsHit() > 1;
@@ -346,7 +341,7 @@ class ResultView extends JPanel
 			if (TripSupplies.usedSlots(setup, supplies) > TripSupplies.INVENTORY_SLOTS)
 			{
 				line(box, "Doesn't fit one inventory: fewer kills per trip", "tripOverflow", null)
-					.setForeground(Sidebar.WARNING_COLOR);
+					.setForeground(Theme.color("warning"));
 			}
 		}
 		divide(box, first);
@@ -384,7 +379,7 @@ class ResultView extends JPanel
 		head.setIconTextGap(6);
 		Runnable show = () ->
 		{
-			head.setIcon(new Controls.Chevron(statsOpen ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, null));
+			head.setIcon(new Controls.Chevron(statsOpen ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT, (Color) null));
 			for (int i = 1; i < box.getComponentCount(); i++)
 				box.getComponent(i).setVisible(statsOpen);
 			box.revalidate();
@@ -436,7 +431,7 @@ class ResultView extends JPanel
 	/** The special attack mixed into the kill: its weapon, energy, uses per kill and one spec's stats. */
 	private JPanel specBox(SpecialPlan plan, Outfit worn)
 	{
-		JPanel box = box(new BorderLayout(6, 0), 3, 3, SPEC_BORDER);
+		JPanel box = box(new BorderLayout(6, 0), 3, 3, Theme.color("specEdge"));
 		boolean newWeapon = plan.getWeapon() != worn.getWeapon();
 		JPanel icons = new JPanel(new GridLayout(1, 0, 2, 0));
 		icons.setOpaque(false);
@@ -522,9 +517,10 @@ class ResultView extends JPanel
 		List<String> other = otherCurrencyCosts(l, special);
 		String elsewhere = other.isEmpty() ? "" : " + " + Sidebar.escape(String.join(" + ", other));
 
-		JPanel box = box(new BorderLayout(), 3, 3, COST_BORDER);
-		JLabel label = stat("Cost: <font color='#6BD56B'>" + Budget.format(total) + "</font>" + unknown
-			+ " (own <font color='#6BD56B'>" + Budget.format(ownedValue) + "</font>)<br>To buy: <font color='"
+		JPanel box = box(new BorderLayout(), 3, 3, Theme.color("costEdge"));
+		String owned = Controls.hex(Theme.color("owned"));
+		JLabel label = stat("Cost: <font color='" + owned + "'>" + Budget.format(total) + "</font>" + unknown
+			+ " (own <font color='" + owned + "'>" + Budget.format(ownedValue) + "</font>)<br>To buy: <font color='"
 			+ (buy == 0 && unpriced == 0 && other.isEmpty() ? "#FFFFFF" : "#FFD24D") + "'>" + Budget.format(buy)
 			+ elsewhere + "</font>" + unknown);
 		label.setHorizontalAlignment(JLabel.CENTER);
@@ -563,8 +559,9 @@ class ResultView extends JPanel
 
 		JPanel styleBox = new JPanel(new BorderLayout(0, 0));
 		// A red edge like the game's selected combat style, on the same dark box as the stats.
-		styleBox.setBackground(BOX_BG);
-		styleBox.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 3, 0, 0, STYLE_BORDER),
+		styleBox.setBackground(Theme.color("boxFill"));
+		Controls.ownColours(styleBox);
+		styleBox.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 3, 0, 0, Theme.color("styleEdge")),
 			new EmptyBorder(2, 6, 2, 6)));
 		Style style = l.getStyle();
 		String name = style == null ? "" : GameData.titleCase(style.getName());
@@ -738,10 +735,11 @@ class ResultView extends JPanel
 	private JPanel alternativeRow(Setup r, boolean current)
 	{
 		JPanel row = new JPanel(new BorderLayout(4, 0));
-		Color bg = current ? ColorScheme.DARK_GRAY_HOVER_COLOR : ColorScheme.DARKER_GRAY_COLOR;
+		Color bg = Theme.color(current ? "rowCurrent" : "rowFill");
 		row.setBackground(bg);
+		Controls.ownColours(row);
 		row.setBorder(current ? BorderFactory.createCompoundBorder(
-			BorderFactory.createMatteBorder(0, 2, 0, 0, ColorScheme.BRAND_ORANGE), new EmptyBorder(1, 0, 1, 4))
+			BorderFactory.createMatteBorder(0, 2, 0, 0, Theme.color("accent")), new EmptyBorder(1, 0, 1, 4))
 			: new EmptyBorder(1, 2, 1, 4));
 		Gear weapon = r.getLoadout().getWeapon();
 		row.add(itemIcon(weapon.getId(), 36, null), BorderLayout.WEST);
@@ -751,7 +749,8 @@ class ResultView extends JPanel
 		// No GE: items bought with other currencies cost 0 coins, so the row isn't "owned" while it buys them.
 		boolean elsewhere = !otherCurrencyCosts(r.getLoadout(), r.getSpecial()).isEmpty();
 		JLabel right = new JLabel("<html><div style='text-align:right'>" + fmt(r.getDps().getDps(), 2) + " dps<br>"
-			+ (r.getBuyCost() == 0 && r.getUnpricedItems() == 0 && !elsewhere ? "<font color='#6BD56B'>owned</font>"
+			+ (r.getBuyCost() == 0 && r.getUnpricedItems() == 0 && !elsewhere
+			? "<font color='" + Controls.hex(Theme.color("owned")) + "'>owned</font>"
 			: "<font color='#FFD24D'>" + Budget.format(r.getBuyCost()) + (r.getUnpricedItems() > 0 ? "+?" : "")
 			+ (elsewhere ? " + shop" : "") + "</font>")
 			+ "</div></html>");
@@ -821,11 +820,7 @@ class ResultView extends JPanel
 	/** A dark box with a coloured edge, padded 6px at the sides. */
 	private static JPanel box(LayoutManager layout, int top, int bottom, Color edge)
 	{
-		JPanel box = new JPanel(layout);
-		box.setBackground(BOX_BG);
-		box.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(edge),
-			new EmptyBorder(top, 6, bottom, 6)));
-		return box;
+		return Controls.framed(layout, top, bottom, edge);
 	}
 
 	/** A full-width row with {@code c} centred at its preferred size. */
