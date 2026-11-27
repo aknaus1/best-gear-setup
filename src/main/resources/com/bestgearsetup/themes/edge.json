@@ -1,0 +1,8 @@
+{
+  "_comment": "The plugin's own card look carried into its buttons: flat chips with a dim orange edge down the left that lights up on hover, and a darker lip under the main button.",
+  "primary": "edge",
+  "secondary": "edge",
+  "buttonFill": "#323232",
+  "buttonHover": "#3B3B3B",
+  "buttonHoverBorder": "#575757"
+}

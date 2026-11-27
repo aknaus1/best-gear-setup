@@ -284,7 +284,22 @@ These preferences are under **Settings** in the side panel and on the plugin's R
   empty when its item changes neither the setup's rates nor its special attacks' hits (a strength bonus short of
   the next max hit, say); the weapon, its ammunition, locked slots and lightbearer behind a spec plan always stay.
 - **Display & interaction**: the **Right-click option** that adds **Best setup** to the menu of attackable
-  NPCs (on by default), the bank and inventory highlights with their colours.
+  NPCs (on by default), the bank and inventory highlights with their colours, and the **Theme**: Classic (the
+  default), Forged (gold and stone buttons, chamfered warm-stone cards), Edge (flat buttons with
+  an orange edge), Runite (blue metal and slate), Ancient (purple), Dragon (red), Midnight
+  (high contrast), Crystal (faceted, a glint on hover), Woodcut (oak planks and brass studs), Inferno (obsidian
+  cracks and embers, a lava main button) or Arcane (stars, a pulsing outline and an orbiting spark). Themes are JSON files in `src/main/resources/com/bestgearsetup/themes/`: each names a painter
+  for the main, ordinary and Wiki buttons and a frame for cards, plus colours; keys it leaves out come from
+  `classic.json`, which lists them all. The Wiki button is the game's Wiki banner in every theme. Besides
+  painters and frames, a theme sets the corner cut (0-6 px), animation and textures (on or off), the panel,
+  text, muted text and input colours, and the result boxes' edges and owned colour. **Custom** is the
+  player's own theme, kept in a hidden setting: **Custom theme** in Settings starts it from any theme, sets its
+  painters and colours, and exports or imports it as JSON through the clipboard. Imports are checked (colours as
+  `#RRGGBB`, known painters and frames, at least one theme key) and keys from other versions are ignored. Until
+  Custom is first saved the editor shows the panel's theme and the first change copies it into Custom. The
+  editor previews the main button, Wiki banner and result boxes, can change every part that shares a colour at
+  once, keeps an in-session Undo, and flags text with under 3:1 contrast (WCAG's ratio) against the middle of its
+  fill, using the text and fill pairs in `theme-editor.json`; no built-in theme is flagged.
 
 ## Encounter rules
 

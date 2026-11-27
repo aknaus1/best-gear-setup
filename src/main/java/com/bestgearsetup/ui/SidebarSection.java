@@ -6,7 +6,6 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
-import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 
 /** Related controls, drawn as a raised card with a collapsible header that shows a chevron. */
@@ -38,7 +37,7 @@ class SidebarSection extends JPanel
 		add(toggle, BorderLayout.NORTH);
 		content.setName(key + "Content");
 		content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-		content.setBackground(Controls.CARD);
+		content.setOpaque(false);
 		content.setBorder(new EmptyBorder(2, 6, 8, 6));
 		add(content, BorderLayout.CENTER);
 		setExpanded(false);
@@ -48,8 +47,7 @@ class SidebarSection extends JPanel
 	protected void paintComponent(Graphics g)
 	{
 		super.paintComponent(g);
-		g.setColor(Controls.CARD);
-		g.fillRect(0, 0, getWidth(), getHeight() - GAP);
+		Controls.paintFrame(g, getWidth(), getHeight() - GAP, Theme.color("card"), Theme.color("cardRim"));
 	}
 
 	JPanel getContent()
@@ -87,26 +85,25 @@ class SidebarSection extends JPanel
 		boolean open = content.isVisible();
 		toggle.setText(title + summary);
 		toggle.setIcon(new Controls.Chevron(open ? Controls.Chevron.DOWN : Controls.Chevron.RIGHT,
-			open ? ColorScheme.BRAND_ORANGE : ColorScheme.LIGHT_GRAY_COLOR));
+			open ? "cardEdge" : "chevron"));
 		toggle.setFont(Controls.plain(open ? FontManager.getRunescapeBoldFont() : FontManager.getRunescapeFont()));
 		String hint = (open ? "Collapse " : "Expand ") + title;
 		toggle.setToolTipText(description == null ? hint : description);
 		toggle.getAccessibleContext().setAccessibleDescription(open ? "Expanded" : "Collapsed");
 	}
 
-	/** The card's outline, an orange strip down the left of the open card, and the gap below it. */
+	/** An orange strip down the left of the open card (the outline is part of the frame), and the gap below it. */
 	private final class CardBorder extends AbstractBorder
 	{
 		@Override
 		public void paintBorder(Component c, Graphics g, int x, int y, int width, int height)
 		{
-			int cardHeight = height - GAP;
-			g.setColor(Controls.CARD_OUTLINE);
-			g.drawRect(x, y, width - 1, cardHeight - 1);
 			if (content.isVisible())
 			{
-				g.setColor(ColorScheme.BRAND_ORANGE);
-				g.fillRect(x, y, 2, cardHeight);
+				// Inside the chamfer's cut corners when there are any
+				int inset = Theme.style("frame").equals("chamfer") ? Controls.corner() : 0;
+				g.setColor(Theme.color("cardEdge"));
+				g.fillRect(x + inset / 3, y + inset, 2, height - GAP - 2 * inset);
 			}
 		}
 

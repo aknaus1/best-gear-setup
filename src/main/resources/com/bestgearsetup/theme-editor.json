@@ -1,0 +1,324 @@
+{
+  "_comment": "The Custom theme editor: 'choices' are the allowed values of each non-colour key (also what imports are checked against), 'names' their labels; the 'panel', 'cards', 'results' and 'details' colours are always listed, then the keys of each painter in use. Colour labels come from key names. 'contrast' lists, for each of those groups, a text colour and the fill it sits on (two for a gradient, measured at its middle); the editor flags any below 3:1.",
+  "choices": {
+    "primary": [
+      "flat",
+      "edge",
+      "forged",
+      "crystal",
+      "wood",
+      "molten",
+      "arcane"
+    ],
+    "secondary": [
+      "flat",
+      "edge",
+      "forged",
+      "crystal",
+      "wood",
+      "molten",
+      "arcane"
+    ],
+    "wiki": [
+      "ribbon",
+      "flat",
+      "edge",
+      "forged",
+      "crystal",
+      "wood",
+      "molten",
+      "arcane"
+    ],
+    "frame": [
+      "flat",
+      "chamfer",
+      "plank"
+    ],
+    "corner": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "motion": [
+      "on",
+      "off"
+    ],
+    "texture": [
+      "on",
+      "off"
+    ],
+    "primaryFont": [
+      "default",
+      "small",
+      "regular",
+      "bold"
+    ],
+    "buttonFont": [
+      "default",
+      "small",
+      "regular",
+      "bold"
+    ]
+  },
+  "names": {
+    "primary": "Main button",
+    "secondary": "Buttons",
+    "wiki": "Wiki",
+    "frame": "Cards and boxes",
+    "corner": "Corner cut (px)",
+    "motion": "Animation",
+    "texture": "Textures",
+    "panel": "Panel and text",
+    "cards": "Cards",
+    "results": "Results",
+    "ribbon": "Wiki banner",
+    "primaryFont": "Main button font",
+    "buttonFont": "Button font",
+    "details": "Details"
+  },
+  "panel": [
+    "panel",
+    "text",
+    "muted",
+    "well",
+    "wellOutline",
+    "focus"
+  ],
+  "results": [
+    "dpsEdge",
+    "specEdge",
+    "costEdge",
+    "styleEdge",
+    "tabSelected",
+    "owned"
+  ],
+  "cards": [
+    "accent",
+    "chevron",
+    "card",
+    "cardRim",
+    "cardEdge",
+    "headerText",
+    "headerHover",
+    "headerPressed",
+    "boxFill",
+    "rowFill",
+    "rowCurrent"
+  ],
+  "flat": [
+    "primaryFill",
+    "primaryHover",
+    "primaryPressed",
+    "primaryText",
+    "buttonFill",
+    "buttonHover",
+    "buttonPressed",
+    "buttonBorder",
+    "buttonHoverBorder",
+    "buttonText"
+  ],
+  "edge": [
+    "primaryFill",
+    "primaryHover",
+    "primaryPressed",
+    "primaryText",
+    "primaryLip",
+    "buttonFill",
+    "buttonHover",
+    "buttonPressed",
+    "buttonHoverBorder",
+    "buttonText",
+    "wikiAccent"
+  ],
+  "forged": [
+    "metalTop",
+    "metal",
+    "metalBottom",
+    "metalText",
+    "metalRim",
+    "metalHoverRim",
+    "stoneTop",
+    "stoneBottom",
+    "stoneText",
+    "stoneRim",
+    "stoneHoverRim",
+    "ember"
+  ],
+  "ribbon": [
+    "ribbonTop",
+    "ribbonBottom",
+    "ribbonTrim",
+    "ribbonHoverRim",
+    "ribbonText"
+  ],
+  "crystal": [
+    "crystalMainTop",
+    "crystalMainBottom",
+    "crystalMainText",
+    "crystalTop",
+    "crystalBottom",
+    "crystalText",
+    "crystalRim",
+    "crystalHoverRim"
+  ],
+  "wood": [
+    "woodMainTop",
+    "woodMainBottom",
+    "woodMainText",
+    "woodTop",
+    "woodBottom",
+    "woodText",
+    "woodRim",
+    "woodHoverRim",
+    "woodStud"
+  ],
+  "molten": [
+    "moltenMainTop",
+    "moltenMainBottom",
+    "moltenMainText",
+    "moltenTop",
+    "moltenBottom",
+    "moltenText",
+    "moltenRim",
+    "moltenHoverRim",
+    "moltenGlow",
+    "moltenEmber"
+  ],
+  "arcane": [
+    "arcaneMainTop",
+    "arcaneMainBottom",
+    "arcaneMainText",
+    "arcaneTop",
+    "arcaneBottom",
+    "arcaneText",
+    "arcaneRim",
+    "arcaneHoverRim",
+    "arcaneGlow"
+  ],
+  "details": [
+    "ghostHover",
+    "rowHover",
+    "badge",
+    "badgeRim",
+    "badgeHover",
+    "scrollThumb",
+    "scrollTrack",
+    "scrollHover",
+    "progress",
+    "boss",
+    "warning"
+  ],
+  "contrast": {
+    "panel": [
+      [
+        "text",
+        "panel"
+      ],
+      [
+        "muted",
+        "panel"
+      ],
+      [
+        "text",
+        "well"
+      ]
+    ],
+    "cards": [
+      [
+        "headerText",
+        "card"
+      ]
+    ],
+    "flat": [
+      [
+        "primaryText",
+        "primaryFill"
+      ],
+      [
+        "buttonText",
+        "buttonFill"
+      ]
+    ],
+    "edge": [
+      [
+        "primaryText",
+        "primaryFill"
+      ],
+      [
+        "buttonText",
+        "buttonFill"
+      ]
+    ],
+    "forged": [
+      [
+        "metalText",
+        "metalTop",
+        "metalBottom"
+      ],
+      [
+        "stoneText",
+        "stoneTop",
+        "stoneBottom"
+      ]
+    ],
+    "ribbon": [
+      [
+        "ribbonText",
+        "ribbonTop",
+        "ribbonBottom"
+      ]
+    ],
+    "crystal": [
+      [
+        "crystalMainText",
+        "crystalMainTop",
+        "crystalMainBottom"
+      ],
+      [
+        "crystalText",
+        "crystalTop",
+        "crystalBottom"
+      ]
+    ],
+    "wood": [
+      [
+        "woodMainText",
+        "woodMainTop",
+        "woodMainBottom"
+      ],
+      [
+        "woodText",
+        "woodTop",
+        "woodBottom"
+      ]
+    ],
+    "molten": [
+      [
+        "moltenMainText",
+        "moltenMainTop",
+        "moltenMainBottom"
+      ],
+      [
+        "moltenText",
+        "moltenTop",
+        "moltenBottom"
+      ]
+    ],
+    "arcane": [
+      [
+        "arcaneMainText",
+        "arcaneMainTop",
+        "arcaneMainBottom"
+      ],
+      [
+        "arcaneText",
+        "arcaneTop",
+        "arcaneBottom"
+      ]
+    ]
+  }
+}

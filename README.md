@@ -47,7 +47,7 @@ Everything else is in the sidebar too. **Assumptions** sets your HP, Slayer task
 (kills, spec energy and food), raid scaling and pre-fight defence reductions. **Rules** lists your locks,
 excluded items and prayers, spell rules and extra owned items, with a search to add more. **Settings** covers
 search options, attack styles, equipment, experience filters, fill empty slots, combat boosts and display
-(the NPC right-click option and highlights).
+(the NPC right-click option, highlights and the panel theme).
 
 ![The Assumptions, Rules and Settings panels in the sidebar](https://raw.githubusercontent.com/aknaus1/best-gear-setup/main/docs/images/settings.png)
 

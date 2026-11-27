@@ -21,6 +21,7 @@ class SettingsPanel extends JPanel
 	private static final int SPINNER_COLUMNS = 6;
 
 	private final SettingRows settingRows;
+	private final ThemeEditor themeEditor;
 
 	SettingsPanel(BestGearSetupPlugin plugin, Options config, ConfigDescriptor descriptor)
 	{
@@ -64,6 +65,11 @@ class SettingsPanel extends JPanel
 				first = first == null ? group : first;
 			}
 		}
+		SidebarSection custom = accordion.create("themeEditor", "Custom theme");
+		custom.setToolTip("Make, export and import your own theme");
+		themeEditor = new ThemeEditor(plugin, config);
+		custom.getContent().add(themeEditor);
+		add(Sidebar.left(custom));
 		if (first != null)
 		{
 			first.setExpanded(true);
@@ -88,5 +94,6 @@ class SettingsPanel extends JPanel
 	void refresh()
 	{
 		settingRows.refresh();
+		themeEditor.refresh();
 	}
 }

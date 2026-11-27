@@ -22,6 +22,8 @@ public final class ConfigSettings
 		add("bankHighlightColor", Options::bankHighlightColor);
 		add("highlightInventoryGear", Options::highlightInventoryGear);
 		add("inventoryHighlightColor", Options::inventoryHighlightColor);
+		add("theme", Options::theme);
+		add("customTheme", Options::customTheme);
 		add("fillFood", Options::fillFood);
 		add("mode", Options::mode);
 		add("budget", Options::budget);

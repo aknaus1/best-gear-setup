@@ -268,13 +268,13 @@ class ConstraintsPanel extends JPanel
 			@Override
 			public void mouseEntered(MouseEvent e)
 			{
-				toggle.setBackground(Controls.ROW_HOVER);
+				toggle.setBackground(Theme.color("rowHover"));
 			}
 
 			@Override
 			public void mouseExited(MouseEvent e)
 			{
-				toggle.setBackground(Controls.WELL);
+				toggle.setBackground(Theme.color("well"));
 			}
 		});
 		return toggle;
@@ -621,6 +621,7 @@ class ConstraintsPanel extends JPanel
 			suggestions.removeAll();
 			suggester.run();
 			Controls.outlineList(suggestions);
+			Controls.restyle(suggestions);
 			suggestions.revalidate();
 			suggestions.repaint();
 		}
@@ -646,6 +647,7 @@ class ConstraintsPanel extends JPanel
 				button.addActionListener(e -> clear.run());
 				list.add(transparent(button));
 			}
+			Controls.restyle(list);
 			list.revalidate();
 			list.repaint();
 			section.setSummary(count);
