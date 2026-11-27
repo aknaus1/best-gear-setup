@@ -86,6 +86,7 @@ public final class ConfigSettings
 		add("specSeercullDamage", Options::specSeercullDamage);
 		add("specAyakDamage", Options::specAyakDamage);
 		add("thrall", Options::thrall);
+		add("activeEncounter", Options::activeEncounter);
 		add("taskMode", Options::taskMode);
 		add("autoRaid", Options::autoRaid);
 		add("autoSpecs", Options::autoSpecs);

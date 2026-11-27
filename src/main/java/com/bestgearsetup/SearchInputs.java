@@ -22,10 +22,10 @@ import java.util.stream.Collectors;
 final class SearchInputs
 {
 	/**
-	 * Settings no style tab reads: menu and highlight presentation, trip supplies, the target list's boss filter,
+	 * Settings no style tab reads: menu, combat following and highlight presentation, trip supplies, the target list's boss filter,
 	 * and the style toggles, which only choose which tabs run (each tab searches its own {@link Style.Type}).
 	 */
-	static final Set<String> UNSEARCHED = new HashSet<>(Arrays.asList("showMenuOption", "highlightBankGear",
+	static final Set<String> UNSEARCHED = new HashSet<>(Arrays.asList("showMenuOption", "activeEncounter", "highlightBankGear",
 		"bankHighlightColor", "highlightInventoryGear", "inventoryHighlightColor", "theme", "customTheme", "fillFood", "killsPerTrip",
 		"bossesOnly", "styleStab", "styleSlash", "styleCrush", "styleRanged", "styleMagic", "styleAtlatl"));
 	/**

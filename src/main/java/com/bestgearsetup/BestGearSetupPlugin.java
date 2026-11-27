@@ -57,8 +57,10 @@ public class BestGearSetupPlugin extends Plugin
 	/** The skills a potion can boost, each with the combat class whose potion setting applies to it. */
 	private static final String[] BOOST_SKILLS = {"attack", "strength", "ranged", "magic"};
 	private static final Combat[] BOOST_CLASSES = {Combat.MELEE, Combat.MELEE, Combat.RANGED, Combat.MAGIC};
+	/** Ticks without combat before an encounter ends, about ten seconds: longer than any attack or phase gap. */
+	private static final int ENGAGEMENT_TICKS = 16;
 	/** Settings that change neither a search nor the sidebar. */
-	private static final List<String> NO_SEARCH_KEYS = Arrays.asList("showMenuOption",
+	private static final List<String> NO_SEARCH_KEYS = Arrays.asList("showMenuOption", "activeEncounter",
 		Options.HIGHLIGHT_BANK_GEAR_KEY, Options.BANK_HIGHLIGHT_COLOR_KEY,
 		Options.HIGHLIGHT_INVENTORY_GEAR_KEY, Options.INVENTORY_HIGHLIGHT_COLOR_KEY);
 
@@ -181,6 +183,17 @@ public class BestGearSetupPlugin extends Plugin
 	StoredItemsBridge storedItemsBridge;
 	/** Read and written on the client thread only. */
 	private NPC lookupTarget;
+	/** Client thread: the followed NPC and id, and the NPC you are in combat with and the tick it was last seen. */
+	private NPC activeTarget;
+	private int activeTargetId = -1;
+	private NPC engagedNpc;
+	private int engagedTick;
+	/** Bumped when following stops or a search is cleared, so a queued selection is dropped. */
+	private final AtomicInteger activeSequence = new AtomicInteger();
+	/** Whether the latest search failed, whether it read a live NPC (its task location), and its live raid scaling. */
+	volatile boolean searchFailed;
+	volatile boolean searchedLive;
+	volatile List<Object> searchedRaid;
 	/** Swing thread only: whether this run has started loading the bundled data. */
 	private boolean dataRequested;
 
@@ -300,6 +313,7 @@ public class BestGearSetupPlugin extends Plugin
 		observedQuantities = null;
 		lastSearched = null;
 		lookupTarget = null;
+		dropTarget();
 		if (supplyRefresh != null)
 		{
 			supplyRefresh.stop();
@@ -499,6 +513,10 @@ public class BestGearSetupPlugin extends Plugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged event)
 	{
+		if (event.getGameState() != GameState.LOGGED_IN)
+		{
+			dropTarget();
+		}
 		// Logging out may switch accounts, so recorded storage is dropped; a world hop keeps the account and its storage.
 		if (event.getGameState() == GameState.LOGIN_SCREEN && storedItemsBridge != null)
 		{
@@ -573,6 +591,128 @@ public class BestGearSetupPlugin extends Plugin
 			containersChanged = false;
 			settleOwnedItems(false);
 		}
+		followCombat();
+	}
+
+	/** Client thread: once per tick, follow the NPC you are in combat with; new instances and transformed ids each get a search. */
+	private void followCombat()
+	{
+		Player player = config.activeEncounter() && client.getGameState() == GameState.LOGGED_IN ? client.getLocalPlayer() : null;
+		boolean following = player != null;
+		// Targeting alone (clicking or walking up to an NPC) is not combat; it is once the NPC attacks you back.
+		if (following && player.getInteracting() instanceof NPC && player.getInteracting().getInteracting() == player)
+		{
+			engage((NPC) player.getInteracting());
+		}
+		NPC npc = following ? engaged() : null;
+		if (npc != null && npc == activeTarget && npc.getId() == activeTargetId)
+		{
+			return;
+		}
+		if (npc == null || !isAttackable(npc))
+		{
+			if (activeTarget != null)
+			{
+				dropTarget();
+			}
+			return;
+		}
+		GameData data = gameData;
+		if (data == null)
+		{
+			return;
+		}
+		// Remembered even without a match, so an NPC missing from the data isn't looked up every tick.
+		activeTarget = npc;
+		activeTargetId = npc.getId();
+		Summary match = data.matchNpc(npc.getId(), npc.getName(), npc.getCombatLevel());
+		if (match == null)
+		{
+			return;
+		}
+		lookupTarget = npc;
+		// Either way a selection still queued for an earlier target is dropped.
+		int sequence = activeSequence.incrementAndGet();
+		// A changed raid level, party or path level makes the shown results stale.
+		if (showsSameType(match) && liveRaid(npc, match).key().equals(searchedRaid))
+		{
+			return;
+		}
+		onPanel(p ->
+		{
+			if (sequence == activeSequence.get() && config.activeEncounter())
+			{
+				p.selectMonster(match, true);
+			}
+		});
+	}
+
+	/**
+	 * Whether the results shown (or being searched) fit this monster: the same variant, searched for a live NPC.
+	 * Another NPC of the type then needs no new search.
+	 */
+	boolean showsSameType(Summary match)
+	{
+		Summary last = lastSearched;
+		return last != null && last.getId() == match.getId() && last.getName().equals(match.getName())
+			&& searchedLive && !searchFailed;
+	}
+
+	/** Client thread: the live raid scaling a search for this NPC reads; none without one or with Use active raid off. */
+	private LiveRaid liveRaid(NPC npc, Summary summary)
+	{
+		return npc == null || !config.autoRaid() ? new LiveRaid() : LiveRaid.read(client, summary);
+	}
+
+	/** Your own hits, blocked or not, mark the NPC you are fighting. */
+	@Subscribe
+	public void onHitsplatApplied(HitsplatApplied event)
+	{
+		if (event.getActor() instanceof NPC && event.getHitsplat().isMine())
+		{
+			engage((NPC) event.getActor());
+		}
+	}
+
+	@Subscribe
+	public void onNpcDespawned(NpcDespawned event)
+	{
+		if (event.getNpc() == engagedNpc)
+		{
+			engagedNpc = null;
+		}
+	}
+
+	private void dropTarget()
+	{
+		activeTarget = null;
+		activeTargetId = -1;
+		engagedNpc = null;
+		activeSequence.incrementAndGet();
+	}
+
+	/** Client thread: record combat with an NPC. With several in combat (AoE, chinning) the one you target leads. */
+	private void engage(NPC npc)
+	{
+		Player player = client.getLocalPlayer();
+		if (npc != engagedNpc && engaged() != null && (player == null || player.getInteracting() != npc))
+		{
+			return;
+		}
+		engagedNpc = npc;
+		engagedTick = client.getTickCount();
+	}
+
+	/** Client thread: the NPC you are in combat with, or null once it has died or combat with it has lapsed. */
+	private NPC engaged()
+	{
+		NPC npc = engagedNpc;
+		if (npc != null && (npc.getHealthRatio() == 0 || npc.isDead() || client.getTickCount() - engagedTick > ENGAGEMENT_TICKS))
+		{
+			engagedNpc = null;
+			return null;
+		}
+		return npc;
 	}
 
 	/** Client thread: publish settled ownership, then search again if gear was really gained or lost. */
@@ -668,6 +808,7 @@ public class BestGearSetupPlugin extends Plugin
 	@Subscribe
 	public void onRuneScapeProfileChanged(RuneScapeProfileChanged event)
 	{
+		dropTarget();
 		int generation = searchGeneration.incrementAndGet();
 		tabCache.clear();
 		setBankHighlightedSetup(null);
@@ -872,6 +1013,8 @@ public class BestGearSetupPlugin extends Plugin
 			return;
 		}
 		lastSearched = summary;
+		searchFailed = false;
+		searchedLive = false;
 		int generation = searchGeneration.incrementAndGet();
 		if (search != null)
 		{
@@ -915,6 +1058,7 @@ public class BestGearSetupPlugin extends Plugin
 				}
 			}
 			NPC npc = matchingLiveTarget(summary);
+			searchedLive = npc != null;
 			AccountFacts.TaskRecord assignment = AccountFacts.task(client, configManager, gson);
 			WorldPoint taskLocation = npc != null ? npc.getWorldLocation()
 				: AccountFacts.ready(client) && client.getLocalPlayer() != null ? client.getLocalPlayer().getWorldLocation() : null;
@@ -939,7 +1083,8 @@ public class BestGearSetupPlugin extends Plugin
 			Boolean diary = AccountFacts.diary(client, configManager);
 			detected.put("kandarinDiary", Boolean.TRUE.equals(diary));
 			if (diary == null) { detectedNotes.add("Kandarin hard diary: unknown, so the enchanted bolt bonus isn't assumed."); }
-			LiveRaid liveRaid = npc == null || !config.autoRaid() ? new LiveRaid() : LiveRaid.read(client, summary);
+			LiveRaid liveRaid = liveRaid(npc, summary);
+			searchedRaid = liveRaid.key();
 			detected.putAll(liveRaid.values);
 			Map<String, Object> landed = liveSpecs == null ? Collections.emptyMap() : liveSpecs.overrides(summary.getName());
 			detected.putAll(landed);
@@ -1234,6 +1379,10 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			// Errors (e.g. assertion failures) would otherwise vanish inside the executor's Future.
 			log.warn("Best setup search failed", e);
+			if (generation == searchGeneration.get())
+			{
+				searchFailed = true;
+			}
 			onPanel(generation, p ->
 			{
 				// The kept results belong to an earlier search; don't leave them beside the failure.
@@ -1340,6 +1489,7 @@ public class BestGearSetupPlugin extends Plugin
 		}
 		lastSearched = null;
 		lookupTarget = null;
+		activeSequence.incrementAndGet();
 		searchOwned = null;
 		searchQuantities = null;
 		observedQuantities = null;

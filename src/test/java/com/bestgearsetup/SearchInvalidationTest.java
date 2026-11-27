@@ -227,6 +227,7 @@ public class SearchInvalidationTest
 			}
 		};
 		plugin.ownedItems = owned;
+		plugin.config = new Options() { };
 		plugin.searchOwned = owned.snapshot();
 		plugin.searchQuantities = owned.quantitySnapshot();
 		plugin.lastSearched = new Summary();

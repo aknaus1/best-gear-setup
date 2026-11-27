@@ -675,6 +675,9 @@ public interface Options extends Config
 		return value("thrall", true);
 	}
 
+	@ConfigItem(keyName = "activeEncounter", name = "Active encounter", description = "Follow your combat target and recalculate when it changes", hidden = true)
+	default boolean activeEncounter() { return value("activeEncounter", false); }
+
 	@ConfigItem(keyName = "taskMode", name = "Slayer task", description = "Auto matches your slayer task; On and Off override", hidden = true)
 	default AutoState taskMode() { return value("taskMode", AutoState.AUTO); }
 

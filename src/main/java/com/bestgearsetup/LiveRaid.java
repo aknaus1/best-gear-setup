@@ -14,6 +14,12 @@ final class LiveRaid
 	int maxCombat;
 	boolean raidDetected;
 
+	/** The values a search reads, compared by value. */
+	List<Object> key()
+	{
+		return Arrays.asList(values, maxCombat);
+	}
+
 	static Monster target(Summary summary)
 	{
 		Monster target = new Monster();

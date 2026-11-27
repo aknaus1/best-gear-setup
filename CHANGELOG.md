@@ -48,6 +48,10 @@ the Plugin Hub.
   - Themes colour the whole panel, its text and inputs, not just the buttons; Midnight has square corners and no
     textures.
 - The **Wiki** button is a banner like the game's own Wiki button, in every theme.
+- **Active encounter** (Assumptions → Fight conditions, off by default) follows the NPC you're in combat with: your
+  own hits on it, or it attacking you back while you target it, select it in the sidebar and search its setup. A
+  form listed as its own monster (the Kalphite Queen's airborne form) is searched again; the next NPC of the same
+  type keeps the results shown unless the live raid's level, party or path level has changed.
 
 ## 1.1.4 (released 2026-11-25)
 
