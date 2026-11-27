@@ -7,6 +7,17 @@ the Plugin Hub.
 
 ## Unreleased
 
+## 1.1.5 (in progress)
+
+- Field Guide: right-click a result item to look it up in Field Guide (shown while that plugin is on); Field Guide
+  can open the best setup for a monster.
+- Add **No GE (shop items only)** under the gear source. Owned + budget then buys only items a shop stocks, at the
+  cheapest shop's coin price (items sold only for Tokkul, tickets or points cost no coins and say what they cost),
+  and Best in slot picks from shop items only. Owned gear works as before.
+- **Use my GP** beside the budget sets it to your coins and platinum tokens (bank, inventory and other tracked
+  storage; bank coins count once you've opened the bank).
+- The changelog gets an Unreleased section for branches, and each version says whether it is in progress or
+  released. CONTRIBUTING.md explains where new lines go and how a release is marked.
 - Add a **Theme** setting (Display & interaction), switched at once:
   - **Classic**, the current look and the default.
   - **Forged**: a gold *Find best setup* that light sweeps across, grained stone buttons and chamfered warm-stone
@@ -37,18 +48,6 @@ the Plugin Hub.
   - Themes colour the whole panel, its text and inputs, not just the buttons; Midnight has square corners and no
     textures.
 - The **Wiki** button is a banner like the game's own Wiki button, in every theme.
-
-## 1.1.5 (in progress)
-
-- Field Guide: right-click a result item to look it up in Field Guide (shown while that plugin is on); Field Guide
-  can open the best setup for a monster.
-- Add **No GE (shop items only)** under the gear source. Owned + budget then buys only items a shop stocks, at the
-  cheapest shop's coin price (items sold only for Tokkul, tickets or points cost no coins and say what they cost),
-  and Best in slot picks from shop items only. Owned gear works as before.
-- **Use my GP** beside the budget sets it to your coins and platinum tokens (bank, inventory and other tracked
-  storage; bank coins count once you've opened the bank).
-- The changelog gets an Unreleased section for branches, and each version says whether it is in progress or
-  released. CONTRIBUTING.md explains where new lines go and how a release is marked.
 
 ## 1.1.4 (released 2026-11-25)
 
