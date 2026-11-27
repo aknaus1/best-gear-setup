@@ -195,6 +195,7 @@ public class AssumptionsTest
 		GETTERS.put("specAyakDamage", Options::specAyakDamage);
 		GETTERS.put("excludedPrayers", Options::excludedPrayers);
 		GETTERS.put("thrall", Options::thrall);
+		GETTERS.put("activeEncounter", Options::activeEncounter);
 		GETTERS.put("taskMode", Options::taskMode);
 		GETTERS.put("autoRaid", Options::autoRaid);
 		GETTERS.put("autoSpecs", Options::autoSpecs);

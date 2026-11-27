@@ -177,7 +177,7 @@ next to the target. **Assumptions** and **Rules (count)** open separate views wi
 and your results and scroll position are still there when you come back. **Settings** shows the plugin's
 preferences in the sidebar, with a link to the same page in RuneLite's configuration panel.
 
-**Assumptions** has your HP, the Slayer task override, AoE, Wilderness, Forinthry Surge and Soulreaper
+**Assumptions** has **Active encounter**, your HP, the Slayer task override, AoE, Wilderness, Forinthry Surge and Soulreaper
 stacks, and a **Trip** card with **Kills per trip**, **Spec energy** and **Fill inventory with food**. Raid
 settings only appear for raid targets. **Use active raid** reads the party, mode, invocation
 and path values when the selected NPC belongs to the raid you're in; otherwise your saved planning values
@@ -200,9 +200,23 @@ searches. An invalid threshold counts every equipped item as expensive and shows
 on equipment, not a prediction of what you'd lose on death: protected items aren't subtracted, and
 inventory supplies, loaded ammunition and charges aren't counted. Equipped ammunition is priced per item.
 
-Results are always for a full kill from your saved assumptions. Right-clicking an NPC with **Best setup**
-runs the same search; the live NPC is only used to confirm your Slayer task location and, with **Use active
-raid**, to read raid scaling.
+Results are always for a full kill from your saved assumptions. Right-clicking an NPC with **Best setup**, or
+fighting it with **Active encounter** on, runs the same search; the live NPC is only used to confirm your Slayer
+task location and, with **Use active raid**, to read raid scaling.
+
+**Active encounter** (under **Assumptions → Fight conditions**, off by default) follows the attackable NPC you
+are in combat with, checked once per game tick, and selects and searches it in the sidebar. Combat starts when
+one of your own hitsplats (including blocked hits) lands on the NPC, or when the NPC attacks you back while you
+target it; clicking, walking up to or standing near an NPC does not. With several NPCs hit at once (AoE,
+chinning) the one you target leads. Combat lapses after 16 ticks without either signal, or when the NPC dies or
+despawns. A new NPC, or a new id on the same NPC that is listed as its own monster (the Kalphite Queen's airborne
+form), starts a search unless the results shown (or being searched) are already for that variant and came from a
+live NPC, so fighting the next abyssal demon keeps the results, as do Akkha's forms, which share one entry. With
+**Use active raid** on, a live raid level, party size or path level that differs from the shown search's also
+searches again. A monster picked in the panel didn't read your Slayer task location, so the
+first live fight with it searches again, and so does the next NPC after a failed search. The last target stays
+shown between fights. Following never opens the sidebar and performs no game action; it reads only which NPC
+you're fighting and its id, not overhead prayers, projectiles, animations or attack timers.
 
 **Rules** lists your locks, exclusions and the items you've marked as owned, with the same right-click menus
 as in the results and buttons to remove or reset each one. Its **Excluded prayers** card is the whole prayer

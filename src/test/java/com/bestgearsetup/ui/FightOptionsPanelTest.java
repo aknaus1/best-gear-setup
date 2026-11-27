@@ -224,6 +224,11 @@ public class FightOptionsPanelTest
 			{
 				assertTrue(key, SwingUtilities.isDescendingFrom(control(panel, key), control(panel, "tripContent")));
 			}
+			// Following the combat target is a fight condition, off by default.
+			assertTrue(SwingUtilities.isDescendingFrom(control(panel, "activeEncounter"), control(panel, "fightConditionsContent")));
+			assertFalse(((JCheckBox) control(panel, "activeEncounter")).isSelected());
+			((JCheckBox) control(panel, "activeEncounter")).doClick();
+			assertEquals(true, writes.remove("activeEncounter"));
 			assertTrue(control(panel, "ammoCount") == null);
 			assertTrue(control(panel, "antifire") == null);
 			assertTrue(control(panel, "targetDistance") == null);
