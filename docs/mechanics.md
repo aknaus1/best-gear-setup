@@ -163,7 +163,7 @@ This page covers what the plugin assumes and what it enforces. For installation 
   store first. It looks like Quest Helper's button and sits in the same place beside Close, or just to the
   right of Quest Helper's button when that's showing. Its background shows as selected while the gear
   layout is open.
-- **Clear search**, next to **Find best setup**, cancels the current search and clears its target,
+- **Clear search**, next to **Search again**, cancels the current search and clears its target,
   recommendations, bank and inventory highlights, and bank gear layout. Your saved settings stay.
 - **Inventory highlights** outline the same setup's gear and ammunition in your inventory, including while
   the bank is open. **Highlight inventory gear** and **Inventory color** under **Display & interaction**
@@ -172,7 +172,9 @@ This page covers what the plugin assumes and what it enforces. For installation 
 ## Side panel
 
 The main sidebar keeps the monster search, the relevant variant or phase, the ownership mode and
-**Find best setup** above the results. The budget row only appears in budget mode, and the Wiki link sits
+**Search again** above the results. Picking a target, changing its version or changing a search setting searches
+straight away; what you own, your levels and prices don't, since the bank updates on every withdrawal, so
+**Search again** catches the result up with them. The budget row only appears in budget mode, and the Wiki link sits
 next to the target. **Assumptions** and **Rules (count)** open separate views with a **Back to results** button,
 and your results and scroll position are still there when you come back. **Settings** shows the plugin's
 preferences in the sidebar, with a link to the same page in RuneLite's configuration panel.

@@ -34,7 +34,18 @@ public class PreferenceMigrationTest
 	@Test public void alreadyMigratedSettingsAreNeverOverwritten()
 	{
 		Map<String,String> stored = new HashMap<>(); stored.put("onSlayerTask","true");
-		stored.put(PreferenceMigration.MARKER,"true");
+		stored.put(PreferenceMigration.MARKER,"true"); stored.put(Options.GUIDE_KEY,"false");
 		assertTrue(PreferenceMigration.plan(stored).isEmpty());
+	}
+
+	@Test public void onlyAFreshInstallOpensTheGuide()
+	{
+		// Fresh install: nothing stored yet, so the guide starts unseen and stays so across restarts until closed.
+		assertEquals(false,PreferenceMigration.plan(new HashMap<>()).get(Options.GUIDE_KEY));
+		// Updating from before the guide: settings were already migrated, so it is marked seen.
+		Map<String,String> updating = new HashMap<>(); updating.put(PreferenceMigration.MARKER,"true");
+		assertEquals(Map.of(Options.GUIDE_KEY,true),PreferenceMigration.plan(updating));
+		Map<String,String> unseen = new HashMap<>(); unseen.put(Options.GUIDE_KEY,"false");
+		assertFalse(PreferenceMigration.plan(unseen).containsKey(Options.GUIDE_KEY));
 	}
 }

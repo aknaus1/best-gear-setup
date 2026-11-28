@@ -1,5 +1,6 @@
 package com.bestgearsetup;
 
+import java.awt.Rectangle;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.api.gameval.InterfaceID;
@@ -27,6 +28,8 @@ class BestGearSetupBankButton
 	private boolean enabled;
 	private boolean lastSelected;
 	private boolean lastAvailable;
+	/** Runs when the player opens the gear layout with this button. */
+	Runnable onLayout = () -> {};
 
 	BestGearSetupBankButton(Client client, ClientThread clientThread, BestGearSetupBankView view)
 	{
@@ -187,9 +190,16 @@ class BestGearSetupBankButton
 			else
 			{
 				view.show();
+				onLayout.run();
 			}
 		}
 		update();
+	}
+
+	/** The button's canvas bounds, or null while it isn't shown. */
+	Rectangle bounds()
+	{
+		return background == null || background.isHidden() ? null : background.getBounds();
 	}
 
 	private void remove()

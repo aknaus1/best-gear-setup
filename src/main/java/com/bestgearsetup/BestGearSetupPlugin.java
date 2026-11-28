@@ -60,7 +60,7 @@ public class BestGearSetupPlugin extends Plugin
 	/** Ticks without combat before an encounter ends, about ten seconds: longer than any attack or phase gap. */
 	private static final int ENGAGEMENT_TICKS = 16;
 	/** Settings that change neither a search nor the sidebar. */
-	private static final List<String> NO_SEARCH_KEYS = Arrays.asList("showMenuOption", "activeEncounter",
+	private static final List<String> NO_SEARCH_KEYS = Arrays.asList("showMenuOption", "activeEncounter", Options.GUIDE_KEY,
 		Options.HIGHLIGHT_BANK_GEAR_KEY, Options.BANK_HIGHLIGHT_COLOR_KEY,
 		Options.HIGHLIGHT_INVENTORY_GEAR_KEY, Options.INVENTORY_HIGHLIGHT_COLOR_KEY);
 
@@ -228,6 +228,7 @@ public class BestGearSetupPlugin extends Plugin
 		Theme.setCustom(config.customTheme());
 		Theme.use(config.theme());
 		panel = new Sidebar(this, config, itemManager, spriteManager, skillIconManager);
+		panel.showGuide(!"true".equals(configManager.getConfiguration(Options.GROUP, Options.GUIDE_KEY)));
 		BufferedImage icon = Sidebar.createNavIcon();
 		navButton = NavigationButton.builder()
 			.tooltip("Best Gear Setup")
@@ -240,6 +241,7 @@ public class BestGearSetupPlugin extends Plugin
 		overlayManager.add(inventoryOverlay);
 		eventBus.register(bankView);
 		bankButton = new BestGearSetupBankButton(client, clientThread, bankView);
+		bankButton.onLayout = () -> onPanel(p -> p.guideDone("bank"));
 		eventBus.register(bankButton);
 		bankButton.start();
 		liveSpecs = new LiveSpecs(client, clientThread, config, this::liveSpecsChanged);
@@ -832,7 +834,7 @@ public class BestGearSetupPlugin extends Plugin
 		{
 			if (generation == searchGeneration.get())
 			{
-				p.clearResults("Account changed. Find best setup again to use this account's levels and items.");
+				p.clearResults("Account changed. Click Search again to use this account's levels and items.");
 			}
 			p.syncFromConfig();
 			p.updateOwnedStatus();
@@ -2230,7 +2232,7 @@ public class BestGearSetupPlugin extends Plugin
 	private void migratePreferences()
 	{
 		Map<String, String> stored = new HashMap<>();
-		for (String key : new String[]{PreferenceMigration.MARKER, Options.ON_TASK_KEY, "taskMode",
+		for (String key : new String[]{PreferenceMigration.MARKER, Options.GUIDE_KEY, Options.ON_TASK_KEY, "taskMode",
 			"raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode"})
 		{ stored.put(key, configManager.getConfiguration(Options.GROUP, key)); }
 		PreferenceMigration.plan(stored).forEach((key, value) -> configManager.setConfiguration(Options.GROUP, key, value));
@@ -2284,6 +2286,13 @@ public class BestGearSetupPlugin extends Plugin
 	}
 
 	/** Persist a setting changed from the panel. */
+	/** Client thread: the bank button's bounds while the Getting started guide points at it. */
+	Rectangle guideBankButton()
+	{
+		Sidebar p = panel;
+		return p != null && bankButton != null && "bankButton".equals(p.guideTarget()) ? bankButton.bounds() : null;
+	}
+
 	public void setConfig(String key, Object value)
 	{
 		configManager.setConfiguration(Options.GROUP, key, value);

@@ -62,12 +62,12 @@ public class ThemeChangeTest
 		assertEquals("a profile switch follows the new profile's theme", "MetalButtonUI", painter(panels[0]));
 	}
 
-	/** The look delegate of the Find best setup button. */
+	/** The look delegate of the Search again button. */
 	private static String painter(java.awt.Container root)
 	{
 		for (java.awt.Component child : root.getComponents())
 		{
-			if (child instanceof javax.swing.JButton && "Find best setup".equals(((javax.swing.JButton) child).getText()))
+			if (child instanceof javax.swing.JButton && "Search again".equals(((javax.swing.JButton) child).getText()))
 			{
 				return ((javax.swing.JButton) child).getUI().getClass().getSimpleName();
 			}

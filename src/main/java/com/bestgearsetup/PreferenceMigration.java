@@ -12,6 +12,9 @@ final class PreferenceMigration
 	static Map<String, Object> plan(Map<String, String> old)
 	{
 		Map<String, Object> changes = new LinkedHashMap<>();
+		// Players updating from before the guide, whose settings were already migrated, know the panel: only a fresh
+		// install opens it, and it stays unseen until closed.
+		if (old.get(Options.GUIDE_KEY) == null) { changes.put(Options.GUIDE_KEY, "true".equals(old.get(MARKER))); }
 		if ("true".equals(old.get(MARKER))) { return changes; }
 		// Legacy false was the default, not evidence that the user intended a permanent override.
 		if ("true".equals(old.get(Options.ON_TASK_KEY)) && (old.get("taskMode") == null || "AUTO".equals(old.get("taskMode"))))

@@ -10,7 +10,8 @@ budget, or go straight to best in slot.
 1. Install **Best Gear Setup** from the Plugin Hub.
 2. Log in and open your bank once so the plugin can see what you own.
 3. Open the **Best Gear Setup** sidebar panel, or right-click an NPC and choose **Best setup**.
-4. Search for a monster, pick a mode and click **Find best setup**.
+4. Search for a monster and click it: the search starts straight away, and runs again whenever you change the
+   mode or another setting. After getting new gear or levels, click **Search again**.
 
 Right-click an item in a result to lock it, exclude it or mark it as owned (the special attack weapon can be
 excluded or marked as owned too), or a prayer, spell or potion to exclude it, or add these rules from the
