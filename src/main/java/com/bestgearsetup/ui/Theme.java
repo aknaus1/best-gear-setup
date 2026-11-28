@@ -127,7 +127,7 @@ public enum Theme
 		return current.value(key).getAsString();
 	}
 
-	static Color color(String key)
+	public static Color color(String key)
 	{
 		return current.colors.computeIfAbsent(key,
 			k -> new Color(Integer.parseInt(current.value(k).getAsString().substring(1), 16)));

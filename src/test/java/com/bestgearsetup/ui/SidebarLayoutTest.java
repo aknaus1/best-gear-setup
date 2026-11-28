@@ -83,9 +83,9 @@ public class SidebarLayoutTest
 				JButton options = button(panel, "Assumptions");
 				options.doClick();
 				assertTrue(named(panel, "fightEditor").isVisible());
-				assertFalse(((JScrollPane) panel.getComponent(0)).isVisible());
+				assertFalse(((JScrollPane) named(panel, "resultsScroll")).isVisible());
 				button(panel, "Back to results").doClick();
-				assertTrue(((JScrollPane) panel.getComponent(0)).isVisible());
+				assertTrue(((JScrollPane) named(panel, "resultsScroll")).isVisible());
 				panel.setSize(width, 420);
 				button(panel, "Settings").doClick();
 				assertTrue("Settings opens in the sidebar", named(panel, "settingsEditor").isVisible());
@@ -124,12 +124,12 @@ public class SidebarLayoutTest
 				panel.setSize(width, 420);
 				layout(panel);
 				layout(panel);
-				JScrollPane scroll = (JScrollPane) panel.getComponent(0);
+				JScrollPane scroll = (JScrollPane) named(panel, "resultsScroll");
 				assertTrue("Results should scroll vertically when needed", scroll.getVerticalScrollBar().isVisible());
 				assertEquals("Wide option values must not enlarge the scroll view", scroll.getViewport().getWidth(),
 					scroll.getViewport().getView().getWidth());
 				assertFits(scroll, options);
-				assertFits(scroll, button(panel, "Find best setup"));
+				assertFits(scroll, button(panel, "Search again"));
 				for (Component slot : grid.getComponents())
 				{
 					assertFits(scroll, slot);

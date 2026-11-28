@@ -1,7 +1,7 @@
 package com.bestgearsetup;
 
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
+import com.bestgearsetup.ui.Theme;
+import java.awt.*;
 import java.util.Set;
 import javax.inject.Inject;
 import net.runelite.api.widgets.WidgetItem;
@@ -28,6 +28,21 @@ class BestGearSetupBankOverlay extends WidgetItemOverlay
 		this.itemManager = itemManager;
 		this.bankView = bankView;
 		showOnBank();
+	}
+
+	/** Also outlines the bank button while the Getting started guide points at it. */
+	@Override
+	public Dimension render(Graphics2D graphics)
+	{
+		Dimension size = super.render(graphics);
+		Rectangle button = plugin.guideBankButton();
+		if (button != null)
+		{
+			graphics.setColor(Theme.color("accent"));
+			graphics.setStroke(new BasicStroke(2));
+			graphics.drawRect(button.x, button.y, button.width, button.height);
+		}
+		return size;
 	}
 
 	@Override

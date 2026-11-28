@@ -27,6 +27,8 @@ public interface Options extends Config
 	String INVENTORY_HIGHLIGHT_COLOR_KEY = "inventoryHighlightColor";
 	String THEME_KEY = "theme";
 	String CUSTOM_THEME_KEY = "customTheme";
+	/** Whether the sidebar's Getting started guide was closed; set by the panel, not a config item. */
+	String GUIDE_KEY = "guideSeen";
 
 	/**
 	 * A search snapshot returns its captured value; a plain config or RuneLite's own config proxy uses the declared
