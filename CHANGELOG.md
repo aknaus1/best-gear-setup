@@ -7,15 +7,6 @@ the Plugin Hub.
 
 ## Unreleased
 
-- Getting started guide: a fresh install walks you through the panel step by step in a card above it: your bank, a
-  monster and its version, gear source, the result and its attack style tabs, Settings' attack styles and search
-  options, each Assumptions section, each kind of rule, the bank gear layout, highlights and Search again. Each step
-  highlights its control, including inside Settings, Assumptions and Rules and the bank's gear layout button, and
-  moves on by itself when you do it (pick a monster, open a view, go back, open the gear layout); Close ends it and
-  the **?** by the title opens it again. Players updating from an earlier version don't get it automatically.
-- *Find best setup* is now **Search again**: picking a monster or changing a setting already searches, so the button
-  is for catching up with new gear, levels and prices.
-
 ## 1.1.5 (in progress)
 
 - Field Guide: right-click a result item to look it up in Field Guide (shown while that plugin is on); Field Guide
@@ -61,6 +52,14 @@ the Plugin Hub.
   own hits on it, or it attacking you back while you target it, select it in the sidebar and search its setup. A
   form listed as its own monster (the Kalphite Queen's airborne form) is searched again; the next NPC of the same
   type keeps the results shown unless the live raid's level, party or path level has changed.
+- Getting started guide: a fresh install walks you through the panel step by step in a card above it: your bank, a
+  monster and its version, gear source, the result and its attack style tabs, Settings' attack styles and search
+  options, each Assumptions section, each kind of rule, the bank gear layout, highlights and Search again. Each step
+  highlights its control, including inside Settings, Assumptions and Rules and the bank's gear layout button, and
+  moves on by itself when you do it (pick a monster, open a view, go back, open the gear layout); Close ends it and
+  the **?** by the title opens it again. Players updating from an earlier version don't get it automatically.
+- *Find best setup* is now **Search again**: picking a monster or changing a setting already searches, so the button
+  is for catching up with new gear, levels and prices.
 
 ## 1.1.4 (released 2026-11-25)
 
