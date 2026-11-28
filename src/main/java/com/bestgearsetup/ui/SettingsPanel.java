@@ -22,14 +22,14 @@ class SettingsPanel extends JPanel
 
 	private final SettingRows settingRows;
 	private final ThemeEditor themeEditor;
+	/** Each card's heading counts its changed settings; the total marks the Settings button. */
+	final SidebarSection.Accordion accordion = new SidebarSection.Accordion(false);
 
 	SettingsPanel(BestGearSetupPlugin plugin, Options config, ConfigDescriptor descriptor)
 	{
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
-		settingRows = new SettingRows(plugin, config, descriptor.getItems(), SPINNER_COLUMNS, () ->
-		{
-		});
+		settingRows = new SettingRows(plugin, config, descriptor.getItems(), SPINNER_COLUMNS, this::summarise);
 		List<ConfigItemDescriptor> shown = descriptor.getItems().stream()
 			.filter(item -> !item.getItem().hidden())
 			.sorted(Comparator.comparingInt(ConfigItemDescriptor::position))
@@ -43,7 +43,6 @@ class SettingsPanel extends JPanel
 			}
 		}
 		// One section open at a time, as in the Fight editor, keeps the list short enough to scan.
-		SidebarSection.Accordion accordion = new SidebarSection.Accordion(false);
 		List<ConfigSectionDescriptor> sections = descriptor.getSections().stream()
 			.sorted(Comparator.comparingInt(ConfigSectionDescriptor::position))
 			.collect(Collectors.toList());
@@ -87,7 +86,7 @@ class SettingsPanel extends JPanel
 		JPanel link = Sidebar.left(runeLite);
 		link.setBorder(new EmptyBorder(6, 0, 0, 0));
 		add(link);
-		settingRows.refresh();
+		refresh();
 	}
 
 	/** Show the saved values; called when configuration changes anywhere. */
@@ -95,5 +94,11 @@ class SettingsPanel extends JPanel
 	{
 		settingRows.refresh();
 		themeEditor.refresh();
+		summarise();
+	}
+
+	private void summarise()
+	{
+		accordion.summarise(settingRows::changed);
 	}
 }

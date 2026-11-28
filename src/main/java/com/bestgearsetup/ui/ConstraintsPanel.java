@@ -45,6 +45,8 @@ class ConstraintsPanel extends JPanel
 	private final RuleCard blockedSpells;
 	private final RuleCard owned;
 	private final SidebarSection prayers;
+	/** Each card's heading counts its rules; the total marks the Rules button. */
+	final SidebarSection.Accordion accordion = new SidebarSection.Accordion(true);
 	private final JPanel prayerGrid = new JPanel(new GridLayout(0, 5, 2, 2));
 	/** Excluded names that aren't in the prayer book, such as one typed in an earlier version. */
 	private final JPanel otherPrayers = new JPanel();
@@ -56,7 +58,6 @@ class ConstraintsPanel extends JPanel
 		this.sprites = sprites;
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
-		SidebarSection.Accordion accordion = new SidebarSection.Accordion(true);
 		add(Sidebar.left(accordion.expandCollapseAll("gear")));
 
 		locks = new RuleCard(accordion, "locks", "Locked items",

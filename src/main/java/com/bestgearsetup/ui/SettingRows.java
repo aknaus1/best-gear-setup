@@ -1,8 +1,7 @@
 package com.bestgearsetup.ui;
 
 import com.bestgearsetup.*;
-import java.awt.BorderLayout;
-import java.awt.Color;
+import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.util.*;
@@ -22,6 +21,8 @@ import net.runelite.client.util.ColorUtil;
  */
 final class SettingRows
 {
+	/** Every setting at its declared default. */
+	private static final Options DEFAULTS = new Options() { };
 	private final BestGearSetupPlugin plugin;
 	private final Options config;
 	private final Map<String, ConfigItemDescriptor> descriptors = new HashMap<>();
@@ -156,6 +157,32 @@ final class SettingRows
 	boolean selected(String key)
 	{
 		return ((JCheckBox) control(key)).isSelected();
+	}
+
+	/**
+	 * How many rows under {@code within} show a value other than the setting's default. Rows hidden for this target
+	 * and controls the target forces (disabled) don't count; a collapsed card's rows do.
+	 */
+	int changed(Container within)
+	{
+		int count = 0;
+		for (Map.Entry<String, Function<Options, Object>> entry : settings.entrySet())
+		{
+			JComponent control = control(entry.getKey());
+			JPanel row = rows.get(entry.getKey());
+			count += row.isVisible() && control.isEnabled() && SwingUtilities.isDescendingFrom(row, within)
+				&& !Objects.equals(shown(control), entry.getValue().apply(DEFAULTS)) ? 1 : 0;
+		}
+		return count;
+	}
+
+	private static Object shown(JComponent control)
+	{
+		return control instanceof JCheckBox ? (Object) ((JCheckBox) control).isSelected()
+			: control instanceof JComboBox ? ((JComboBox<?>) control).getSelectedItem()
+			: control instanceof JTextField ? ((JTextField) control).getText()
+			: control instanceof ColorJButton ? ((ColorJButton) control).getColor()
+			: ((JSpinner) control).getValue();
 	}
 
 	/** Show the saved values without saving them again. */

@@ -879,8 +879,14 @@ public class BestGearSetupPlugin extends Plugin
 			return;
 		}
 		// Per-account keys (owned items) change with every bank update; they must not trigger a search.
-		if (event.getProfile() != null || NO_SEARCH_KEYS.contains(key))
+		if (event.getProfile() != null)
 		{
+			return;
+		}
+		// These still show in the panel (and count towards the Settings dot) when changed on RuneLite's page.
+		if (NO_SEARCH_KEYS.contains(key))
+		{
+			onPanel(Sidebar::syncFromConfig);
 			return;
 		}
 		// Kills per trip and food filling change only the trip's supplies, not the gear.

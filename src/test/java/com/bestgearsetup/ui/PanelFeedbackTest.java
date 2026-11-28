@@ -93,6 +93,49 @@ public class PanelFeedbackTest
 	}
 
 	@Test
+	public void editorButtonsAreMarkedWhileTheirOptionsDifferFromDefaults() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			Sidebar plain = new Sidebar(plugin(), new Options() { }, null, null, null);
+			for (String name : new String[]{"fightEditorButton", "gearEditorButton", "settingsButton"})
+			{
+				assertFalse(name + " starts unmarked", ((Sidebar.EditorButton) named(plain, name)).marked);
+			}
+			BestGearSetupPlugin locked = new BestGearSetupPlugin()
+			{
+				@Override public net.runelite.client.config.ConfigDescriptor getConfigDescriptor()
+				{
+					return com.bestgearsetup.ConfigItemsForTests.descriptor();
+				}
+				@Override public OwnedItems getOwnedItems() { return com.bestgearsetup.ConfigItemsForTests.emptyOwnedItems(); }
+				@Override public Map<Slot, SlotLock> getLocks() { return Collections.singletonMap(Slot.HEAD, SlotLock.empty()); }
+				@Override public Set<Integer> getExcluded() { return Collections.emptySet(); }
+				@Override public void setConfig(String key, Object value) { }
+			};
+			Sidebar panel = new Sidebar(locked, new Options()
+			{
+				@Override public int specDwh() { return 2; }
+				@Override public boolean aoe() { return true; }
+				@Override public boolean styleStab() { return false; }
+				// Raid scaling is hidden for a target outside raids, so a changed party size isn't counted.
+				@Override public int raidPartySize() { return 5; }
+			}, null, null, null);
+			Sidebar.EditorButton fight = (Sidebar.EditorButton) named(panel, "fightEditorButton");
+			assertTrue(fight.marked);
+			assertTrue(fight.getToolTipText(), fight.getToolTipText().endsWith("; 2 changed"));
+			assertEquals("Fight conditions (1)", ((javax.swing.JButton) named(panel, "fightConditionsToggle")).getText());
+			assertEquals("Pre-fight preparation (1)", ((javax.swing.JButton) named(panel, "preparationToggle")).getText());
+			Sidebar.EditorButton rules = (Sidebar.EditorButton) named(panel, "gearEditorButton");
+			assertTrue(rules.marked);
+			assertTrue(rules.getToolTipText(), rules.getToolTipText().endsWith("; 1 set"));
+			Sidebar.EditorButton settings = (Sidebar.EditorButton) named(panel, "settingsButton");
+			assertTrue(settings.getToolTipText(), settings.getToolTipText().endsWith("; 1 changed"));
+			assertEquals("Attack styles (1)", ((javax.swing.JButton) named(panel, "optionsToggle")).getText());
+		});
+	}
+
+	@Test
 	public void emptySearchesSayWhyAndWhichTargetIsKept() throws Exception
 	{
 		GameData data = WikiGameData.get(RuneLiteAPI.GSON).gameData(RuneLiteAPI.GSON);

@@ -60,7 +60,9 @@ public class Sidebar extends PluginPanel
 	final JButton useGpButton = new JButton("Use my GP");
 	final JPanel budgetRow = new JPanel(new BorderLayout(4, 0));
 	private final CardLayout views = new CardLayout();
-	private final JButton gearButton = new JButton("Rules");
+	private final EditorButton fightButton = new EditorButton("Assumptions", "Fight conditions, trip, raids and preparation");
+	private final EditorButton gearButton = new EditorButton("Rules", "Locks, exclusions, prayers, spells, owned items");
+	private final EditorButton settingsButton = new EditorButton("Settings", "Search, styles, equipment, boosts and highlights");
 	private final JLabel assumptionsLabel = new JLabel();
 	private final JButton filterBadge = new JButton("Bosses");
 	private JButton editorOrigin;
@@ -123,6 +125,11 @@ public class Sidebar extends PluginPanel
 		this.sprites = new SpriteCache(spriteManager);
 		this.skillIcons = skillIconManager;
 		this.constraints = new ConstraintsPanel(plugin, itemManager, spriteManager == null ? null : sprites);
+		for (SidebarSection.Accordion editor : Arrays.asList(fightOptions.accordion, constraints.accordion,
+			settingsPanel.accordion))
+		{
+			editor.onChange = this::markEditors;
+		}
 
 		setLayout(new BorderLayout());
 		setBorder(new EmptyBorder(8, 8, 8, 8));
@@ -454,14 +461,11 @@ public class Sidebar extends PluginPanel
 		cell.weightx = 1;
 		cell.fill = GridBagConstraints.HORIZONTAL;
 		actions.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		JButton fightButton = new JButton("Assumptions");
 		fightButton.setName("fightEditorButton");
 		fightButton.addActionListener(e -> { editorOrigin = fightButton; openEditor("fight"); });
 		gearButton.setName("gearEditorButton");
 		gearButton.addActionListener(e -> { editorOrigin = gearButton; openEditor("gear"); });
-		JButton settingsButton = new JButton("Settings");
 		settingsButton.setName("settingsButton");
-		settingsButton.setToolTipText("Search, styles, equipment, boosts and highlights");
 		settingsButton.addActionListener(e -> { editorOrigin = settingsButton; openEditor("settings"); });
 		for (JButton action : new JButton[]{fightButton, gearButton, settingsButton})
 		{
@@ -510,6 +514,51 @@ public class Sidebar extends PluginPanel
 
 		syncFromConfig();
 		Controls.restyle(this);
+	}
+
+	/** Mark each editor's button while its options differ from their defaults or it holds rules. */
+	private void markEditors()
+	{
+		fightButton.mark(fightOptions.accordion.changed(), "changed");
+		gearButton.mark(constraints.accordion.changed(), "set");
+		settingsButton.mark(settingsPanel.accordion.changed(), "changed");
+	}
+
+	/** An editor's button, with a dot in the theme's accent at its right while the editor holds changes. */
+	static final class EditorButton extends JButton
+	{
+		private final String tip;
+		boolean marked;
+
+		EditorButton(String text, String tip)
+		{
+			super(text);
+			this.tip = tip;
+			setToolTipText(tip);
+		}
+
+		void mark(int count, String what)
+		{
+			marked = count > 0;
+			setToolTipText(marked ? tip + "; " + count + " " + what : tip);
+			getAccessibleContext().setAccessibleDescription(marked ? count + " " + what : null);
+			repaint();
+		}
+
+		@Override
+		protected void paintComponent(Graphics g)
+		{
+			super.paintComponent(g);
+			if (marked)
+			{
+				Graphics2D dot = (Graphics2D) g.create();
+				dot.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				dot.setColor(Theme.color("accent"));
+				// Midway down the right edge, clear of the corner studs some frames draw
+				dot.fillOval(getWidth() - 8, getHeight() / 2 - 2, 5, 5);
+				dot.dispose();
+			}
+		}
 	}
 
 	/** A captioned drop-down, hidden until the target offers a choice. */
@@ -1044,9 +1093,6 @@ public class Sidebar extends PluginPanel
 			settingsPanel.refresh();
 			updateBudgetEnabled();
 			constraints.refresh();
-			int rules = plugin.getLocks().size() + plugin.getExcluded().size();
-			gearButton.setText("Rules" + (rules == 0 ? "" : " (" + rules + ")"));
-			gearButton.setToolTipText(rules + " locks or exclusions; spells and owned items");
 			searchField.setToolTipText(config.bossesOnly() ? "Searching bosses only" : "Search all monsters");
 		}
 		finally

@@ -3,6 +3,7 @@ package com.bestgearsetup.ui;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.ToIntFunction;
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
@@ -19,6 +20,7 @@ class SidebarSection extends JPanel
 	private final JButton toggle = new JButton();
 	private final JPanel content = new JPanel();
 	private String summary = "";
+	private int count;
 	/** What the section covers, shown under the expand / collapse hint. */
 	private String description;
 
@@ -55,10 +57,13 @@ class SidebarSection extends JPanel
 		return content;
 	}
 
+	/** Show how many options or rules in this card are changed from their defaults. */
 	void setSummary(int count)
 	{
+		this.count = count;
 		summary = count > 0 ? " (" + count + ")" : "";
 		updateToggle();
+		accordion.onChange.run();
 	}
 
 	void setToolTip(String description)
@@ -119,6 +124,10 @@ class SidebarSection extends JPanel
 	{
 		private final List<SidebarSection> sections = new ArrayList<>();
 		private final boolean independent;
+		/** Runs when a card's count changes, so the button that opens this editor can mark it. */
+		Runnable onChange = () ->
+		{
+		};
 
 		Accordion(boolean independent)
 		{
@@ -142,6 +151,19 @@ class SidebarSection extends JPanel
 				row.add(button);
 			}
 			return row;
+		}
+
+		/** Set each card's count; {@code changed} counts the options a card holds that are not at their default. */
+		void summarise(ToIntFunction<SidebarSection> changed)
+		{
+			sections.forEach(section -> section.setSummary(changed.applyAsInt(section)));
+		}
+
+		/** The counts of the cards in view; a card hidden for this target doesn't count. */
+		int changed()
+		{
+			return sections.stream().filter(section -> section.getParent() != null && section.getParent().isVisible())
+				.mapToInt(section -> section.count).sum();
 		}
 
 		SidebarSection create(String key, String title)
