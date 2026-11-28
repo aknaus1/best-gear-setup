@@ -147,10 +147,14 @@ public class SidebarLayoutTest
 				assertTrue(notes.getText().contains("provenance explanation"));
 				panel.clearResults("Account changed");
 				assertTrue(named(panel, "searchDetails") == null);
-				((JButton) named(panel, "gearEditorButton")).setText("Rules (99)");
+				// Each editor's change dot is painted inside its button, so marking all three leaves the labels room.
+				for (String name : new String[]{"fightEditorButton", "gearEditorButton", "settingsButton"})
+				{
+					((Sidebar.EditorButton) named(panel, name)).mark(99, "changed");
+				}
 				layout(panel);
 				layout(panel);
-				for (String label : new String[]{"Assumptions", "Rules (99)", "Settings"})
+				for (String label : new String[]{"Assumptions", "Rules", "Settings"})
 				{
 					JButton action = button(panel, label);
 					assertTrue(label + " must fit its button at " + width + "px",

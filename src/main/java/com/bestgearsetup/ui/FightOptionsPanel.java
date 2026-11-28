@@ -14,14 +14,12 @@ import net.runelite.client.ui.ColorScheme;
 /** Boss lookup assumptions, edited here while configuration stores their existing keys. */
 class FightOptionsPanel extends JPanel
 {
-	/** Pre-fight drains, counted in the collapsed section's heading when any is set. */
-	private static final String[] PREPARATION = {"specVulnerability", "specTomeOfWater", "specElderMaul", "specDwh",
-		"specEmberlight", "specArclight", "specTonalztics", "specBgsDamage", "specSeercullDamage", "specAyakDamage"};
 	/** Wide enough for the largest maximum shown here (2000 damage). */
 	private static final int SPINNER_COLUMNS = 4;
 	private final SettingRows settingRows;
+	/** Each card's heading counts its changed options; the total marks the Assumptions button. */
+	final SidebarSection.Accordion accordion = new SidebarSection.Accordion(true);
 	private final SidebarSection raidSection;
-	private final SidebarSection preparationSection;
 	private final String wildernessTip;
 	private Monster target = new Monster();
 
@@ -30,7 +28,6 @@ class FightOptionsPanel extends JPanel
 	{
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
-		SidebarSection.Accordion accordion = new SidebarSection.Accordion(true);
 		add(Sidebar.left(accordion.expandCollapseAll("fight")));
 		// Each row's control is built as its one-level section is filled.
 		settingRows = new SettingRows(plugin, config, items, SPINNER_COLUMNS, this::updateVisibility);
@@ -47,10 +44,10 @@ class FightOptionsPanel extends JPanel
 		raidSection = accordion.create("raidScaling", "Raid scaling");
 		addRows(raidSection, "autoRaid", "raidPartySize", "toaRaidLevel", "toaPathLevel", "coxChallengeMode", "miningLevel");
 		add(Sidebar.left(raidSection));
-		preparationSection = accordion.create("preparation", "Pre-fight preparation");
+		SidebarSection preparationSection = accordion.create("preparation", "Pre-fight preparation");
 		preparationSection.setToolTipText("Specs and defence drains landed before the fight");
-		addRows(preparationSection, "autoSpecs");
-		addRows(preparationSection, PREPARATION);
+		addRows(preparationSection, "autoSpecs", "specVulnerability", "specTomeOfWater", "specElderMaul", "specDwh",
+			"specEmberlight", "specArclight", "specTonalztics", "specBgsDamage", "specSeercullDamage", "specAyakDamage");
 		add(Sidebar.left(preparationSection));
 		refresh();
 	}
@@ -102,16 +99,7 @@ class FightOptionsPanel extends JPanel
 		settingRows.row("expensiveItemThreshold").setVisible(riskLimited);
 		settingRows.row("forinthrySurge").setVisible(target.getName().contains("revenant") && selected("wilderness"));
 		settingRows.row("specTomeOfWater").setVisible(selected("specVulnerability"));
-		int prepared = 0;
-		for (String key : PREPARATION)
-		{
-			JComponent control = control(key);
-			boolean set = control instanceof JCheckBox ? ((JCheckBox) control).isSelected()
-				: ((Number) ((JSpinner) control).getValue()).intValue() > 0;
-			// The tome only modifies Vulnerability, so it isn't a separate preparation.
-			prepared += set && !key.equals("specTomeOfWater") ? 1 : 0;
-		}
-		preparationSection.setSummary(prepared);
+		accordion.summarise(settingRows::changed);
 		revalidate();
 	}
 

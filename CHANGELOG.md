@@ -7,6 +7,13 @@ the Plugin Hub.
 
 ## Unreleased
 
+- **Assumptions**, **Rules** and **Settings** show a dot in the theme's accent while anything in them is changed
+  from its default; the hover says how many. Every card in those editors counts its changed options in its heading,
+  like the rule cards (Pre-fight preparation now also counts the tome and *Use active defence* turned off). Options
+  hidden for the target, or forced on by it, don't count. Rules now counts all its rules (prayers, spells and owned
+  items too), not only locks and exclusions, and no longer adds the count to its label. Highlight and menu settings
+  changed on RuneLite's config page now show in the panel too.
+
 ## 1.1.5 (in progress)
 
 - Field Guide: right-click a result item to look it up in Field Guide (shown while that plugin is on); Field Guide
