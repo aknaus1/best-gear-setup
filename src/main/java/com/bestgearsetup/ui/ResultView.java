@@ -92,6 +92,7 @@ class ResultView extends JPanel
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 
+		tabs.setName("styleTabs");
 		tabs.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		add(centred(tabs));
 		body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));

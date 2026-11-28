@@ -7,6 +7,15 @@ the Plugin Hub.
 
 ## Unreleased
 
+- Getting started guide: a fresh install walks you through the panel step by step in a card above it: your bank, a
+  monster and its version, gear source, the result and its attack style tabs, Settings' attack styles and search
+  options, each Assumptions section, each kind of rule, the bank gear layout, highlights and Search again. Each step
+  highlights its control, including inside Settings, Assumptions and Rules and the bank's gear layout button, and
+  moves on by itself when you do it (pick a monster, open a view, go back, open the gear layout); Close ends it and
+  the **?** by the title opens it again. Players updating from an earlier version don't get it automatically.
+- *Find best setup* is now **Search again**: picking a monster or changing a setting already searches, so the button
+  is for catching up with new gear, levels and prices.
+
 ## 1.1.5 (in progress)
 
 - Field Guide: right-click a result item to look it up in Field Guide (shown while that plugin is on); Field Guide
@@ -20,7 +29,7 @@ the Plugin Hub.
   released. CONTRIBUTING.md explains where new lines go and how a release is marked.
 - Add a **Theme** setting (Display & interaction), switched at once:
   - **Classic**, the current look and the default.
-  - **Forged**: a gold *Find best setup* that light sweeps across, grained stone buttons and chamfered warm-stone
+  - **Forged**: a gold main button that light sweeps across, grained stone buttons and chamfered warm-stone
     cards and boxes.
   - **Edge**: flat buttons with an orange edge like the open cards.
   - **Runite** (blue forged metal and slate), **Ancient** (Zarosian purple) and **Dragon** (dragon-red buttons with

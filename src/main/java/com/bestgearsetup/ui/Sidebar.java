@@ -3,6 +3,8 @@ package com.bestgearsetup.ui;
 import com.bestgearsetup.*;
 import com.bestgearsetup.calc.*;
 import com.bestgearsetup.data.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -12,6 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.LayerUI;
 import net.runelite.client.config.ConfigDescriptor;
 import net.runelite.client.game.*;
 import net.runelite.client.ui.*;
@@ -30,6 +33,12 @@ public class Sidebar extends PluginPanel
 	private static final int HTML_WIDTH = 160;
 	private static final String WIKI_URL = "https://oldschool.runescape.wiki/";
 	private static final Color ERROR_COLOR = new Color(0xFF6B6B);
+	/**
+	 * The Getting started guide's steps: title, HTML text, the name of the control to outline (or bankButton for the
+	 * bank's button) and the action that moves it on by itself: target, bank, or opening a view (fight, gear, settings,
+	 * results).
+	 */
+	private static final JsonArray GUIDE = Names.load("/com/bestgearsetup/guide.json").getAsJsonArray("steps");
 
 	private final BestGearSetupPlugin plugin;
 	private final Options config;
@@ -58,13 +67,34 @@ public class Sidebar extends PluginPanel
 	private final Map<String, JButton> editorBackButtons = new HashMap<>();
 	private final JLabel budgetError = new JLabel();
 	private final JLabel noMatches = new JLabel();
-	final JButton findButton = new JButton("Find best setup");
+	final JButton findButton = new JButton("Search again");
 	private final JButton clearSearchButton = new JButton("Clear search");
 	final JLabel statusLabel = new JLabel();
 	private final JProgressBar progressBar = new JProgressBar(0, 100);
 	/** Holds the bar with its top gap; hidden whenever no search is running. */
 	private final JPanel progressRow = left(progressBar);
 	private final JLabel ownedLabel = new JLabel();
+	/** The views (results and the editors), under the guide so a step can open any of them. */
+	private final JPanel cards = new JPanel(views);
+	/** The Getting started guide: a card above the views, painted like a result box with the theme's card edge. */
+	private final JPanel guide = new JPanel(new BorderLayout(0, 4))
+	{
+		@Override
+		protected void paintComponent(Graphics g)
+		{
+			Controls.paintFrame(g, getWidth(), getHeight(), Theme.color("boxFill"), Theme.color("cardEdge"));
+		}
+	};
+	final JPanel guideRow = left(guide);
+	private final JLabel guideTitle = new JLabel();
+	private final JLabel guideText = new JLabel();
+	private final JLabel guideCount = new JLabel();
+	final JButton guideBack = new JButton("Back");
+	final JButton guideNext = new JButton();
+	private int guidePage;
+	/** The current step's control name while the guide shows; read on the client thread for the bank button. */
+	private volatile String guideTarget;
+	private Component guideComponent;
 	final JPanel resultsPanel = new JPanel();
 	private final ConstraintsPanel constraints;
 	private final FightOptionsPanel fightOptions;
@@ -94,7 +124,7 @@ public class Sidebar extends PluginPanel
 		this.skillIcons = skillIconManager;
 		this.constraints = new ConstraintsPanel(plugin, itemManager, spriteManager == null ? null : sprites);
 
-		setLayout(views);
+		setLayout(new BorderLayout());
 		setBorder(new EmptyBorder(8, 8, 8, 8));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 
@@ -111,9 +141,93 @@ public class Sidebar extends PluginPanel
 		Controls.badge(filterBadge);
 		filterBadge.setToolTipText("Bosses only; click to search all monsters");
 		filterBadge.addActionListener(e -> allButton.doClick());
-		titleRow.add(filterBadge, BorderLayout.EAST);
+		JButton help = new JButton("?");
+		help.setName("guideButton");
+		Controls.ghost(help);
+		help.setToolTipText("Getting started guide");
+		help.addActionListener(e -> showGuide(!guideRow.isVisible()));
+		JPanel badges = new JPanel(new BorderLayout(4, 0));
+		badges.setOpaque(false);
+		badges.add(filterBadge, BorderLayout.CENTER);
+		badges.add(help, BorderLayout.EAST);
+		titleRow.add(badges, BorderLayout.EAST);
 		content.add(left(titleRow));
 		content.add(spacer(6));
+
+		guide.setName("guide");
+		guide.setOpaque(false);
+		guide.setBorder(new EmptyBorder(4, 7, 5, 7));
+		guideTitle.setFont(FontManager.getRunescapeBoldFont());
+		guideTitle.setForeground(Color.WHITE);
+		JButton close = new JButton("Close");
+		close.setName("guideClose");
+		Controls.ghost(close);
+		close.addActionListener(e -> showGuide(false));
+		JPanel guideHead = new JPanel(new BorderLayout());
+		guideHead.setOpaque(false);
+		guideHead.add(guideTitle, BorderLayout.CENTER);
+		guideHead.add(close, BorderLayout.EAST);
+		guide.add(guideHead, BorderLayout.NORTH);
+		setSmall(guideText, Color.WHITE);
+		guide.add(guideText, BorderLayout.CENTER);
+		guideBack.addActionListener(e -> showGuidePage(guidePage - 1));
+		guideNext.addActionListener(e ->
+		{
+			if (guidePage + 1 < GUIDE.size()) { showGuidePage(guidePage + 1); }
+			else { showGuide(false); }
+		});
+		JPanel guideNav = new JPanel(new BorderLayout(4, 0));
+		guideNav.setOpaque(false);
+		for (JButton button : new JButton[]{guideBack, guideNext})
+		{
+			Controls.secondary(button);
+			button.setFocusable(false);
+		}
+		guideNav.add(guideBack, BorderLayout.WEST);
+		setSmall(guideCount, ColorScheme.LIGHT_GRAY_COLOR);
+		guideCount.setHorizontalAlignment(SwingConstants.CENTER);
+		guideNav.add(guideCount, BorderLayout.CENTER);
+		guideNav.add(guideNext, BorderLayout.EAST);
+		guide.add(guideNav, BorderLayout.SOUTH);
+		guideRow.setBorder(new EmptyBorder(0, 0, 6, 0));
+		guideRow.setVisible(false);
+		// Every step takes the tallest step's height, so Back and Next stay put while paging.
+		int tallest = 0;
+		for (int page = 0; page < GUIDE.size(); page++)
+		{
+			showGuidePage(page);
+			tallest = Math.max(tallest, guideText.getPreferredSize().height);
+		}
+		guideText.setPreferredSize(new Dimension(0, tallest));
+		guideText.setVerticalAlignment(SwingConstants.TOP);
+		add(guideRow, BorderLayout.NORTH);
+		cards.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		// The layer paints the outline over the views, so it stays on top while an outlined button animates.
+		add(new JLayer<>(cards, new LayerUI<JPanel>()
+		{
+			@Override
+			public void paint(Graphics g, JComponent c)
+			{
+				super.paint(g, c);
+				// Results are rebuilt by every search, so find the control again once it's gone.
+				if (guideTarget != null && (guideComponent == null || !guideComponent.isShowing()))
+				{
+					guideComponent = named(cards, guideTarget);
+				}
+				if (guideComponent instanceof JComponent && guideComponent.isShowing())
+				{
+					Rectangle r = SwingUtilities.convertRectangle(guideComponent, ((JComponent) guideComponent).getVisibleRect(), c);
+					if (!r.isEmpty())
+					{
+						Graphics2D g2 = (Graphics2D) g.create();
+						g2.setColor(Theme.color("accent"));
+						g2.setStroke(new BasicStroke(2));
+						g2.drawRect(r.x + 1, r.y + 1, r.width - 2, r.height - 2);
+						g2.dispose();
+					}
+				}
+			}
+		}), BorderLayout.CENTER);
 
 		ButtonGroup filterGroup = new ButtonGroup();
 		for (JToggleButton button : new JToggleButton[]{bossesButton, allButton})
@@ -131,6 +245,7 @@ public class Sidebar extends PluginPanel
 		// The search filter is a persistent plugin preference; these buttons are never shown and only hold its state.
 
 		Controls.search(searchField, PANEL_WIDTH - 16, "Search monsters...", this::updateSuggestions);
+		searchField.setName("search");
 		searchField.setEnabled(false);
 		searchField.addActionListener(e ->
 		{
@@ -168,6 +283,7 @@ public class Sidebar extends PluginPanel
 		content.add(left(noMatches));
 		content.add(spacer(6));
 
+		versionRow.setName("version");
 		content.add(choiceRow(versionRow, versionBox, "Version", "Boss phase or monster variant to search against"));
 		versionBox.setRenderer(new DefaultListCellRenderer()
 		{
@@ -234,6 +350,7 @@ public class Sidebar extends PluginPanel
 		settings.setLayout(new BoxLayout(settings, BoxLayout.Y_AXIS));
 		settings.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		modeBox.setFocusable(false);
+		modeBox.setName("mode");
 		Controls.field(modeBox);
 		JLabel modeLabel = Controls.caption("Gear source");
 		modeLabel.setLabelFor(modeBox);
@@ -306,6 +423,9 @@ public class Sidebar extends PluginPanel
 		content.add(spacer(6));
 
 		findButton.setEnabled(false);
+		findButton.setName("findButton");
+		// Picking a target or changing a setting already searches; this catches up with new gear, levels and prices.
+		findButton.setToolTipText("Re-run with your current gear, levels and prices");
 		findButton.setFocusable(false);
 		Controls.primary(findButton);
 		findButton.addActionListener(e ->
@@ -376,11 +496,14 @@ public class Sidebar extends PluginPanel
 		content.add(progressRow);
 		content.add(spacer(6));
 
+		resultsPanel.setName("results");
 		resultsPanel.setLayout(new BoxLayout(resultsPanel, BoxLayout.Y_AXIS));
 		resultsPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		content.add(left(resultsPanel));
 
-		add(scroll(content), "results");
+		JScrollPane results = scroll(content);
+		results.setName("resultsScroll");
+		cards.add(results, "results");
 		addEditor("Fight assumptions", fightOptions, "fight");
 		addEditor("Rules", constraints, "gear");
 		addEditor("Settings", settingsPanel, "settings");
@@ -432,7 +555,7 @@ public class Sidebar extends PluginPanel
 		header.add(heading, BorderLayout.SOUTH);
 		editor.add(header, BorderLayout.NORTH);
 		editor.add(scroll(body), BorderLayout.CENTER);
-		add(editor, key);
+		cards.add(editor, key);
 	}
 
 	/** A view's body at the top of a vertical scroll pane that keeps it to the sidebar's width. */
@@ -451,11 +574,12 @@ public class Sidebar extends PluginPanel
 
 	private void openEditor(String key)
 	{
-		views.show(this, key);
+		views.show(cards, key);
 		JButton back = editorBackButtons.get(key);
 		if (back != null) { back.requestFocusInWindow(); }
 		revalidate();
 		repaint();
+		guideDone(key);
 	}
 
 	/** Open the Gear view at its lock search, limited to this slot (null for any). */
@@ -464,6 +588,66 @@ public class Sidebar extends PluginPanel
 		editorOrigin = gearButton;
 		openEditor("gear");
 		constraints.startLockSearch(slot);
+	}
+
+	/** Open the Getting started guide at its first step, or close it; closing it marks it seen, so it never opens itself again. */
+	public void showGuide(boolean show)
+	{
+		if (!show && guideRow.isVisible()) { plugin.setConfig(Options.GUIDE_KEY, true); }
+		guideRow.setVisible(show);
+		showGuidePage(0);
+		revalidate();
+		repaint();
+	}
+
+	/** The player did the current step's action (picked a target, opened the bank layout or a view): move on. */
+	public void guideDone(String action)
+	{
+		if (guideRow.isVisible() && action.equals(guideStep("done")) && guidePage + 1 < GUIDE.size())
+		{
+			showGuidePage(guidePage + 1);
+		}
+	}
+
+	/** The control the guide outlines, or null while it's closed. */
+	public String guideTarget()
+	{
+		return guideTarget;
+	}
+
+	private String guideStep(String field)
+	{
+		JsonElement value = GUIDE.get(guidePage).getAsJsonObject().get(field);
+		return value == null ? null : value.getAsString();
+	}
+
+	private void showGuidePage(int page)
+	{
+		guidePage = page;
+		guideTitle.setText(guideStep("title"));
+		guideCount.setText((page + 1) + " / " + GUIDE.size());
+		guideText.setText(html(guideStep("text"), HTML_WIDTH - 14));
+		guideBack.setEnabled(page > 0);
+		guideNext.setText(page + 1 < GUIDE.size() ? "Next" : "Done");
+		guideTarget = guideRow.isVisible() ? guideStep("target") : null;
+		guideComponent = guideTarget == null ? null : named(cards, guideTarget);
+		if (guideComponent instanceof JComponent)
+		{
+			JComponent target = (JComponent) guideComponent;
+			SwingUtilities.invokeLater(() -> target.scrollRectToVisible(new Rectangle(target.getSize())));
+		}
+		cards.repaint();
+	}
+
+	/** The first component under {@code root} with this name. */
+	static Component named(Container root, String name)
+	{
+		for (Component child : root.getComponents())
+		{
+			Component found = name.equals(child.getName()) ? child : child instanceof Container ? named((Container) child, name) : null;
+			if (found != null) { return found; }
+		}
+		return null;
 	}
 
 	/** Show the effective search assumptions without placing another editor above results. */
@@ -580,6 +764,7 @@ public class Sidebar extends PluginPanel
 		monsterLabel.setToolTipText(String.join(", ", monster.getAttributes()));
 		showAssumptions("Task: " + config.taskMode(), "Slayer task is matched automatically; override in Assumptions.");
 		findButton.setEnabled(true);
+		guideDone("target");
 		if (run)
 		{
 			plugin.findBestSetup(monster);
